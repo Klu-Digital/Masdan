@@ -1,0 +1,8 @@
+# Lefthook configuration
+# https://github.com/evilmartians/lefthook
+
+pre-commit:
+  jobs:
+    - name: ultracite
+      run: pnpm exec ultracite fix {staged_files}
+      stage_fixed: true

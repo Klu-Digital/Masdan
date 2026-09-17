@@ -1,0 +1,122 @@
+# Rendered to /etc/nginx/conf.d/default.conf at container start by the nginx
+# image's own envsubst step (see apps/web/Dockerfile). Only the variables named
+# in that script's environment are substituted, so nginx's own `$uri` survives
+# untouched — do not add a plain `${...}` here expecting it to stay literal.
+
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript image/svg+xml;
+
+    # Needed by the API proxy locations below, which put the upstream in a
+    # variable. Docker's embedded DNS is always 127.0.0.11, on plain bridge
+    # networks and on Swarm alike. `valid=10s` is the whole point: a hostname
+    # written literally into `proxy_pass` is resolved once at startup and cached
+    # for the life of the process, so recreating the server container leaves
+    # nginx posting to an IP nothing answers on until nginx itself restarts.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
+    # Applied to every response, error pages included: `add_header` in a
+    # `location` block replaces the inherited set rather than adding to it, so
+    # anything declared here has to be repeated in any location that adds one of
+    # its own. That is why /assets/ below re-states them.
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Cross-Origin-Opener-Policy "same-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()" always;
+
+    # HSTS is only meaningful over TLS and browsers ignore it over plain HTTP, so
+    # it is safe to send unconditionally. It is commented out regardless: this
+    # container is normally behind a proxy that terminates TLS and should own the
+    # header, and a stray `includeSubDomains` on an apex domain is a painful,
+    # slow thing to undo. Uncomment when nginx is the edge.
+    # add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
+
+    # CSP_CONNECT_SRC (spelled without braces here so envsubst leaves the comment
+    # alone) carries the origins the SPA talks to that are not its own. Since the
+    # API is reached through the proxy locations below, it is same-origin and
+    # `'self'` already covers it — so what is left is the object storage
+    # endpoint, because uploads go straight from the browser to a presigned URL
+    # and never pass through this server. That endpoint is deployment specific,
+    # which is the whole reason this file is a template. Leaving it empty is
+    # valid CSP: API calls keep working and only uploads break, which is a
+    # quieter failure than it used to be and worth knowing about.
+    #
+    # Unsetting it entirely is different from setting it empty. envsubst only
+    # substitutes variables that exist in the environment, so an unset one is
+    # left literal and nginx then reads `$CSP_CONNECT_SRC` as one of its own
+    # variables and refuses to start: `unknown "csp_connect_src" variable`. The
+    # Dockerfile's `ENV CSP_CONNECT_SRC=""` is what keeps that from happening.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ${CSP_CONNECT_SRC}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" always;
+
+    # The API, reached on the SPA's own origin. Two prefixes rather than one
+    # because the server mounts them as siblings at its root — /api/auth/* from
+    # better-auth, /rpc and /rpc/* from oRPC — so there is no single prefix that
+    # covers both, and nothing here rewrites the path: the server sees exactly
+    # what it mounts.
+    #
+    # Deliberately narrow. /api-reference (the Scalar docs) and the Prometheus
+    # metrics path are mounted on the same server and are NOT listed here, so
+    # they stay unreachable from the public origin.
+    location /api/auth {
+        set $api_upstream "${SERVER_UPSTREAM}";
+        proxy_pass $api_upstream$request_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        # Append, never overwrite. packages/api/src/client-ip.ts reads the FIRST
+        # hop of x-forwarded-for, so replacing the header with $remote_addr would
+        # hand it this proxy's address and collapse every caller into a single
+        # rate-limit identity.
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # This single header exists to *replace* the inherited set, per the note
+        # above: the API sends its own security headers, including a strict
+        # `default-src 'none'` CSP, and a second CSP header from here would make
+        # the browser enforce the intersection of the two policies. Declaring any
+        # add_header in this location drops all the server-level ones, which is
+        # what we want; nosniff is the one worth restating at the edge.
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location /rpc {
+        set $rpc_upstream "${SERVER_UPSTREAM}";
+        proxy_pass $rpc_upstream$request_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # oRPC can stream a response (event iterators). Buffering would hold the
+        # whole thing until the upstream closed, turning a stream into one late
+        # payload.
+        proxy_buffering off;
+
+        # Above STORAGE_MAX_UPLOAD_BYTES' 25MiB default. File *contents* never
+        # come through here — presigned PUTs go straight to the bucket — but the
+        # default 1m is low enough to bite an ordinary large mutation.
+        client_max_body_size 32m;
+
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Cross-Origin-Opener-Policy "same-origin" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ${CSP_CONNECT_SRC}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" always;
+    }
+
+    # SPA fallback
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

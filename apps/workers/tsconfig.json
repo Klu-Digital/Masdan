@@ -1,0 +1,11 @@
+{
+  "extends": "@k22i/config/tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "dist",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "strictNullChecks": true
+  }
+}

@@ -1,0 +1,161 @@
+name: Release
+run-name: Release • ${{ github.sha }}
+
+# Builds the three deployable images once, then hands the resulting commit SHA to
+# deploy.yml for staging. Production is the SAME artifact, deployed later by
+# dispatching deploy.yml with this SHA — nothing is ever rebuilt for an
+# environment. That is only legal because the images are environment-agnostic:
+# apps/web/Dockerfile defaults VITE_SERVER_URL to "/" and nginx resolves
+# SERVER_UPSTREAM at runtime, so no environment-specific value is inlined at
+# build time. Do not add per-environment build-args here without giving that up.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# The gate on this workflow is branch protection, not a `needs:` edge — ci.yml
+# runs on pull_request, so main is only ever green code. A push that lands
+# directly on main bypasses that, which is the argument for requiring PRs.
+permissions: {}
+
+# Unlike ci.yml, NOT cancel-in-progress. ci.yml can cancel because "nothing in
+# this workflow touches anything outside the runner"; this one pushes images and
+# chains into a real deploy, so a cancelled run can leave a half-tagged registry
+# or a migration applied against code that never rolled.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    name: Build ${{ matrix.app }}
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      # All three are independent; one failing should not hide the other two.
+      fail-fast: false
+      matrix:
+        app: [web, server, workers]
+    env:
+      # Read at step level to decide whether the source-map upload runs. A
+      # job-level `if:` cannot see `secrets`, and a step-level `if:` cannot
+      # either — routing it through `env` is the standard way to branch on
+      # "is this secret configured".
+      POSTHOG_PROJECT_ID: ${{ vars.POSTHOG_PROJECT_ID }}
+      POSTHOG_PERSONAL_API_KEY: ${{ matrix.app == 'server' && secrets.POSTHOG_PERSONAL_API_KEY || '' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # GHCR rejects any uppercase character in a repository path, and
+      # `github.repository` preserves whatever case the owner/repo was created
+      # with. Normalising once here means nothing downstream has to remember.
+      - name: Resolve image name
+        run: |
+          set -euo pipefail
+          repo=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE=${REGISTRY}/${repo}/${{ matrix.app }}" >> "$GITHUB_ENV"
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.IMAGE }}
+          # `sha-<7 chars>` is the only tag anything deploys by: it is immutable,
+          # so "the image on production" stays answerable months later. `main` is
+          # a convenience alias for humans browsing GHCR and is deliberately NOT
+          # what deploy.yml resolves — a moving tag makes a promotion ambiguous.
+          tags: |
+            type=sha,format=short,prefix=sha-
+            type=raw,value=main,enable={{is_default_branch}}
+
+      # Blacksmith's builder is what makes the Dockerfiles' `--mount=type=cache`
+      # on the pnpm store actually persist between runs. On a stock GitHub runner
+      # that cache is cold every time and every build re-downloads the workspace.
+      - name: Setup Blacksmith Builder
+        uses: useblacksmith/setup-docker-builder@e4c1c000c95f9cc255f72940e9c56bcbd1239436 # v1.13.0
+
+      - name: Build and push image
+        uses: useblacksmith/build-push-action@9b0579bbec7a6cad2f171596c57e7ac1e7658850 # v2.3.0
+        with:
+          context: .
+          file: ./apps/${{ matrix.app }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # No build-args on purpose. See the note at the top of this file: the
+          # moment a build-arg carries an environment's value, the image stops
+          # being promotable and you are back to rebuilding per environment.
+          # metadata-action already stamps the commit into
+          # org.opencontainers.image.revision, so the SHA is recoverable from
+          # the image itself without baking it in.
+
+      # --- PostHog source maps (server only, off unless the secrets are set) ---
+      #
+      # Pulled out of the image rather than rebuilt on the runner. The reference
+      # pipeline this replaced built the server twice — once with bun for maps,
+      # once inside Docker for the artifact — which means the maps described a
+      # bundle that was never shipped. Extracting from the pushed image makes
+      # them match by construction.
+      #
+      # Inert until `sourcemap: true` is added to apps/server/tsdown.config.ts:
+      # the guard below skips the upload when there are no .map files, so
+      # enabling the secrets before that change is a no-op rather than a failure.
+      - name: Extract server source maps from the built image
+        id: maps
+        if: matrix.app == 'server' && env.POSTHOG_PROJECT_ID != '' && env.POSTHOG_PERSONAL_API_KEY != ''
+        run: |
+          set -euo pipefail
+          ref="${IMAGE}:sha-${GITHUB_SHA::7}"
+          docker pull "$ref"
+          cid=$(docker create "$ref")
+          docker cp "$cid:/app/apps/server/dist" ./server-dist
+          docker rm "$cid" >/dev/null
+          if compgen -G "./server-dist/*.map" > /dev/null; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No .map files in the server bundle — set \`sourcemap: true\` in apps/server/tsdown.config.ts to enable PostHog source maps."
+          fi
+
+      - name: Inject & upload source maps to PostHog
+        if: steps.maps.outputs.found == 'true'
+        uses: PostHog/upload-source-maps@991172e085213c222c61d2ba6a0b9e57c81e5066 # v2.0.0
+        with:
+          directory: ./server-dist
+          project-id: ${{ vars.POSTHOG_PROJECT_ID }}
+          api-key: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          release-version: ${{ github.sha }}
+          host: ${{ vars.POSTHOG_HOST }}
+
+  deploy-staging:
+    name: Deploy to staging
+    needs: build
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+      image-sha: ${{ github.sha }}
+    # Caps what the called workflow's jobs can ask for. `packages: read` to pull
+    # the images, `contents: write` for the `deployed/staging` tag the record job
+    # moves — that tag is how a later production promotion knows which commit to
+    # name.
+    permissions:
+      contents: write
+      id-token: write
+      packages: read
+    # `inherit` passes the environment-scoped federation credentials and
+    # deployment credentials to the called workflow.
+    secrets: inherit

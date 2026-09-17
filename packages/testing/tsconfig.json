@@ -1,0 +1,7 @@
+{
+  "extends": "@k22i/config/tsconfig.base.json",
+  "include": ["src/**/*.ts"],
+  "compilerOptions": {
+    "strictNullChecks": true
+  }
+}

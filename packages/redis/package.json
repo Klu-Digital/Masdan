@@ -1,0 +1,22 @@
+{
+  "name": "@k22i/redis",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@k22i/env": "workspace:*",
+    "@k22i/observability": "workspace:*",
+    "ioredis": "catalog:"
+  },
+  "devDependencies": {
+    "@k22i/config": "workspace:*",
+    "typescript": "^6.0.3"
+  }
+}

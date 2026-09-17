@@ -1,0 +1,195 @@
+# AGENTS.md
+
+A fullstack TypeScript template: React/TanStack Router web, Expo native, Hono + oRPC API, background workers, Postgres/Drizzle, better-auth. pnpm workspace, `@k22i/*` package scope. `pnpm rename <new-name>` rewrites the scope, the Compose project, the database and the Expo slug for a new project.
+
+## Layout
+
+```
+apps/web       React SPA (TanStack Router, Tailwind, coss ui via packages/ui)
+apps/native    Expo app
+apps/server    Hono HTTP server — mounts auth, oRPC, metrics. Queue PRODUCER only
+apps/workers   pg-boss consumer — runs jobs, cron, queue maintenance
+packages/api   oRPC procedure ladder, middleware, routers. The business logic
+packages/auth  better-auth config, RBAC role definitions
+packages/db    Drizzle schema, migrations, post-migration scripts, dev scripts
+packages/env   Validated env schemas (server/web/native) + the feature-flag registry
+packages/queue Typed pg-boss job registry
+packages/redis Client, cache, rate-limit primitives — all optional
+packages/storage        S3-compatible presigned uploads
+packages/observability  evlog logging + PostHog drain
+packages/testing        Test harness: db, redis, queue, auth helpers
+packages/ui    Shared coss ui primitives (Base UI + Tailwind)
+```
+
+## Commands
+
+```bash
+pnpm dev                # everything; also dev:web / dev:server / dev:workers / dev:native
+pnpm check              # ultracite check — oxlint + oxfmt with the Ultracite preset
+pnpm fix                # ultracite fix — autofix lint + format (pre-commit runs this on staged files)
+pnpm check-types        # tsc across the workspace — NOT part of `check`, run it separately
+pnpm db:deploy          # migrations + pg-boss schema + post-migration scripts
+pnpm db:generate        # new migration from a schema edit
+pnpm db:purge -- --yes  # DESTRUCTIVE local reset
+```
+
+`pnpm db:migrate` alone leaves the pg-boss schema absent — the server boots but logs `queue.start_failed` and every enqueue is broken. Use `db:deploy`.
+
+Ports are deliberately not upstream defaults: server 1900, web 2600, workers 1901, **postgres 4400**, **redis 6666**, minio 5300/5301.
+
+## Tests
+
+The filename routes the test. Three vitest projects:
+
+- `*.db.test.ts` → **db** project: real Postgres via testcontainers, real Redis. Each worker gets its own Redis logical database, flushed between tests.
+- `apps/web/**/*.test.{ts,tsx}` → **web** project: jsdom.
+- everything else `*.test.ts` → **unit** project: node, no I/O.
+
+Run one file: `pnpm exec vitest run --project unit path/to/file.test.ts`.
+
+`@k22i/env/server` freezes its config at import, so `vi.stubEnv` does not work on it. Mock the module instead — `apps/server/src/metrics.test.ts` is the pattern.
+
+## Invariants worth knowing before editing
+
+These are the ones that cost real time to rediscover. The README carries the fuller writeups under each feature's "things that bite".
+
+**Cache invalidation inside a mutation must go through `context.afterCommit()`.** `mutationProcedure` wraps handlers in `db.transaction(...)`, so a `cache.del()` called inline purges a key the transaction may still roll back. The `.use(afterCommit).use(transaction)` order in `packages/api/src/procedures.ts` is load-bearing — reversing it silently reintroduces the bug.
+
+**Sessions live in Postgres, not Redis.** Setting better-auth's `secondaryStorage` stops it writing the `session` row, which breaks the `activeOrganizationId` repair in `packages/auth/src/index.ts` and 403s every new user. `rateLimit.customStorage` is a different door and is the one we use. `packages/auth/src/personal-organization.db.test.ts` guards this.
+
+**Optional infrastructure fails open.** Redis, storage and the queue all degrade to no-ops rather than erroring — with `REDIS_URL` unset the server boots normally, rate limits vanish, and the cache becomes a pass-through. Preserve that when adding callers. The corollary: "no 429s in the logs" is not evidence the limiter works; alert on the `redis.error` log action.
+
+**apps/server enqueues, apps/workers runs.** Cron and queue maintenance belong to workers so nothing competes with the request path. `queue.start()` is fatal in workers and deliberately non-fatal in the server.
+
+**Feature flags are declared in code and valued in the database.** `packages/env/src/flags.ts` is the registry — adding a flag is still a deploy, which is what keeps `FeatureFlagName` a typed union — but its on/off value lives in `feature_flag` and is toggled at `/admin/flags`. Reads go through `getFeatureFlags(db)` / `isFeatureEnabled(db, name)` in `packages/api/src/feature-flags/feature-flags.cache.ts`, cached per process for 30s. Two things follow: the admin `set`/`reset` handlers must invalidate via `context.afterCommit()` and must never read flags inside their own transaction, and hiding UI with `useFeatureFlag` is cosmetic — use `requireFlag()` on the procedure to make something actually unreachable (it answers `NOT_FOUND`, not `FORBIDDEN`).
+
+**Two role columns.** `member.role` is per-organization and is what `requirePermission` reads; `user.role` is global, from better-auth's `admin()` plugin, for back-office powers. Product permissions belong on the first.
+
+**The SPA and the API share one origin.** `VITE_SERVER_URL` defaults to `/`, and nginx in the web image proxies `/api/auth` and `/rpc` to `SERVER_UPSTREAM` — two prefixes, not one, because the server mounts them as siblings at its root. That is what keeps the web image environment-agnostic (one build promotes staging → production). Three things follow: the API needs no public hostname, `TRUST_PROXY_HEADERS` must be on wherever a proxy sits in front or rate limiting keys every caller to the proxy's IP, and the nginx upstream goes through a `resolver` with a variable because a literal hostname in `proxy_pass` is resolved once at startup and cached for the life of the process.
+
+**A route's `head()` title is its breadcrumb.** `AppBreadcrumbs` builds the trail from the matched routes' `head()` meta titles, so naming a screen for the tab names it in the breadcrumb too, and there is no second table of paths to keep in sync. A route with no title contributes no crumb; the root's title is the product name and is skipped. For a dynamic segment, `head({ loaderData })` reads the record — which means the route needs a `loader`, and **`loader` must be written above `head`** or TypeScript infers `loaderData` as `never`. That ordering is why `users.$userId.tsx` and `organizations.$organizationId.tsx` carry an `oxlint-disable sort-keys`.
+
+**Presigned uploads bypass the server's CORS config.** The browser PUTs straight to the bucket, so the _bucket_ must allow the web origin, and the SPA's CSP `connect-src` must include the storage endpoint (`CSP_CONNECT_SRC` in `apps/web/nginx.conf.template`). `S3_ENDPOINT` and `S3_PUBLIC_ENDPOINT` are not the same thing.
+
+## Writing code here
+
+**Procedures.** Add at the right rung of the ladder in `packages/api/src/procedures.ts`: `publicProcedure` → `protectedProcedure` → `orgProcedure` → `adminProcedure`, each with a `mutation` variant that adds the transaction and `afterCommit`. `requirePermission` is the declarative check for route-level authorization; `assertPermission` is the same check as an expression when authorization depends on the row rather than the route. Feature-scoped files live beside their feature (`packages/api/src/files/files.router.ts`), and `*.platform.ts` is the platform-admin surface, which deliberately ignores `organizationId` — say so in a comment, since every other query in this codebase filters on it.
+
+**Logging.** Reach for `log` from `@k22i/observability`, never `console`. Every call carries an `action` — a dotted, snake_cased event name that is the thing you will later grep and alert on (`redis.error`, `queue.start_failed`, `featureflags.read.failed`). Spread `parseError(error)` into the payload rather than stringifying the error yourself.
+
+**Styling.** The `shadcn/*` oxlint rules are errors in app code: no raw colors, no inline styles, no arbitrary values, no unknown classes, and class names must be static strings (no `` `text-${tone}-500` ``). Colors come from the theme in `packages/ui/src/styles/globals.css`. `layout` is the one allowed arbitrary-value escape. Two exemptions are configured deliberately in `oxlint.config.ts`: `packages/ui/src/**` may style itself because it _is_ the design system, and `apps/native/**` is off entirely because it is heroui-native with no shared theme. Import primitives as `@k22i/ui/components/button`; add more with `npx shadcn@latest add @coss/<name> -c packages/ui`.
+
+**Lint deltas from the Ultracite preset.** `no-await-in-loop` is off — plenty of loops here are deliberately sequential (ordered migrations, retry backoff, cursor walks) and the rule's suggested fix is a bug. `react/no-unstable-nested-components` allows render props, for expo-router's `tabBarIcon` and friends. Everything else is the preset, and `pnpm fix` autofixes most of it.
+
+**Comments.** One line, naming the bug the line prevents. [TERSE.md](TERSE.md) has the budget, what earns more than a line, and the directive and template-literal gotchas.
+
+**Migrations and backfills.** `pnpm db:push` is for local iteration only; anything committed gets a migration. Data backfills go in `packages/db/src/post-migration-scripts/`, not migrations.
+
+**Generated files stay untouched:** `apps/web/src/routeTree.gen.ts` and migration `snapshot.json`.
+
+**Env vars.** Adding a server env var means adding it to the matching `.env.example` too — `packages/env/src/env-example.test.ts` fails otherwise. Everything the server reads is validated at startup by `packages/env/src/server.ts`, so a missing variable is a boot error naming it, not a mystery at the first request.
+
+## Ultracite code standards
+
+This project uses **Ultracite**, a zero-config preset over Oxlint + Oxfmt. Most issues are automatically fixable — run `pnpm fix` before committing, and `pnpm check` to see what is outstanding. (`pnpm exec ultracite doctor` diagnoses the setup itself.) The repo's deltas from the preset are in [Writing code here](#writing-code-here); everything below is the preset's baseline.
+
+Write code that is **accessible, performant, type-safe, and maintainable**. Favor clarity and explicit intent over brevity.
+
+### Type safety and explicitness
+
+- Use explicit types for function parameters and return values when they enhance clarity
+- Prefer `unknown` over `any` when the type is genuinely unknown
+- Use const assertions (`as const`) for immutable values and literal types
+- Lean on TypeScript's type narrowing instead of type assertions
+- Extract magic numbers into constants with descriptive names
+
+### Modern JavaScript/TypeScript
+
+- Use arrow functions for callbacks and short functions
+- Prefer `for...of` loops over `.forEach()` and indexed `for` loops
+- Use optional chaining (`?.`) and nullish coalescing (`??`) for safer property access
+- Prefer template literals over string concatenation
+- Use destructuring for object and array assignments
+- Use `const` by default, `let` only when reassignment is needed, never `var`
+
+### Async and promises
+
+- Always `await` promises in async functions — use the return value
+- Use `async/await` syntax instead of promise chains for readability
+- Handle errors in async code with try-catch blocks
+- Keep async functions out of Promise executors
+
+### React and JSX
+
+- Use function components over class components
+- Call hooks at the top level only, never conditionally
+- Specify all dependencies in hook dependency arrays correctly
+- Use the `key` prop for elements in iterables (prefer unique IDs over array indices)
+- Nest children between opening and closing tags instead of passing as props
+- Define components at module scope, not inside other components
+- Use semantic HTML and ARIA attributes for accessibility:
+  - Provide meaningful alt text for images
+  - Use proper heading hierarchy
+  - Add labels for form inputs
+  - Include keyboard event handlers alongside mouse events
+  - Use semantic elements (`<button>`, `<nav>`, etc.) instead of divs with roles
+
+**React 19+:** use ref as a prop instead of `React.forwardRef`.
+
+### Error handling and debugging
+
+- Keep `console.log`, `debugger` and `alert` out of committed code — reach for the logger instead, as [Writing code here](#writing-code-here) describes
+- Throw `Error` objects with descriptive messages, not strings or other values
+- Use `try-catch` blocks meaningfully — catching only to rethrow adds nothing
+- Prefer early returns over nested conditionals for error cases
+
+### Code organization
+
+- Keep functions focused and under reasonable cognitive complexity limits
+- Extract complex conditions into well-named boolean variables
+- Use early returns to reduce nesting
+- Prefer simple conditionals over nested ternary operators
+- Group related code together and separate concerns
+
+### Security
+
+- Add `rel="noopener"` when using `target="_blank"` on links
+- Reach for `dangerouslySetInnerHTML` only when there is genuinely no alternative
+- Keep `eval()` and direct `document.cookie` assignment out of the codebase
+- Validate and sanitize user input
+
+### Performance
+
+- Avoid spread syntax in accumulators within loops
+- Use top-level regex literals instead of creating them in loops
+- Prefer specific imports over namespace imports
+- Avoid barrel files (index files that re-export everything)
+
+### Testing
+
+- Write assertions inside `it()` or `test()` blocks
+- Use async/await in async tests rather than done callbacks
+- Keep `.only` and `.skip` out of committed code
+- Keep test suites reasonably flat — avoid excessive `describe` nesting
+
+### What the linter cannot check
+
+Oxlint catches most of the above automatically. Spend your own attention on:
+
+1. **Business logic correctness** — the linter cannot validate an algorithm
+2. **Meaningful naming** — for functions, variables, and types
+3. **Architecture decisions** — component structure, data flow, API design
+4. **Edge cases** — boundary conditions and error states
+5. **User experience** — accessibility, performance, usability
+6. **Documentation** — comments for subtle logic, per [TERSE.md](TERSE.md)
+
+## Fuller writeups
+
+Each of these has a README section carrying the reasoning the summary above compresses:
+
+- [Feature flags](README.md#feature-flags), [Authorization (RBAC)](README.md#authorization-rbac)
+- [Redis](README.md#redis) and [Cache](README.md#cache), [Object storage](README.md#object-storage)
+- [Security headers](README.md#security-headers), [The web image is environment-agnostic](README.md#the-web-image-is-environment-agnostic)
+- [Page titles and breadcrumbs](README.md#page-titles-and-breadcrumbs), [UI Customization](README.md#ui-customization)
+- [Post-migration scripts](README.md#post-migration-scripts) and its [authoring guide](packages/db/src/dev-scripts/post-migrate/README.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md) — first-run setup, env files, the services to bring up

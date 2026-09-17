@@ -1,0 +1,57 @@
+import { sql } from "drizzle-orm";
+import {
+  bigint,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
+
+import { organization, user } from "./auth";
+
+/** Postgres 18+ native time-ordered UUID, used as the default for every id column. */
+const uuidv7 = sql`uuidv7()`;
+
+export const fileStatuses = ["pending", "ready", "failed"] as const;
+export type FileStatus = (typeof fileStatuses)[number];
+
+/**
+ * One row per object, written before the client gets its presigned URL and left
+ * `pending` until `confirmUpload` verifies the object landed. Every read path
+ * filters on `organizationId`: that is the tenant boundary.
+ */
+export const file = pgTable(
+  "file",
+  {
+    bucket: text("bucket").notNull(),
+    /** ETag from HeadObject. */
+    checksum: text("checksum"),
+    contentType: text("content_type").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    id: uuid("id").primaryKey().default(uuidv7),
+    key: text("key").notNull(),
+    /** Original client-supplied filename, echoed back on download. */
+    name: text("name").notNull(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    /** Null until confirmed; then the bucket's size, not the client's claim. */
+    size: bigint("size", { mode: "number" }),
+    status: text("status", { enum: fileStatuses }).notNull().default("pending"),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    uniqueIndex("file_key_uidx").on(table.key),
+    index("file_organizationId_idx").on(table.organizationId),
+    index("file_userId_idx").on(table.userId),
+    index("file_status_idx").on(table.status),
+  ]
+);

@@ -1,0 +1,28 @@
+{
+  "name": "@k22i/queue",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "queue:migrate": "tsx src/cli/migrate.ts"
+  },
+  "dependencies": {
+    "@k22i/env": "workspace:*",
+    "@k22i/observability": "workspace:*",
+    "dotenv": "catalog:",
+    "drizzle-orm": "catalog:",
+    "pg-boss": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@k22i/config": "workspace:*",
+    "tsx": "^4.23.1",
+    "typescript": "^6.0.3"
+  }
+}

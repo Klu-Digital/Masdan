@@ -1,0 +1,24 @@
+{
+  "name": "@k22i/env",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./flags": "./src/flags.ts",
+    "./server": "./src/server.ts",
+    "./shared-server": "./src/shared-server.ts",
+    "./workers": "./src/workers.ts",
+    "./web": "./src/web.ts",
+    "./native": "./src/native.ts"
+  },
+  "dependencies": {
+    "@t3-oss/env-core": "^0.13.11",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@k22i/config": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "^6.0.3"
+  }
+}

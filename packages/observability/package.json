@@ -1,0 +1,23 @@
+{
+  "name": "@k22i/observability",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@k22i/env": "workspace:*",
+    "evlog": "catalog:"
+  },
+  "devDependencies": {
+    "@k22i/config": "workspace:*",
+    "@orpc/server": "catalog:",
+    "hono": "catalog:",
+    "typescript": "^6.0.3"
+  }
+}

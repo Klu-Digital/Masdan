@@ -1,0 +1,52 @@
+# Panes for `pnpm dev`. Infra (postgres, redis, minio) is already up by the time
+# mprocs starts — `pnpm dev` runs `dev:infra` first — so these are the host
+# processes only.
+#
+# Each proc gets its own pty, which is the point: Vite's redraws and Expo's
+# interactive menu stop fighting each other for one terminal, and each process
+# keeps its own scrollback.
+#
+# Keys: C-a toggles between the process list and the focused pane's terminal
+# (that is how you reach Expo's keypress menu), s starts a stopped proc, x stops
+# one, r restarts, q quits everything.
+
+# The whole reason for the TUI is per-process history, so keep more than the
+# 1000-line default.
+scrollback: 10000
+
+procs:
+  web:
+    shell: vp run --filter web dev
+
+  # `send-keys` rather than `stop: SIGINT`, and the difference is not cosmetic.
+  # These procs are three processes deep — a shell running `vp run`, which spawns
+  # `tsx watch`, which spawns node — and a signal `stop` is delivered to the
+  # direct child only, so the node process that installed the shutdown handler
+  # never sees it and dies with the pty instead. Writing C-c to the terminal
+  # makes the tty line discipline signal the whole foreground process group, the
+  # way pressing Ctrl-C in a real terminal does. Verified by watching for
+  # `workers.shutdown` in the log: absent with `stop: SIGINT`, present with this.
+  #
+  # It matters because the workers shutdown drains in-flight jobs rather than
+  # abandoning them to expiry — see the comment in apps/workers/src/index.ts.
+  server:
+    shell: vp run --filter server dev
+    stop:
+      send-keys: ["<C-c>"]
+
+  workers:
+    shell: vp run --filter workers dev
+    stop:
+      send-keys: ["<C-c>"]
+
+  # Off by default. Expo is slow to boot, noisy, and most sessions never touch
+  # it — press `s` when you want it. It gets a real pty here, so unlike the old
+  # single-stream setup its QR code renders and its keypress menu works.
+  native:
+    shell: vp run --filter native dev
+    autostart: false
+
+  # Container logs, on demand. `pnpm dev:infra` has already started these.
+  infra:
+    shell: docker compose logs -f postgres redis minio
+    autostart: false

@@ -1,0 +1,23 @@
+{
+  "name": "@k22i/storage",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@aws-sdk/client-s3": "catalog:",
+    "@aws-sdk/s3-request-presigner": "catalog:",
+    "@k22i/env": "workspace:*",
+    "@k22i/observability": "workspace:*"
+  },
+  "devDependencies": {
+    "@k22i/config": "workspace:*",
+    "typescript": "^6.0.3"
+  }
+}

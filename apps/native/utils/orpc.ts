@@ -1,0 +1,55 @@
+import type { AppRouterClient } from "@k22i/api/routers/index";
+import { env } from "@k22i/env/native";
+import { createORPCClient } from "@orpc/client";
+import { RPCLink } from "@orpc/client/fetch";
+import { createTanstackQueryUtils } from "@orpc/tanstack-query";
+import { QueryCache, QueryClient } from "@tanstack/react-query";
+import { Platform } from "react-native";
+
+import { authClient } from "@/lib/auth-client";
+
+export const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => {
+      console.log(error);
+    },
+  }),
+});
+
+const expoFetch = async (request: Request, init?: RequestInit) => {
+  const { fetch } = await import("expo/fetch");
+
+  return fetch(request.url, {
+    body: await request.blob(),
+    headers: request.headers,
+    method: request.method,
+    signal: request.signal,
+    ...init,
+  });
+};
+
+export const link = new RPCLink({
+  fetch(request, init) {
+    return expoFetch(request, {
+      ...init,
+      // Better Auth Expo forwards the session cookie manually on native.
+      credentials: Platform.OS === "web" ? "include" : "omit",
+    });
+  },
+  async headers() {
+    if (Platform.OS === "web") {
+      return {};
+    }
+    const headers = new Map<string, string>();
+    const cookies = await authClient.getCookie();
+    if (cookies) {
+      headers.set("Cookie", cookies);
+    }
+    return Object.fromEntries(headers);
+  },
+  url: `${env.EXPO_PUBLIC_SERVER_URL}/rpc`,
+});
+
+export const client: AppRouterClient = createORPCClient(link);
+
+export const orpc = createTanstackQueryUtils(client);

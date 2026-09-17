@@ -1,0 +1,78 @@
+import { env } from "@k22i/env/server";
+import { queue } from "@k22i/queue";
+import { redis } from "@k22i/redis";
+import { resolveStorageConfig } from "@k22i/storage";
+import { sql } from "drizzle-orm";
+
+import { adminProcedure } from "../procedures";
+
+const processStartedAt = Date.now();
+
+export const systemPlatformRouter = {
+  /** Non-secret settings only, explicitly whitelisted — never spread `env`. */
+  config: adminProcedure.handler(() => ({
+    authRateLimit: {
+      enabled: env.AUTH_RATE_LIMIT_ENABLED ?? null,
+      max: env.AUTH_RATE_LIMIT_MAX,
+      windowSeconds: env.AUTH_RATE_LIMIT_WINDOW,
+    },
+    betterAuthUrl: env.BETTER_AUTH_URL,
+    corsOrigin: env.CORS_ORIGIN,
+    metricsEnabled: Boolean(
+      env.PROMETHEUS_METRICS_PATH && env.PROMETHEUS_METRICS_TOKEN
+    ),
+    nodeEnv: env.NODE_ENV,
+    pgBossSchema: env.PGBOSS_SCHEMA,
+    port: env.PORT,
+    queue: {
+      listenNotify: env.QUEUE_LISTEN_NOTIFY,
+      poolMax: env.QUEUE_POOL_MAX,
+    },
+    serviceName: env.SERVICE_NAME,
+    storageMaxUploadBytes: env.STORAGE_MAX_UPLOAD_BYTES,
+    // A warning, not an error: this panel cannot tell whether a proxy actually
+    // sits in front. Behind one, `false` silently keys every rate limit to the
+    // proxy's own IP.
+    trustProxyHeaders: env.TRUST_PROXY_HEADERS,
+  })),
+
+  health: adminProcedure.handler(async ({ context }) => {
+    const dbStart = performance.now();
+    let dbLatencyMs: number | null = null;
+    try {
+      await context.db.execute(sql`select 1`);
+      dbLatencyMs = performance.now() - dbStart;
+    } catch {
+      dbLatencyMs = null;
+    }
+
+    const redisConfigured = redis.isConfigured();
+    let redisReachable = false;
+    if (redisConfigured) {
+      try {
+        // Redis fails open, so an unreachable one is a degraded reading here,
+        // never a thrown error.
+        const pong = await redis.client()?.ping();
+        redisReachable = pong === "PONG";
+      } catch {
+        redisReachable = false;
+      }
+    }
+
+    const storageConfig = resolveStorageConfig();
+
+    return {
+      database: { latencyMs: dbLatencyMs, reachable: dbLatencyMs !== null },
+      nodeEnv: env.NODE_ENV,
+      nodeVersion: process.version,
+      queue: { started: queue.isStarted() },
+      redis: { configured: redisConfigured, reachable: redisReachable },
+      serviceName: env.SERVICE_NAME,
+      storage: {
+        bucket: storageConfig?.bucket ?? null,
+        configured: storageConfig !== null,
+      },
+      uptimeSeconds: Math.floor((Date.now() - processStartedAt) / 1000),
+    };
+  }),
+};

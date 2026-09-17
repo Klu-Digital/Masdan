@@ -1,0 +1,20 @@
+name: Setup workspace
+description: pnpm + Node + a cached, frozen install. Every CI job starts here.
+
+runs:
+  using: composite
+  steps:
+    # No `version` input on purpose: the action reads `packageManager` out of
+    # package.json, so the pnpm version CI uses is the one the repo pins and
+    # there is no second place to bump.
+    - uses: pnpm/action-setup@v6
+
+    # Must come after pnpm/action-setup — `cache: pnpm` needs the pnpm binary on
+    # PATH to resolve the store directory.
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 24
+        cache: pnpm
+
+    - run: pnpm install --frozen-lockfile
+      shell: bash

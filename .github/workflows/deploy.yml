@@ -1,0 +1,418 @@
+name: Deploy
+run-name: Deploy • ${{ inputs.environment }} • ${{ inputs.image-sha || github.sha }}
+
+# Deploys an ALREADY-BUILT commit. Nothing here builds an image — release.yml
+# does that once, on push to main, and this workflow only ever points an
+# environment at one of those existing artifacts.
+#
+# Promotion is therefore just a second run of this workflow:
+#
+#   1. release.yml builds sha-abc1234 and calls this with environment=staging
+#   2. the record job moves the git tag `deployed/staging` to that commit
+#   3. when you are happy, dispatch this workflow with environment=production
+#      and image-sha = `git rev-parse deployed/staging`
+#
+# The resolve job refuses to continue if no image exists for that SHA, so a typo
+# or an unbuilt commit fails before anything touches the database.
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      image-sha:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      image-sha:
+        description: "Commit SHA to deploy. Blank = this ref's HEAD. To promote staging, paste `git rev-parse deployed/staging`."
+        required: false
+        type: string
+
+permissions: {}
+
+# Never cancel a deploy in flight. Cancelling between "migration applied" and
+# "new code rolled" leaves the database ahead of the running app, which is the
+# one state this ordering exists to avoid. Runs queue instead.
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Turn an input SHA into three verified image references. Read-only, and
+  # deliberately NOT environment-scoped so that a bad input fails before a
+  # production reviewer is asked to approve anything.
+  # ---------------------------------------------------------------------------
+  resolve:
+    name: Resolve images
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+      tag: ${{ steps.resolve.outputs.tag }}
+      web: ${{ steps.resolve.outputs.web }}
+      server: ${{ steps.resolve.outputs.server }}
+      workers: ${{ steps.resolve.outputs.workers }}
+      digests: ${{ steps.resolve.outputs.digests }}
+    steps:
+      - name: Log in to Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve and verify image references
+        id: resolve
+        env:
+          INPUT_SHA: ${{ inputs.image-sha }}
+          FALLBACK_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          sha="${INPUT_SHA:-$FALLBACK_SHA}"
+          if ! [[ "$sha" =~ ^[0-9a-fA-F]{7,40}$ ]]; then
+            echo "::error::'$sha' is not a commit SHA."
+            exit 1
+          fi
+          # release.yml tags with metadata-action's `type=sha,format=short`,
+          # which is the first 7 characters. Accepting a full 40-char SHA and
+          # truncating here means you can paste whatever `git rev-parse` gave you.
+          short="${sha:0:7}"
+          tag="sha-${short}"
+          repo=$(echo "$REPOSITORY" | tr '[:upper:]' '[:lower:]')
+
+          digests=""
+          for app in web server workers; do
+            ref="${REGISTRY}/${repo}/${app}:${tag}"
+            # The verification that makes promotion safe: if this SHA was never
+            # built (wrong branch, a force-push that orphaned the commit, a
+            # release run that failed), we stop here rather than migrating the
+            # database for code that does not exist as an artifact.
+            if ! digest=$(docker buildx imagetools inspect "$ref" --format '{{.Manifest.Digest}}' 2>/dev/null); then
+              echo "::error::No image at ${ref}. Was ${sha} built by release.yml?"
+              exit 1
+            fi
+            echo "${app}=${ref}" >> "$GITHUB_OUTPUT"
+            digests="${digests}- \`${app}\` — ${digest}"$'\n'
+          done
+
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          {
+            echo "digests<<EOF"
+            printf '%s' "$digests"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------------------------
+  # Schema first, code second. During any rolling deploy — and for as long as a
+  # rollback window lasts — the PREVIOUS image runs against this schema, so every
+  # migration here has to be backward compatible with it: add nullable columns,
+  # never rename or drop in the same release that stops using something.
+  # ---------------------------------------------------------------------------
+  migrate:
+    name: Migrate database
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+    steps:
+      # The database is not reachable from the public internet, and should not
+      # be. Drop this step only if you move migrations to a Dokploy-side one-off
+      # task; do not drop it by exposing Postgres.
+      - name: Tailscale
+        uses: tailscale/github-action@780049a30b6ff5c378a9e7b389d15ece7a204888 # v4.1.3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Run the migrations out of the image being deployed, not out of a fresh
+      # checkout. apps/server/Dockerfile does `COPY --from=builder /app /app` —
+      # the whole workspace, dev dependencies included — so drizzle-kit, tsx and
+      # packages/db/src/migrations are all already inside the artifact. Using
+      # them makes it structurally impossible to apply a migration set from a
+      # different commit than the code that expects it.
+      #
+      # Binaries are invoked directly because the runner stage has no pnpm:
+      # `npm install -g pnpm` happens in the builder stage, which writes to
+      # /usr/local, and only /app is copied forward.
+      #
+      # Consider putting a lock timeout on the migration connection so a DDL
+      # statement queued behind a long-running transaction fails fast instead of
+      # blocking every query behind it. Cleanest place is the secret itself:
+      #   DATABASE_URL=postgres://...?options=-c%20lock_timeout%3D15s
+      - name: Apply Drizzle migrations
+        env:
+          SERVER_IMAGE: ${{ needs.resolve.outputs.server }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          docker run --rm --network host \
+            --workdir /app/packages/db \
+            -e DATABASE_URL \
+            "$SERVER_IMAGE" \
+            node_modules/.bin/drizzle-kit migrate
+
+      # pg-boss owns its own schema (PGBOSS_SCHEMA, default "pgboss") and
+      # migrates it separately. Calling pg-boss's binary directly rather than
+      # `queue:migrate`, because that script shells out to `pnpm exec pg-boss`
+      # and pnpm is not in the runner image — its only other job is to set the
+      # two variables below out of the validated env.
+      #
+      # Worth sequencing deliberately: apps/workers holds long-lived connections
+      # to this schema. A pg-boss schema migration with old workers still
+      # attached is the one step here that benefits from draining them first.
+      - name: Apply pg-boss schema migrations
+        env:
+          SERVER_IMAGE: ${{ needs.resolve.outputs.server }}
+          PGBOSS_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PGBOSS_SCHEMA: ${{ vars.PGBOSS_SCHEMA || 'pgboss' }}
+        run: |
+          set -euo pipefail
+          docker run --rm --network host \
+            --workdir /app/packages/queue \
+            -e PGBOSS_DATABASE_URL -e PGBOSS_SCHEMA \
+            "$SERVER_IMAGE" \
+            node_modules/.bin/pg-boss migrate
+
+  # ---------------------------------------------------------------------------
+  # Point each Dokploy application at the resolved tag, then trigger it.
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy applications
+    needs: [resolve, migrate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.environment }}
+    permissions:
+      id-token: write
+    steps:
+      - name: Tailscale
+        uses: tailscale/github-action@780049a30b6ff5c378a9e7b389d15ece7a204888 # v4.1.3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci
+
+      # Two calls per application: set the image, then deploy. Without the first
+      # call, `application.deploy` redeploys whatever tag the application is
+      # already configured with — which, if that is a moving tag, means the thing
+      # you promoted is not necessarily the thing you verified.
+      #
+      # Endpoint names track Dokploy's API and have moved between versions; check
+      # ${DOKPLOY_URL}/swagger if a call 404s. Registry credentials for GHCR are
+      # configured in Dokploy itself, not sent here.
+      #
+      # `--insecure` skips TLS verification on these calls, carried over
+      # deliberately because the Dokploy host does not present a certificate that
+      # validates from the runner. It applies only to the two Dokploy endpoints
+      # below, not to the smoke check further down. The API token travels in the
+      # x-api-key header on these requests, so the connection is unauthenticated
+      # in the TLS sense — anything able to intercept the path to DOKPLOY_URL can
+      # read it. Dropping the flag is a one-character change once the host has a
+      # certificate the runner trusts.
+      - name: Set image and deploy
+        env:
+          DOKPLOY_URL: ${{ vars.DOKPLOY_URL }}
+          DOKPLOY_TOKEN: ${{ secrets.DOKPLOY_TOKEN }}
+          WEB_ID: ${{ vars.DOKPLOY_WEB_APPLICATION_ID }}
+          SERVER_ID: ${{ vars.DOKPLOY_SERVER_APPLICATION_ID }}
+          WORKERS_ID: ${{ vars.DOKPLOY_WORKERS_APPLICATION_ID }}
+          WEB_IMAGE: ${{ needs.resolve.outputs.web }}
+          SERVER_IMAGE: ${{ needs.resolve.outputs.server }}
+          WORKERS_IMAGE: ${{ needs.resolve.outputs.workers }}
+        run: |
+          set -euo pipefail
+
+          call() {
+            curl -fsS --insecure -X POST "${DOKPLOY_URL}/api/$1" \
+              -H "x-api-key: ${DOKPLOY_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "$2" > /dev/null
+          }
+
+          release() {
+            local name="$1" id="$2" image="$3"
+            if [ -z "$id" ]; then
+              echo "::error::No Dokploy application id configured for ${name}."
+              exit 1
+            fi
+            echo "→ ${name}: ${image}"
+            call application.saveDockerProvider \
+              "$(jq -n --arg id "$id" --arg image "$image" \
+                  '{applicationId: $id, dockerImage: $image}')"
+            call application.deploy \
+              "$(jq -n --arg id "$id" '{applicationId: $id}')"
+          }
+
+          # Server before workers so the queue's producer and consumer are never
+          # more than one release apart in the wrong direction, and web last so
+          # the SPA is the final thing to change under a user mid-session.
+          release server  "$SERVER_ID"  "$SERVER_IMAGE"
+          release workers "$WORKERS_ID" "$WORKERS_IMAGE"
+          release web     "$WEB_ID"     "$WEB_IMAGE"
+
+      # `application.deploy` returns as soon as the deploy is QUEUED, not when it
+      # is live — so without this step every job below would race the rollout.
+      # This proves the origin is serving, not that it is serving the new build:
+      # there is no version endpoint to compare against. Adding one that echoes
+      # org.opencontainers.image.revision would turn this into a real check.
+      - name: Wait for the origin to come back healthy
+        if: vars.SMOKE_URL != ''
+        env:
+          SMOKE_URL: ${{ vars.SMOKE_URL }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            if curl -fsS --max-time 10 "$SMOKE_URL" > /dev/null; then
+              echo "healthy after ${attempt} attempt(s)"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::${SMOKE_URL} did not return healthy within 10 minutes."
+          exit 1
+
+  # ---------------------------------------------------------------------------
+  # Data backfills, AFTER the new code is live and in a job of their own.
+  #
+  # These are a different shape from the migrations above: seconds of DDL versus
+  # potentially hours of row work. Gating the deploy on them would mean a long
+  # backfill holds the release, and a lost runner kills it halfway. The runner in
+  # packages/db/src/dev-scripts/post-migrate takes a pg advisory lock and records
+  # every script in a ledger, so re-running this job is safe and resumes rather
+  # than repeats.
+  #
+  # Running after the deploy is also what makes it correct: the new code was
+  # deployed against a nullable column and already tolerates un-backfilled rows.
+  # A failure here is red but not an outage — fix forward and re-run this job.
+  # ---------------------------------------------------------------------------
+  post-migrate:
+    name: Post-migration scripts
+    needs: [resolve, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+    steps:
+      - name: Tailscale
+        uses: tailscale/github-action@780049a30b6ff5c378a9e7b389d15ece7a204888 # v4.1.3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # This entrypoint imports @k22i/db and @k22i/observability, both of which
+      # use the shared worker-safe schema. It deliberately does not need the
+      # server's Better Auth or CORS settings.
+      - name: Run pending post-migration scripts
+        env:
+          SERVER_IMAGE: ${{ needs.resolve.outputs.server }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PGBOSS_SCHEMA: ${{ vars.PGBOSS_SCHEMA || 'pgboss' }}
+          SERVICE_NAME: k22i-post-migrate
+        run: |
+          set -euo pipefail
+          docker run --rm --network host \
+            --workdir /app/packages/db \
+            -e NODE_ENV=production \
+            -e DATABASE_URL -e PGBOSS_SCHEMA -e SERVICE_NAME \
+            "$SERVER_IMAGE" \
+            node_modules/.bin/tsx src/dev-scripts/post-migrate/cli.ts run
+
+  # ---------------------------------------------------------------------------
+  # Record what is now running where. `deployed/<environment>` is the answer to
+  # "which commit do I promote?" — `git fetch --tags && git rev-parse
+  # deployed/staging` gives the SHA to paste into a production dispatch.
+  #
+  # Depends on deploy, not post-migrate: a failed backfill does not change the
+  # fact that this commit is what is serving traffic.
+  # ---------------------------------------------------------------------------
+  record:
+    name: Record deployment
+    needs: [resolve, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      # `gh` rather than actions/github-script: it is preinstalled on the runner,
+      # so there is no third-party action pin to keep current for what is one API
+      # call. PATCH first because the tag exists after the first deploy; the 422
+      # fallback covers only the very first run for an environment.
+      - name: Move the deployed/${{ inputs.environment }} tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.resolve.outputs.sha }}
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          ref="tags/deployed/${ENVIRONMENT}"
+          if ! gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/${ref}" \
+              -f sha="$SHA" -F force=true > /dev/null 2>&1; then
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/${ref}" -f sha="$SHA" > /dev/null
+          fi
+          echo "deployed/${ENVIRONMENT} -> ${SHA}"
+
+      - name: Summary
+        env:
+          SHA: ${{ needs.resolve.outputs.sha }}
+          TAG: ${{ needs.resolve.outputs.tag }}
+          DIGESTS: ${{ needs.resolve.outputs.digests }}
+        run: |
+          {
+            echo "## Deployed to \`${{ inputs.environment }}\`"
+            echo
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Commit | \`${SHA}\` |"
+            echo "| Image tag | \`${TAG}\` |"
+            echo "| Git tag | \`deployed/${{ inputs.environment }}\` |"
+            echo
+            echo "### Image digests"
+            echo
+            echo "${DIGESTS}"
+            echo
+            echo "To promote this exact artifact, dispatch **Deploy** with"
+            echo "\`image-sha\` = \`${SHA}\`."
+          } >> "$GITHUB_STEP_SUMMARY"

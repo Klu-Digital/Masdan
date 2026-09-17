@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A new push makes the in-flight run for the same ref irrelevant. Safe to cancel
+# here because nothing in this workflow touches anything outside the runner.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # lefthook's install would write git hooks into the runner's clone. CI *is* the
+  # gate; the hooks only matter on a developer's machine.
+  LEFTHOOK: 0
+  # @k22i/env/web validates this at import and Vite inlines it at build time, so
+  # anything that builds apps/web needs a valid value present. "/" is what the
+  # deployed image uses — same-origin — so CI builds the same shape production
+  # does rather than a throwaway absolute URL.
+  VITE_SERVER_URL: "/"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Fast gates. These are the ones that should fail within a minute or two.
+  # ---------------------------------------------------------------------------
+
+  check:
+    name: Lint & format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-workspace
+      # lefthook runs ultracite over *staged* files only, so this is the only
+      # thing that ever looks at the whole repo.
+      - run: pnpm check
+      # Explicit second step: `ultracite check` reports on formatting, and it is
+      # not obvious from its output whether oxlint ran. `vp lint` is a couple of
+      # seconds and removes the doubt.
+      - run: pnpm lint
+
+  types:
+    name: Types
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-workspace
+      # Deliberately separate from `pnpm check` — ultracite runs with
+      # typeAware/typeCheck off, so nothing else in CI reads a type error. This
+      # covers apps/native too, which has no other job.
+      - run: pnpm check-types
+
+  test-unit:
+    name: Unit & web tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-workspace
+      # Two steps rather than one so a failure names the vitest project. Both are
+      # I/O-free (node + jsdom), which is why they run apart from test-db below.
+      - run: pnpm test:unit
+      - run: pnpm test:web
+
+  # ---------------------------------------------------------------------------
+  # Slow gate. Split out so the fast jobs report first.
+  # ---------------------------------------------------------------------------
+
+  test-db:
+    name: Database tests
+    runs-on: ubuntu-latest
+    # Boots postgres:18 and redis:8-alpine through testcontainers and runs
+    # drizzle-kit migrate against the template database before the first test.
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-workspace
+      # Note: no TESTCONTAINERS_REUSE_ENABLE. Runners are ephemeral, so reuse
+      # buys nothing, and the setup files' unconditional container.stop()
+      # assumes it is off.
+      - run: pnpm test:db
+
+  # ---------------------------------------------------------------------------
+  # Drift gates.
+  # ---------------------------------------------------------------------------
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-workspace
+      # `tsc -b` type-checks apps/server and apps/workers but never bundles
+      # them, so a tsdown/rolldown failure would otherwise surface for the first
+      # time in a Docker build.
+      - run: pnpm build
+
+  migrations:
+    name: Migration drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-workspace
+      # Offline: `generate` diffs the schema against the committed snapshots and
+      # never opens a connection, so no DATABASE_URL is needed. stdin is closed
+      # because drizzle-kit prompts on an ambiguous rename and would otherwise
+      # hang until the job timeout.
+      - name: Regenerate migrations from the schema
+        run: pnpm db:generate < /dev/null
+
+      - name: Fail if the schema moved without a migration
+        run: |
+          # --intent-to-add so `git diff` sees a brand-new migration folder;
+          # untracked files are invisible to it otherwise, and a new folder is
+          # exactly what drift looks like here.
+          git add --intent-to-add packages/db/src/migrations
+          if ! git diff --exit-code -- packages/db/src/migrations; then
+            echo "::error::packages/db/src/schema changed without a committed migration. Run 'pnpm db:generate' and commit the result."
+            exit 1
+          fi
