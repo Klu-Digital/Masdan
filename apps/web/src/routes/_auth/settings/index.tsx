@@ -138,7 +138,7 @@ const RouteComponent = () => {
         <CardHeader>
           <CardTitle>Email</CardTitle>
           <CardDescription>
-            Used to sign in and to receive organization invitations.
+            Used to sign in and to receive household invitations.
           </CardDescription>
         </CardHeader>
         <CardPanel>

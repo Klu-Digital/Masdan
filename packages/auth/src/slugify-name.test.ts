@@ -13,8 +13,8 @@ describe("slugifyName", () => {
     ["Ada   ,,  Lovelace", "ada-lovelace"],
     ["ADA LOVELACE", "ada-lovelace"],
     ["Agent 007", "agent-007"],
-    ["!!! 🚀 ???", "workspace"],
-    ["", "workspace"],
+    ["!!! 🚀 ???", "household"],
+    ["", "household"],
   ];
 
   it.each(cases)("slugifyName(%j) -> %j", (name, expected) => {

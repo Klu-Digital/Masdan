@@ -54,7 +54,7 @@ export const slugifyName = (name: string): string => {
     .toLowerCase()
     .replaceAll(/[^a-z0-9]+/gu, "-")
     .replaceAll(/^-+|-+$/gu, "");
-  return base || "workspace";
+  return base || "household";
 };
 
 export const createAuth = () => {
@@ -100,7 +100,7 @@ export const createAuth = () => {
                 keepCurrentActiveOrganization: true,
                 // How `personalOrganizationId` finds it again at session creation.
                 metadata: { personal: true },
-                name: `${user.name}'s Workspace`,
+                name: `${user.name}'s Household`,
                 // oxlint-disable-next-line no-use-before-define
                 slug: await personalOrgSlug(user),
                 userId: user.id,

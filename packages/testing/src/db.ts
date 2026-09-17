@@ -31,6 +31,14 @@ export const getTestDb = (): Database => {
 };
 
 /**
+ * Seeded by a migration and shared by every test, the same way pg-boss's
+ * `queue` and `schedule` are: reference rows are schema, not fixtures, and
+ * truncating them breaks the `organization.default_currency` foreign key for
+ * every test that signs a user up.
+ */
+const REFERENCE_TABLES = ["currency"];
+
+/**
  * Only the job table. `queue` and `schedule` are schema-shaped rather than
  * data, and every test needs them.
  */
@@ -57,7 +65,7 @@ const truncateQueueJobs = async (client: Pool): Promise<void> => {
  * Truncates every `public` table — drizzle's migration bookkeeping lives in its
  * own schema — plus pg-boss's jobs, which the `public`-only discovery misses.
  * Quoting goes through Postgres's own `format('%I', ...)` so reserved words
- * like `"user"` come out right.
+ * like `"user"` come out right. {@link REFERENCE_TABLES} is held back.
  */
 export const truncateAll = async (): Promise<void> => {
   const client = getTestPool();
@@ -65,7 +73,8 @@ export const truncateAll = async (): Promise<void> => {
   if (cachedTableList === undefined) {
     const result = await client.query<{ tables: string | null }>(
       `SELECT string_agg(format('%I', tablename), ', ') AS tables
-       FROM pg_tables WHERE schemaname = 'public'`
+       FROM pg_tables WHERE schemaname = 'public' AND tablename <> ALL($1)`,
+      [REFERENCE_TABLES]
     );
     cachedTableList = result.rows[0]?.tables ?? "";
   }

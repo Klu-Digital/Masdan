@@ -129,7 +129,7 @@ const InvitationCard = ({ invitationId }: { invitationId: string }) => {
 
   return (
     <AuthShell
-      description={`${inviterEmail} invited you to join as ${role}.`}
+      description={`${inviterEmail} invited you to join their household as ${role}.`}
       title={`Join ${organizationName}`}
     >
       <div className="grid gap-2">

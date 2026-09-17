@@ -22,7 +22,7 @@ export const activeOrganizationQueryOptions = (
       const { data, error } =
         await authClient.organization.getFullOrganization();
       if (error) {
-        throw new Error(error.message ?? "Could not load the organization");
+        throw new Error(error.message ?? "Could not load the household");
       }
       return data ?? null;
     },
@@ -34,7 +34,7 @@ export const organizationsQueryOptions = () =>
     queryFn: async () => {
       const { data, error } = await authClient.organization.list();
       if (error) {
-        throw new Error(error.message ?? "Could not load your organizations");
+        throw new Error(error.message ?? "Could not load your households");
       }
       return data ?? [];
     },

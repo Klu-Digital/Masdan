@@ -34,7 +34,7 @@ const requireOrganization = o.middleware(async ({ context, next }) => {
   const organizationId = context.session?.session.activeOrganizationId;
   const userId = context.session?.user.id;
   if (!organizationId || !userId) {
-    throw new ORPCError("FORBIDDEN", { message: "No active organization" });
+    throw new ORPCError("FORBIDDEN", { message: "No active household" });
   }
 
   const [membership] = await context.db
@@ -47,7 +47,7 @@ const requireOrganization = o.middleware(async ({ context, next }) => {
 
   if (!membership) {
     throw new ORPCError("FORBIDDEN", {
-      message: "Not a member of the active organization",
+      message: "Not a member of the active household",
     });
   }
 

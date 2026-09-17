@@ -10,6 +10,7 @@ export {
   verification,
 } from "./auth";
 export { featureFlag } from "./feature-flags";
+export { currency } from "./finance";
 export {
   postMigration,
   postMigrationStatuses,

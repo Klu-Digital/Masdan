@@ -49,6 +49,8 @@ Run one file: `pnpm exec vitest run --project unit path/to/file.test.ts`.
 
 `@masdan/env/server` freezes its config at import, so `vi.stubEnv` does not work on it. Mock the module instead — `apps/server/src/metrics.test.ts` is the pattern.
 
+Reference tables are held back from the per-test `TRUNCATE` — `REFERENCE_TABLES` in `packages/testing/src/db.ts`. `currency` is seeded by the migration that creates it, because the test template only runs `drizzle-kit migrate`, never post-migration scripts; truncating it would break `organization.default_currency` for every test that signs a user up. A test that mutates a reference row has to put it back.
+
 ## Invariants worth knowing before editing
 
 These are the ones that cost real time to rediscover. The README carries the fuller writeups under each feature's "things that bite".

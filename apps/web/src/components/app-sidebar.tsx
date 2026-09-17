@@ -34,7 +34,7 @@ const navMain: NavItem[] = [
     icon: Settings02Icon,
     items: [
       { title: "Profile", to: "/settings" },
-      { title: "Organization", to: "/settings/organization" },
+      { title: "Household", to: "/settings/organization" },
     ],
     title: "Settings",
     to: "/settings",

@@ -8,7 +8,11 @@ import {
   CardPanel,
   CardTitle,
 } from "@masdan/ui/components/card";
-import { Empty, EmptyDescription, EmptyTitle } from "@masdan/ui/components/empty";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyTitle,
+} from "@masdan/ui/components/empty";
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
 import { Input } from "@masdan/ui/components/input";
 import {
@@ -37,7 +41,10 @@ import {
 } from "@tanstack/react-router";
 import { z } from "zod";
 
+import { HouseholdFinanceCard } from "@/modules/household/components/household-finance-card";
 import { authClient } from "@/lib/auth-client";
+import { currenciesQueryOptions } from "@/modules/currency/queries";
+import { householdProfileQueryOptions } from "@/modules/household/queries";
 import {
   activeOrganizationQueryOptions,
   invalidateOrganizations,
@@ -71,10 +78,8 @@ const MembersCard = ({
 }) => (
   <Card>
     <CardHeader>
-      <CardTitle>Members</CardTitle>
-      <CardDescription>
-        Everyone with access to this organization.
-      </CardDescription>
+      <CardTitle>Household members</CardTitle>
+      <CardDescription>Everyone with access to this household.</CardDescription>
     </CardHeader>
     <CardPanel>
       <Table>
@@ -103,7 +108,7 @@ const MembersCard = ({
       </Table>
       {canInvite ? null : (
         <p className="text-muted-foreground mt-4 text-sm">
-          Your role does not allow inviting people to this organization.
+          Your role does not allow inviting people to this household.
         </p>
       )}
     </CardPanel>
@@ -247,7 +252,7 @@ const InviteForm = ({ organizationId }: { organizationId: string }) => {
       <CardHeader>
         <CardTitle>Invite someone</CardTitle>
         <CardDescription>
-          They join this organization, not the app as a whole.
+          They join this household, not the app as a whole.
         </CardDescription>
       </CardHeader>
       <CardPanel>
@@ -346,7 +351,7 @@ const CreateOrganizationCard = () => {
 
       if (error || !data) {
         toastManager.add({
-          title: error?.message ?? "Could not create the organization",
+          title: error?.message ?? "Could not create the household",
           type: "error",
         });
         return;
@@ -374,7 +379,7 @@ const CreateOrganizationCard = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>New organization</CardTitle>
+        <CardTitle>New household</CardTitle>
         <CardDescription>
           Creating one makes it active immediately.
         </CardDescription>
@@ -437,6 +442,10 @@ const RouteComponent = () => {
   const organization = useQuery(
     activeOrganizationQueryOptions(activeOrganizationId)
   );
+  const householdProfile = useQuery(
+    householdProfileQueryOptions(activeOrganizationId)
+  );
+  const currencies = useQuery(currenciesQueryOptions());
 
   if (organization.isPending) {
     return <Skeleton className="h-64 w-full" />;
@@ -446,7 +455,7 @@ const RouteComponent = () => {
     return (
       <div className="space-y-6">
         <Empty>
-          <EmptyTitle>No active organization</EmptyTitle>
+          <EmptyTitle>No active household</EmptyTitle>
           <EmptyDescription>
             Create one to get started, or accept an invitation you were sent.
           </EmptyDescription>
@@ -464,9 +473,29 @@ const RouteComponent = () => {
     permissions: { invitation: ["create"] },
     role: viewerRole,
   });
+  const canManage = hasPermission({
+    permissions: { organization: ["update"] },
+    role: viewerRole,
+  });
 
   return (
     <div className="space-y-6">
+      {householdProfile.isPending || currencies.isPending ? (
+        <Skeleton className="h-48 w-full" />
+      ) : null}
+      {householdProfile.data && currencies.data ? (
+        <HouseholdFinanceCard
+          activeOrganizationId={organization.data.id}
+          canManage={canManage}
+          currencies={currencies.data}
+          profile={householdProfile.data}
+        />
+      ) : null}
+      {householdProfile.isError || currencies.isError ? (
+        <p className="text-muted-foreground text-sm">
+          Could not load household financial settings.
+        </p>
+      ) : null}
       <MembersCard canInvite={canInvite} members={members} />
       {canInvite ? (
         <>
@@ -484,5 +513,5 @@ const RouteComponent = () => {
 
 export const Route = createFileRoute("/_auth/settings/organization")({
   component: RouteComponent,
-  head: () => ({ meta: [{ title: "Organization" }] }),
+  head: () => ({ meta: [{ title: "Household" }] }),
 });

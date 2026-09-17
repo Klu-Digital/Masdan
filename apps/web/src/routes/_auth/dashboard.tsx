@@ -36,9 +36,9 @@ const RouteComponent = () => {
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Organization</CardTitle>
+            <CardTitle>Household</CardTitle>
             <CardDescription>
-              The workspace everything on this page belongs to.
+              The household this page belongs to.
             </CardDescription>
           </CardHeader>
           <CardPanel>
@@ -46,7 +46,7 @@ const RouteComponent = () => {
               <Skeleton className="h-5 w-40" />
             ) : (
               <p className="text-sm">
-                {organization.data?.name ?? "No active organization"}
+                {organization.data?.name ?? "No active household"}
               </p>
             )}
           </CardPanel>

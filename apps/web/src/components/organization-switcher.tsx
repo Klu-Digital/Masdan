@@ -48,7 +48,7 @@ const OrganizationSwitcher = ({
         organizationId,
       });
       if (error) {
-        throw new Error(error.message ?? "Could not switch organization");
+        throw new Error(error.message ?? "Could not switch household");
       }
 
       // `setActive` rewrites `activeOrganizationId`, so the cached session and
@@ -90,12 +90,12 @@ const OrganizationSwitcher = ({
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">
-                {active?.name ?? "Select organization"}
+                {active?.name ?? "Select household"}
               </span>
               <span className="text-muted-foreground truncate text-xs">
                 {organizations.data?.length === 1
-                  ? "Personal"
-                  : `${organizations.data?.length ?? 0} organizations`}
+                  ? "Personal household"
+                  : `${organizations.data?.length ?? 0} households`}
               </span>
             </div>
             <HugeiconsIcon
@@ -112,7 +112,7 @@ const OrganizationSwitcher = ({
             {/* Base UI requires the label to live inside a group; rendering it
                 bare throws rather than degrading. */}
             <MenuGroup>
-              <MenuGroupLabel>Organizations</MenuGroupLabel>
+              <MenuGroupLabel>Households</MenuGroupLabel>
               {organizations.data?.map((organization) => (
                 <MenuItem
                   key={organization.id}
@@ -135,7 +135,7 @@ const OrganizationSwitcher = ({
               <MenuSeparator />
               <MenuItem render={<Link to="/settings/organization" />}>
                 <HugeiconsIcon icon={PlusIcon} strokeWidth={2} />
-                Manage organizations
+                Manage households
               </MenuItem>
             </MenuGroup>
           </MenuPopup>

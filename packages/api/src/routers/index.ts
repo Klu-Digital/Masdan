@@ -1,7 +1,9 @@
 import type { RouterClient } from "@orpc/server";
 
+import { currenciesRouter } from "../currencies/currencies.router";
 import { featureFlagsRouter } from "../feature-flags/feature-flags.router";
 import { filesRouter } from "../files/files.router";
+import { householdsRouter } from "../households/households.router";
 import { jobsRouter } from "../jobs/jobs.router";
 import { protectedProcedure, publicProcedure } from "../procedures";
 import { adminRouter } from "./admin";
@@ -15,9 +17,11 @@ import { adminRouter } from "./admin";
  */
 export const appRouter = {
   admin: adminRouter,
+  currencies: currenciesRouter,
   featureFlags: featureFlagsRouter,
   files: filesRouter,
   healthCheck: publicProcedure.handler(() => "OK"),
+  households: householdsRouter,
   jobs: jobsRouter,
   privateData: protectedProcedure.handler(({ context }) => ({
     message: "This is private",

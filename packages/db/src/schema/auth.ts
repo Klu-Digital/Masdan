@@ -9,6 +9,8 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+import { currency } from "./finance";
+
 /** Postgres 18+ native time-ordered UUID, used as the default for every id column. */
 const uuidv7 = sql`uuidv7()`;
 
@@ -101,11 +103,22 @@ export const organization = pgTable(
   "organization",
   {
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    /** `restrict`: a currency a household still points at is not deletable. */
+    defaultCurrency: text("default_currency")
+      .default("PHP")
+      .notNull()
+      .references(() => currency.code, { onDelete: "restrict" }),
     id: uuid("id").primaryKey().default(uuidv7),
     logo: text("logo"),
     metadata: text("metadata"),
     name: text("name").notNull(),
     slug: text("slug").notNull(),
+    /**
+     * IANA zone, deliberately not a table: tzdb ships several releases a year
+     * and the runtime doing the conversion (ICU, `pg_timezone_names`) is the
+     * only list that cannot desync from it. Validated at the API boundary.
+     */
+    timezone: text("timezone").default("Asia/Manila").notNull(),
   },
   (table) => [uniqueIndex("organization_slug_uidx").on(table.slug)]
 );

@@ -14,13 +14,17 @@ const personalOrgFor = async (userId: string) => {
   return row?.organization;
 };
 
-describe("personal organization creation on sign-up", () => {
-  it("creates a personal org named after the user, tagged personal in metadata", async () => {
+describe("personal household creation on sign-up", () => {
+  it("creates a personal household with finance defaults and personal metadata", async () => {
     const { user } = await signUpTestUser({ name: "Ada Lovelace" });
 
     const org = await personalOrgFor(user.id);
 
-    expect(org?.name).toBe("Ada Lovelace's Workspace");
+    expect(org).toMatchObject({
+      defaultCurrency: "PHP",
+      name: "Ada Lovelace's Household",
+      timezone: "Asia/Manila",
+    });
     // `organization.metadata` is a JSON-encoded text column, and the hook reads
     // it back through `JSON.parse`.
     expect(JSON.parse(org?.metadata ?? "null")).toMatchObject({
@@ -42,7 +46,7 @@ describe("personal organization creation on sign-up", () => {
     expect(secondOrg?.slug).not.toBe(firstOrg?.slug);
   });
 
-  it("sets the new session's activeOrganizationId to the personal org", async () => {
+  it("sets the new session's activeOrganizationId to the personal household", async () => {
     const { user, headers } = await signUpTestUser();
 
     const org = await personalOrgFor(user.id);

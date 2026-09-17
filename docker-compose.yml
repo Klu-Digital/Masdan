@@ -155,7 +155,7 @@ services:
     restart: unless-stopped
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     container_name: masdan-minio
     init: true
     command: server /data --console-address ":9001"
@@ -180,7 +180,7 @@ services:
 
   # One-shot: creates the bucket. CORS is configured on the minio service above.
   minio-init:
-    image: minio/mc:latest
+    image: quay.io/minio/mc:latest
     init: true
     depends_on:
       minio:
