@@ -2,7 +2,7 @@
 
 Job queue for this template, backed by [pg-boss](https://pgboss.io) on the Postgres you already run — **no Redis, no broker, no extra container.**
 
-The deciding reason is transactional enqueue. `@k22i/api` already wraps mutations in a Drizzle transaction, so a job can be written on that same connection: it commits with the rows it depends on, and vanishes if they roll back. A Redis- or AMQP-backed queue cannot do that without you building an outbox.
+The deciding reason is transactional enqueue. `@masdan/api` already wraps mutations in a Drizzle transaction, so a job can be written on that same connection: it commits with the rows it depends on, and vanishes if they roll back. A Redis- or AMQP-backed queue cannot do that without you building an outbox.
 
 ---
 
@@ -50,7 +50,7 @@ Keep payload schemas plain — **no `.default()` or other transforms.** `enqueue
 In `apps/workers/src/handlers/`:
 
 ```ts
-import type { JobOf } from "@k22i/queue";
+import type { JobOf } from "@masdan/queue";
 
 export async function handleFileProcess(
   job: JobOf<"file.process">
@@ -212,7 +212,7 @@ To exercise the round trip, call `jobs.enqueueExample` and watch the worker log 
 
 ## Testing
 
-`@k22i/testing` exports helpers that drive handlers **without** a polling worker, so tests have no interval to wait out and no timers to fake:
+`@masdan/testing` exports helpers that drive handlers **without** a polling worker, so tests have no interval to wait out and no timers to fake:
 
 ```ts
 import {
@@ -220,7 +220,7 @@ import {
   getQueuedJobs,
   startTestQueue,
   stopTestQueue,
-} from "@k22i/testing";
+} from "@masdan/testing";
 
 beforeAll(startTestQueue);
 afterAll(stopTestQueue);
@@ -255,7 +255,7 @@ All optional; every one has a working default.
 | `WORKERS_PORT` | `1901` | Health + metrics server. Not an API. |
 | `WORKERS_CONCURRENCY` | `1` | Workers spawned per queue, per process. |
 | `WORKERS_POLLING_INTERVAL_SECONDS` | `2` | Poll interval. The correctness floor under LISTEN/NOTIFY. |
-| `SERVICE_NAME` | `k22i-server` | Tags log lines. `apps/workers` sets `k22i-workers`. |
+| `SERVICE_NAME` | `masdan-server` | Tags log lines. `apps/workers` sets `masdan-workers`. |
 
 **Turn `QUEUE_LISTEN_NOTIFY` off behind PgBouncer in transaction pooling mode.** It needs a session-pinned connection. Polling still runs underneath, so the only cost is latency — jobs are dispatched within `WORKERS_POLLING_INTERVAL_SECONDS` instead of milliseconds.
 
@@ -265,7 +265,7 @@ All optional; every one has a working default.
 
 The worker exposes `GET /` on `WORKERS_PORT`, which reports the _queue connection_ rather than mere process liveness — a worker that is running but detached from Postgres is exactly the failure a healthcheck should catch. Compose uses it.
 
-With `PROMETHEUS_METRICS_PATH` and `PROMETHEUS_METRICS_TOKEN` set, the same server exposes `k22i_queue_jobs{queue,state}` — queued, active, deferred and total per queue, sampled at scrape time in a single query.
+With `PROMETHEUS_METRICS_PATH` and `PROMETHEUS_METRICS_TOKEN` set, the same server exposes `masdan_queue_jobs{queue,state}` — queued, active, deferred and total per queue, sampled at scrape time in a single query.
 
 On `SIGTERM` the worker stops polling, waits for in-flight handlers to finish, then flushes logs. Jobs are completed rather than abandoned to expire and retry.
 

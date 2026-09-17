@@ -3,7 +3,7 @@ import { defineConfig } from "tsdown";
 export default defineConfig({
   clean: true,
   deps: {
-    alwaysBundle: [/@k22i\/.*/u],
+    alwaysBundle: [/@masdan\/.*/u],
   },
   entry: "./src/index.ts",
   format: "esm",

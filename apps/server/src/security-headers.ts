@@ -1,4 +1,4 @@
-import type { EvlogVariables } from "@k22i/observability/hono";
+import type { EvlogVariables } from "@masdan/observability/hono";
 import type { Hono, MiddlewareHandler } from "hono";
 import { secureHeaders } from "hono/secure-headers";
 

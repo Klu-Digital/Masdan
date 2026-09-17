@@ -1,9 +1,9 @@
 import { serve } from "@hono/node-server";
-import { env } from "@k22i/env/workers";
+import { env } from "@masdan/env/workers";
 // Initializes the logger at module scope, so it must come before anything
-// pulling in @k22i/db or @k22i/queue. Keep this import first.
-import { log, observability, parseError } from "@k22i/observability";
-import { queue } from "@k22i/queue";
+// pulling in @masdan/db or @masdan/queue. Keep this import first.
+import { log, observability, parseError } from "@masdan/observability";
+import { queue } from "@masdan/queue";
 
 import { createApp } from "./app";
 import { registerWorkers } from "./register";

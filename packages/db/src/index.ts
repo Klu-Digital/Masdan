@@ -1,4 +1,4 @@
-import { env } from "@k22i/env/shared-server";
+import { env } from "@masdan/env/shared-server";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { NodePgClient, NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";

@@ -4,7 +4,7 @@ import {
   CardHeader,
   CardPanel,
   CardTitle,
-} from "@k22i/ui/components/card";
+} from "@masdan/ui/components/card";
 import type { ReactNode } from "react";
 
 import { ModeToggle } from "./mode-toggle";

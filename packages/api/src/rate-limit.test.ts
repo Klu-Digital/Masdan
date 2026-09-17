@@ -1,5 +1,5 @@
-import type * as TypeImport__k22i_redis from "@k22i/redis";
-import { createFakeRedis } from "@k22i/redis/fake";
+import type * as TypeImport__masdan_redis from "@masdan/redis";
+import { createFakeRedis } from "@masdan/redis/fake";
 import { call, ORPCError, os } from "@orpc/server";
 import { describe, expect, it, vi } from "vite-plus/test";
 
@@ -20,8 +20,8 @@ const caught = async (p: Promise<unknown>): Promise<unknown> => {
  */
 const redisMock = vi.hoisted(() => ({ client: vi.fn() }));
 
-vi.mock("@k22i/redis", async (importOriginal) => {
-  const actual = await importOriginal<typeof TypeImport__k22i_redis>();
+vi.mock("@masdan/redis", async (importOriginal) => {
+  const actual = await importOriginal<typeof TypeImport__masdan_redis>();
   return {
     ...actual,
     redis: { ...actual.redis, client: redisMock.client },

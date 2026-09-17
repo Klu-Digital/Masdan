@@ -1,6 +1,6 @@
 import { LoaderCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { cn } from "@k22i/ui/lib/utils";
+import { cn } from "@masdan/ui/lib/utils";
 import type React from "react";
 
 export const Spinner = ({

@@ -1,7 +1,7 @@
-import { auth } from "@k22i/auth";
-import { env } from "@k22i/env/server";
-import { honoLogger } from "@k22i/observability/hono";
-import type { EvlogVariables } from "@k22i/observability/hono";
+import { auth } from "@masdan/auth";
+import { env } from "@masdan/env/server";
+import { honoLogger } from "@masdan/observability/hono";
+import type { EvlogVariables } from "@masdan/observability/hono";
 import { createAuthMiddleware } from "evlog/better-auth";
 import type { BetterAuthInstance } from "evlog/better-auth";
 import { Hono } from "hono";

@@ -1,4 +1,4 @@
-import { Spinner } from "@k22i/ui/components/spinner";
+import { Spinner } from "@masdan/ui/components/spinner";
 
 const Loader = () => (
   <div className="flex h-full items-center justify-center pt-8">

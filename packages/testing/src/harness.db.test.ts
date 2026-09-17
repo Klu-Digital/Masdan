@@ -1,24 +1,24 @@
-import { user } from "@k22i/db/schema/auth";
-import { env } from "@k22i/env/shared-server";
-import { getTestDb } from "@k22i/testing";
-import { getTestRedis } from "@k22i/testing/redis";
+import { user } from "@masdan/db/schema/auth";
+import { env } from "@masdan/env/shared-server";
+import { getTestDb } from "@masdan/testing";
+import { getTestRedis } from "@masdan/testing/redis";
 import { describe, expect, it } from "vite-plus/test";
 
 // Regression test for the module-load ordering bug in `setup/db.ts`: a static
-// `@k22i/*` import there used to freeze `@k22i/env/shared-server` against the
+// `@masdan/*` import there used to freeze `@masdan/env/shared-server` against the
 // placeholder DATABASE_URL, so every test ran against `127.0.0.1:1`. Same for
 // REDIS_URL.
 describe("test harness module-load ordering", () => {
-  it("resolves @k22i/env/shared-server's env.DATABASE_URL to this worker's real database URL", () => {
+  it("resolves @masdan/env/shared-server's env.DATABASE_URL to this worker's real database URL", () => {
     expect(env.DATABASE_URL).toBe(process.env.DATABASE_URL);
   });
 
-  it("resolves @k22i/env/shared-server's env.REDIS_URL to this worker's real Redis URL", () => {
+  it("resolves @masdan/env/shared-server's env.REDIS_URL to this worker's real Redis URL", () => {
     expect(env.REDIS_URL).toBe(process.env.REDIS_URL);
   });
 
   it("points at a per-worker database, never the template or the dev database", () => {
-    expect(env.DATABASE_URL).toContain("k22i_test_w");
+    expect(env.DATABASE_URL).toContain("masdan_test_w");
     // The dev database on :4400 holds real data; the suite must never reach it.
     expect(env.DATABASE_URL).not.toContain("4400");
   });

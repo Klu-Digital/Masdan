@@ -10,7 +10,7 @@ local n = redis.call('INCR', KEYS[1])
 if n == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
 return n`;
 
-const COMMAND_NAME = "k22iIncrementWithTtl";
+const COMMAND_NAME = "masdanIncrementWithTtl";
 
 /** ioredis attaches custom commands as methods; this is the shape we add. */
 type ClientWithIncrement = Redis & {

@@ -1,4 +1,4 @@
-import { incrementWithTtl, redis } from "@k22i/redis";
+import { incrementWithTtl, redis } from "@masdan/redis";
 import { ORPCError, os } from "@orpc/server";
 
 import type { Context } from "./context";

@@ -8,7 +8,7 @@ const uuidv7 = sql`uuidv7()`;
 
 /**
  * The runtime value of a feature flag. Flags are declared in code
- * (`featureFlagRegistry` in `@k22i/env/flags`); this table only overrides the
+ * (`featureFlagRegistry` in `@masdan/env/flags`); this table only overrides the
  * declared default, so a row exists only once an admin has touched it and a
  * newly declared flag works on first boot. Global on purpose: no
  * `organizationId`, no per-user targeting.

@@ -1,5 +1,5 @@
-import { createDb } from "@k22i/db";
-import type { Database } from "@k22i/db";
+import { createDb } from "@masdan/db";
+import type { Database } from "@masdan/db";
 import { Pool } from "pg";
 
 let pool: Pool | undefined;

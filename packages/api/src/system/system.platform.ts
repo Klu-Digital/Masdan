@@ -1,7 +1,7 @@
-import { env } from "@k22i/env/server";
-import { queue } from "@k22i/queue";
-import { redis } from "@k22i/redis";
-import { resolveStorageConfig } from "@k22i/storage";
+import { env } from "@masdan/env/server";
+import { queue } from "@masdan/queue";
+import { redis } from "@masdan/redis";
+import { resolveStorageConfig } from "@masdan/storage";
 import { sql } from "drizzle-orm";
 
 import { adminProcedure } from "../procedures";

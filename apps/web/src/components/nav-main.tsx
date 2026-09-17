@@ -5,7 +5,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@k22i/ui/components/collapsible";
+} from "@masdan/ui/components/collapsible";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -15,7 +15,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from "@k22i/ui/components/sidebar";
+} from "@masdan/ui/components/sidebar";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 
 import type { FileRoutesByTo } from "@/routeTree.gen";

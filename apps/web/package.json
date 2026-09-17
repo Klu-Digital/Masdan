@@ -13,11 +13,11 @@
   "dependencies": {
     "@hugeicons/core-free-icons": "catalog:",
     "@hugeicons/react": "catalog:",
-    "@k22i/api": "workspace:*",
-    "@k22i/auth": "workspace:*",
-    "@k22i/env": "workspace:*",
-    "@k22i/storage": "workspace:*",
-    "@k22i/ui": "workspace:*",
+    "@masdan/api": "workspace:*",
+    "@masdan/auth": "workspace:*",
+    "@masdan/env": "workspace:*",
+    "@masdan/storage": "workspace:*",
+    "@masdan/ui": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/server": "catalog:",
     "@orpc/tanstack-query": "catalog:",
@@ -33,7 +33,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@k22i/config": "workspace:*",
+    "@masdan/config": "workspace:*",
     "@tanstack/react-query-devtools": "^5.101.4",
     "@tanstack/react-router-devtools": "^1.167.0",
     "@tanstack/router-plugin": "^1.168.23",

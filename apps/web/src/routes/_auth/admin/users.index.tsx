@@ -1,6 +1,6 @@
-import { Badge } from "@k22i/ui/components/badge";
-import { Button } from "@k22i/ui/components/button";
-import { Card, CardHeader, CardPanel } from "@k22i/ui/components/card";
+import { Badge } from "@masdan/ui/components/badge";
+import { Button } from "@masdan/ui/components/button";
+import { Card, CardHeader, CardPanel } from "@masdan/ui/components/card";
 import {
   Dialog,
   DialogFooter,
@@ -8,18 +8,18 @@ import {
   DialogPopup,
   DialogTitle,
   DialogTrigger,
-} from "@k22i/ui/components/dialog";
-import { Empty, EmptyDescription, EmptyTitle } from "@k22i/ui/components/empty";
-import { Field, FieldError, FieldLabel } from "@k22i/ui/components/field";
-import { Input } from "@k22i/ui/components/input";
+} from "@masdan/ui/components/dialog";
+import { Empty, EmptyDescription, EmptyTitle } from "@masdan/ui/components/empty";
+import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
+import { Input } from "@masdan/ui/components/input";
 import {
   Select,
   SelectItem,
   SelectPopup,
   SelectTrigger,
   SelectValue,
-} from "@k22i/ui/components/select";
-import { Skeleton } from "@k22i/ui/components/skeleton";
+} from "@masdan/ui/components/select";
+import { Skeleton } from "@masdan/ui/components/skeleton";
 import {
   Table,
   TableBody,
@@ -27,8 +27,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@k22i/ui/components/table";
-import { toastManager } from "@k22i/ui/components/toast";
+} from "@masdan/ui/components/table";
+import { toastManager } from "@masdan/ui/components/toast";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UseQueryResult } from "@tanstack/react-query";

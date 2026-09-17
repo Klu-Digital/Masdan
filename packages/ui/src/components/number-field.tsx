@@ -3,8 +3,8 @@
 import { NumberField as NumberFieldPrimitive } from "@base-ui/react/number-field";
 import { MinusIcon, PlusIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Label } from "@k22i/ui/components/label";
-import { cn } from "@k22i/ui/lib/utils";
+import { Label } from "@masdan/ui/components/label";
+import { cn } from "@masdan/ui/lib/utils";
 import * as React from "react";
 
 export const NumberFieldContext: React.Context<{

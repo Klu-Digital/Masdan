@@ -1,7 +1,7 @@
-import { user } from "@k22i/db/schema/auth";
-import { featureFlag } from "@k22i/db/schema/feature-flags";
-import { FEATURE_FLAG_NAMES, featureFlagRegistry } from "@k22i/env/flags";
-import type { FeatureFlagName } from "@k22i/env/flags";
+import { user } from "@masdan/db/schema/auth";
+import { featureFlag } from "@masdan/db/schema/feature-flags";
+import { FEATURE_FLAG_NAMES, featureFlagRegistry } from "@masdan/env/flags";
+import type { FeatureFlagName } from "@masdan/env/flags";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 

@@ -1,9 +1,9 @@
-import { Badge } from "@k22i/ui/components/badge";
-import { Button } from "@k22i/ui/components/button";
-import { Card, CardHeader, CardPanel } from "@k22i/ui/components/card";
-import { Empty, EmptyDescription, EmptyTitle } from "@k22i/ui/components/empty";
-import { Input } from "@k22i/ui/components/input";
-import { Skeleton } from "@k22i/ui/components/skeleton";
+import { Badge } from "@masdan/ui/components/badge";
+import { Button } from "@masdan/ui/components/button";
+import { Card, CardHeader, CardPanel } from "@masdan/ui/components/card";
+import { Empty, EmptyDescription, EmptyTitle } from "@masdan/ui/components/empty";
+import { Input } from "@masdan/ui/components/input";
+import { Skeleton } from "@masdan/ui/components/skeleton";
 import {
   Table,
   TableBody,
@@ -11,7 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@k22i/ui/components/table";
+} from "@masdan/ui/components/table";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";

@@ -3,9 +3,9 @@
 import { Autocomplete as AutocompletePrimitive } from "@base-ui/react/autocomplete";
 import { UnfoldMoreIcon, XIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Input } from "@k22i/ui/components/input";
-import { ScrollArea } from "@k22i/ui/components/scroll-area";
-import { cn } from "@k22i/ui/lib/utils";
+import { Input } from "@masdan/ui/components/input";
+import { ScrollArea } from "@masdan/ui/components/scroll-area";
+import { cn } from "@masdan/ui/lib/utils";
 import type React from "react";
 
 export const Autocomplete: typeof AutocompletePrimitive.Root =

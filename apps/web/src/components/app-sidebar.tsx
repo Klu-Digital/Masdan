@@ -17,7 +17,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
-} from "@k22i/ui/components/sidebar";
+} from "@masdan/ui/components/sidebar";
 
 import NavMain from "@/components/nav-main";
 import type { NavItem } from "@/components/nav-main";

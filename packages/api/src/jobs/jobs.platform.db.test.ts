@@ -1,5 +1,5 @@
-import { user } from "@k22i/db/schema/index";
-import { jobNames } from "@k22i/queue";
+import { user } from "@masdan/db/schema/index";
+import { jobNames } from "@masdan/queue";
 import {
   getQueuedJobs,
   getSessionFor,
@@ -7,7 +7,7 @@ import {
   signUpTestUser,
   startTestQueue,
   stopTestQueue,
-} from "@k22i/testing";
+} from "@masdan/testing";
 import { call, ORPCError } from "@orpc/server";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
@@ -40,7 +40,7 @@ const adminContext = async (): Promise<Context> => {
 };
 
 describe("admin.jobs.registry", () => {
-  it("matches @k22i/queue's job registry exactly", async () => {
+  it("matches @masdan/queue's job registry exactly", async () => {
     const context = await adminContext();
 
     const registry = await call(appRouter.admin.jobs.registry, undefined, {
@@ -106,7 +106,7 @@ describe("admin.jobs.counts", () => {
 describe("admin.jobs.schedules", () => {
   it("flags a schedule row with no matching registry entry as out of sync", async () => {
     const context = await adminContext();
-    const { queue } = await import("@k22i/queue");
+    const { queue } = await import("@masdan/queue");
     const boss = queue.raw();
 
     // `example.echo` is a real queue but declares no `cron`, so scheduling it

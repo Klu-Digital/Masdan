@@ -1,13 +1,13 @@
-import { APP_ROLES, hasPermission, statement } from "@k22i/auth/permissions";
-import type { Statement } from "@k22i/auth/permissions";
-import { Badge } from "@k22i/ui/components/badge";
+import { APP_ROLES, hasPermission, statement } from "@masdan/auth/permissions";
+import type { Statement } from "@masdan/auth/permissions";
+import { Badge } from "@masdan/ui/components/badge";
 import {
   Card,
   CardDescription,
   CardHeader,
   CardPanel,
   CardTitle,
-} from "@k22i/ui/components/card";
+} from "@masdan/ui/components/card";
 import {
   Table,
   TableBody,
@@ -15,11 +15,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@k22i/ui/components/table";
+} from "@masdan/ui/components/table";
 import { createFileRoute } from "@tanstack/react-router";
 
 /**
- * Static config: every cell is `hasPermission` over `@k22i/auth/permissions`,
+ * Static config: every cell is `hasPermission` over `@masdan/auth/permissions`,
  * the same data the server enforces with. These are per-organization
  * `member.role`, not the global `user.role`.
  */

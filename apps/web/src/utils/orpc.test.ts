@@ -1,9 +1,9 @@
-import { toastManager } from "@k22i/ui/components/toast";
+import { toastManager } from "@masdan/ui/components/toast";
 import { describe, expect, it, vi } from "vite-plus/test";
 
 import { createQueryClient } from "@/utils/orpc";
 
-vi.mock("@k22i/ui/components/toast", () => ({
+vi.mock("@masdan/ui/components/toast", () => ({
   toastManager: {
     add: vi.fn(),
     close: vi.fn(),

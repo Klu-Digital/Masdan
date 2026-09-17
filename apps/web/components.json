@@ -13,8 +13,8 @@
   "iconLibrary": "hugeicons",
   "aliases": {
     "components": "@/components",
-    "utils": "@k22i/ui/lib/utils",
-    "ui": "@k22i/ui/components",
+    "utils": "@masdan/ui/lib/utils",
+    "ui": "@masdan/ui/components",
     "lib": "@/lib",
     "hooks": "@/hooks"
   },

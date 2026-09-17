@@ -1,6 +1,6 @@
-import { env } from "@k22i/env/server";
-import { jobNames, jobs, queue } from "@k22i/queue";
-import type { JobDefinition, JobName } from "@k22i/queue";
+import { env } from "@masdan/env/server";
+import { jobNames, jobs, queue } from "@masdan/queue";
+import type { JobDefinition, JobName } from "@masdan/queue";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 

@@ -9,7 +9,7 @@ const REPO_ROOT = path.join(import.meta.dirname, "..");
 const USAGE = `Usage:
   pnpm rename <new-name> [--dry-run] [--force]
 
-Renames the project throughout the repo: the npm scope (@k22i/*), the workspace
+Renames the project throughout the repo: the npm scope (@masdan/*), the workspace
 package names, the Compose project and container names, the Postgres database,
 the Expo app slug and deep-link scheme, and every mention in documentation and
 comments.
@@ -23,7 +23,7 @@ accept. If it contains a hyphen, the Android package and iOS bundle identifier
 get a hyphen-free variant, since neither permits one.
 
 Only whole-token occurrences are replaced: an occurrence flanked by another
-letter or digit is left alone, so "k22i-postgres" and "@k22i/db" are renamed
+letter or digit is left alone, so "masdan-postgres" and "@masdan/db" are renamed
 while a word that merely contains the name is not.
 
 Options:

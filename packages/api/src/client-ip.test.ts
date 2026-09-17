@@ -1,4 +1,4 @@
-import type * as TypeImport__k22i_env_server from "@k22i/env/server";
+import type * as TypeImport__masdan_env_server from "@masdan/env/server";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 /**
@@ -9,8 +9,8 @@ const overrides = vi.hoisted(() => ({
   current: {} as Record<string, unknown>,
 }));
 
-vi.mock("@k22i/env/server", async (importOriginal) => {
-  const actual = await importOriginal<typeof TypeImport__k22i_env_server>();
+vi.mock("@masdan/env/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof TypeImport__masdan_env_server>();
   const overridden = (prop: string | symbol): prop is string =>
     typeof prop === "string" && prop in overrides.current;
 

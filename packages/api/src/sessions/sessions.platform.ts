@@ -1,4 +1,4 @@
-import { session, user } from "@k22i/db/schema/index";
+import { session, user } from "@masdan/db/schema/index";
 import { and, desc, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 

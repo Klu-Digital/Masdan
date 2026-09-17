@@ -1,4 +1,4 @@
-import { env } from "@k22i/env/shared-server";
+import { env } from "@masdan/env/shared-server";
 import { initLogger } from "evlog";
 
 import { createDrain } from "./drain";

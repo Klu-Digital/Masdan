@@ -1,4 +1,4 @@
-import { env } from "@k22i/env/server";
+import { env } from "@masdan/env/server";
 
 export interface StorageConfig {
   bucket: string;

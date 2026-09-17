@@ -1,4 +1,4 @@
-import { log } from "@k22i/observability";
+import { log } from "@masdan/observability";
 
 import { redis } from "./client";
 

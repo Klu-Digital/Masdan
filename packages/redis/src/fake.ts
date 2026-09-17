@@ -1,8 +1,8 @@
 /**
  * An in-memory ioredis stand-in, for unit tests that need cache or rate-limit
- * behaviour. Lives here, not in `@k22i/testing`, which depends on `@k22i/auth`
- * -> `@k22i/redis`. Imports nothing from `@k22i/*`: it loads inside `vi.mock`
- * factories, where an `@k22i/env/shared-server` import would freeze `env` against
+ * behaviour. Lives here, not in `@masdan/testing`, which depends on `@masdan/auth`
+ * -> `@masdan/redis`. Imports nothing from `@masdan/*`: it loads inside `vi.mock`
+ * factories, where an `@masdan/env/shared-server` import would freeze `env` against
  * placeholders. Only the commands this repo issues.
  */
 
@@ -28,7 +28,7 @@ export interface FakeRedis {
     name: string,
     definition: { numberOfKeys: number; lua: string }
   ) => void;
-  k22iIncrementWithTtl?: (
+  masdanIncrementWithTtl?: (
     key: string,
     ttlSeconds: string | number
   ) => Promise<number>;
@@ -78,13 +78,13 @@ export const createFakeRedis = (
      * `redis.db.test.ts` is for.
      */
     defineCommand(name) {
-      if (name !== "k22iIncrementWithTtl") {
+      if (name !== "masdanIncrementWithTtl") {
         throw new Error(`fake-redis: unknown custom command "${name}"`);
       }
-      if (fake.k22iIncrementWithTtl) {
+      if (fake.masdanIncrementWithTtl) {
         return;
       }
-      fake.k22iIncrementWithTtl = async (key, ttlSeconds) => {
+      fake.masdanIncrementWithTtl = async (key, ttlSeconds) => {
         await guard();
         const count = await fake.incr(key);
         if (count === 1) {

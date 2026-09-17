@@ -5,9 +5,9 @@ import {
   AlertDialogPopup,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@k22i/ui/components/alert-dialog";
-import { Badge } from "@k22i/ui/components/badge";
-import { Button } from "@k22i/ui/components/button";
+} from "@masdan/ui/components/alert-dialog";
+import { Badge } from "@masdan/ui/components/badge";
+import { Button } from "@masdan/ui/components/button";
 import {
   Card,
   CardDescription,
@@ -15,17 +15,17 @@ import {
   CardHeader,
   CardPanel,
   CardTitle,
-} from "@k22i/ui/components/card";
-import { Field, FieldLabel } from "@k22i/ui/components/field";
-import { Input } from "@k22i/ui/components/input";
+} from "@masdan/ui/components/card";
+import { Field, FieldLabel } from "@masdan/ui/components/field";
+import { Input } from "@masdan/ui/components/input";
 import {
   Select,
   SelectItem,
   SelectPopup,
   SelectTrigger,
   SelectValue,
-} from "@k22i/ui/components/select";
-import { Skeleton } from "@k22i/ui/components/skeleton";
+} from "@masdan/ui/components/select";
+import { Skeleton } from "@masdan/ui/components/skeleton";
 import {
   Table,
   TableBody,
@@ -33,9 +33,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@k22i/ui/components/table";
-import { Textarea } from "@k22i/ui/components/textarea";
-import { toastManager } from "@k22i/ui/components/toast";
+} from "@masdan/ui/components/table";
+import { Textarea } from "@masdan/ui/components/textarea";
+import { toastManager } from "@masdan/ui/components/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Link,

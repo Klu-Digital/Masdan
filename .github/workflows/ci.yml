@@ -19,7 +19,7 @@ env:
   # lefthook's install would write git hooks into the runner's clone. CI *is* the
   # gate; the hooks only matter on a developer's machine.
   LEFTHOOK: 0
-  # @k22i/env/web validates this at import and Vite inlines it at build time, so
+  # @masdan/env/web validates this at import and Vite inlines it at build time, so
   # anything that builds apps/web needs a valid value present. "/" is what the
   # deployed image uses — same-origin — so CI builds the same shape production
   # does rather than a throwaway absolute URL.

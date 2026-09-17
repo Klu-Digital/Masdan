@@ -8,9 +8,9 @@ import { RadioGroup as RadioGroupPrimitive } from "@base-ui/react/radio-group";
 import { useRender } from "@base-ui/react/use-render";
 import { ChevronRightIcon, XIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Button } from "@k22i/ui/components/button";
-import { ScrollArea } from "@k22i/ui/components/scroll-area";
-import { cn } from "@k22i/ui/lib/utils";
+import { Button } from "@masdan/ui/components/button";
+import { ScrollArea } from "@masdan/ui/components/scroll-area";
+import { cn } from "@masdan/ui/lib/utils";
 import type React from "react";
 import { createContext, useContext, useMemo } from "react";
 

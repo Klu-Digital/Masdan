@@ -1,5 +1,5 @@
-import { user } from "@k22i/db/schema/index";
-import { getSessionFor, getTestDb, signUpTestUser } from "@k22i/testing";
+import { user } from "@masdan/db/schema/index";
+import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
 import { call } from "@orpc/server";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vite-plus/test";
@@ -38,7 +38,7 @@ describe("admin.users.detail", () => {
 
     expect(result.user?.id).toBe(target.user.id);
     // Sign-up creates a personal organization, so the new user is already an
-    // `owner` of exactly one — see `user.create.after` in `@k22i/auth`.
+    // `owner` of exactly one — see `user.create.after` in `@masdan/auth`.
     expect(result.memberships).toHaveLength(1);
     expect(result.memberships[0]?.role).toBe("owner");
     expect(result.sessions.length).toBeGreaterThanOrEqual(1);

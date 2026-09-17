@@ -1,5 +1,5 @@
 {
-  "name": "@k22i/storage",
+  "name": "@masdan/storage",
   "type": "module",
   "exports": {
     ".": {
@@ -13,11 +13,11 @@
   "dependencies": {
     "@aws-sdk/client-s3": "catalog:",
     "@aws-sdk/s3-request-presigner": "catalog:",
-    "@k22i/env": "workspace:*",
-    "@k22i/observability": "workspace:*"
+    "@masdan/env": "workspace:*",
+    "@masdan/observability": "workspace:*"
   },
   "devDependencies": {
-    "@k22i/config": "workspace:*",
+    "@masdan/config": "workspace:*",
     "typescript": "^6.0.3"
   }
 }

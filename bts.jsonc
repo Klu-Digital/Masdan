@@ -10,7 +10,7 @@
   "$schema": "https://r2.better-t-stack.dev/schema.json",
   "version": "3.42.1",
   "createdAt": "2026-09-02T04:06:12.812Z",
-  "reproducibleCommand": "pnpm create better-t-stack@latest k22i --frontend tanstack-router native-uniwind --backend hono --runtime node --database postgres --orm drizzle --api orpc --auth better-auth --payments none --addons evlog lefthook oxlint vite-plus --examples none --db-setup docker --web-deploy docker --server-deploy docker --git --package-manager pnpm --install",
+  "reproducibleCommand": "pnpm create better-t-stack@latest masdan --frontend tanstack-router native-uniwind --backend hono --runtime node --database postgres --orm drizzle --api orpc --auth better-auth --payments none --addons evlog lefthook oxlint vite-plus --examples none --db-setup docker --web-deploy docker --server-deploy docker --git --package-manager pnpm --install",
   "database": "postgres",
   "orm": "drizzle",
   "backend": "hono",

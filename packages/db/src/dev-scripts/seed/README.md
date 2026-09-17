@@ -18,7 +18,7 @@ Two fixed accounts, the same on every run:
 | email             | password       | name     | role    |
 | ----------------- | -------------- | -------- | ------- |
 | `K1@gmail.com`    | `K1@gmail.com` | `K1`     | `admin` |
-| `member@k22i.dev` | `password`     | `Member` | —       |
+| `member@masdan.dev` | `password`     | `Member` | —       |
 
 Plus, by default, 5 random users from faker, all with the password `password` so they're actually loggable-into: `pnpm db:seed --users 20` for more, `--users 0` for just the fixed two.
 
@@ -43,7 +43,7 @@ Refusing to seed — some rows already exist:
 
   users:
     - user K1@gmail.com
-    - user member@k22i.dev
+    - user member@masdan.dev
 
 Nothing was written. Reset with "pnpm db:purge --yes && pnpm db:migrate", then seed again.
 ```

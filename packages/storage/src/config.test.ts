@@ -16,12 +16,12 @@ const mockEnv = vi.hoisted(() => ({
   STORAGE_MAX_UPLOAD_BYTES: 26_214_400,
 }));
 
-vi.mock("@k22i/env/server", () => ({ env: mockEnv }));
+vi.mock("@masdan/env/server", () => ({ env: mockEnv }));
 
 const { isStorageConfigured, resolveStorageConfig } = await import("./config");
 
 const configureFully = () => {
-  mockEnv.S3_BUCKET = "k22i";
+  mockEnv.S3_BUCKET = "masdan";
   mockEnv.S3_ACCESS_KEY_ID = "minioadmin";
   mockEnv.S3_SECRET_ACCESS_KEY = "minioadmin";
 };
@@ -44,13 +44,13 @@ describe("resolveStorageConfig", () => {
   });
 
   it("returns null when the bucket is set but credentials are missing", () => {
-    mockEnv.S3_BUCKET = "k22i";
+    mockEnv.S3_BUCKET = "masdan";
 
     expect(resolveStorageConfig()).toBeNull();
   });
 
   it("returns null when only one half of the credential pair is set", () => {
-    mockEnv.S3_BUCKET = "k22i";
+    mockEnv.S3_BUCKET = "masdan";
     mockEnv.S3_ACCESS_KEY_ID = "minioadmin";
 
     expect(resolveStorageConfig()).toBeNull();
@@ -60,7 +60,7 @@ describe("resolveStorageConfig", () => {
     configureFully();
 
     expect(resolveStorageConfig()).toMatchObject({
-      bucket: "k22i",
+      bucket: "masdan",
       credentials: { accessKeyId: "minioadmin", secretAccessKey: "minioadmin" },
       forcePathStyle: false,
       maxUploadBytes: 26_214_400,

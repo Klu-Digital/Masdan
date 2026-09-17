@@ -17,9 +17,9 @@
     "@expo/metro-runtime": "~57.0.12",
     "@expo/vector-icons": "^15.1.1",
     "@gorhom/bottom-sheet": "^5.2.14",
-    "@k22i/api": "workspace:*",
-    "@k22i/auth": "workspace:*",
-    "@k22i/env": "workspace:*",
+    "@masdan/api": "workspace:*",
+    "@masdan/auth": "workspace:*",
+    "@masdan/env": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/tanstack-query": "catalog:",
     "@tanstack/react-form": "catalog:",
@@ -57,7 +57,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@k22i/config": "workspace:*",
+    "@masdan/config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "~19.2.18",
     "typescript": "~6.0.3"

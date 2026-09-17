@@ -1,5 +1,5 @@
-import type { AppRouterClient } from "@k22i/api/routers/index";
-import { signUpTestUser } from "@k22i/testing";
+import type { AppRouterClient } from "@masdan/api/routers/index";
+import { signUpTestUser } from "@masdan/testing";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { describe, expect, it } from "vite-plus/test";

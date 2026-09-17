@@ -1,6 +1,6 @@
-import { auth } from "@k22i/auth";
-import { db } from "@k22i/db";
-import type { EvlogVariables } from "@k22i/observability/hono";
+import { auth } from "@masdan/auth";
+import { db } from "@masdan/db";
+import type { EvlogVariables } from "@masdan/observability/hono";
 import type { Context as HonoContext } from "hono";
 
 import { resolveClientIp } from "./client-ip";

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-A fullstack TypeScript template: React/TanStack Router web, Expo native, Hono + oRPC API, background workers, Postgres/Drizzle, better-auth. pnpm workspace, `@k22i/*` package scope. `pnpm rename <new-name>` rewrites the scope, the Compose project, the database and the Expo slug for a new project.
+A fullstack TypeScript template: React/TanStack Router web, Expo native, Hono + oRPC API, background workers, Postgres/Drizzle, better-auth. pnpm workspace, `@masdan/*` package scope. `pnpm rename <new-name>` rewrites the scope, the Compose project, the database and the Expo slug for a new project.
 
 ## Layout
 
@@ -47,7 +47,7 @@ The filename routes the test. Three vitest projects:
 
 Run one file: `pnpm exec vitest run --project unit path/to/file.test.ts`.
 
-`@k22i/env/server` freezes its config at import, so `vi.stubEnv` does not work on it. Mock the module instead — `apps/server/src/metrics.test.ts` is the pattern.
+`@masdan/env/server` freezes its config at import, so `vi.stubEnv` does not work on it. Mock the module instead — `apps/server/src/metrics.test.ts` is the pattern.
 
 ## Invariants worth knowing before editing
 
@@ -75,9 +75,9 @@ These are the ones that cost real time to rediscover. The README carries the ful
 
 **Procedures.** Add at the right rung of the ladder in `packages/api/src/procedures.ts`: `publicProcedure` → `protectedProcedure` → `orgProcedure` → `adminProcedure`, each with a `mutation` variant that adds the transaction and `afterCommit`. `requirePermission` is the declarative check for route-level authorization; `assertPermission` is the same check as an expression when authorization depends on the row rather than the route. Feature-scoped files live beside their feature (`packages/api/src/files/files.router.ts`), and `*.platform.ts` is the platform-admin surface, which deliberately ignores `organizationId` — say so in a comment, since every other query in this codebase filters on it.
 
-**Logging.** Reach for `log` from `@k22i/observability`, never `console`. Every call carries an `action` — a dotted, snake_cased event name that is the thing you will later grep and alert on (`redis.error`, `queue.start_failed`, `featureflags.read.failed`). Spread `parseError(error)` into the payload rather than stringifying the error yourself.
+**Logging.** Reach for `log` from `@masdan/observability`, never `console`. Every call carries an `action` — a dotted, snake_cased event name that is the thing you will later grep and alert on (`redis.error`, `queue.start_failed`, `featureflags.read.failed`). Spread `parseError(error)` into the payload rather than stringifying the error yourself.
 
-**Styling.** The `shadcn/*` oxlint rules are errors in app code: no raw colors, no inline styles, no arbitrary values, no unknown classes, and class names must be static strings (no `` `text-${tone}-500` ``). Colors come from the theme in `packages/ui/src/styles/globals.css`. `layout` is the one allowed arbitrary-value escape. Two exemptions are configured deliberately in `oxlint.config.ts`: `packages/ui/src/**` may style itself because it _is_ the design system, and `apps/native/**` is off entirely because it is heroui-native with no shared theme. Import primitives as `@k22i/ui/components/button`; add more with `npx shadcn@latest add @coss/<name> -c packages/ui`.
+**Styling.** The `shadcn/*` oxlint rules are errors in app code: no raw colors, no inline styles, no arbitrary values, no unknown classes, and class names must be static strings (no `` `text-${tone}-500` ``). Colors come from the theme in `packages/ui/src/styles/globals.css`. `layout` is the one allowed arbitrary-value escape. Two exemptions are configured deliberately in `oxlint.config.ts`: `packages/ui/src/**` may style itself because it _is_ the design system, and `apps/native/**` is off entirely because it is heroui-native with no shared theme. Import primitives as `@masdan/ui/components/button`; add more with `npx shadcn@latest add @coss/<name> -c packages/ui`.
 
 **Lint deltas from the Ultracite preset.** `no-await-in-loop` is off — plenty of loops here are deliberately sequential (ordered migrations, retry backoff, cursor walks) and the rule's suggested fix is a bug. `react/no-unstable-nested-components` allows render props, for expo-router's `tabBarIcon` and friends. Everything else is the preset, and `pnpm fix` autofixes most of it.
 

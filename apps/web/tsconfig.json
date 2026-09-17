@@ -11,7 +11,7 @@
     "rootDirs": ["."],
     "paths": {
       "@/*": ["./src/*"],
-      "@k22i/ui/*": ["../../packages/ui/src/*"]
+      "@masdan/ui/*": ["../../packages/ui/src/*"]
     }
   }
 }

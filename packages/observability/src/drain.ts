@@ -1,4 +1,4 @@
-import { env } from "@k22i/env/shared-server";
+import { env } from "@masdan/env/shared-server";
 import type { DrainContext } from "evlog";
 import { createFsDrain } from "evlog/fs";
 import { createDrainPipeline } from "evlog/pipeline";

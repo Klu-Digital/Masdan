@@ -1,5 +1,5 @@
-import { log } from "@k22i/observability";
-import type { JobOf } from "@k22i/queue";
+import { log } from "@masdan/observability";
+import type { JobOf } from "@masdan/queue";
 
 /**
  * Reference handlers, safe to delete once real jobs replace them; only

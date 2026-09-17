@@ -1,5 +1,5 @@
 {
-  "extends": "@k22i/config/tsconfig.base.json",
+  "extends": "@masdan/config/tsconfig.base.json",
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,

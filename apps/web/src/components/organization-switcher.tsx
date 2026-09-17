@@ -13,15 +13,15 @@ import {
   MenuPopup,
   MenuSeparator,
   MenuTrigger,
-} from "@k22i/ui/components/menu";
+} from "@masdan/ui/components/menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSkeleton,
   useSidebar,
-} from "@k22i/ui/components/sidebar";
-import { toastManager } from "@k22i/ui/components/toast";
+} from "@masdan/ui/components/sidebar";
+import { toastManager } from "@masdan/ui/components/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 

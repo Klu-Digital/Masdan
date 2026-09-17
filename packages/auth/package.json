@@ -1,5 +1,5 @@
 {
-  "name": "@k22i/auth",
+  "name": "@masdan/auth",
   "type": "module",
   "exports": {
     ".": {
@@ -12,17 +12,17 @@
   "scripts": {},
   "dependencies": {
     "@better-auth/expo": "catalog:",
-    "@k22i/db": "workspace:*",
-    "@k22i/env": "workspace:*",
-    "@k22i/observability": "workspace:*",
-    "@k22i/redis": "workspace:*",
+    "@masdan/db": "workspace:*",
+    "@masdan/env": "workspace:*",
+    "@masdan/observability": "workspace:*",
+    "@masdan/redis": "workspace:*",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@k22i/config": "workspace:*",
+    "@masdan/config": "workspace:*",
     "typescript": "^6.0.3"
   }
 }

@@ -1,4 +1,4 @@
-import { queue } from "@k22i/queue";
+import { queue } from "@masdan/queue";
 import { Hono } from "hono";
 
 import { mountMetrics } from "./metrics";

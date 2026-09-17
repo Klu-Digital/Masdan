@@ -1,7 +1,7 @@
 "use client";
 
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
-import { cn } from "@k22i/ui/lib/utils";
+import { cn } from "@masdan/ui/lib/utils";
 import type React from "react";
 
 export const TooltipCreateHandle: typeof TooltipPrimitive.createHandle =

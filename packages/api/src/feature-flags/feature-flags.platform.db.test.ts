@@ -1,7 +1,7 @@
-import { user } from "@k22i/db/schema/auth";
-import { featureFlag } from "@k22i/db/schema/feature-flags";
-import { featureFlagRegistry } from "@k22i/env/flags";
-import { getSessionFor, getTestDb, signUpTestUser } from "@k22i/testing";
+import { user } from "@masdan/db/schema/auth";
+import { featureFlag } from "@masdan/db/schema/feature-flags";
+import { featureFlagRegistry } from "@masdan/env/flags";
+import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
 import { call, ORPCError } from "@orpc/server";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vite-plus/test";

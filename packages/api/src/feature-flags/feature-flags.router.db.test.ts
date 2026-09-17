@@ -1,6 +1,6 @@
-import { featureFlag } from "@k22i/db/schema/feature-flags";
-import { FEATURE_FLAG_NAMES, featureFlagRegistry } from "@k22i/env/flags";
-import { getSessionFor, getTestDb, signUpTestUser } from "@k22i/testing";
+import { featureFlag } from "@masdan/db/schema/feature-flags";
+import { FEATURE_FLAG_NAMES, featureFlagRegistry } from "@masdan/env/flags";
+import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
 import { call, ORPCError } from "@orpc/server";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 

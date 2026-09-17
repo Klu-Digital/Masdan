@@ -1,5 +1,5 @@
-import type { FeatureFlagName } from "@k22i/env/flags";
-import { FEATURE_FLAG_TTL_MS } from "@k22i/env/flags";
+import type { FeatureFlagName } from "@masdan/env/flags";
+import { FEATURE_FLAG_TTL_MS } from "@masdan/env/flags";
 import { useQuery } from "@tanstack/react-query";
 
 import { orpc } from "@/utils/orpc";

@@ -4,25 +4,25 @@ import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { PanelLeftIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Button } from "@k22i/ui/components/button";
-import { Input } from "@k22i/ui/components/input";
-import { ScrollArea } from "@k22i/ui/components/scroll-area";
-import { Separator } from "@k22i/ui/components/separator";
+import { Button } from "@masdan/ui/components/button";
+import { Input } from "@masdan/ui/components/input";
+import { ScrollArea } from "@masdan/ui/components/scroll-area";
+import { Separator } from "@masdan/ui/components/separator";
 import {
   Sheet,
   SheetDescription,
   SheetHeader,
   SheetPopup,
   SheetTitle,
-} from "@k22i/ui/components/sheet";
-import { Skeleton } from "@k22i/ui/components/skeleton";
+} from "@masdan/ui/components/sheet";
+import { Skeleton } from "@masdan/ui/components/skeleton";
 import {
   Tooltip,
   TooltipPopup,
   TooltipTrigger,
-} from "@k22i/ui/components/tooltip";
-import { useMediaQuery } from "@k22i/ui/hooks/use-media-query";
-import { cn } from "@k22i/ui/lib/utils";
+} from "@masdan/ui/components/tooltip";
+import { useMediaQuery } from "@masdan/ui/hooks/use-media-query";
+import { cn } from "@masdan/ui/lib/utils";
 import { cva } from "class-variance-authority";
 import type { VariantProps } from "class-variance-authority";
 import * as React from "react";

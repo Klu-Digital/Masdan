@@ -2,8 +2,8 @@
 import path from "node:path";
 import { parseArgs } from "node:util";
 
-// Must finish before anything below is imported: `@k22i/db` and
-// `@k22i/observability` both read validated env at module scope. See
+// Must finish before anything below is imported: `@masdan/db` and
+// `@masdan/observability` both read validated env at module scope. See
 // bootstrap.ts.
 import { loadEnv, runLifecycle } from "../bootstrap";
 // Type-only, so it is erased and carries none of that ordering risk.
@@ -89,8 +89,8 @@ const main = async (): Promise<void> => {
   });
 
   // Dynamic, not top-of-file: see the `loadEnv` comment above.
-  const { createObservability } = await import("@k22i/observability");
-  const observability = createObservability({ service: "k22i-post-migrate" });
+  const { createObservability } = await import("@masdan/observability");
+  const observability = createObservability({ service: "masdan-post-migrate" });
 
   await runLifecycle(
     async () => {

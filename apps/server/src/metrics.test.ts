@@ -1,4 +1,4 @@
-import type { EvlogVariables } from "@k22i/observability/hono";
+import type { EvlogVariables } from "@masdan/observability/hono";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
@@ -13,7 +13,7 @@ const mockEnv = vi.hoisted(() => ({
   PROMETHEUS_METRICS_TOKEN: undefined as string | undefined,
 }));
 
-vi.mock("@k22i/env/server", () => ({ env: mockEnv }));
+vi.mock("@masdan/env/server", () => ({ env: mockEnv }));
 
 beforeEach(() => {
   mockEnv.PROMETHEUS_METRICS_PATH = undefined;

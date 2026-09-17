@@ -1,5 +1,5 @@
-import { file } from "@k22i/db/schema/index";
-import { getSessionFor, getTestDb, signUpTestUser } from "@k22i/testing";
+import { file } from "@masdan/db/schema/index";
+import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
 import { call } from "@orpc/server";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vite-plus/test";

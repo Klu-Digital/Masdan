@@ -5,7 +5,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@k22i/ui/components/breadcrumb";
+} from "@masdan/ui/components/breadcrumb";
 import { Link, rootRouteId, useMatches } from "@tanstack/react-router";
 import { Fragment } from "react";
 

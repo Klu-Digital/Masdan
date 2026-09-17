@@ -1,7 +1,7 @@
 "use client";
 
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
-import { cn } from "@k22i/ui/lib/utils";
+import { cn } from "@masdan/ui/lib/utils";
 import type React from "react";
 
 export const Checkbox = ({

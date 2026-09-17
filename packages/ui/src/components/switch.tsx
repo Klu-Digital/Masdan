@@ -1,7 +1,7 @@
 "use client";
 
 import { Switch as SwitchPrimitive } from "@base-ui/react/switch";
-import { cn } from "@k22i/ui/lib/utils";
+import { cn } from "@masdan/ui/lib/utils";
 import type React from "react";
 
 export const Switch = ({

@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import type * as TypeImport___utils_orpc from "@/utils/orpc";
 
-vi.mock("@k22i/ui/components/toast", () => ({
+vi.mock("@masdan/ui/components/toast", () => ({
   toastManager: { add: vi.fn(), close: vi.fn(), update: vi.fn() },
 }));
 

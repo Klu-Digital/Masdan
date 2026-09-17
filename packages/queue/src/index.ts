@@ -1,5 +1,5 @@
-import { env } from "@k22i/env/shared-server";
-import { createError, log, parseError } from "@k22i/observability";
+import { env } from "@masdan/env/shared-server";
+import { createError, log, parseError } from "@masdan/observability";
 import { sql } from "drizzle-orm";
 import { fromDrizzle, PgBoss } from "pg-boss";
 import type {
@@ -19,7 +19,7 @@ import type { JobDefinition, JobName, JobPayload } from "./jobs";
 // members like `cron` are not addressable. Widening is what makes it iterable.
 const jobEntries = Object.entries(jobs) as [JobName, JobDefinition][];
 
-/** Structurally typed by pg-boss, which keeps this package off `@k22i/db`. */
+/** Structurally typed by pg-boss, which keeps this package off `@masdan/db`. */
 export type Transaction = DrizzleTransactionLike;
 
 export type EnqueueOptions = Omit<SendOptions, "db"> & {

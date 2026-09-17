@@ -1,4 +1,4 @@
-import { isPlatformAdmin } from "@k22i/auth/permissions";
+import { isPlatformAdmin } from "@masdan/auth/permissions";
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 
 const AdminLayout = () => (

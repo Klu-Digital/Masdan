@@ -5,7 +5,7 @@ export default defineConfig({
   // Workspace packages ship raw TypeScript (their `exports` point at ./src/*.ts),
   // so they have to be bundled rather than left as external imports.
   deps: {
-    alwaysBundle: [/@k22i\/.*/u],
+    alwaysBundle: [/@masdan\/.*/u],
   },
   entry: "./src/index.ts",
   format: "esm",

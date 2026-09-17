@@ -1,5 +1,5 @@
 {
-  "name": "@k22i/observability",
+  "name": "@masdan/observability",
   "type": "module",
   "exports": {
     ".": {
@@ -11,11 +11,11 @@
   },
   "scripts": {},
   "dependencies": {
-    "@k22i/env": "workspace:*",
+    "@masdan/env": "workspace:*",
     "evlog": "catalog:"
   },
   "devDependencies": {
-    "@k22i/config": "workspace:*",
+    "@masdan/config": "workspace:*",
     "@orpc/server": "catalog:",
     "hono": "catalog:",
     "typescript": "^6.0.3"

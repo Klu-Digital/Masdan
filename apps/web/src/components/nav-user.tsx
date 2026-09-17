@@ -5,7 +5,7 @@ import {
   UnfoldMoreIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Avatar, AvatarFallback } from "@k22i/ui/components/avatar";
+import { Avatar, AvatarFallback } from "@masdan/ui/components/avatar";
 import {
   Menu,
   MenuGroup,
@@ -16,13 +16,13 @@ import {
   MenuSubPopup,
   MenuSubTrigger,
   MenuTrigger,
-} from "@k22i/ui/components/menu";
+} from "@masdan/ui/components/menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@k22i/ui/components/sidebar";
+} from "@masdan/ui/components/sidebar";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 

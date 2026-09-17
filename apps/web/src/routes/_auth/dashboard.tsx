@@ -4,8 +4,8 @@ import {
   CardHeader,
   CardPanel,
   CardTitle,
-} from "@k22i/ui/components/card";
-import { Skeleton } from "@k22i/ui/components/skeleton";
+} from "@masdan/ui/components/card";
+import { Skeleton } from "@masdan/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, getRouteApi } from "@tanstack/react-router";
 

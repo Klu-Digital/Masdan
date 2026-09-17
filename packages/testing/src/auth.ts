@@ -1,5 +1,5 @@
 import { faker } from "@faker-js/faker";
-import { auth } from "@k22i/auth";
+import { auth } from "@masdan/auth";
 
 export interface SignUpTestUserOverrides {
   name?: string;

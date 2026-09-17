@@ -1,9 +1,9 @@
 import { getConnInfo } from "@hono/node-server/conninfo";
-import { createContext } from "@k22i/api/context";
-import type { Context } from "@k22i/api/context";
-import { appRouter } from "@k22i/api/routers/index";
-import { log, parseError } from "@k22i/observability";
-import type { EvlogVariables } from "@k22i/observability/hono";
+import { createContext } from "@masdan/api/context";
+import type { Context } from "@masdan/api/context";
+import { appRouter } from "@masdan/api/routers/index";
+import { log, parseError } from "@masdan/observability";
+import type { EvlogVariables } from "@masdan/observability/hono";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { onError } from "@orpc/server";
@@ -62,7 +62,7 @@ const mount = (
   const middleware: MiddlewareHandler<EvlogVariables> = async (c, next) => {
     const { matched, response } = await handler.handle(c.req.raw, {
       // The socket address is only reachable from `@hono/node-server`, which
-      // `@k22i/api` deliberately does not depend on — so resolve it here, once.
+      // `@masdan/api` deliberately does not depend on — so resolve it here, once.
       context: await createContext({
         context: c,
         remoteAddress: remoteAddressOf(c),

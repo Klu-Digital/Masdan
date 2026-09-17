@@ -1,5 +1,5 @@
 {
-  "name": "@k22i/redis",
+  "name": "@masdan/redis",
   "type": "module",
   "exports": {
     ".": {
@@ -11,12 +11,12 @@
   },
   "scripts": {},
   "dependencies": {
-    "@k22i/env": "workspace:*",
-    "@k22i/observability": "workspace:*",
+    "@masdan/env": "workspace:*",
+    "@masdan/observability": "workspace:*",
     "ioredis": "catalog:"
   },
   "devDependencies": {
-    "@k22i/config": "workspace:*",
+    "@masdan/config": "workspace:*",
     "typescript": "^6.0.3"
   }
 }

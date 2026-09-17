@@ -1,12 +1,12 @@
 import { Moon02Icon, Sun03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Button } from "@k22i/ui/components/button";
+import { Button } from "@masdan/ui/components/button";
 import {
   Menu,
   MenuItem,
   MenuPopup,
   MenuTrigger,
-} from "@k22i/ui/components/menu";
+} from "@masdan/ui/components/menu";
 
 import { useTheme } from "@/components/theme-provider";
 

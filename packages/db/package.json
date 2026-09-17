@@ -1,5 +1,5 @@
 {
-  "name": "@k22i/db",
+  "name": "@masdan/db",
   "type": "module",
   "exports": {
     ".": {
@@ -24,8 +24,8 @@
     "seed": "tsx src/dev-scripts/seed/cli.ts"
   },
   "dependencies": {
-    "@k22i/env": "workspace:*",
-    "@k22i/observability": "workspace:*",
+    "@masdan/env": "workspace:*",
+    "@masdan/observability": "workspace:*",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
     "pg": "^8.22.0",
@@ -33,8 +33,8 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
-    "@k22i/auth": "workspace:*",
-    "@k22i/config": "workspace:*",
+    "@masdan/auth": "workspace:*",
+    "@masdan/config": "workspace:*",
     "@types/pg": "^8.20.0",
     "drizzle-kit": "catalog:",
     "fishery": "^2.4.0",

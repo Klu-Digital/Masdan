@@ -341,7 +341,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # This entrypoint imports @k22i/db and @k22i/observability, both of which
+      # This entrypoint imports @masdan/db and @masdan/observability, both of which
       # use the shared worker-safe schema. It deliberately does not need the
       # server's Better Auth or CORS settings.
       - name: Run pending post-migration scripts
@@ -349,7 +349,7 @@ jobs:
           SERVER_IMAGE: ${{ needs.resolve.outputs.server }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PGBOSS_SCHEMA: ${{ vars.PGBOSS_SCHEMA || 'pgboss' }}
-          SERVICE_NAME: k22i-post-migrate
+          SERVICE_NAME: masdan-post-migrate
         run: |
           set -euo pipefail
           docker run --rm --network host \

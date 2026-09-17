@@ -47,7 +47,7 @@ export const runSeed = async (
   options: RunOptions
 ): Promise<0 | 1> => {
   const db = createDb(pool);
-  const { createAuth } = await import("@k22i/auth");
+  const { createAuth } = await import("@masdan/auth");
   const auth = createAuth();
 
   sharedFaker.seed(options.seed);

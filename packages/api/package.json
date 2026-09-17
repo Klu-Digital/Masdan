@@ -1,5 +1,5 @@
 {
-  "name": "@k22i/api",
+  "name": "@masdan/api",
   "type": "module",
   "exports": {
     ".": {
@@ -11,13 +11,13 @@
   },
   "scripts": {},
   "dependencies": {
-    "@k22i/auth": "workspace:*",
-    "@k22i/db": "workspace:*",
-    "@k22i/env": "workspace:*",
-    "@k22i/observability": "workspace:*",
-    "@k22i/queue": "workspace:*",
-    "@k22i/redis": "workspace:*",
-    "@k22i/storage": "workspace:*",
+    "@masdan/auth": "workspace:*",
+    "@masdan/db": "workspace:*",
+    "@masdan/env": "workspace:*",
+    "@masdan/observability": "workspace:*",
+    "@masdan/queue": "workspace:*",
+    "@masdan/redis": "workspace:*",
+    "@masdan/storage": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
@@ -27,7 +27,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@k22i/config": "workspace:*",
+    "@masdan/config": "workspace:*",
     "hono": "catalog:",
     "typescript": "^6.0.3"
   }

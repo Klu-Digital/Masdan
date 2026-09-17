@@ -1,4 +1,4 @@
-import { env } from "@k22i/env/shared-server";
+import { env } from "@masdan/env/shared-server";
 import type { ConstructorOptions } from "pg-boss";
 
 /** The API server produces, `apps/workers` consumes. The split is what keeps
@@ -19,7 +19,7 @@ export const resolveQueueConfig = (role: QueueRole): ConstructorOptions => {
   return {
     // Shows up in pg_stat_activity — the fastest way to tell which process is
     // holding a connection.
-    application_name: consumer ? "k22i-workers" : "k22i-producer",
+    application_name: consumer ? "masdan-workers" : "masdan-producer",
     connectionString: env.DATABASE_URL,
     createSchema: false,
     max: env.QUEUE_POOL_MAX,

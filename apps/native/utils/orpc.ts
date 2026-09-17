@@ -1,5 +1,5 @@
-import type { AppRouterClient } from "@k22i/api/routers/index";
-import { env } from "@k22i/env/native";
+import type { AppRouterClient } from "@masdan/api/routers/index";
+import { env } from "@masdan/env/native";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";

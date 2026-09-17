@@ -1,4 +1,4 @@
-# k22i
+# masdan
 
 This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Router, Hono, ORPC, and more.
 
@@ -133,7 +133,7 @@ npx shadcn@latest add @coss/ui --overwrite -c packages/ui
 Import shared components like this:
 
 ```tsx
-import { Button } from "@k22i/ui/components/button";
+import { Button } from "@masdan/ui/components/button";
 ```
 
 ### Page titles and breadcrumbs
@@ -169,7 +169,7 @@ Things that bite:
 - **`loader` has to be written above `head`.** TypeScript resolves the route options object in source order, and with `head` first it has not yet inferred what the loader returns, so `loaderData` widens to `never` and every property access on it fails to compile. This is the one place in the codebase where route options are deliberately not key-sorted — both dynamic routes carry an `/* oxlint-disable sort-keys */` for it.
 - **Always give the fallback a sensible label.** An id that resolves to nothing still renders a crumb; `loaderData?.user?.name ?? "User"` is the difference between a generic trail and one reading "undefined".
 - **The loader is what makes the crumb possible, not an extra request.** `ensureQueryData` seeds the same cache entry the component's `useQuery` reads, so the page costs one fetch. The real trade is timing: navigation now waits for the record before it paints rather than flashing a skeleton, which is deliberate — a breadcrumb that arrives a beat after the page is a layout shift in the header.
-- **The root route's title is the product name, not a crumb.** `__root.tsx` sets `title: "k22i"` as the fallback tab title; `AppBreadcrumbs` skips the root match so it never appears in the trail. Every child title overrides it in the tab.
+- **The root route's title is the product name, not a crumb.** `__root.tsx` sets `title: "masdan"` as the fallback tab title; `AppBreadcrumbs` skips the root match so it never appears in the trail. Every child title overrides it in the tab.
 - **`staticData.crumb` is gone.** It could not express a dynamic crumb, and keeping both would mean two places to name a screen.
 
 ### Add app-specific blocks
@@ -290,12 +290,12 @@ pnpm run redis:start
 The host port is **6666**, not Redis's default 6379 — the container-internal port is still 6379, which is why the compose-network `REDIS_URL` on the `server` service reads `redis://redis:6379`. Poke around a running instance with:
 
 ```bash
-docker exec -it k22i-redis redis-cli
+docker exec -it masdan-redis redis-cli
 ```
 
 ### Cache
 
-`createCache(namespace)` from `@k22i/redis` returns `get` / `set` / `del` / `remember`, all namespaced under `${namespace}:`:
+`createCache(namespace)` from `@masdan/redis` returns `get` / `set` / `del` / `remember`, all namespaced under `${namespace}:`:
 
 ```ts
 const orgCache = createCache("org");
@@ -307,7 +307,7 @@ Every method swallows Redis failures by design — a down or unreachable Redis d
 Five things that bite:
 
 - **better-auth's rate limiter is global unless a proxy sets `x-forwarded-for`.** It resolves the caller from headers only — it is handed a `Request`, so it can never see the socket — and when it finds no usable header it buckets _every_ caller under one shared `no-trusted-ip` key. Verified locally: a direct request produces the key `auth-rl:no-trusted-ip|/sign-in/email`. So on a directly-exposed deployment `AUTH_RATE_LIMIT_MAX` is a limit on your whole userbase at once, not per caller. Behind a proxy that sets `x-forwarded-for` it does the right thing; configure better-auth's `advanced.ipAddress.trustedProxies` with your proxy's CIDRs for a multi-hop chain. Note this is better-auth's own setting and is **separate from `TRUST_PROXY_HEADERS`**, which only governs the oRPC `rateLimit()` middleware via `packages/api/src/client-ip.ts`.
-- **Rate limiting fails open.** No Redis, or Redis down, and the limits silently vanish — the request still succeeds. That's deliberate: a Redis outage must not become an auth outage. The cost is that "no 429s in the logs" is not evidence the limiter is working. Alert on the `redis.error` log action instead (emitted by `@k22i/redis`).
+- **Rate limiting fails open.** No Redis, or Redis down, and the limits silently vanish — the request still succeeds. That's deliberate: a Redis outage must not become an auth outage. The cost is that "no 429s in the logs" is not evidence the limiter is working. Alert on the `redis.error` log action instead (emitted by `@masdan/redis`).
 - **Sessions are deliberately not in Redis.** better-auth's `secondaryStorage` is a _different_ option from `rateLimit.customStorage`, and turning it on stops better-auth from writing the Postgres `session` row at all — which breaks the `activeOrganizationId` repair in `packages/auth/src/index.ts`'s `user.create.after` hook and 403s every newly signed-up user out of `requireOrganization`. If you want to cut the per-request session query in `packages/api/src/context.ts`, evaluate better-auth's `session.cookieCache`, not `secondaryStorage`. `packages/auth/src/personal-organization.db.test.ts` is the regression test that catches this if it regresses.
 - **Cache invalidation inside a mutation runs inside an open transaction.** `mutationProcedure` wraps handlers in `db.transaction(...)`, so a `cache.del()` called directly from a handler purges a key the transaction may still roll back. Use `context.afterCommit(...)` instead (see its docblock in `packages/api/src/procedures.ts`):
 
@@ -342,10 +342,10 @@ In an authenticated web route:
 const showExample = useFeatureFlag("FF__EXAMPLE");
 ```
 
-On the server, read through the resolver in `@k22i/api/feature-flags` — it needs a `db` because the value lives in a table, and it is cached per process so this is a map lookup on all but one call in thirty:
+On the server, read through the resolver in `@masdan/api/feature-flags` — it needs a `db` because the value lives in a table, and it is cached per process so this is a map lookup on all but one call in thirty:
 
 ```ts
-import { isFeatureEnabled } from "@k22i/api/feature-flags";
+import { isFeatureEnabled } from "@masdan/api/feature-flags";
 
 if (await isFeatureEnabled(context.db, "FF__EXAMPLE")) {
   /* ... */
@@ -402,7 +402,7 @@ Full guide, including the ownership (`:any`) convention and how to add a resourc
 ## Project Structure
 
 ```
-k22i/
+masdan/
 ├── apps/
 │   ├── web/         # Frontend application (React + TanStack Router)
 │   ├── native/      # Mobile application (React Native, Expo)

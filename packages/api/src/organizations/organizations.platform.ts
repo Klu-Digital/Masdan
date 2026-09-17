@@ -4,7 +4,7 @@ import {
   member,
   organization,
   user,
-} from "@k22i/db/schema/index";
+} from "@masdan/db/schema/index";
 import { and, count, eq, ilike } from "drizzle-orm";
 import { z } from "zod";
 

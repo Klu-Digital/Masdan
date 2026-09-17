@@ -1,6 +1,6 @@
-import type * as TypeImport__k22i_redis from "@k22i/redis";
-import { createFakeRedis } from "@k22i/redis/fake";
-import type { FakeRedis } from "@k22i/redis/fake";
+import type * as TypeImport__masdan_redis from "@masdan/redis";
+import { createFakeRedis } from "@masdan/redis/fake";
+import type { FakeRedis } from "@masdan/redis/fake";
 import type Redis from "ioredis";
 import { describe, expect, it, vi } from "vite-plus/test";
 
@@ -11,8 +11,8 @@ import { describe, expect, it, vi } from "vite-plus/test";
  */
 const state = vi.hoisted(() => ({ client: null as unknown }));
 
-vi.mock("@k22i/redis", async (importOriginal) => {
-  const actual = await importOriginal<typeof TypeImport__k22i_redis>();
+vi.mock("@masdan/redis", async (importOriginal) => {
+  const actual = await importOriginal<typeof TypeImport__masdan_redis>();
   return {
     ...actual,
     redis: {

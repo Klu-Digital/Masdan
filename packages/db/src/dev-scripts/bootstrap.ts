@@ -1,5 +1,5 @@
 // Process bootstrap for the standalone scripts under dev-scripts/. Imports
-// nothing from `@k22i/*`.
+// nothing from `@masdan/*`.
 
 import path from "node:path";
 
@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 /**
  * Fills `process.env` from the server's `.env`, resolved relative to this file.
  * Real environment variables win — `override: false` only fills gaps. Call this
- * before importing anything that reads `@k22i/env/shared-server` at module scope, and
+ * before importing anything that reads `@masdan/env/shared-server` at module scope, and
  * reach for `await import(...)` for those: a formatter is free to reorder the
  * static list.
  */

@@ -1,5 +1,5 @@
-import { member, organization } from "@k22i/db/schema/auth";
-import { getSessionFor, getTestDb, signUpTestUser } from "@k22i/testing";
+import { member, organization } from "@masdan/db/schema/auth";
+import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vite-plus/test";
 

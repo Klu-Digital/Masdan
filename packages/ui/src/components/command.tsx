@@ -12,8 +12,8 @@ import {
   AutocompleteItem,
   AutocompleteList,
   AutocompleteSeparator,
-} from "@k22i/ui/components/autocomplete";
-import { cn } from "@k22i/ui/lib/utils";
+} from "@masdan/ui/components/autocomplete";
+import { cn } from "@masdan/ui/lib/utils";
 import type * as React from "react";
 
 export const CommandDialog: typeof CommandDialogPrimitive.Root =
@@ -177,7 +177,7 @@ export const CommandGroupLabel = ({
     {...props}
   />
 );
-export { AutocompleteCollection as CommandCollection } from "@k22i/ui/components/autocomplete";
+export { AutocompleteCollection as CommandCollection } from "@masdan/ui/components/autocomplete";
 export const CommandItem = ({
   className,
   ...props

@@ -12,11 +12,11 @@
   },
   "iconLibrary": "hugeicons",
   "aliases": {
-    "components": "@k22i/ui/components",
-    "utils": "@k22i/ui/lib/utils",
-    "hooks": "@k22i/ui/hooks",
-    "lib": "@k22i/ui/lib",
-    "ui": "@k22i/ui/components"
+    "components": "@masdan/ui/components",
+    "utils": "@masdan/ui/lib/utils",
+    "hooks": "@masdan/ui/hooks",
+    "lib": "@masdan/ui/lib",
+    "ui": "@masdan/ui/components"
   },
   "menuColor": "default",
   "menuAccent": "subtle",

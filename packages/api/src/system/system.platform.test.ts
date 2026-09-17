@@ -25,14 +25,14 @@ const mockEnv = vi.hoisted(() => ({
   REDIS_URL: "redis://user:hunter2@localhost:6379",
   S3_ACCESS_KEY_ID: "AKIA_TEST",
   S3_SECRET_ACCESS_KEY: "s3-secret-value",
-  SERVICE_NAME: "k22i-server",
+  SERVICE_NAME: "masdan-server",
   STORAGE_MAX_UPLOAD_BYTES: 26_214_400,
   TRUST_PROXY_HEADERS: false,
   WORKERS_CONCURRENCY: 1,
   WORKERS_POLLING_INTERVAL_SECONDS: 2,
 }));
 
-vi.mock("@k22i/env/server", () => ({ env: mockEnv }));
+vi.mock("@masdan/env/server", () => ({ env: mockEnv }));
 
 const adminContext = {
   auth: null,

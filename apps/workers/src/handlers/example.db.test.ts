@@ -1,10 +1,10 @@
-import { queue } from "@k22i/queue";
+import { queue } from "@masdan/queue";
 import {
   drainQueue,
   getJobs,
   startTestQueue,
   stopTestQueue,
-} from "@k22i/testing";
+} from "@masdan/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 
 import { handleEcho } from "./example";

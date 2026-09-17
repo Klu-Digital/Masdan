@@ -1,6 +1,6 @@
 import { expoClient } from "@better-auth/expo/client";
-import { ac, roles } from "@k22i/auth/permissions";
-import { env } from "@k22i/env/native";
+import { ac, roles } from "@masdan/auth/permissions";
+import { env } from "@masdan/env/native";
 import { adminClient, organizationClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import Constants from "expo-constants";

@@ -34,7 +34,7 @@ const repoRoot = path.join(import.meta.dirname, "..", "..");
 const CANARY = "THIS_MUST_NEVER_APPEAR";
 
 const makeFixture = (): string => {
-  const root = mkdtempSync(path.join(os.tmpdir(), "k22i-secrets-"));
+  const root = mkdtempSync(path.join(os.tmpdir(), "masdan-secrets-"));
   for (const app of ["native", "server", "web", "workers"]) {
     const directory = path.join(root, "apps", app);
     mkdirSync(directory, { recursive: true });
@@ -531,6 +531,6 @@ describe("deployment check", () => {
 
     expect(rendered).not.toContain(CANARY);
     expect(rendered).not.toMatch(/DATABASE_URL=|BETTER_AUTH_SECRET=/u);
-    expect(rendered).toContain("k22i staging");
+    expect(rendered).toContain("masdan staging");
   });
 });

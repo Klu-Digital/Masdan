@@ -1,4 +1,4 @@
-import { cn } from "@k22i/ui/lib/utils";
+import { cn } from "@masdan/ui/lib/utils";
 import type * as React from "react";
 
 export const Kbd = ({

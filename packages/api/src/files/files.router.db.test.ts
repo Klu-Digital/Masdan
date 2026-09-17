@@ -1,6 +1,6 @@
-import { file } from "@k22i/db/schema/index";
-import type * as StorageModule from "@k22i/storage";
-import { getSessionFor, getTestDb, signUpTestUser } from "@k22i/testing";
+import { file } from "@masdan/db/schema/index";
+import type * as StorageModule from "@masdan/storage";
+import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
 import { call, ORPCError } from "@orpc/server";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -28,7 +28,7 @@ const bucket = vi.hoisted(() => ({
   >(),
 }));
 
-vi.mock("@k22i/storage", async (importOriginal) => {
+vi.mock("@masdan/storage", async (importOriginal) => {
   const actual = await importOriginal<typeof StorageModule>();
   return {
     ...actual,

@@ -30,7 +30,7 @@ packages/auth/src/permissions.ts     statements + roles     ← pure data, share
               ↓
 organization({ ac, roles })          better-auth gates its own endpoints
               ↓
-requirePermission() in @k22i/api     your routes are gated
+requirePermission() in @masdan/api     your routes are gated
               ↓
 authClient / hasPermission()         the UI hides controls it would 403 on
 ```
@@ -92,7 +92,7 @@ That's it. `requireOrganization` has already resolved the caller's `member.role`
 ### 3. Mirror it in the UI
 
 ```tsx
-import { hasPermission } from "@k22i/auth/permissions";
+import { hasPermission } from "@masdan/auth/permissions";
 import { authClient } from "@/lib/auth-client";
 
 const { data: session } = authClient.useSession();
@@ -193,7 +193,7 @@ authClient.organization.checkRolePermission({
 });
 ```
 
-Prefer `hasPermission` from `@k22i/auth/permissions` when the value came from `getActiveMember`, since it handles the comma-separated case.
+Prefer `hasPermission` from `@masdan/auth/permissions` when the value came from `getActiveMember`, since it handles the comma-separated case.
 
 ---
 
@@ -254,4 +254,4 @@ better-auth's built-in rate limiter is backed by Redis via `rateLimit.customStor
 | `apps/web/src/lib/auth-client.ts` | Client mirror (web). |
 | `apps/native/lib/auth-client.ts` | Client mirror (native). |
 
-`permissions.ts` is imported by the browser and by React Native. Keep it free of `@k22i/db`, `@k22i/env`, and anything else server-only.
+`permissions.ts` is imported by the browser and by React Native. Keep it free of `@masdan/db`, `@masdan/env`, and anything else server-only.

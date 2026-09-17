@@ -1,5 +1,5 @@
-import { Button } from "@k22i/ui/components/button";
-import { ToastProvider } from "@k22i/ui/components/toast";
+import { Button } from "@masdan/ui/components/button";
+import { ToastProvider } from "@masdan/ui/components/toast";
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
@@ -76,10 +76,10 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
     ],
     meta: [
       {
-        title: "k22i",
+        title: "masdan",
       },
       {
-        content: "k22i is a web application",
+        content: "masdan is a web application",
         name: "description",
       },
     ],

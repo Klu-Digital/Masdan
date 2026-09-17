@@ -1,5 +1,5 @@
-import { log } from "@k22i/observability";
-import { defineIncrementWithTtl, incrementWithTtl, redis } from "@k22i/redis";
+import { log } from "@masdan/observability";
+import { defineIncrementWithTtl, incrementWithTtl, redis } from "@masdan/redis";
 import type { BetterAuthOptions } from "better-auth";
 
 // Not re-exported from better-auth's root entry, so derive it rather than

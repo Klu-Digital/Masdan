@@ -25,7 +25,7 @@ const COMMANDS = [
 ] as const;
 
 /**
- * Must finish before `@k22i/env/shared-server` is imported below: t3-env freezes `env`
+ * Must finish before `@masdan/env/shared-server` is imported below: t3-env freezes `env`
  * at module load.
  */
 const loadEnv = (): void => {
@@ -59,7 +59,7 @@ if (!(COMMANDS as readonly string[]).includes(command)) {
   process.exit(1);
 }
 
-const { env } = await import("@k22i/env/shared-server");
+const { env } = await import("@masdan/env/shared-server");
 
 try {
   const { stdout, stderr } = await execFileAsync(

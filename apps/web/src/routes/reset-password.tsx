@@ -1,7 +1,7 @@
-import { Button } from "@k22i/ui/components/button";
-import { Field, FieldError, FieldLabel } from "@k22i/ui/components/field";
-import { Input } from "@k22i/ui/components/input";
-import { toastManager } from "@k22i/ui/components/toast";
+import { Button } from "@masdan/ui/components/button";
+import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
+import { Input } from "@masdan/ui/components/input";
+import { toastManager } from "@masdan/ui/components/toast";
 import { useForm } from "@tanstack/react-form";
 import type { SearchSchemaInput } from "@tanstack/react-router";
 import {

@@ -1,16 +1,16 @@
-import { isPlatformAdmin } from "@k22i/auth/permissions";
+import { isPlatformAdmin } from "@masdan/auth/permissions";
 import {
   Alert,
   AlertAction,
   AlertDescription,
-} from "@k22i/ui/components/alert";
-import { Button } from "@k22i/ui/components/button";
-import { Separator } from "@k22i/ui/components/separator";
+} from "@masdan/ui/components/alert";
+import { Button } from "@masdan/ui/components/button";
+import { Separator } from "@masdan/ui/components/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@k22i/ui/components/sidebar";
+} from "@masdan/ui/components/sidebar";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Outlet,

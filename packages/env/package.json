@@ -1,5 +1,5 @@
 {
-  "name": "@k22i/env",
+  "name": "@masdan/env",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -17,7 +17,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@k22i/config": "workspace:*",
+    "@masdan/config": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "^6.0.3"
   }

@@ -1,5 +1,5 @@
 import type { Faker } from "@faker-js/faker";
-import type { createAuth } from "@k22i/auth";
+import type { createAuth } from "@masdan/auth";
 
 import type { Database } from "../../index";
 

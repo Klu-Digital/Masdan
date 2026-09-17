@@ -1,8 +1,8 @@
-import type { PermissionRequest } from "@k22i/auth/permissions";
-import { hasPermission, isPlatformAdmin } from "@k22i/auth/permissions";
-import { member } from "@k22i/db/schema/auth";
-import type { FeatureFlagName } from "@k22i/env/flags";
-import { orpcLogger } from "@k22i/observability/orpc";
+import type { PermissionRequest } from "@masdan/auth/permissions";
+import { hasPermission, isPlatformAdmin } from "@masdan/auth/permissions";
+import { member } from "@masdan/db/schema/auth";
+import type { FeatureFlagName } from "@masdan/env/flags";
+import { orpcLogger } from "@masdan/observability/orpc";
 import { ORPCError, os } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 

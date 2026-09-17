@@ -1,7 +1,7 @@
 import { prometheus } from "@hono/prometheus";
-import { env } from "@k22i/env/workers";
-import { log, parseError } from "@k22i/observability";
-import { queue } from "@k22i/queue";
+import { env } from "@masdan/env/workers";
+import { log, parseError } from "@masdan/observability";
+import { queue } from "@masdan/queue";
 import type { Hono } from "hono";
 import { bearerAuth } from "hono/bearer-auth";
 import { Gauge, Registry } from "prom-client";
@@ -26,7 +26,7 @@ export const mountMetrics = (app: Hono) => {
   const jobs = new Gauge({
     help: "Jobs currently in each queue, by state",
     labelNames: ["queue", "state"] as const,
-    name: "k22i_queue_jobs",
+    name: "masdan_queue_jobs",
     registers: [registry],
   });
 

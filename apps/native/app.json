@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "k22i",
-    "slug": "k22i",
+    "name": "masdan",
+    "slug": "masdan",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "k22i",
+    "scheme": "masdan",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.k22i"
+      "bundleIdentifier": "com.anonymous.masdan"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +19,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.k22i"
+      "package": "com.anonymous.masdan"
     },
     "web": {
       "bundler": "metro",

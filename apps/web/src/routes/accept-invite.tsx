@@ -1,6 +1,6 @@
-import { Button } from "@k22i/ui/components/button";
-import { Spinner } from "@k22i/ui/components/spinner";
-import { toastManager } from "@k22i/ui/components/toast";
+import { Button } from "@masdan/ui/components/button";
+import { Spinner } from "@masdan/ui/components/spinner";
+import { toastManager } from "@masdan/ui/components/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SearchSchemaInput } from "@tanstack/react-router";
 import {

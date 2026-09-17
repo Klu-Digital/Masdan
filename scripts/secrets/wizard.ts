@@ -623,7 +623,7 @@ export const chooseProduction = (): Promise<boolean> =>
 export const runDeploymentWizard = async (
   environment: DeploymentEnvironment
 ): Promise<boolean> => {
-  console.log(`\nk22i ${environment} setup\n`);
+  console.log(`\nmasdan ${environment} setup\n`);
 
   const availability = probeGitHub();
   if (!availability.available) {

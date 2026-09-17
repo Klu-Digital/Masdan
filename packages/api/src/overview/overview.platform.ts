@@ -5,7 +5,7 @@ import {
   organization,
   session,
   user,
-} from "@k22i/db/schema/index";
+} from "@masdan/db/schema/index";
 import { count, eq, gt, sql } from "drizzle-orm";
 
 import { adminProcedure } from "../procedures";

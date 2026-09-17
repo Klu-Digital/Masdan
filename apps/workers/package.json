@@ -11,10 +11,10 @@
   "dependencies": {
     "@hono/node-server": "^2.0.12",
     "@hono/prometheus": "catalog:",
-    "@k22i/db": "workspace:*",
-    "@k22i/env": "workspace:*",
-    "@k22i/observability": "workspace:*",
-    "@k22i/queue": "workspace:*",
+    "@masdan/db": "workspace:*",
+    "@masdan/env": "workspace:*",
+    "@masdan/observability": "workspace:*",
+    "@masdan/queue": "workspace:*",
     "dotenv": "catalog:",
     "evlog": "catalog:",
     "hono": "catalog:",
@@ -22,8 +22,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@k22i/config": "workspace:*",
-    "@k22i/testing": "workspace:*",
+    "@masdan/config": "workspace:*",
+    "@masdan/testing": "workspace:*",
     "@types/node": "catalog:",
     "tsdown": "^0.22.14",
     "tsx": "^4.23.1",

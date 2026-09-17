@@ -1,6 +1,6 @@
-import { log } from "@k22i/observability";
-import { queue } from "@k22i/queue";
-import type { JobName, JobOf } from "@k22i/queue";
+import { log } from "@masdan/observability";
+import { queue } from "@masdan/queue";
+import type { JobName, JobOf } from "@masdan/queue";
 
 import { handleEcho, handleHeartbeat } from "./handlers/example";
 

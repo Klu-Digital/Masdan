@@ -1,4 +1,4 @@
-import { queue } from "@k22i/queue";
+import { queue } from "@masdan/queue";
 import { z } from "zod";
 
 import { orgMutationProcedure } from "../procedures";

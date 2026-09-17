@@ -1,12 +1,12 @@
-import type { Database } from "@k22i/db";
-import { featureFlag } from "@k22i/db/schema/feature-flags";
-import type { FeatureFlagName, FeatureFlags } from "@k22i/env/flags";
+import type { Database } from "@masdan/db";
+import { featureFlag } from "@masdan/db/schema/feature-flags";
+import type { FeatureFlagName, FeatureFlags } from "@masdan/env/flags";
 import {
   FEATURE_FLAG_DEFAULTS,
   FEATURE_FLAG_NAMES,
   FEATURE_FLAG_TTL_MS,
-} from "@k22i/env/flags";
-import { log, parseError } from "@k22i/observability";
+} from "@masdan/env/flags";
+import { log, parseError } from "@masdan/observability";
 
 /** Extra grace when the read fails, so a flapping database isn't re-queried per request. */
 const ERROR_GRACE_MS = 5000;

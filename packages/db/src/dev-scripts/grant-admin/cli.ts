@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Must finish before anything below is imported: `@k22i/db` reads validated env
+// Must finish before anything below is imported: `@masdan/db` reads validated env
 // at module scope. See bootstrap.ts for why this is a call rather than a
 // side-effecting import.
 import { loadEnv, runLifecycle } from "../bootstrap";
@@ -8,7 +8,7 @@ const USAGE = `Usage:
   pnpm admin:grant <email>
 
 Sets user.role = "admin" for the given email — the *global* back-office role
-@k22i/api's adminProcedure gates on, not a per-organization member.role. Not a
+@masdan/api's adminProcedure gates on, not a per-organization member.role. Not a
 migration and not a post-migration script: this is one-off operator tooling
 for turning an existing account into the first platform admin.
 

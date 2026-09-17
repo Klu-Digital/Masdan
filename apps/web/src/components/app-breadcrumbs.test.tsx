@@ -19,7 +19,7 @@ const rootRoute = createRootRoute({
     </>
   ),
   // Stands in for the real root's product name, which must not become a crumb.
-  head: () => ({ meta: [{ title: "k22i" }] }),
+  head: () => ({ meta: [{ title: "masdan" }] }),
 });
 
 // A pathless layout with no title of its own — it should contribute nothing.
@@ -86,7 +86,7 @@ describe("AppBreadcrumbs", () => {
     await waitFor(() => {
       expect(screen.getByText("Admin")).toBeInTheDocument();
     });
-    expect(screen.queryByText("k22i")).not.toBeInTheDocument();
+    expect(screen.queryByText("masdan")).not.toBeInTheDocument();
   });
 
   it("names a dynamic crumb from the route's loader data", async () => {

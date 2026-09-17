@@ -1,5 +1,5 @@
-import { ac, roles } from "@k22i/auth/permissions";
-import { env } from "@k22i/env/web";
+import { ac, roles } from "@masdan/auth/permissions";
+import { env } from "@masdan/env/web";
 import { adminClient, organizationClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 

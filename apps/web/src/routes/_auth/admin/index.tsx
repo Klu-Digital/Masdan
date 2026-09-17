@@ -1,12 +1,12 @@
-import { Badge } from "@k22i/ui/components/badge";
+import { Badge } from "@masdan/ui/components/badge";
 import {
   Card,
   CardDescription,
   CardHeader,
   CardPanel,
   CardTitle,
-} from "@k22i/ui/components/card";
-import { Skeleton } from "@k22i/ui/components/skeleton";
+} from "@masdan/ui/components/card";
+import { Skeleton } from "@masdan/ui/components/skeleton";
 import {
   Table,
   TableBody,
@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@k22i/ui/components/table";
+} from "@masdan/ui/components/table";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";

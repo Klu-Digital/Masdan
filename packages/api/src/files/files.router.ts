@@ -1,7 +1,7 @@
-import { file } from "@k22i/db/schema/index";
-import { env } from "@k22i/env/server";
-import { buildObjectKey, sanitizeFileName, storage } from "@k22i/storage";
-import { allowedContentTypes } from "@k22i/storage/content-types";
+import { file } from "@masdan/db/schema/index";
+import { env } from "@masdan/env/server";
+import { buildObjectKey, sanitizeFileName, storage } from "@masdan/storage";
+import { allowedContentTypes } from "@masdan/storage/content-types";
 import { ORPCError } from "@orpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";

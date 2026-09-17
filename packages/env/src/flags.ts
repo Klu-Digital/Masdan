@@ -2,7 +2,7 @@
  * The feature flag registry. Declaring a flag here is what creates it; its
  * value lives in the `feature_flag` table and is toggled at /admin/flags, so
  * turning one on is a click, not a deploy. Keep it free of `dotenv` /
- * `process.env` and of any dependency on `@k22i/db`: the web bundle imports
+ * `process.env` and of any dependency on `@masdan/db`: the web bundle imports
  * `FeatureFlagName` from here. Deliberately global — no per-user targeting and
  * no percentage rollout.
  */

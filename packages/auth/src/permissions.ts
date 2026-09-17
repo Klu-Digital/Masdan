@@ -13,7 +13,7 @@ import {
  */
 export const statement = {
   ...defaultStatements,
-  // Example resource, wired up in `@k22i/api`'s storage router. `:any` is the
+  // Example resource, wired up in `@masdan/api`'s storage router. `:any` is the
   // convention for "act on rows you do not own".
   file: ["create", "read", "delete", "delete:any"],
 } as const;

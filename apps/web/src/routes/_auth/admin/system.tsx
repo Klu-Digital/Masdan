@@ -1,12 +1,12 @@
-import { Alert, AlertDescription, AlertTitle } from "@k22i/ui/components/alert";
-import { Badge } from "@k22i/ui/components/badge";
+import { Alert, AlertDescription, AlertTitle } from "@masdan/ui/components/alert";
+import { Badge } from "@masdan/ui/components/badge";
 import {
   Card,
   CardHeader,
   CardPanel,
   CardTitle,
-} from "@k22i/ui/components/card";
-import { Skeleton } from "@k22i/ui/components/skeleton";
+} from "@masdan/ui/components/card";
+import { Skeleton } from "@masdan/ui/components/skeleton";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";

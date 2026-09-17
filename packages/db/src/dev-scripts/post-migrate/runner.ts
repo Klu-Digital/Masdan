@@ -1,7 +1,7 @@
 import os from "node:os";
 import { setTimeout as sleep } from "node:timers/promises";
 
-import { log } from "@k22i/observability";
+import { log } from "@masdan/observability";
 import { eq, sql, TransactionRollbackError } from "drizzle-orm";
 import type { Pool, PoolClient } from "pg";
 

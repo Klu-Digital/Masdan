@@ -1,11 +1,11 @@
 // Leaf module by design: importing the server router here would pull drizzle,
-// the AWS SDK and @k22i/env/server into the browser bundle.
-import { isAllowedContentType } from "@k22i/storage/content-types";
+// the AWS SDK and @masdan/env/server into the browser bundle.
+import { isAllowedContentType } from "@masdan/storage/content-types";
 
 import { client } from "@/utils/orpc";
 
 /**
- * Mirrors the `state` prop on `@k22i/ui`'s `Attachment`. `processing` is the
+ * Mirrors the `state` prop on `@masdan/ui`'s `Attachment`. `processing` is the
  * confirm round-trip.
  */
 export type UploadState =

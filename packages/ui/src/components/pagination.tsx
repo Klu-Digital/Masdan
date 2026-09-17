@@ -8,9 +8,9 @@ import {
   MoreHorizontalIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { buttonVariants } from "@k22i/ui/components/button";
-import type { Button } from "@k22i/ui/components/button";
-import { cn } from "@k22i/ui/lib/utils";
+import { buttonVariants } from "@masdan/ui/components/button";
+import type { Button } from "@masdan/ui/components/button";
+import { cn } from "@masdan/ui/lib/utils";
 import type * as React from "react";
 
 export const Pagination = ({

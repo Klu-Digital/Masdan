@@ -1,10 +1,10 @@
-import { queue } from "@k22i/queue";
-import type { JobName, JobOf, JobPayload } from "@k22i/queue";
+import { queue } from "@masdan/queue";
+import type { JobName, JobOf, JobPayload } from "@masdan/queue";
 import type { JobWithMetadata } from "pg-boss";
 
 /**
  * Starts against this worker's own database — `setup/db.ts` has already
- * repointed `@k22i/env/server` at it. Must not be called from module scope.
+ * repointed `@masdan/env/server` at it. Must not be called from module scope.
  */
 export const startTestQueue = async (): Promise<void> => {
   await queue.start("producer");

@@ -5,9 +5,9 @@ import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { XIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Button } from "@k22i/ui/components/button";
-import { ScrollArea } from "@k22i/ui/components/scroll-area";
-import { cn } from "@k22i/ui/lib/utils";
+import { Button } from "@masdan/ui/components/button";
+import { ScrollArea } from "@masdan/ui/components/scroll-area";
+import { cn } from "@masdan/ui/lib/utils";
 import type React from "react";
 
 export const Sheet: typeof SheetPrimitive.Root = SheetPrimitive.Root;

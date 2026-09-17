@@ -1,6 +1,6 @@
-import type { AppRouterClient } from "@k22i/api/routers/index";
-import { env } from "@k22i/env/web";
-import { toastManager } from "@k22i/ui/components/toast";
+import type { AppRouterClient } from "@masdan/api/routers/index";
+import { env } from "@masdan/env/web";
+import { toastManager } from "@masdan/ui/components/toast";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";

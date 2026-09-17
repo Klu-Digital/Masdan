@@ -1,5 +1,5 @@
-import { Badge } from "@k22i/ui/components/badge";
-import { Button } from "@k22i/ui/components/button";
+import { Badge } from "@masdan/ui/components/badge";
+import { Button } from "@masdan/ui/components/button";
 import {
   Card,
   CardDescription,
@@ -7,10 +7,10 @@ import {
   CardHeader,
   CardPanel,
   CardTitle,
-} from "@k22i/ui/components/card";
-import { Field, FieldError, FieldLabel } from "@k22i/ui/components/field";
-import { Input } from "@k22i/ui/components/input";
-import { toastManager } from "@k22i/ui/components/toast";
+} from "@masdan/ui/components/card";
+import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
+import { Input } from "@masdan/ui/components/input";
+import { toastManager } from "@masdan/ui/components/toast";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, getRouteApi } from "@tanstack/react-router";

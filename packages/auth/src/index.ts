@@ -1,7 +1,7 @@
 import { expo } from "@better-auth/expo";
-import { createDb } from "@k22i/db";
-import * as schema from "@k22i/db/schema/auth";
-import { env } from "@k22i/env/server";
+import { createDb } from "@masdan/db";
+import * as schema from "@masdan/db/schema/auth";
+import { env } from "@masdan/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, organization } from "better-auth/plugins";
@@ -149,7 +149,7 @@ export const createAuth = () => {
     trustedOrigins: [
       env.CORS_ORIGIN,
 
-      "k22i://",
+      "masdan://",
       "exp://",
       "http://localhost:8081",
     ],

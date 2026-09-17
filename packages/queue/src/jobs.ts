@@ -2,7 +2,7 @@ import type { Queue } from "pg-boss";
 import { z } from "zod";
 
 /**
- * The single source of truth shared by the producer (`@k22i/api`) and the
+ * The single source of truth shared by the producer (`@masdan/api`) and the
  * consumer (apps/workers), so neither declares a queue name or payload shape of
  * its own.
  */

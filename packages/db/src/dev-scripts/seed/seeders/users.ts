@@ -22,7 +22,7 @@ const FIXED_USERS: PlannedUser[] = [
     password: "K1@gmail.com",
     role: "admin",
   },
-  { email: "member@k22i.dev", name: "Member", password: "password" },
+  { email: "member@masdan.dev", name: "Member", password: "password" },
 ];
 
 /** Shared by every random user so at least one credential is easy to remember. */

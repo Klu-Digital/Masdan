@@ -2,7 +2,7 @@
 import { parseArgs } from "node:util";
 
 // See bootstrap.ts: this must run before the `await import(...)`s below,
-// `@k22i/auth` included — it reads validated env at module scope.
+// `@masdan/auth` included — it reads validated env at module scope.
 import { loadEnv, runLifecycle } from "../bootstrap";
 
 const USAGE = `Usage:
@@ -52,7 +52,7 @@ const main = async (): Promise<void> => {
     return;
   }
 
-  const { env } = await import("@k22i/env/shared-server");
+  const { env } = await import("@masdan/env/shared-server");
   if (env.NODE_ENV === "production") {
     console.error(
       'Refusing to seed: NODE_ENV is "production". This tool has no production use case.'

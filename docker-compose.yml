@@ -1,4 +1,4 @@
-name: k22i
+name: masdan
 
 services:
   web:
@@ -48,12 +48,12 @@ services:
       PORT: ${SERVER_PORT:-1900}
       BETTER_AUTH_URL: http://localhost:${SERVER_PORT:-1900}
       CORS_ORIGIN: http://localhost:${WEB_PORT:-2600}
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/k22i
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/masdan
       # Server -> bucket, over the compose network.
       S3_ENDPOINT: http://minio:9000
       # Host baked into presigned URLs; must be reachable from the browser, not from this container.
       S3_PUBLIC_ENDPOINT: http://localhost:${MINIO_PORT:-5300}
-      S3_BUCKET: ${S3_BUCKET:-k22i}
+      S3_BUCKET: ${S3_BUCKET:-masdan}
       S3_REGION: us-east-1
       S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
       S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
@@ -95,9 +95,9 @@ services:
       - path: apps/workers/.env
         required: false
     environment:
-      SERVICE_NAME: k22i-workers
+      SERVICE_NAME: masdan-workers
       WORKERS_PORT: ${WORKERS_PORT:-1901}
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/k22i
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/masdan
     healthcheck:
       test:
         [
@@ -117,15 +117,15 @@ services:
 
   postgres:
     image: postgres:18
-    container_name: k22i-postgres
+    container_name: masdan-postgres
     environment:
-      POSTGRES_DB: k22i
+      POSTGRES_DB: masdan
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
     ports:
       - "${POSTGRES_PORT:-4400}:5432"
     volumes:
-      - k22i_postgres_data:/var/lib/postgresql
+      - masdan_postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -135,7 +135,7 @@ services:
 
   redis:
     image: redis:8-alpine
-    container_name: k22i-redis
+    container_name: masdan-redis
     init: true
     # `--save 60 1` is one snapshot a minute if at least one key changed. Nothing
     # here is authoritative — sessions live in Postgres — so this exists only so a
@@ -146,7 +146,7 @@ services:
       # compose-network REDIS_URL on the server service is unaffected.
       - "${REDIS_PORT:-6666}:6379"
     volumes:
-      - k22i_redis_data:/data
+      - masdan_redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -156,7 +156,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: k22i-minio
+    container_name: masdan-minio
     init: true
     command: server /data --console-address ":9001"
     environment:
@@ -170,7 +170,7 @@ services:
       - "${MINIO_PORT:-5300}:9000"
       - "${MINIO_CONSOLE_PORT:-5301}:9001"
     volumes:
-      - k22i_minio_data:/data
+      - masdan_minio_data:/data
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 10s
@@ -188,7 +188,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      S3_BUCKET: ${S3_BUCKET:-k22i}
+      S3_BUCKET: ${S3_BUCKET:-masdan}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -199,6 +199,6 @@ services:
     restart: "no"
 
 volumes:
-  k22i_postgres_data:
-  k22i_minio_data:
-  k22i_redis_data:
+  masdan_postgres_data:
+  masdan_minio_data:
+  masdan_redis_data:

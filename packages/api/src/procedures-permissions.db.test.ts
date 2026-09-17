@@ -1,5 +1,5 @@
-import { member } from "@k22i/db/schema/auth";
-import { getSessionFor, getTestDb, signUpTestUser } from "@k22i/testing";
+import { member } from "@masdan/db/schema/auth";
+import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
 import { call, ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vite-plus/test";

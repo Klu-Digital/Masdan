@@ -23,7 +23,7 @@ export const sharedServerVariables = {
   /** Redis-backed features degrade gracefully when unset. */
   REDIS_URL: z.string().min(1).optional(),
   /** Tags every log line, so a shared drain can distinguish processes. */
-  SERVICE_NAME: z.string().min(1).default("k22i-server"),
+  SERVICE_NAME: z.string().min(1).default("masdan-server"),
   /** Workers spawned per queue, per process. */
   WORKERS_CONCURRENCY: z.coerce.number().int().positive().default(1),
   WORKERS_POLLING_INTERVAL_SECONDS: z.coerce.number().positive().default(2),
