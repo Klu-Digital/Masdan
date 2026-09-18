@@ -1,6 +1,6 @@
 import { cn } from "@masdan/ui/lib/utils";
 
-import { categoryColorClass } from "./category-colors";
+import { colorClass } from "@/components/color-styles";
 
 export const CategoryBadge = ({
   color,
@@ -14,7 +14,7 @@ export const CategoryBadge = ({
   <span
     className={cn(
       "inline-flex items-center gap-2 rounded-lg border px-2.5 py-1 text-sm font-medium",
-      categoryColorClass(color)
+      colorClass(color)
     )}
   >
     <span aria-hidden="true" className="text-base leading-none">

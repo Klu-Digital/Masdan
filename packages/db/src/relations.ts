@@ -50,12 +50,20 @@ export const relations = defineRelations(schema, (r) => ({
     files: r.many.file(),
     invitations: r.many.invitation(),
     members: r.many.member(),
+    tags: r.many.tag(),
   },
   session: {
     user: r.one.user({
       from: r.session.userId,
       optional: false,
       to: r.user.id,
+    }),
+  },
+  tag: {
+    organization: r.one.organization({
+      from: r.tag.organizationId,
+      optional: false,
+      to: r.organization.id,
     }),
   },
   user: {

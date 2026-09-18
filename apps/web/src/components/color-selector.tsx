@@ -1,28 +1,30 @@
-import { CATEGORY_COLORS } from "@masdan/api/categories/constants";
-import type { CategoryColor } from "@masdan/api/categories/constants";
+import { TAILWIND_COLORS } from "@masdan/api/colors";
+import type { TailwindColor } from "@masdan/api/colors";
 import { cn } from "@masdan/ui/lib/utils";
 
-import { CATEGORY_COLOR_STYLES } from "./category-colors";
+import { COLOR_STYLES } from "./color-styles";
 
-const colorLabel = (color: CategoryColor) =>
+const colorLabel = (color: TailwindColor) =>
   color[0].toUpperCase() + color.slice(1);
 
 export const ColorSelector = ({
+  legend = "Colors",
   onValueChange,
   value,
 }: {
-  onValueChange: (value: CategoryColor) => void;
-  value: CategoryColor;
+  legend?: string;
+  onValueChange: (value: TailwindColor) => void;
+  value: TailwindColor;
 }) => (
   <fieldset className="grid grid-cols-4 gap-2 sm:grid-cols-8 lg:grid-cols-11">
-    <legend className="sr-only">Category colors</legend>
-    {CATEGORY_COLORS.map((color) => (
+    <legend className="sr-only">{legend}</legend>
+    {TAILWIND_COLORS.map((color) => (
       <button
         aria-label={colorLabel(color)}
         aria-pressed={color === value}
         className={cn(
           "focus-visible:ring-ring flex w-full flex-col items-center gap-1 rounded-md text-xs outline-none focus-visible:ring-2 data-[selected=true]:ring-2",
-          CATEGORY_COLOR_STYLES[color].ring
+          COLOR_STYLES[color].ring
         )}
         data-selected={color === value}
         key={color}
@@ -35,8 +37,8 @@ export const ColorSelector = ({
           className={cn(
             "border-border block size-8 rounded-md border",
             color === value
-              ? CATEGORY_COLOR_STYLES[color].swatch
-              : CATEGORY_COLOR_STYLES[color].badge
+              ? COLOR_STYLES[color].swatch
+              : COLOR_STYLES[color].badge
           )}
         />
       </button>

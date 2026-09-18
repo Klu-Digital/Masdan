@@ -53,11 +53,11 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { z } from "zod";
 
+import { ColorSelector } from "@/components/color-selector";
 import { client } from "@/utils/orpc";
 
 import { categoriesQueryOptions, invalidateCategories } from "../queries";
 import { CategoryBadge } from "./category-badge";
-import { ColorSelector } from "./color-selector";
 
 interface Category {
   archivedAt: Date | null;
@@ -322,6 +322,7 @@ const CategoryFormDialog = ({
               <Field name={field.name}>
                 <FieldLabel>Color</FieldLabel>
                 <ColorSelector
+                  legend="Category colors"
                   onValueChange={(value) => field.handleChange(value)}
                   value={field.state.value}
                 />

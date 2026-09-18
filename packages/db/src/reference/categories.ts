@@ -1,30 +1,9 @@
+import { TAILWIND_COLORS } from "./colors";
+
 export const CATEGORY_TYPES = ["expense", "income"] as const;
 export type CategoryType = (typeof CATEGORY_TYPES)[number];
 
-export const CATEGORY_COLORS = [
-  "slate",
-  "gray",
-  "zinc",
-  "neutral",
-  "stone",
-  "red",
-  "orange",
-  "amber",
-  "yellow",
-  "lime",
-  "green",
-  "emerald",
-  "teal",
-  "cyan",
-  "sky",
-  "blue",
-  "indigo",
-  "violet",
-  "purple",
-  "fuchsia",
-  "pink",
-  "rose",
-] as const;
+export const CATEGORY_COLORS = TAILWIND_COLORS;
 export type CategoryColor = (typeof CATEGORY_COLORS)[number];
 
 export const DEFAULT_CATEGORIES = [

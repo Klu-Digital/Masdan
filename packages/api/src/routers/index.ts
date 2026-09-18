@@ -8,6 +8,7 @@ import { householdsRouter } from "../households/households.router";
 import { invitationsRouter } from "../invitations/invitations.router";
 import { jobsRouter } from "../jobs/jobs.router";
 import { protectedProcedure, publicProcedure } from "../procedures";
+import { tagsRouter } from "../tags/tags.router";
 import { adminRouter } from "./admin";
 
 /**
@@ -31,6 +32,7 @@ export const appRouter = {
     message: "This is private",
     user: context.session?.user,
   })),
+  tags: tagsRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

@@ -1,12 +1,12 @@
-import type { CategoryColor } from "@masdan/api/categories/constants";
+import type { TailwindColor } from "@masdan/api/colors";
 
-interface CategoryColorStyles {
+interface ColorStyles {
   badge: string;
   ring: string;
   swatch: string;
 }
 
-export const CATEGORY_COLOR_STYLES = {
+export const COLOR_STYLES = {
   amber: {
     badge: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
     ring: "ring-amber-500 dark:ring-amber-400",
@@ -125,12 +125,10 @@ export const CATEGORY_COLOR_STYLES = {
     ring: "ring-zinc-500 dark:ring-zinc-400",
     swatch: "bg-zinc-500 dark:bg-zinc-400",
   },
-} satisfies Record<CategoryColor, CategoryColorStyles>;
+} satisfies Record<TailwindColor, ColorStyles>;
 
-export const isCategoryColor = (value: string): value is CategoryColor =>
-  Object.hasOwn(CATEGORY_COLOR_STYLES, value);
+export const isTailwindColor = (value: string): value is TailwindColor =>
+  Object.hasOwn(COLOR_STYLES, value);
 
-export const categoryColorClass = (value: string): string =>
-  isCategoryColor(value)
-    ? CATEGORY_COLOR_STYLES[value].badge
-    : CATEGORY_COLOR_STYLES.slate.badge;
+export const colorClass = (value: string): string =>
+  isTailwindColor(value) ? COLOR_STYLES[value].badge : COLOR_STYLES.slate.badge;

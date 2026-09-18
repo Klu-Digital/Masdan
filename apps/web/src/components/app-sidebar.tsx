@@ -7,6 +7,7 @@ import {
   Settings02Icon,
   Shield01Icon,
   Tag01Icon,
+  TagsIcon,
   ToggleOnIcon,
   UserGroupIcon,
   UserMultiple02Icon,
@@ -41,6 +42,11 @@ const navMain: NavItem[] = [
     icon: Tag01Icon,
     title: "Categories",
     to: "/categories",
+  },
+  {
+    icon: TagsIcon,
+    title: "Tags",
+    to: "/tags",
   },
   {
     icon: Settings02Icon,
