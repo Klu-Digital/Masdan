@@ -1,4 +1,8 @@
-import { Alert, AlertDescription, AlertTitle } from "@masdan/ui/components/alert";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@masdan/ui/components/alert";
 import { Badge } from "@masdan/ui/components/badge";
 import {
   Card,

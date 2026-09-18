@@ -15,9 +15,9 @@ Users are created through better-auth's own API (`auth.api.signUpEmail`), not ra
 
 Two fixed accounts, the same on every run:
 
-| email             | password       | name     | role    |
-| ----------------- | -------------- | -------- | ------- |
-| `K1@gmail.com`    | `K1@gmail.com` | `K1`     | `admin` |
+| email               | password       | name     | role    |
+| ------------------- | -------------- | -------- | ------- |
+| `K1@gmail.com`      | `K1@gmail.com` | `K1`     | `admin` |
 | `member@masdan.dev` | `password`     | `Member` | —       |
 
 Plus, by default, 5 random users from faker, all with the password `password` so they're actually loggable-into: `pnpm db:seed --users 20` for more, `--users 0` for just the fixed two.

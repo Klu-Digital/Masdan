@@ -11,6 +11,7 @@ import {
   ToggleOnIcon,
   UserGroupIcon,
   UserMultiple02Icon,
+  Wallet01Icon,
   Wrench01Icon,
   ZapIcon,
 } from "@hugeicons/core-free-icons";
@@ -47,6 +48,11 @@ const navMain: NavItem[] = [
     icon: TagsIcon,
     title: "Tags",
     to: "/tags",
+  },
+  {
+    icon: Wallet01Icon,
+    title: "Accounts",
+    to: "/accounts",
   },
   {
     icon: Settings02Icon,

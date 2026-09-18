@@ -25,6 +25,34 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     user: r.one.user({ from: r.file.userId, optional: false, to: r.user.id }),
   },
+  financialAccount: {
+    balanceSnapshots: r.many.financialAccountBalanceSnapshot(),
+    organization: r.one.organization({
+      from: r.financialAccount.organizationId,
+      optional: false,
+      to: r.organization.id,
+    }),
+    owners: r.many.financialAccountOwner(),
+  },
+  financialAccountBalanceSnapshot: {
+    account: r.one.financialAccount({
+      from: r.financialAccountBalanceSnapshot.accountId,
+      optional: false,
+      to: r.financialAccount.id,
+    }),
+  },
+  financialAccountOwner: {
+    account: r.one.financialAccount({
+      from: r.financialAccountOwner.financialAccountId,
+      optional: false,
+      to: r.financialAccount.id,
+    }),
+    member: r.one.member({
+      from: r.financialAccountOwner.memberId,
+      optional: false,
+      to: r.member.id,
+    }),
+  },
   invitation: {
     inviter: r.one.user({
       from: r.invitation.inviterId,
@@ -38,6 +66,7 @@ export const relations = defineRelations(schema, (r) => ({
     }),
   },
   member: {
+    financialAccountOwners: r.many.financialAccountOwner(),
     organization: r.one.organization({
       from: r.member.organizationId,
       optional: false,
@@ -48,6 +77,7 @@ export const relations = defineRelations(schema, (r) => ({
   organization: {
     categories: r.many.category(),
     files: r.many.file(),
+    financialAccounts: r.many.financialAccount(),
     invitations: r.many.invitation(),
     members: r.many.member(),
     tags: r.many.tag(),

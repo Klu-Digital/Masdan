@@ -14,6 +14,11 @@ export { tag } from "./tags";
 export { featureFlag } from "./feature-flags";
 export { currency } from "./finance";
 export {
+  financialAccount,
+  financialAccountBalanceSnapshot,
+  financialAccountOwner,
+} from "./financial-accounts";
+export {
   postMigration,
   postMigrationStatuses,
   type PostMigrationStatus,

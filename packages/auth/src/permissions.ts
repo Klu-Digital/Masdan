@@ -17,6 +17,7 @@ export const statement = {
   // Example resource, wired up in `@masdan/api`'s storage router. `:any` is the
   // convention for "act on rows you do not own".
   file: ["create", "read", "delete", "delete:any"],
+  financialAccount: ["create", "read", "update", "archive", "restore"],
   tag: ["create", "read", "update", "archive", "restore"],
 } as const;
 
@@ -34,24 +35,28 @@ export const roles = {
     ...adminAc.statements,
     category: ["create", "read", "update", "archive", "restore"],
     file: ["create", "read", "delete", "delete:any"],
+    financialAccount: ["create", "read", "update", "archive", "restore"],
     tag: ["create", "read", "update", "archive", "restore"],
   }),
   member: ac.newRole({
     ...memberAc.statements,
     category: ["create", "read", "update"],
     file: ["create", "read", "delete"],
+    financialAccount: ["create", "read", "update"],
     tag: ["create", "read", "update"],
   }),
   owner: ac.newRole({
     ...ownerAc.statements,
     category: ["create", "read", "update", "archive", "restore"],
     file: ["create", "read", "delete", "delete:any"],
+    financialAccount: ["create", "read", "update", "archive", "restore"],
     tag: ["create", "read", "update", "archive", "restore"],
   }),
   viewer: ac.newRole({
     ...memberAc.statements,
     category: ["read"],
     file: ["read"],
+    financialAccount: ["read"],
     tag: ["read"],
   }),
 };

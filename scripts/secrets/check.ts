@@ -298,7 +298,10 @@ export const formatCheckResult = (
   environment: CheckEnvironment,
   result: CheckResult
 ): string => {
-  const lines = [environment === "local" ? "Local" : `masdan ${environment}`, ""];
+  const lines = [
+    environment === "local" ? "Local" : `masdan ${environment}`,
+    "",
+  ];
 
   // Items arrive ordered by manifest entry, so each one may belong to a
   // different destination. Bucket them first or every header repeats.

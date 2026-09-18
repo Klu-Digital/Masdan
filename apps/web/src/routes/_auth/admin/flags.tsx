@@ -7,7 +7,11 @@ import {
   CardPanel,
   CardTitle,
 } from "@masdan/ui/components/card";
-import { Empty, EmptyDescription, EmptyTitle } from "@masdan/ui/components/empty";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyTitle,
+} from "@masdan/ui/components/empty";
 import { Skeleton } from "@masdan/ui/components/skeleton";
 import { Switch } from "@masdan/ui/components/switch";
 import {
