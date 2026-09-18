@@ -73,6 +73,39 @@ describe("roles", () => {
     ).toBe(false);
   });
 
+  it("grades transaction access across the household roles", () => {
+    expect(
+      hasPermission({
+        permissions: { transaction: ["archive"] },
+        role: "owner",
+      })
+    ).toBe(true);
+    expect(
+      hasPermission({
+        permissions: { transaction: ["update"] },
+        role: "member",
+      })
+    ).toBe(true);
+    expect(
+      hasPermission({
+        permissions: { transaction: ["archive"] },
+        role: "member",
+      })
+    ).toBe(false);
+    expect(
+      hasPermission({
+        permissions: { transaction: ["read"] },
+        role: "viewer",
+      })
+    ).toBe(true);
+    expect(
+      hasPermission({
+        permissions: { transaction: ["create"] },
+        role: "viewer",
+      })
+    ).toBe(false);
+  });
+
   it("grades file access across the ladder", () => {
     expect(
       hasPermission({ permissions: { file: ["read"] }, role: "viewer" })

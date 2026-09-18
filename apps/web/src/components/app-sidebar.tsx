@@ -3,6 +3,7 @@ import {
   Clock01Icon,
   File01Icon,
   LayoutDashboardIcon,
+  Invoice01Icon,
   Mail01Icon,
   Settings02Icon,
   Shield01Icon,
@@ -48,6 +49,11 @@ const navMain: NavItem[] = [
     icon: TagsIcon,
     title: "Tags",
     to: "/tags",
+  },
+  {
+    icon: Invoice01Icon,
+    title: "Transactions",
+    to: "/transactions",
   },
   {
     icon: Wallet01Icon,

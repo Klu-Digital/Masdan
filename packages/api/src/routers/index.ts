@@ -10,6 +10,7 @@ import { invitationsRouter } from "../invitations/invitations.router";
 import { jobsRouter } from "../jobs/jobs.router";
 import { protectedProcedure, publicProcedure } from "../procedures";
 import { tagsRouter } from "../tags/tags.router";
+import { transactionsRouter } from "../transactions/transactions.router";
 import { adminRouter } from "./admin";
 
 /**
@@ -35,6 +36,7 @@ export const appRouter = {
     user: context.session?.user,
   })),
   tags: tagsRouter,
+  transactions: transactionsRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

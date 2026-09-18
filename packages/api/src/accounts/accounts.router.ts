@@ -17,6 +17,7 @@ import {
   orgProcedure,
   requirePermission,
 } from "../procedures";
+import { getAccountBalance, getAccountBalances } from "./balances";
 import {
   ACCOUNT_CLASSES,
   ACCOUNT_TYPES,
@@ -228,7 +229,10 @@ export const accountsRouter = {
       if (!archived) {
         throw accountNotFound();
       }
-      return { ...archived, balance: archived.openingBalance };
+      return {
+        ...archived,
+        balance: await getAccountBalance(context.db, archived.id),
+      };
     }),
 
   create: orgMutationProcedure
@@ -321,7 +325,7 @@ export const accountsRouter = {
 
       return {
         ...account,
-        balance: account.openingBalance,
+        balance: await getAccountBalance(context.db, account.id),
         ownerMemberIds: owners.map(({ memberId }) => memberId),
       };
     }),
@@ -366,9 +370,14 @@ export const accountsRouter = {
         ownerMemberIds.set(owner.accountId, memberIds);
       }
 
+      const balances = await getAccountBalances(
+        context.db,
+        accounts.map((account) => account.id)
+      );
+
       return accounts.map((account) => ({
         ...account,
-        balance: account.openingBalance,
+        balance: balances.get(account.id) ?? account.openingBalance,
         ownerMemberIds: ownerMemberIds.get(account.id) ?? [],
       }));
     }),
@@ -419,7 +428,10 @@ export const accountsRouter = {
       if (!restored) {
         throw accountNotFound();
       }
-      return { ...restored, balance: restored.openingBalance };
+      return {
+        ...restored,
+        balance: await getAccountBalance(context.db, restored.id),
+      };
     }),
 
   saveSnapshot: orgMutationProcedure
@@ -530,7 +542,7 @@ export const accountsRouter = {
 
       return {
         ...updated,
-        balance: updated.openingBalance,
+        balance: await getAccountBalance(context.db, updated.id),
         ownerMemberIds,
       };
     }),

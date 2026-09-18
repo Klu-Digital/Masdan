@@ -1,0 +1,342 @@
+import { category, member, session } from "@masdan/db/schema/index";
+import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
+import { call, ORPCError } from "@orpc/server";
+import { and, eq } from "drizzle-orm";
+import { describe, expect, it } from "vite-plus/test";
+
+import { accountsRouter } from "../accounts/accounts.router";
+import type { Context } from "../context";
+import { tagsRouter } from "../tags/tags.router";
+import { transactionsRouter } from "./transactions.router";
+
+const caught = async (promise: Promise<unknown>): Promise<unknown> => {
+  try {
+    return await promise;
+  } catch (error) {
+    return error;
+  }
+};
+
+const contextFor = async (headers: Headers): Promise<Context> =>
+  ({
+    auth: null,
+    db: getTestDb(),
+    log: undefined,
+    session: await getSessionFor(headers),
+  }) as unknown as Context;
+
+const activeOrganizationId = async (headers: Headers): Promise<string> => {
+  const currentSession = await getSessionFor(headers);
+  const organizationId = currentSession?.session.activeOrganizationId;
+  if (!organizationId) {
+    throw new Error("Test user has no active household");
+  }
+  return organizationId;
+};
+
+const setActiveOrganization = async (
+  userId: string,
+  organizationId: string
+): Promise<void> => {
+  await getTestDb()
+    .update(session)
+    .set({ activeOrganizationId: organizationId })
+    .where(eq(session.userId, userId));
+};
+
+const codeOf = async (
+  promise: Promise<unknown>
+): Promise<string | undefined> => {
+  const error = await caught(promise);
+  return error instanceof ORPCError ? error.code : undefined;
+};
+
+const accountInput = {
+  accountClass: "asset" as const,
+  accountType: "bank" as const,
+  liquidity: "liquid" as const,
+  name: "BPI Savings",
+  openingBalance: "1000",
+  openingBalanceDate: "2026-01-01",
+  ownerMemberIds: [],
+};
+
+const categoryIdFor = async (
+  organizationId: string,
+  name: string
+): Promise<string> => {
+  const [row] = await getTestDb()
+    .select({ id: category.id })
+    .from(category)
+    .where(
+      and(eq(category.organizationId, organizationId), eq(category.name, name))
+    )
+    .limit(1);
+  if (!row) {
+    throw new Error(`Missing test category: ${name}`);
+  }
+  return row.id;
+};
+
+describe("transactions lifecycle", () => {
+  it("derives balances through income, expense, edits, archive, and restore", async () => {
+    const user = await signUpTestUser();
+    const context = { context: await contextFor(user.headers) };
+    const organizationId = await activeOrganizationId(user.headers);
+    const account = await call(accountsRouter.create, accountInput, context);
+    const expenseCategoryId = await categoryIdFor(organizationId, "Groceries");
+    const incomeCategoryId = await categoryIdFor(organizationId, "Salary");
+    const createdTag = await call(
+      tagsRouter.create,
+      { color: "green", name: "Tracked" },
+      context
+    );
+
+    const expense = await call(
+      transactionsRouter.create,
+      {
+        accountId: account.id,
+        amount: "125.123456",
+        categoryId: expenseCategoryId,
+        notes: "Weekly groceries",
+        paidStatus: "paid",
+        tagIds: [createdTag.id],
+        transactionDate: "2026-01-05",
+      },
+      context
+    );
+    expect(expense).toMatchObject({
+      amount: "125.123456",
+      currencyCode: "PHP",
+      paidStatus: "paid",
+    });
+    expect(expense.tags).toHaveLength(1);
+
+    await expect(
+      call(accountsRouter.get, { accountId: account.id }, context)
+    ).resolves.toMatchObject({ balance: "874.876544" });
+
+    const updated = await call(
+      transactionsRouter.update,
+      {
+        accountId: account.id,
+        amount: "200",
+        categoryId: incomeCategoryId,
+        notes: null,
+        paidStatus: "unpaid",
+        tagIds: [],
+        transactionDate: "2026-01-06",
+        transactionId: expense.id,
+      },
+      context
+    );
+    expect(updated).toMatchObject({
+      categoryId: incomeCategoryId,
+      paidStatus: "unpaid",
+    });
+    await expect(
+      call(accountsRouter.get, { accountId: account.id }, context)
+    ).resolves.toMatchObject({ balance: "1200.000000" });
+
+    await call(
+      transactionsRouter.archive,
+      { transactionId: expense.id },
+      context
+    );
+    await expect(
+      call(accountsRouter.get, { accountId: account.id }, context)
+    ).resolves.toMatchObject({ balance: "1000.000000" });
+    await expect(
+      call(transactionsRouter.list, undefined, context)
+    ).resolves.toEqual([]);
+
+    await call(
+      transactionsRouter.restore,
+      { transactionId: expense.id },
+      context
+    );
+    await expect(
+      call(accountsRouter.get, { accountId: account.id }, context)
+    ).resolves.toMatchObject({ balance: "1200.000000" });
+    await expect(
+      call(transactionsRouter.get, { transactionId: expense.id }, context)
+    ).resolves.toMatchObject({ amount: "200.000000", archivedAt: null });
+  });
+
+  it("applies liability sign semantics and derives type from category", async () => {
+    const user = await signUpTestUser();
+    const context = { context: await contextFor(user.headers) };
+    const organizationId = await activeOrganizationId(user.headers);
+    const account = await call(
+      accountsRouter.create,
+      {
+        ...accountInput,
+        accountClass: "liability" as const,
+        accountType: "credit_card" as const,
+        liquidity: null,
+        name: "BPI Visa",
+      },
+      context
+    );
+    const expenseCategoryId = await categoryIdFor(organizationId, "Groceries");
+    const incomeCategoryId = await categoryIdFor(organizationId, "Salary");
+
+    const expense = await call(
+      transactionsRouter.create,
+      {
+        accountId: account.id,
+        amount: "50",
+        categoryId: expenseCategoryId,
+        paidStatus: "unpaid",
+        tagIds: [],
+        transactionDate: "2026-01-05",
+      },
+      context
+    );
+    expect(expense.currencyCode).toBe("PHP");
+    await expect(
+      call(accountsRouter.get, { accountId: account.id }, context)
+    ).resolves.toMatchObject({ balance: "1050.000000" });
+
+    await expect(
+      call(
+        transactionsRouter.create,
+        {
+          accountId: account.id,
+          amount: "20",
+          categoryId: incomeCategoryId,
+          paidStatus: "paid",
+          tagIds: [],
+          transactionDate: "2026-01-06",
+        },
+        context
+      )
+    ).resolves.toMatchObject({ type: "income" });
+  });
+});
+
+describe("transaction validation and isolation", () => {
+  it("rejects cross-household relations and keeps archived rows readable", async () => {
+    const first = await signUpTestUser();
+    const second = await signUpTestUser();
+    const firstContext = { context: await contextFor(first.headers) };
+    const secondContext = { context: await contextFor(second.headers) };
+    const firstOrganizationId = await activeOrganizationId(first.headers);
+    const firstAccount = await call(
+      accountsRouter.create,
+      accountInput,
+      firstContext
+    );
+    const secondAccount = await call(
+      accountsRouter.create,
+      { ...accountInput, name: "Other Bank" },
+      secondContext
+    );
+    const firstCategoryId = await categoryIdFor(
+      firstOrganizationId,
+      "Groceries"
+    );
+    const secondTag = await call(
+      tagsRouter.create,
+      { color: "blue", name: "Private" },
+      secondContext
+    );
+
+    expect(
+      await codeOf(
+        call(
+          transactionsRouter.create,
+          {
+            accountId: firstAccount.id,
+            amount: "10",
+            categoryId: firstCategoryId,
+            paidStatus: "paid",
+            tagIds: [secondTag.id],
+            transactionDate: "2026-01-01",
+          },
+          firstContext
+        )
+      )
+    ).toBe("BAD_REQUEST");
+    expect(
+      await codeOf(
+        call(
+          transactionsRouter.create,
+          {
+            accountId: secondAccount.id,
+            amount: "10",
+            categoryId: firstCategoryId,
+            paidStatus: "paid",
+            tagIds: [],
+            transactionDate: "2026-01-01",
+          },
+          firstContext
+        )
+      )
+    ).toBe("NOT_FOUND");
+
+    const created = await call(
+      transactionsRouter.create,
+      {
+        accountId: firstAccount.id,
+        amount: "10",
+        categoryId: firstCategoryId,
+        paidStatus: "paid",
+        tagIds: [],
+        transactionDate: "2026-01-01",
+      },
+      firstContext
+    );
+    await call(
+      transactionsRouter.archive,
+      { transactionId: created.id },
+      firstContext
+    );
+    await expect(
+      call(transactionsRouter.list, { includeArchived: true }, firstContext)
+    ).resolves.toHaveLength(1);
+    expect(
+      await codeOf(
+        call(
+          transactionsRouter.get,
+          { transactionId: created.id },
+          secondContext
+        )
+      )
+    ).toBe("NOT_FOUND");
+  });
+
+  it("allows members to create and update but restricts archive and restore", async () => {
+    const owner = await signUpTestUser();
+    const memberUser = await signUpTestUser();
+    const organizationId = await activeOrganizationId(owner.headers);
+    await getTestDb().insert(member).values({
+      organizationId,
+      role: "member",
+      userId: memberUser.user.id,
+    });
+    await setActiveOrganization(memberUser.user.id, organizationId);
+
+    const context = { context: await contextFor(memberUser.headers) };
+    const account = await call(accountsRouter.create, accountInput, context);
+    const categoryId = await categoryIdFor(organizationId, "Groceries");
+    const created = await call(
+      transactionsRouter.create,
+      {
+        accountId: account.id,
+        amount: "10",
+        categoryId,
+        paidStatus: "paid",
+        tagIds: [],
+        transactionDate: "2026-01-01",
+      },
+      context
+    );
+
+    expect(
+      await codeOf(
+        call(transactionsRouter.archive, { transactionId: created.id }, context)
+      )
+    ).toBe("FORBIDDEN");
+  });
+});

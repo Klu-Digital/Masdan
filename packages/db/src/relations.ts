@@ -16,6 +16,7 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
       to: r.organization.id,
     }),
+    transactions: r.many.financialTransaction(),
   },
   file: {
     organization: r.one.organization({
@@ -33,6 +34,7 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.organization.id,
     }),
     owners: r.many.financialAccountOwner(),
+    transactions: r.many.financialTransaction(),
   },
   financialAccountBalanceSnapshot: {
     account: r.one.financialAccount({
@@ -51,6 +53,36 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.financialAccountOwner.memberId,
       optional: false,
       to: r.member.id,
+    }),
+  },
+  financialTransaction: {
+    account: r.one.financialAccount({
+      from: r.financialTransaction.accountId,
+      optional: false,
+      to: r.financialAccount.id,
+    }),
+    category: r.one.category({
+      from: r.financialTransaction.categoryId,
+      optional: false,
+      to: r.category.id,
+    }),
+    organization: r.one.organization({
+      from: r.financialTransaction.organizationId,
+      optional: false,
+      to: r.organization.id,
+    }),
+    tags: r.many.financialTransactionTag(),
+  },
+  financialTransactionTag: {
+    tag: r.one.tag({
+      from: r.financialTransactionTag.tagId,
+      optional: false,
+      to: r.tag.id,
+    }),
+    transaction: r.one.financialTransaction({
+      from: r.financialTransactionTag.transactionId,
+      optional: false,
+      to: r.financialTransaction.id,
     }),
   },
   invitation: {
@@ -81,6 +113,7 @@ export const relations = defineRelations(schema, (r) => ({
     invitations: r.many.invitation(),
     members: r.many.member(),
     tags: r.many.tag(),
+    transactions: r.many.financialTransaction(),
   },
   session: {
     user: r.one.user({
@@ -95,6 +128,7 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
       to: r.organization.id,
     }),
+    transactionTags: r.many.financialTransactionTag(),
   },
   user: {
     accounts: r.many.account(),

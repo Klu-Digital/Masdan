@@ -19,6 +19,11 @@ export {
   financialAccountOwner,
 } from "./financial-accounts";
 export {
+  financialTransaction,
+  financialTransactionTag,
+  paidStatusEnum,
+} from "./transactions";
+export {
   postMigration,
   postMigrationStatuses,
   type PostMigrationStatus,

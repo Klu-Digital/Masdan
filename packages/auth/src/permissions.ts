@@ -19,6 +19,7 @@ export const statement = {
   file: ["create", "read", "delete", "delete:any"],
   financialAccount: ["create", "read", "update", "archive", "restore"],
   tag: ["create", "read", "update", "archive", "restore"],
+  transaction: ["create", "read", "update", "archive", "restore"],
 } as const;
 
 export type Statement = typeof statement;
@@ -37,6 +38,7 @@ export const roles = {
     file: ["create", "read", "delete", "delete:any"],
     financialAccount: ["create", "read", "update", "archive", "restore"],
     tag: ["create", "read", "update", "archive", "restore"],
+    transaction: ["create", "read", "update", "archive", "restore"],
   }),
   member: ac.newRole({
     ...memberAc.statements,
@@ -44,6 +46,7 @@ export const roles = {
     file: ["create", "read", "delete"],
     financialAccount: ["create", "read", "update"],
     tag: ["create", "read", "update"],
+    transaction: ["create", "read", "update"],
   }),
   owner: ac.newRole({
     ...ownerAc.statements,
@@ -51,6 +54,7 @@ export const roles = {
     file: ["create", "read", "delete", "delete:any"],
     financialAccount: ["create", "read", "update", "archive", "restore"],
     tag: ["create", "read", "update", "archive", "restore"],
+    transaction: ["create", "read", "update", "archive", "restore"],
   }),
   viewer: ac.newRole({
     ...memberAc.statements,
@@ -58,6 +62,7 @@ export const roles = {
     file: ["read"],
     financialAccount: ["read"],
     tag: ["read"],
+    transaction: ["read"],
   }),
 };
 
