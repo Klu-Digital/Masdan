@@ -54,7 +54,7 @@ const NavBranch = ({
   item: NavItem & { items: NonNullable<NavItem["items"]> };
 }) => {
   const matchRoute = useMatchRoute();
-  // `fuzzy` so /settings/organization counts as being inside Settings.
+  // `fuzzy` so /settings/household counts as being inside Settings.
   const sectionIsOpen = Boolean(matchRoute({ fuzzy: true, to: item.to }));
 
   return (

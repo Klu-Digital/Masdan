@@ -3,6 +3,7 @@ import {
   Clock01Icon,
   File01Icon,
   LayoutDashboardIcon,
+  Mail01Icon,
   Settings02Icon,
   Shield01Icon,
   ToggleOnIcon,
@@ -31,10 +32,15 @@ const navMain: NavItem[] = [
     to: "/dashboard",
   },
   {
+    icon: Mail01Icon,
+    title: "Invitations",
+    to: "/invitations",
+  },
+  {
     icon: Settings02Icon,
     items: [
       { title: "Profile", to: "/settings" },
-      { title: "Household", to: "/settings/organization" },
+      { title: "Household", to: "/settings/household" },
     ],
     title: "Settings",
     to: "/settings",

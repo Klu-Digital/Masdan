@@ -6,9 +6,9 @@ const ORIGIN = "https://app.example.com";
 
 describe("safeRedirect", () => {
   it("keeps a same-origin path, with its search and hash", () => {
-    expect(
-      safeRedirect("/settings/organization?tab=members#invite", ORIGIN)
-    ).toBe("/settings/organization?tab=members#invite");
+    expect(safeRedirect("/settings/household?tab=members#invite", ORIGIN)).toBe(
+      "/settings/household?tab=members#invite"
+    );
   });
 
   it("falls back when the parameter is absent or empty", () => {

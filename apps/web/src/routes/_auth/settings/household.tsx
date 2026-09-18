@@ -41,17 +41,17 @@ import {
 } from "@tanstack/react-router";
 import { z } from "zod";
 
-import { HouseholdFinanceCard } from "@/modules/household/components/household-finance-card";
 import { authClient } from "@/lib/auth-client";
-import { currenciesQueryOptions } from "@/modules/currency/queries";
-import { householdProfileQueryOptions } from "@/modules/household/queries";
 import {
   activeOrganizationQueryOptions,
   invalidateOrganizations,
 } from "@/lib/organization";
 import { invalidateSession } from "@/lib/session";
+import { currenciesQueryOptions } from "@/modules/currency/queries";
+import { HouseholdFinanceCard } from "@/modules/household/components/household-finance-card";
+import { householdProfileQueryOptions } from "@/modules/household/queries";
 
-const routeApi = getRouteApi("/_auth/settings/organization");
+const routeApi = getRouteApi("/_auth/settings/household");
 
 /** `owner` is deliberately absent: it transfers, it is not handed out. */
 const INVITABLE_ROLES = [
@@ -117,10 +117,8 @@ const MembersCard = ({
 
 const InvitationsCard = ({
   invitations,
-  organizationId,
 }: {
   invitations: { email: string; id: string; role: string; status: string }[];
-  organizationId: string;
 }) => {
   const queryClient = useQueryClient();
 
@@ -132,9 +130,7 @@ const InvitationsCard = ({
       if (error) {
         throw new Error(error.message ?? "Could not cancel the invitation");
       }
-      await queryClient.invalidateQueries(
-        activeOrganizationQueryOptions(organizationId)
-      );
+      await invalidateOrganizations(queryClient);
     },
     onError: (error: Error) => {
       toastManager.add({ title: error.message, type: "error" });
@@ -150,8 +146,8 @@ const InvitationsCard = ({
       <CardHeader>
         <CardTitle>Pending invitations</CardTitle>
         <CardDescription>
-          Copy a link to share it directly — useful before transactional email
-          is wired up, and the only way in if an invite never arrives.
+          Recipients see invitations in the app after signing in. A link is
+          available as an optional fallback.
         </CardDescription>
       </CardHeader>
       <CardPanel>
@@ -193,7 +189,7 @@ const InvitationsCard = ({
                         size="sm"
                         variant="outline"
                       >
-                        Copy link
+                        Copy link (optional)
                       </Button>
                       <Button
                         loading={cancel.isPending}
@@ -224,7 +220,7 @@ const InviteForm = ({ organizationId }: { organizationId: string }) => {
       const { error } = await authClient.organization.inviteMember({
         email: value.email,
         organizationId,
-        role: value.role as "admin" | "member",
+        role: value.role as "admin" | "member" | "viewer",
       });
       if (error) {
         toastManager.add({
@@ -233,9 +229,7 @@ const InviteForm = ({ organizationId }: { organizationId: string }) => {
         });
         return;
       }
-      await queryClient.invalidateQueries(
-        activeOrganizationQueryOptions(organizationId)
-      );
+      await invalidateOrganizations(queryClient);
       form.reset();
       toastManager.add({ title: "Invitation created", type: "success" });
     },
@@ -499,10 +493,7 @@ const RouteComponent = () => {
       <MembersCard canInvite={canInvite} members={members} />
       {canInvite ? (
         <>
-          <InvitationsCard
-            invitations={organization.data.invitations ?? []}
-            organizationId={organization.data.id}
-          />
+          <InvitationsCard invitations={organization.data.invitations ?? []} />
           <InviteForm organizationId={organization.data.id} />
         </>
       ) : null}
@@ -511,7 +502,7 @@ const RouteComponent = () => {
   );
 };
 
-export const Route = createFileRoute("/_auth/settings/organization")({
+export const Route = createFileRoute("/_auth/settings/household")({
   component: RouteComponent,
   head: () => ({ meta: [{ title: "Household" }] }),
 });

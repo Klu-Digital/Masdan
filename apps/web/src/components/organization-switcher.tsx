@@ -133,7 +133,7 @@ const OrganizationSwitcher = ({
                 </MenuItem>
               ))}
               <MenuSeparator />
-              <MenuItem render={<Link to="/settings/organization" />}>
+              <MenuItem render={<Link to="/settings/household" />}>
                 <HugeiconsIcon icon={PlusIcon} strokeWidth={2} />
                 Manage households
               </MenuItem>

@@ -13,7 +13,10 @@ import {
 
 import AuthShell from "@/components/auth-shell";
 import { authClient } from "@/lib/auth-client";
-import { invalidateOrganizations } from "@/lib/organization";
+import {
+  acceptHouseholdInvitation,
+  rejectHouseholdInvitation,
+} from "@/lib/organization";
 import { asOptionalString } from "@/lib/redirect";
 import { invalidateSession } from "@/lib/session";
 
@@ -43,19 +46,12 @@ const InvitationCard = ({ invitationId }: { invitationId: string }) => {
   });
 
   const accept = useMutation({
-    mutationFn: async (organizationId: string) => {
-      const { error } = await authClient.organization.acceptInvitation({
+    mutationFn: (organizationId: string) =>
+      acceptHouseholdInvitation({
         invitationId,
-      });
-      if (error) {
-        throw new Error(error.message ?? "Could not accept the invitation");
-      }
-      // They clicked a link to get here, so that organization is what
-      // `/dashboard` should show.
-      await authClient.organization.setActive({ organizationId });
-      await invalidateSession(queryClient);
-      await invalidateOrganizations(queryClient);
-    },
+        organizationId,
+        queryClient,
+      }),
     onError: (error: Error) => {
       toastManager.add({ title: error.message, type: "error" });
     },
@@ -66,18 +62,12 @@ const InvitationCard = ({ invitationId }: { invitationId: string }) => {
   });
 
   const decline = useMutation({
-    mutationFn: async () => {
-      const { error } = await authClient.organization.rejectInvitation({
-        invitationId,
-      });
-      if (error) {
-        throw new Error(error.message ?? "Could not decline the invitation");
-      }
-    },
+    mutationFn: () => rejectHouseholdInvitation({ invitationId, queryClient }),
     onError: (error: Error) => {
       toastManager.add({ title: error.message, type: "error" });
     },
     onSuccess: async () => {
+      toastManager.add({ title: "Invitation declined", type: "success" });
       await navigate({ to: "/dashboard" });
     },
   });
@@ -99,7 +89,7 @@ const InvitationCard = ({ invitationId }: { invitationId: string }) => {
         // one that was invited, so the escape hatch matters more than the reason.
         description={
           invitation.error?.message ??
-          "This invitation has expired, was withdrawn, or was sent to a different email address."
+          "This invitation has expired, been cancelled, already been accepted or declined, or was sent to a different email address."
         }
         title="Invitation unavailable"
       >
