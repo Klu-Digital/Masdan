@@ -40,6 +40,39 @@ describe("roles", () => {
     ).toBe(false);
   });
 
+  it("grades category access across the household roles", () => {
+    expect(
+      hasPermission({
+        permissions: { category: ["archive"] },
+        role: "owner",
+      })
+    ).toBe(true);
+    expect(
+      hasPermission({
+        permissions: { category: ["update"] },
+        role: "member",
+      })
+    ).toBe(true);
+    expect(
+      hasPermission({
+        permissions: { category: ["archive"] },
+        role: "member",
+      })
+    ).toBe(false);
+    expect(
+      hasPermission({
+        permissions: { category: ["read"] },
+        role: "viewer",
+      })
+    ).toBe(true);
+    expect(
+      hasPermission({
+        permissions: { category: ["create"] },
+        role: "viewer",
+      })
+    ).toBe(false);
+  });
+
   it("grades file access across the ladder", () => {
     expect(
       hasPermission({ permissions: { file: ["read"] }, role: "viewer" })

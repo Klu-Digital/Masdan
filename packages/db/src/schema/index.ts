@@ -9,6 +9,7 @@ export {
   user,
   verification,
 } from "./auth";
+export { category } from "./categories";
 export { featureFlag } from "./feature-flags";
 export { currency } from "./finance";
 export {

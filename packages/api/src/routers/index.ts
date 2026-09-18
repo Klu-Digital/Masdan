@@ -1,5 +1,6 @@
 import type { RouterClient } from "@orpc/server";
 
+import { categoriesRouter } from "../categories/categories.router";
 import { currenciesRouter } from "../currencies/currencies.router";
 import { featureFlagsRouter } from "../feature-flags/feature-flags.router";
 import { filesRouter } from "../files/files.router";
@@ -18,6 +19,7 @@ import { adminRouter } from "./admin";
  */
 export const appRouter = {
   admin: adminRouter,
+  categories: categoriesRouter,
   currencies: currenciesRouter,
   featureFlags: featureFlagsRouter,
   files: filesRouter,

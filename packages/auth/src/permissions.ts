@@ -13,6 +13,7 @@ import {
  */
 export const statement = {
   ...defaultStatements,
+  category: ["create", "read", "update", "archive", "restore"],
   // Example resource, wired up in `@masdan/api`'s storage router. `:any` is the
   // convention for "act on rows you do not own".
   file: ["create", "read", "delete", "delete:any"],
@@ -30,18 +31,22 @@ export const ac = createAccessControl(statement);
 export const roles = {
   admin: ac.newRole({
     ...adminAc.statements,
+    category: ["create", "read", "update", "archive", "restore"],
     file: ["create", "read", "delete", "delete:any"],
   }),
   member: ac.newRole({
     ...memberAc.statements,
+    category: ["create", "read", "update"],
     file: ["create", "read", "delete"],
   }),
   owner: ac.newRole({
     ...ownerAc.statements,
+    category: ["create", "read", "update", "archive", "restore"],
     file: ["create", "read", "delete", "delete:any"],
   }),
   viewer: ac.newRole({
     ...memberAc.statements,
+    category: ["read"],
     file: ["read"],
   }),
 };

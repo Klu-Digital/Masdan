@@ -6,6 +6,7 @@ import {
   Mail01Icon,
   Settings02Icon,
   Shield01Icon,
+  Tag01Icon,
   ToggleOnIcon,
   UserGroupIcon,
   UserMultiple02Icon,
@@ -35,6 +36,11 @@ const navMain: NavItem[] = [
     icon: Mail01Icon,
     title: "Invitations",
     to: "/invitations",
+  },
+  {
+    icon: Tag01Icon,
+    title: "Categories",
+    to: "/categories",
   },
   {
     icon: Settings02Icon,

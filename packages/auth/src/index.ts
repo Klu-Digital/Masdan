@@ -1,6 +1,7 @@
 import { expo } from "@better-auth/expo";
 import { createDb } from "@masdan/db";
-import * as schema from "@masdan/db/schema/auth";
+import { DEFAULT_CATEGORIES } from "@masdan/db/reference/categories";
+import * as schema from "@masdan/db/schema/index";
 import { env } from "@masdan/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -128,9 +129,22 @@ export const createAuth = () => {
     plugins: [
       expo(),
       admin(),
-      // Same objects the web and native clients import, so a role edit is one
-      // line in one file rather than a migration plus a client release.
-      organization({ ac, roles }),
+      organization({
+        ac,
+        organizationHooks: {
+          afterCreateOrganization: async ({
+            organization: createdOrganization,
+          }) => {
+            await db.insert(schema.category).values(
+              DEFAULT_CATEGORIES.map((defaultCategory) => ({
+                ...defaultCategory,
+                organizationId: createdOrganization.id,
+              }))
+            );
+          },
+        },
+        roles,
+      }),
     ],
     rateLimit: {
       // No `storage` key: "secondary-storage" makes better-auth's

@@ -27,6 +27,7 @@
     "@tanstack/react-router": "^1.170.18",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
+    "frimousse": "^0.3.0",
     "next-themes": "catalog:",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

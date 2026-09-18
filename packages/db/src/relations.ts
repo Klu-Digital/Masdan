@@ -10,6 +10,13 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.user.id,
     }),
   },
+  category: {
+    organization: r.one.organization({
+      from: r.category.organizationId,
+      optional: false,
+      to: r.organization.id,
+    }),
+  },
   file: {
     organization: r.one.organization({
       from: r.file.organizationId,
@@ -39,6 +46,7 @@ export const relations = defineRelations(schema, (r) => ({
     user: r.one.user({ from: r.member.userId, optional: false, to: r.user.id }),
   },
   organization: {
+    categories: r.many.category(),
     files: r.many.file(),
     invitations: r.many.invitation(),
     members: r.many.member(),

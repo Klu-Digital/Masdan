@@ -1,0 +1,103 @@
+export const CATEGORY_TYPES = ["expense", "income"] as const;
+export type CategoryType = (typeof CATEGORY_TYPES)[number];
+
+export const CATEGORY_COLORS = [
+  "slate",
+  "gray",
+  "zinc",
+  "neutral",
+  "stone",
+  "red",
+  "orange",
+  "amber",
+  "yellow",
+  "lime",
+  "green",
+  "emerald",
+  "teal",
+  "cyan",
+  "sky",
+  "blue",
+  "indigo",
+  "violet",
+  "purple",
+  "fuchsia",
+  "pink",
+  "rose",
+] as const;
+export type CategoryColor = (typeof CATEGORY_COLORS)[number];
+
+export const DEFAULT_CATEGORIES = [
+  {
+    color: "orange",
+    icon: "🍽️",
+    name: "Food & Dining",
+    sortOrder: 10,
+    type: "expense",
+  },
+  {
+    color: "green",
+    icon: "🛒",
+    name: "Groceries",
+    sortOrder: 20,
+    type: "expense",
+  },
+  {
+    color: "blue",
+    icon: "🚗",
+    name: "Transport",
+    sortOrder: 30,
+    type: "expense",
+  },
+  {
+    color: "pink",
+    icon: "🛍️",
+    name: "Shopping",
+    sortOrder: 40,
+    type: "expense",
+  },
+  {
+    color: "yellow",
+    icon: "💡",
+    name: "Utilities",
+    sortOrder: 50,
+    type: "expense",
+  },
+  {
+    color: "violet",
+    icon: "🏠",
+    name: "Housing",
+    sortOrder: 60,
+    type: "expense",
+  },
+  { color: "red", icon: "❤️", name: "Health", sortOrder: 70, type: "expense" },
+  {
+    color: "purple",
+    icon: "🎬",
+    name: "Entertainment",
+    sortOrder: 80,
+    type: "expense",
+  },
+  { color: "cyan", icon: "✈️", name: "Travel", sortOrder: 90, type: "expense" },
+  {
+    color: "emerald",
+    icon: "💼",
+    name: "Salary",
+    sortOrder: 100,
+    type: "income",
+  },
+  {
+    color: "indigo",
+    icon: "💻",
+    name: "Freelance",
+    sortOrder: 110,
+    type: "income",
+  },
+  {
+    color: "teal",
+    icon: "💰",
+    name: "Interest Income",
+    sortOrder: 120,
+    type: "income",
+  },
+] as const;
