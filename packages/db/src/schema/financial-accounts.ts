@@ -5,6 +5,7 @@ import {
   index,
   numeric,
   pgTable,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -22,8 +23,11 @@ export const financialAccount = pgTable(
     accountClass: text("account_class").notNull(),
     accountType: text("account_type").notNull(),
     archivedAt: timestamp("archived_at"),
+    cardLastFour: text("card_last_four"),
+    cardNetwork: text("card_network"),
     color: text("color"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    creditLimit: money("credit_limit"),
     currencyCode: text("currency_code")
       .notNull()
       .references(() => currency.code, { onDelete: "restrict" }),
@@ -43,6 +47,8 @@ export const financialAccount = pgTable(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
+    paymentDueDay: smallint("payment_due_day"),
+    statementClosingDay: smallint("statement_closing_day"),
     updatedAt: timestamp("updated_at")
       .defaultNow()
       .$onUpdate(() => new Date())

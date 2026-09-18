@@ -30,8 +30,11 @@ const accountFields = {
   accountClass: financialAccount.accountClass,
   accountType: financialAccount.accountType,
   archivedAt: financialAccount.archivedAt,
+  cardLastFour: financialAccount.cardLastFour,
+  cardNetwork: financialAccount.cardNetwork,
   color: financialAccount.color,
   createdAt: financialAccount.createdAt,
+  creditLimit: financialAccount.creditLimit,
   currencyCode: financialAccount.currencyCode,
   icon: financialAccount.icon,
   id: financialAccount.id,
@@ -43,18 +46,34 @@ const accountFields = {
   openingBalance: financialAccount.openingBalance,
   openingBalanceDate: financialAccount.openingBalanceDate,
   organizationId: financialAccount.organizationId,
+  paymentDueDay: financialAccount.paymentDueDay,
+  statementClosingDay: financialAccount.statementClosingDay,
   updatedAt: financialAccount.updatedAt,
 };
 
 const accountIdInput = z.object({ accountId: z.uuid() });
 const decimalPattern = /^-?\d+(?<fraction>\.\d{1,6})?$/u;
+const nonNegativeDecimalPattern = /^\d+(?<fraction>\.\d{1,6})?$/u;
 const isoDate = z.iso.date();
 
 const accountValues = z
   .object({
     accountClass: z.enum(ACCOUNT_CLASSES),
     accountType: z.enum(ACCOUNT_TYPES),
+    cardLastFour: z
+      .string()
+      .trim()
+      .regex(/^\d{4}$/u, "Use the last four digits")
+      .nullable()
+      .optional(),
+    cardNetwork: z.string().trim().max(40).nullable().optional(),
     color: z.enum(TAILWIND_COLORS).nullable().optional(),
+    creditLimit: z
+      .string()
+      .trim()
+      .regex(nonNegativeDecimalPattern, "Use a non-negative amount")
+      .nullable()
+      .optional(),
     currencyCode: z
       .string()
       .trim()
@@ -78,6 +97,8 @@ const accountValues = z
       .max(20)
       .default([])
       .refine((ids) => new Set(ids).size === ids.length, "Duplicate owner"),
+    paymentDueDay: z.number().int().min(1).max(31).nullable().optional(),
+    statementClosingDay: z.number().int().min(1).max(31).nullable().optional(),
   })
   .superRefine((value, context) => {
     const assetType = ASSET_ACCOUNT_TYPES.includes(
@@ -112,7 +133,44 @@ const accountValues = z
         path: ["liquidity"],
       });
     }
+
+    const cardFields = [
+      value.cardLastFour,
+      value.cardNetwork,
+      value.creditLimit,
+      value.paymentDueDay,
+      value.statementClosingDay,
+    ];
+    if (
+      value.accountType !== "credit_card" &&
+      cardFields.some((field) => field !== null && field !== undefined)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Card metadata requires a credit-card account",
+        path: ["accountType"],
+      });
+    }
   });
+
+type AccountValues = z.output<typeof accountValues>;
+
+const cardMetadata = (values: AccountValues) =>
+  values.accountType === "credit_card"
+    ? {
+        cardLastFour: values.cardLastFour ?? null,
+        cardNetwork: values.cardNetwork ?? null,
+        creditLimit: values.creditLimit ?? null,
+        paymentDueDay: values.paymentDueDay ?? null,
+        statementClosingDay: values.statementClosingDay ?? null,
+      }
+    : {
+        cardLastFour: null,
+        cardNetwork: null,
+        creditLimit: null,
+        paymentDueDay: null,
+        statementClosingDay: null,
+      };
 
 const snapshotValues = z.object({
   accountId: z.uuid(),
@@ -209,6 +267,7 @@ export const accountsRouter = {
         .insert(financialAccount)
         .values({
           ...values,
+          ...cardMetadata(input),
           currencyCode: selectedCurrency.code,
           organizationId: context.organizationId,
         })
@@ -286,10 +345,31 @@ export const accountsRouter = {
           asc(financialAccount.accountClass),
           asc(financialAccount.name)
         );
+      const owners = accounts.length
+        ? await context.db
+            .select({
+              accountId: financialAccountOwner.financialAccountId,
+              memberId: financialAccountOwner.memberId,
+            })
+            .from(financialAccountOwner)
+            .where(
+              inArray(
+                financialAccountOwner.financialAccountId,
+                accounts.map((account) => account.id)
+              )
+            )
+        : [];
+      const ownerMemberIds = new Map<string, string[]>();
+      for (const owner of owners) {
+        const memberIds = ownerMemberIds.get(owner.accountId) ?? [];
+        memberIds.push(owner.memberId);
+        ownerMemberIds.set(owner.accountId, memberIds);
+      }
 
       return accounts.map((account) => ({
         ...account,
         balance: account.openingBalance,
+        ownerMemberIds: ownerMemberIds.get(account.id) ?? [],
       }));
     }),
 
@@ -420,7 +500,11 @@ export const accountsRouter = {
 
       const [updated] = await context.db
         .update(financialAccount)
-        .set({ ...values, currencyCode: selectedCurrency.code })
+        .set({
+          ...values,
+          ...cardMetadata(input),
+          currencyCode: selectedCurrency.code,
+        })
         .where(
           and(
             eq(financialAccount.id, accountId),

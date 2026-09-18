@@ -46,6 +46,7 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   auto_loan: "Auto loan",
   bank: "Bank",
   cash: "Cash",
+  credit_card: "Credit card",
   e_wallet: "E-wallet",
   investment: "Investment",
   mortgage: "Mortgage",
@@ -145,7 +146,7 @@ const AccountPage = () => {
   });
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
+    <div className="mx-auto w-full space-y-6 p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link className="text-muted-foreground text-sm" to="/accounts">
@@ -215,6 +216,58 @@ const AccountPage = () => {
           </p>
         </CardPanel>
       </Card>
+
+      {account.data.accountType === "credit_card" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Credit card details</CardTitle>
+            <CardDescription>
+              Statement metadata is ready for future statement tracking.
+            </CardDescription>
+          </CardHeader>
+          <CardPanel>
+            <dl className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-muted-foreground text-sm">Network</dt>
+                <dd>{account.data.cardNetwork ?? "Not set"}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-sm">
+                  Last four digits
+                </dt>
+                <dd>
+                  {account.data.cardLastFour
+                    ? `•••• ${account.data.cardLastFour}`
+                    : "Not set"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-sm">Credit limit</dt>
+                <dd>
+                  {account.data.creditLimit
+                    ? formatBalance(
+                        account.data.creditLimit,
+                        account.data.currencyCode
+                      )
+                    : "Not set"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-sm">
+                  Statement closing day
+                </dt>
+                <dd>{account.data.statementClosingDay ?? "Not set"}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-sm">
+                  Payment due day
+                </dt>
+                <dd>{account.data.paymentDueDay ?? "Not set"}</dd>
+              </div>
+            </dl>
+          </CardPanel>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

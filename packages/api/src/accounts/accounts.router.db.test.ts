@@ -129,6 +129,69 @@ describe("financial accounts", () => {
     ).resolves.toHaveLength(1);
   });
 
+  it("creates and updates credit-card metadata as a liability", async () => {
+    const user = await signUpTestUser();
+    const context = { context: await contextFor(user.headers) };
+    const cardInput = {
+      ...accountInput,
+      accountClass: "liability" as const,
+      accountType: "credit_card" as const,
+      cardLastFour: "0042",
+      cardNetwork: "Visa",
+      creditLimit: "100000",
+      institution: "BPI",
+      liquidity: null,
+      name: "BPI Visa",
+      paymentDueDay: 15,
+      statementClosingDay: 25,
+    };
+
+    const created = await call(accountsRouter.create, cardInput, context);
+
+    expect(created).toMatchObject({
+      accountClass: "liability",
+      accountType: "credit_card",
+      cardLastFour: "0042",
+      cardNetwork: "Visa",
+      creditLimit: "100000.000000",
+      institution: "BPI",
+      paymentDueDay: 15,
+      statementClosingDay: 25,
+    });
+
+    const updated = await call(
+      accountsRouter.update,
+      { ...cardInput, accountId: created.id, cardNetwork: "Mastercard" },
+      context
+    );
+    expect(updated).toMatchObject({
+      cardNetwork: "Mastercard",
+      openingBalance: created.openingBalance,
+    });
+
+    const converted = await call(
+      accountsRouter.update,
+      {
+        ...accountInput,
+        accountId: created.id,
+        cardLastFour: null,
+        cardNetwork: null,
+        creditLimit: null,
+        paymentDueDay: null,
+        statementClosingDay: null,
+      },
+      context
+    );
+    expect(converted).toMatchObject({
+      accountType: "bank",
+      cardLastFour: null,
+      cardNetwork: null,
+      creditLimit: null,
+      paymentDueDay: null,
+      statementClosingDay: null,
+    });
+  });
+
   it("validates account class, type, currency, and ownership", async () => {
     const user = await signUpTestUser();
     const context = { context: await contextFor(user.headers) };
@@ -141,6 +204,32 @@ describe("financial accounts", () => {
             ...accountInput,
             accountClass: "liability",
             accountType: "bank",
+          },
+          context
+        )
+      )
+    ).toBe("BAD_REQUEST");
+
+    const invalidCard = {
+      ...accountInput,
+      accountClass: "liability" as const,
+      accountType: "credit_card" as const,
+      cardLastFour: "123",
+      creditLimit: "-1",
+      liquidity: null,
+      paymentDueDay: 32,
+      statementClosingDay: 0,
+    };
+    expect(
+      await codeOf(call(accountsRouter.create, invalidCard, context))
+    ).toBe("BAD_REQUEST");
+    expect(
+      await codeOf(
+        call(
+          accountsRouter.create,
+          {
+            ...accountInput,
+            cardLastFour: "0042",
           },
           context
         )

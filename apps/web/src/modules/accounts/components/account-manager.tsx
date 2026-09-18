@@ -79,6 +79,7 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   auto_loan: "Auto loan",
   bank: "Bank",
   cash: "Cash",
+  credit_card: "Credit card",
   e_wallet: "E-wallet",
   investment: "Investment",
   mortgage: "Mortgage",
@@ -147,10 +148,23 @@ const AccountCombobox = ({
   </Combobox>
 );
 
+const nonNegativeDecimalPattern = /^\d+(?<fraction>\.\d{1,6})?$/u;
+
 const accountSchema = z
   .object({
     accountClass: z.enum(ACCOUNT_CLASSES),
     accountType: z.enum(ACCOUNT_TYPES),
+    cardLastFour: z
+      .string()
+      .trim()
+      .regex(/^\d{4}$/u, "Use the last four digits")
+      .nullable(),
+    cardNetwork: z.string().trim().max(40).nullable(),
+    creditLimit: z
+      .string()
+      .trim()
+      .regex(nonNegativeDecimalPattern, "Use a non-negative amount")
+      .nullable(),
     currencyCode: z.string().length(3),
     includeInNetWorth: z.boolean(),
     institution: z.string().max(120),
@@ -163,6 +177,8 @@ const accountSchema = z
       .regex(/^-?\d+(?<fraction>\.\d{1,6})?$/u, "Use a valid amount"),
     openingBalanceDate: z.string().min(1, "Date is required"),
     ownerMemberIds: z.array(z.string()),
+    paymentDueDay: z.number().int().min(1).max(31).nullable(),
+    statementClosingDay: z.number().int().min(1).max(31).nullable(),
   })
   .refine(
     (value) =>
@@ -180,6 +196,19 @@ const accountSchema = z
     {
       message: "Liability accounts cannot have liquidity",
       path: ["liquidity"],
+    }
+  )
+  .refine(
+    (value) =>
+      value.accountType === "credit_card" ||
+      (value.cardLastFour === null &&
+        value.cardNetwork === null &&
+        value.creditLimit === null &&
+        value.paymentDueDay === null &&
+        value.statementClosingDay === null),
+    {
+      message: "Card metadata requires a credit-card account",
+      path: ["accountType"],
     }
   );
 
@@ -232,6 +261,9 @@ export const AccountFormDialog = ({
     accountClass: account?.accountClass === "liability" ? "liability" : "asset",
     accountType:
       (account?.accountType as AccountFormValues["accountType"]) ?? "bank",
+    cardLastFour: account?.cardLastFour ?? null,
+    cardNetwork: account?.cardNetwork ?? null,
+    creditLimit: account?.creditLimit ?? null,
     currencyCode: account?.currencyCode ?? defaultCurrency,
     includeInNetWorth: account?.includeInNetWorth ?? true,
     institution: account?.institution ?? "",
@@ -244,6 +276,8 @@ export const AccountFormDialog = ({
     openingBalance: account?.openingBalance ?? "0",
     openingBalanceDate: account?.openingBalanceDate ?? today(),
     ownerMemberIds: account?.ownerMemberIds ?? [],
+    paymentDueDay: account?.paymentDueDay ?? null,
+    statementClosingDay: account?.statementClosingDay ?? null,
   };
 
   const form = useForm({
@@ -342,11 +376,15 @@ export const AccountFormDialog = ({
                       aria-label="Account class"
                       className="flex-row"
                       name={field.name}
-                      onValueChange={(value: string) =>
-                        field.handleChange(
-                          value as AccountFormValues["accountClass"]
-                        )
-                      }
+                      onValueChange={(value: string) => {
+                        const nextClass =
+                          value as AccountFormValues["accountClass"];
+                        field.handleChange(nextClass);
+                        form.setFieldValue(
+                          "liquidity",
+                          nextClass === "asset" ? "liquid" : null
+                        );
+                      }}
                       value={field.state.value}
                     >
                       {ACCOUNT_CLASS_OPTIONS.map((option) => (
@@ -372,11 +410,18 @@ export const AccountFormDialog = ({
                       <AccountCombobox
                         ariaLabel="Account type"
                         items={accountTypeOptions(accountClass)}
-                        onValueChange={(value) =>
-                          field.handleChange(
-                            value as AccountFormValues["accountType"]
-                          )
-                        }
+                        onValueChange={(value) => {
+                          const nextType =
+                            value as AccountFormValues["accountType"];
+                          field.handleChange(nextType);
+                          if (nextType !== "credit_card") {
+                            form.setFieldValue("cardLastFour", null);
+                            form.setFieldValue("cardNetwork", null);
+                            form.setFieldValue("creditLimit", null);
+                            form.setFieldValue("paymentDueDay", null);
+                            form.setFieldValue("statementClosingDay", null);
+                          }
+                        }}
                         value={field.state.value}
                       />
                       {field.state.meta.errors.map((error) => (
@@ -435,6 +480,159 @@ export const AccountFormDialog = ({
               }
             </form.Subscribe>
           </div>
+
+          <form.Subscribe selector={(state) => state.values.accountType}>
+            {(accountType) =>
+              accountType === "credit_card" ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <form.Field name="cardNetwork">
+                    {(field) => (
+                      <Field name={field.name}>
+                        <FieldLabel htmlFor={field.name}>
+                          Card network
+                        </FieldLabel>
+                        <Input
+                          aria-invalid={
+                            field.state.meta.errors.length > 0 || undefined
+                          }
+                          id={field.name}
+                          onBlur={field.handleBlur}
+                          onChange={(event) =>
+                            field.handleChange(event.target.value || null)
+                          }
+                          value={field.state.value ?? ""}
+                        />
+                        {field.state.meta.errors.map((error) => (
+                          <FieldError key={error?.message} match>
+                            {error?.message}
+                          </FieldError>
+                        ))}
+                      </Field>
+                    )}
+                  </form.Field>
+                  <form.Field name="cardLastFour">
+                    {(field) => (
+                      <Field name={field.name}>
+                        <FieldLabel htmlFor={field.name}>
+                          Last four digits
+                        </FieldLabel>
+                        <Input
+                          aria-invalid={
+                            field.state.meta.errors.length > 0 || undefined
+                          }
+                          id={field.name}
+                          inputMode="numeric"
+                          maxLength={4}
+                          onBlur={field.handleBlur}
+                          onChange={(event) =>
+                            field.handleChange(event.target.value || null)
+                          }
+                          value={field.state.value ?? ""}
+                        />
+                        {field.state.meta.errors.map((error) => (
+                          <FieldError key={error?.message} match>
+                            {error?.message}
+                          </FieldError>
+                        ))}
+                      </Field>
+                    )}
+                  </form.Field>
+                  <form.Field name="creditLimit">
+                    {(field) => (
+                      <Field name={field.name}>
+                        <FieldLabel htmlFor={field.name}>
+                          Credit limit
+                        </FieldLabel>
+                        <Input
+                          aria-invalid={
+                            field.state.meta.errors.length > 0 || undefined
+                          }
+                          id={field.name}
+                          inputMode="decimal"
+                          onBlur={field.handleBlur}
+                          onChange={(event) =>
+                            field.handleChange(event.target.value || null)
+                          }
+                          value={field.state.value ?? ""}
+                        />
+                        {field.state.meta.errors.map((error) => (
+                          <FieldError key={error?.message} match>
+                            {error?.message}
+                          </FieldError>
+                        ))}
+                      </Field>
+                    )}
+                  </form.Field>
+                  <form.Field name="statementClosingDay">
+                    {(field) => (
+                      <Field name={field.name}>
+                        <FieldLabel htmlFor={field.name}>
+                          Statement closing day
+                        </FieldLabel>
+                        <Input
+                          aria-invalid={
+                            field.state.meta.errors.length > 0 || undefined
+                          }
+                          id={field.name}
+                          inputMode="numeric"
+                          max={31}
+                          min={1}
+                          onBlur={field.handleBlur}
+                          onChange={(event) =>
+                            field.handleChange(
+                              event.target.value === ""
+                                ? null
+                                : Number(event.target.value)
+                            )
+                          }
+                          type="number"
+                          value={field.state.value ?? ""}
+                        />
+                        {field.state.meta.errors.map((error) => (
+                          <FieldError key={error?.message} match>
+                            {error?.message}
+                          </FieldError>
+                        ))}
+                      </Field>
+                    )}
+                  </form.Field>
+                  <form.Field name="paymentDueDay">
+                    {(field) => (
+                      <Field name={field.name}>
+                        <FieldLabel htmlFor={field.name}>
+                          Payment due day
+                        </FieldLabel>
+                        <Input
+                          aria-invalid={
+                            field.state.meta.errors.length > 0 || undefined
+                          }
+                          id={field.name}
+                          inputMode="numeric"
+                          max={31}
+                          min={1}
+                          onBlur={field.handleBlur}
+                          onChange={(event) =>
+                            field.handleChange(
+                              event.target.value === ""
+                                ? null
+                                : Number(event.target.value)
+                            )
+                          }
+                          type="number"
+                          value={field.state.value ?? ""}
+                        />
+                        {field.state.meta.errors.map((error) => (
+                          <FieldError key={error?.message} match>
+                            {error?.message}
+                          </FieldError>
+                        ))}
+                      </Field>
+                    )}
+                  </form.Field>
+                </div>
+              ) : null
+            }
+          </form.Subscribe>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <form.Field name="openingBalance">
@@ -583,6 +781,9 @@ const AccountTable = ({
   canArchive,
   canRestore,
   canUpdate,
+  currencies,
+  defaultCurrency,
+  members,
   onArchive,
   onRestore,
 }: {
@@ -590,6 +791,9 @@ const AccountTable = ({
   canArchive: boolean;
   canRestore: boolean;
   canUpdate: boolean;
+  currencies: Currency[];
+  defaultCurrency: string;
+  members: AccountMember[];
   onArchive: (id: string) => void;
   onRestore: (id: string) => void;
 }) => (
@@ -636,14 +840,15 @@ const AccountTable = ({
             <TableCell>
               <div className="flex justify-end gap-2">
                 {canUpdate && !archived ? (
-                  <Link
-                    params={{ accountId: account.id }}
-                    to="/accounts/$accountId"
-                  >
-                    <Button size="sm" variant="outline">
-                      Edit
-                    </Button>
-                  </Link>
+                  <AccountFormDialog
+                    account={account}
+                    activeOrganizationId={account.organizationId}
+                    canCreate={false}
+                    canUpdate={canUpdate}
+                    currencies={currencies}
+                    defaultCurrency={defaultCurrency}
+                    members={members}
+                  />
                 ) : null}
                 {archived && canRestore ? (
                   <Button
@@ -775,6 +980,9 @@ export const AccountManager = ({
                   canArchive={canArchive}
                   canRestore={canRestore}
                   canUpdate={canUpdate}
+                  currencies={currencies.data}
+                  defaultCurrency={defaultCurrency}
+                  members={members}
                   onArchive={(id) =>
                     archiveMutation.mutate({ id, restore: false })
                   }
@@ -794,6 +1002,9 @@ export const AccountManager = ({
                   canArchive={canArchive}
                   canRestore={canRestore}
                   canUpdate={canUpdate}
+                  currencies={currencies.data}
+                  defaultCurrency={defaultCurrency}
+                  members={members}
                   onArchive={(id) =>
                     archiveMutation.mutate({ id, restore: false })
                   }

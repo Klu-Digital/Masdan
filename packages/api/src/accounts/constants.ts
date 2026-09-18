@@ -13,6 +13,7 @@ export const ASSET_ACCOUNT_TYPES = [
 ] as const;
 
 export const LIABILITY_ACCOUNT_TYPES = [
+  "credit_card",
   "personal_loan",
   "mortgage",
   "auto_loan",
