@@ -3,14 +3,27 @@ import { queryOptions } from "@tanstack/react-query";
 
 import { client } from "@/utils/orpc";
 
-export const transactionsQueryKey = (activeOrganizationId: string | null) =>
-  ["transactions", activeOrganizationId] as const;
+export type TransactionList = Awaited<
+  ReturnType<typeof client.transactions.list>
+>;
+export type Transaction = TransactionList["items"][number];
+export type TransactionListInput = Parameters<
+  typeof client.transactions.list
+>[0];
 
-export const transactionsQueryOptions = (activeOrganizationId: string | null) =>
+export const transactionsQueryKey = (
+  activeOrganizationId: string | null,
+  input?: TransactionListInput
+) => ["transactions", activeOrganizationId, input] as const;
+
+export const transactionsQueryOptions = (
+  activeOrganizationId: string | null,
+  input: TransactionListInput
+) =>
   queryOptions({
     enabled: activeOrganizationId !== null,
-    queryFn: () => client.transactions.list({ includeArchived: true }),
-    queryKey: transactionsQueryKey(activeOrganizationId),
+    queryFn: () => client.transactions.list(input),
+    queryKey: transactionsQueryKey(activeOrganizationId, input),
   });
 
 export const transactionQueryOptions = (transactionId: string) =>

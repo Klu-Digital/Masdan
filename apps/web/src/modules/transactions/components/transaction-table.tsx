@@ -1,21 +1,21 @@
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@masdan/ui/components/table";
+  DataGrid,
+  DataGridBody,
+  DataGridCell,
+  DataGridColumnHeader,
+  DataGridHeader,
+  DataGridRow,
+} from "@masdan/ui/data-grid";
 import { useNavigate } from "@tanstack/react-router";
 
 import { formatBalance } from "@/modules/accounts/components/account-manager";
 import { CategoryBadge } from "@/modules/categories/components/category-badge";
 import { TagBadge } from "@/modules/tags/components/tag-badge";
-import type { client } from "@/utils/orpc";
 
-type Transaction = Awaited<ReturnType<typeof client.transactions.list>>[number];
+import type { Transaction } from "../queries";
+import type { TransactionSortBy, TransactionSortDirection } from "../search";
 
 export const TransactionTable = ({
   canArchive,
@@ -24,6 +24,9 @@ export const TransactionTable = ({
   onArchive,
   onEdit,
   onRestore,
+  onSort,
+  sortBy,
+  sortDirection,
   transactions,
 }: {
   canArchive: boolean;
@@ -32,6 +35,9 @@ export const TransactionTable = ({
   onArchive: (id: string) => void;
   onEdit: (transaction: Transaction) => void;
   onRestore: (id: string) => void;
+  onSort: (sortBy: TransactionSortBy) => void;
+  sortBy: TransactionSortBy;
+  sortDirection: TransactionSortDirection;
   transactions: Transaction[];
 }) => {
   const navigate = useNavigate();
@@ -42,23 +48,33 @@ export const TransactionTable = ({
     });
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Date</TableHead>
-          <TableHead>Transaction</TableHead>
-          <TableHead>Account</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right">Amount</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+    <DataGrid>
+      <DataGridHeader>
+        <DataGridRow>
+          <DataGridColumnHeader
+            direction={sortBy === "date" ? sortDirection : undefined}
+            onSort={() => onSort("date")}
+          >
+            Date
+          </DataGridColumnHeader>
+          <DataGridColumnHeader>Transaction</DataGridColumnHeader>
+          <DataGridColumnHeader>Account</DataGridColumnHeader>
+          <DataGridColumnHeader>Status</DataGridColumnHeader>
+          <DataGridColumnHeader
+            direction={sortBy === "amount" ? sortDirection : undefined}
+            onSort={() => onSort("amount")}
+          >
+            Amount
+          </DataGridColumnHeader>
+          <DataGridColumnHeader>Actions</DataGridColumnHeader>
+        </DataGridRow>
+      </DataGridHeader>
+      <DataGridBody>
         {transactions.map((transaction) => {
           const archived = transaction.archivedAt !== null;
           const income = transaction.type === "income";
           return (
-            <TableRow
+            <DataGridRow
               aria-label={`View ${transaction.categoryName} transaction`}
               className="cursor-pointer"
               key={transaction.id}
@@ -71,8 +87,8 @@ export const TransactionTable = ({
               }}
               tabIndex={0}
             >
-              <TableCell>{transaction.transactionDate}</TableCell>
-              <TableCell>
+              <DataGridCell>{transaction.transactionDate}</DataGridCell>
+              <DataGridCell>
                 <div className="flex flex-wrap items-center gap-2">
                   <CategoryBadge
                     color={transaction.categoryColor}
@@ -88,9 +104,9 @@ export const TransactionTable = ({
                     {transaction.notes}
                   </div>
                 ) : null}
-              </TableCell>
-              <TableCell>{transaction.accountName}</TableCell>
-              <TableCell>
+              </DataGridCell>
+              <DataGridCell>{transaction.accountName}</DataGridCell>
+              <DataGridCell>
                 <div className="flex flex-wrap gap-1">
                   <Badge
                     variant={
@@ -101,8 +117,8 @@ export const TransactionTable = ({
                   </Badge>
                   {archived ? <Badge variant="outline">Archived</Badge> : null}
                 </div>
-              </TableCell>
-              <TableCell className="text-right">
+              </DataGridCell>
+              <DataGridCell className="text-right">
                 <span
                   className={
                     income
@@ -113,8 +129,8 @@ export const TransactionTable = ({
                   {income ? "+" : "-"}
                   {formatBalance(transaction.amount, transaction.currencyCode)}
                 </span>
-              </TableCell>
-              <TableCell>
+              </DataGridCell>
+              <DataGridCell>
                 <div className="flex justify-end gap-2">
                   {canUpdate && !archived ? (
                     <Button
@@ -156,11 +172,11 @@ export const TransactionTable = ({
                     </Button>
                   ) : null}
                 </div>
-              </TableCell>
-            </TableRow>
+              </DataGridCell>
+            </DataGridRow>
           );
         })}
-      </TableBody>
-    </Table>
+      </DataGridBody>
+    </DataGrid>
   );
 };

@@ -147,8 +147,8 @@ describe("transactions lifecycle", () => {
       call(accountsRouter.get, { accountId: account.id }, context)
     ).resolves.toMatchObject({ balance: "1000.000000" });
     await expect(
-      call(transactionsRouter.list, undefined, context)
-    ).resolves.toEqual([]);
+      call(transactionsRouter.list, {}, context)
+    ).resolves.toMatchObject({ items: [] });
 
     await call(
       transactionsRouter.restore,
@@ -212,6 +212,151 @@ describe("transactions lifecycle", () => {
         context
       )
     ).resolves.toMatchObject({ type: "income" });
+  });
+});
+
+describe("transaction list", () => {
+  it("combines filters and returns paginated metadata", async () => {
+    const user = await signUpTestUser();
+    const context = { context: await contextFor(user.headers) };
+    const organizationId = await activeOrganizationId(user.headers);
+    const account = await call(accountsRouter.create, accountInput, context);
+    const expenseCategoryId = await categoryIdFor(organizationId, "Groceries");
+    const incomeCategoryId = await categoryIdFor(organizationId, "Salary");
+    const tagA = await call(
+      tagsRouter.create,
+      { color: "green", name: "List target" },
+      context
+    );
+    const tagB = await call(
+      tagsRouter.create,
+      { color: "blue", name: "List other" },
+      context
+    );
+
+    const matching = await call(
+      transactionsRouter.create,
+      {
+        accountId: account.id,
+        amount: "125.50",
+        categoryId: expenseCategoryId,
+        notes: "Target groceries",
+        paidStatus: "unpaid",
+        tagIds: [tagA.id],
+        transactionDate: "2026-02-15",
+      },
+      context
+    );
+    await call(
+      transactionsRouter.create,
+      {
+        accountId: account.id,
+        amount: "300",
+        categoryId: expenseCategoryId,
+        notes: "Different note",
+        paidStatus: "paid",
+        tagIds: [tagB.id],
+        transactionDate: "2026-02-15",
+      },
+      context
+    );
+    await call(
+      transactionsRouter.create,
+      {
+        accountId: account.id,
+        amount: "50",
+        categoryId: incomeCategoryId,
+        notes: "Target income",
+        paidStatus: "unpaid",
+        tagIds: [tagA.id],
+        transactionDate: "2026-02-15",
+      },
+      context
+    );
+
+    const result = await call(
+      transactionsRouter.list,
+      {
+        accountIds: [account.id],
+        categoryIds: [expenseCategoryId],
+        dateFrom: "2026-02-01",
+        dateTo: "2026-02-28",
+        page: 1,
+        pageSize: 1,
+        paidStatuses: ["unpaid"],
+        search: "target",
+        tagIds: [tagA.id],
+        types: ["expense"],
+      },
+      context
+    );
+
+    expect(result).toMatchObject({
+      page: 1,
+      pageSize: 1,
+      total: 1,
+      totalPages: 1,
+    });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({
+      id: matching.id,
+      notes: "Target groceries",
+    });
+  });
+
+  it("keeps amount-sorted pages deterministic", async () => {
+    const user = await signUpTestUser();
+    const context = { context: await contextFor(user.headers) };
+    const organizationId = await activeOrganizationId(user.headers);
+    const account = await call(accountsRouter.create, accountInput, context);
+    const categoryId = await categoryIdFor(organizationId, "Groceries");
+
+    for (const note of ["First", "Second", "Third"]) {
+      await call(
+        transactionsRouter.create,
+        {
+          accountId: account.id,
+          amount: "100",
+          categoryId,
+          notes: note,
+          paidStatus: "paid",
+          tagIds: [],
+          transactionDate: "2026-03-01",
+        },
+        context
+      );
+    }
+
+    const input = {
+      accountIds: [account.id],
+      page: 1,
+      pageSize: 2,
+      sortBy: "amount" as const,
+      sortDirection: "desc" as const,
+    };
+    const firstPage = await call(transactionsRouter.list, input, context);
+    const repeatedFirstPage = await call(
+      transactionsRouter.list,
+      input,
+      context
+    );
+    const secondPage = await call(
+      transactionsRouter.list,
+      { ...input, page: 2 },
+      context
+    );
+
+    expect(firstPage.items.map(({ id }) => id)).toEqual(
+      repeatedFirstPage.items.map(({ id }) => id)
+    );
+    expect(firstPage.items).toHaveLength(2);
+    expect(secondPage.items).toHaveLength(1);
+    expect(
+      new Set([
+        ...firstPage.items.map(({ id }) => id),
+        ...secondPage.items.map(({ id }) => id),
+      ]).size
+    ).toBe(3);
   });
 });
 
@@ -294,7 +439,13 @@ describe("transaction validation and isolation", () => {
     );
     await expect(
       call(transactionsRouter.list, { includeArchived: true }, firstContext)
-    ).resolves.toHaveLength(1);
+    ).resolves.toMatchObject({
+      items: [expect.objectContaining({ id: created.id })],
+      total: 1,
+    });
+    await expect(
+      call(transactionsRouter.list, { includeArchived: true }, secondContext)
+    ).resolves.toMatchObject({ items: [], total: 0 });
     expect(
       await codeOf(
         call(

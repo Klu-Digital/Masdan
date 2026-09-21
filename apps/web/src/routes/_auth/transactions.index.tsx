@@ -10,11 +10,30 @@ import { createFileRoute, getRouteApi } from "@tanstack/react-router";
 
 import { activeOrganizationQueryOptions } from "@/lib/organization";
 import { TransactionManager } from "@/modules/transactions/components/transaction-manager";
+import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
+import type { TransactionSearch } from "@/modules/transactions/search";
 
 const routeApi = getRouteApi("/_auth/transactions");
 
 const TransactionsPage = () => {
   const { activeOrganizationId, session } = routeApi.useRouteContext();
+  const search = routeApi.useSearch();
+  const navigate = routeApi.useNavigate();
+  const updateSearch = (
+    updates: Partial<TransactionSearch>,
+    resetPage = true
+  ) => {
+    void navigate({
+      search: (previous) => ({
+        ...previous,
+        ...updates,
+        page: resetPage ? 1 : (updates.page ?? previous.page),
+      }),
+    });
+  };
+  const clearFilters = () => {
+    void navigate({ search: { ...DEFAULT_TRANSACTION_SEARCH } });
+  };
   const organization = useQuery(
     activeOrganizationQueryOptions(activeOrganizationId)
   );
@@ -56,7 +75,10 @@ const TransactionsPage = () => {
     <div className="space-y-6 p-6">
       <TransactionManager
         activeOrganizationId={activeOrganizationId}
+        onClearFilters={clearFilters}
+        onSearchChange={updateSearch}
         role={role}
+        search={search}
       />
     </div>
   );

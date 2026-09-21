@@ -32,6 +32,7 @@ const routeApi = getRouteApi("/_auth/transactions/$transactionId");
 // oxlint-disable-next-line complexity
 const TransactionPage = () => {
   const { transactionId } = routeApi.useParams();
+  const search = routeApi.useSearch();
   const { activeOrganizationId, session } = routeApi.useRouteContext();
   const queryClient = useQueryClient();
   const transaction = useQuery(transactionQueryOptions(transactionId));
@@ -116,7 +117,11 @@ const TransactionPage = () => {
     <div className="mx-auto w-full max-w-3xl space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link className="text-muted-foreground text-sm" to="/transactions">
+          <Link
+            className="text-muted-foreground text-sm"
+            search={search}
+            to="/transactions"
+          >
             ← Transactions
           </Link>
           <h1 className="font-heading mt-2 text-2xl font-semibold">

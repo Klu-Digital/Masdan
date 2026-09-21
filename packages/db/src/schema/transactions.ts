@@ -62,6 +62,12 @@ export const financialTransaction = pgTable(
       table.transactionDate
     ),
     index("financial_transaction_category_idx").on(table.categoryId),
+    index("financial_transaction_organization_amount_idx").on(
+      table.organizationId,
+      table.archivedAt,
+      table.amount,
+      table.id
+    ),
   ]
 );
 
@@ -75,5 +81,11 @@ export const financialTransactionTag = pgTable(
       .notNull()
       .references(() => financialTransaction.id, { onDelete: "cascade" }),
   },
-  (table) => [primaryKey({ columns: [table.transactionId, table.tagId] })]
+  (table) => [
+    primaryKey({ columns: [table.transactionId, table.tagId] }),
+    index("financial_transaction_tag_tag_transaction_idx").on(
+      table.tagId,
+      table.transactionId
+    ),
+  ]
 );

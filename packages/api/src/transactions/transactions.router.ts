@@ -7,9 +7,23 @@ import {
   tag,
 } from "@masdan/db/schema/index";
 import { ORPCError } from "@orpc/server";
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  exists,
+  gte,
+  ilike,
+  inArray,
+  isNull,
+  lte,
+  or,
+} from "drizzle-orm";
 import { z } from "zod";
 
+import { CATEGORY_TYPES } from "../categories/constants";
 import {
   orgMutationProcedure,
   orgProcedure,
@@ -36,6 +50,34 @@ const isoDate = z.iso.date();
 const positiveDecimalPattern = /^\d+(?<fraction>\.\d{1,6})?$/u;
 
 const transactionIdInput = z.object({ transactionId: z.uuid() });
+
+const transactionListValues = z
+  .object({
+    accountIds: z.array(z.uuid()).max(50).default([]),
+    categoryIds: z.array(z.uuid()).max(50).default([]),
+    dateFrom: isoDate.optional(),
+    dateTo: isoDate.optional(),
+    includeArchived: z.boolean().default(false),
+    page: z.number().int().min(1).default(1),
+    pageSize: z.number().int().min(1).max(100).default(25),
+    paidStatuses: z.array(z.enum(TRANSACTION_PAID_STATUSES)).max(2).default([]),
+    search: z.string().trim().max(120).default(""),
+    sortBy: z.enum(["date", "amount"]).default("date"),
+    sortDirection: z.enum(["asc", "desc"]).default("desc"),
+    tagIds: z.array(z.uuid()).max(50).default([]),
+    types: z.array(z.enum(CATEGORY_TYPES)).max(2).default([]),
+  })
+  .superRefine((value, context) => {
+    if (value.dateFrom && value.dateTo && value.dateFrom > value.dateTo) {
+      context.addIssue({
+        code: "custom",
+        message: "The start date must be before the end date",
+        path: ["dateFrom"],
+      });
+    }
+  });
+
+type TransactionListInput = z.output<typeof transactionListValues>;
 
 const transactionValues = z
   .object({
@@ -207,6 +249,121 @@ const transactionQuery = (db: Database) =>
     )
     .innerJoin(category, eq(category.id, financialTransaction.categoryId));
 
+const transactionListConditions = (
+  db: Database,
+  organizationId: string,
+  input: TransactionListInput
+) => {
+  const conditions = [eq(financialTransaction.organizationId, organizationId)];
+
+  if (!input.includeArchived) {
+    conditions.push(isNull(financialTransaction.archivedAt));
+  }
+  if (input.accountIds.length > 0) {
+    conditions.push(inArray(financialTransaction.accountId, input.accountIds));
+  }
+  if (input.categoryIds.length > 0) {
+    conditions.push(
+      inArray(financialTransaction.categoryId, input.categoryIds)
+    );
+  }
+  if (input.dateFrom) {
+    conditions.push(gte(financialTransaction.transactionDate, input.dateFrom));
+  }
+  if (input.dateTo) {
+    conditions.push(lte(financialTransaction.transactionDate, input.dateTo));
+  }
+  if (input.paidStatuses.length > 0) {
+    conditions.push(
+      inArray(financialTransaction.paidStatus, input.paidStatuses)
+    );
+  }
+  if (input.types.length > 0) {
+    conditions.push(inArray(category.type, input.types));
+  }
+  if (input.tagIds.length > 0) {
+    conditions.push(
+      exists(
+        db
+          .select({ transactionId: financialTransactionTag.transactionId })
+          .from(financialTransactionTag)
+          .innerJoin(tag, eq(tag.id, financialTransactionTag.tagId))
+          .where(
+            and(
+              eq(
+                financialTransactionTag.transactionId,
+                financialTransaction.id
+              ),
+              eq(tag.organizationId, organizationId),
+              inArray(financialTransactionTag.tagId, input.tagIds)
+            )
+          )
+      )
+    );
+  }
+  if (input.search) {
+    const pattern = `%${input.search}%`;
+    const searchCondition = or(
+      ilike(financialTransaction.notes, pattern),
+      ilike(financialAccount.name, pattern),
+      ilike(category.name, pattern),
+      exists(
+        db
+          .select({ transactionId: financialTransactionTag.transactionId })
+          .from(financialTransactionTag)
+          .innerJoin(tag, eq(tag.id, financialTransactionTag.tagId))
+          .where(
+            and(
+              eq(
+                financialTransactionTag.transactionId,
+                financialTransaction.id
+              ),
+              eq(tag.organizationId, organizationId),
+              ilike(tag.name, pattern)
+            )
+          )
+      )
+    );
+    if (searchCondition) {
+      conditions.push(searchCondition);
+    }
+  }
+
+  return conditions;
+};
+
+const transactionOrderBy = (input: TransactionListInput) => {
+  if (input.sortBy === "amount") {
+    if (input.sortDirection === "asc") {
+      return [
+        asc(financialTransaction.amount),
+        asc(financialTransaction.transactionDate),
+        asc(financialTransaction.id),
+      ];
+    }
+
+    return [
+      desc(financialTransaction.amount),
+      desc(financialTransaction.transactionDate),
+      desc(financialTransaction.id),
+    ];
+  }
+
+  if (input.sortDirection === "asc") {
+    return [
+      asc(financialTransaction.transactionDate),
+      asc(financialTransaction.createdAt),
+      asc(financialTransaction.id),
+    ];
+  }
+
+  return [
+    desc(financialTransaction.transactionDate),
+    desc(financialTransaction.createdAt),
+    desc(financialTransaction.id),
+  ];
+};
+
 const replaceTags = async (
   db: Database,
   transactionId: string,
@@ -320,24 +477,41 @@ export const transactionsRouter = {
 
   list: orgProcedure
     .use(requirePermission({ transaction: ["read"] }))
-    .input(z.object({ includeArchived: z.boolean().default(false) }).optional())
+    .input(transactionListValues)
     .handler(async ({ context, input }) => {
-      const conditions = [
-        eq(financialTransaction.organizationId, context.organizationId),
-      ];
-      if (!input?.includeArchived) {
-        conditions.push(isNull(financialTransaction.archivedAt));
-      }
+      const conditions = transactionListConditions(
+        context.db,
+        context.organizationId,
+        input
+      );
+      const orderBy = transactionOrderBy(input);
 
-      const rows = await transactionQuery(context.db)
-        .where(and(...conditions))
-        .orderBy(
-          desc(financialTransaction.transactionDate),
-          desc(financialTransaction.createdAt)
-        )
-        .limit(50);
+      const [rows, countRows] = await Promise.all([
+        transactionQuery(context.db)
+          .where(and(...conditions))
+          .orderBy(...orderBy)
+          .limit(input.pageSize)
+          .offset((input.page - 1) * input.pageSize),
+        context.db
+          .select({ total: count() })
+          .from(financialTransaction)
+          .innerJoin(
+            financialAccount,
+            eq(financialAccount.id, financialTransaction.accountId)
+          )
+          .innerJoin(category, eq(category.id, financialTransaction.categoryId))
+          .where(and(...conditions)),
+      ]);
 
-      return Promise.all(rows.map((row) => withTags(context.db, row)));
+      const total = countRows[0]?.total ?? 0;
+
+      return {
+        items: await Promise.all(rows.map((row) => withTags(context.db, row))),
+        page: input.page,
+        pageSize: input.pageSize,
+        total,
+        totalPages: Math.ceil(total / input.pageSize),
+      };
     }),
 
   restore: orgMutationProcedure
