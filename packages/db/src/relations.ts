@@ -16,6 +16,7 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
       to: r.organization.id,
     }),
+    splitTransactions: r.many.financialTransactionSplit(),
     transactions: r.many.financialTransaction(),
   },
   file: {
@@ -71,7 +72,20 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
       to: r.organization.id,
     }),
+    splits: r.many.financialTransactionSplit(),
     tags: r.many.financialTransactionTag(),
+  },
+  financialTransactionSplit: {
+    category: r.one.category({
+      from: r.financialTransactionSplit.categoryId,
+      optional: false,
+      to: r.category.id,
+    }),
+    transaction: r.one.financialTransaction({
+      from: r.financialTransactionSplit.transactionId,
+      optional: false,
+      to: r.financialTransaction.id,
+    }),
   },
   financialTransactionTag: {
     tag: r.one.tag({

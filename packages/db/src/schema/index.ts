@@ -20,6 +20,7 @@ export {
 } from "./financial-accounts";
 export {
   financialTransaction,
+  financialTransactionSplit,
   financialTransactionTag,
   paidStatusEnum,
 } from "./transactions";

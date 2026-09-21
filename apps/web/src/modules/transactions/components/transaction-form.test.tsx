@@ -81,6 +81,15 @@ beforeEach(() => {
       icon: "🛒",
       id: "00000000-0000-4000-8000-000000000002",
       name: "Groceries",
+      type: "expense",
+    },
+    {
+      archivedAt: null,
+      color: "orange",
+      icon: "🍽️",
+      id: "00000000-0000-4000-8000-000000000005",
+      name: "Food & Dining",
+      type: "expense",
     },
     {
       archivedAt: null,
@@ -88,6 +97,7 @@ beforeEach(() => {
       icon: "💼",
       id: "00000000-0000-4000-8000-000000000003",
       name: "Salary",
+      type: "income",
     },
   ]);
   tagsList.mockResolvedValue([
@@ -143,6 +153,67 @@ describe("TransactionForm", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("option", { name: /Groceries/iu })
+    ).toBeInTheDocument();
+  });
+
+  it("adds and removes reconciled split lines", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await screen.findByText("Add transaction", { selector: "div" });
+
+    await user.click(screen.getByRole("combobox", { name: "Account" }));
+    await user.click(screen.getByRole("option", { name: /BPI Savings/iu }));
+    await user.click(screen.getByRole("combobox", { name: "Category" }));
+    await user.click(screen.getByRole("option", { name: /Groceries/iu }));
+    await user.type(screen.getByLabelText("Amount"), "125.50");
+    await user.click(screen.getByRole("button", { name: "Split transaction" }));
+
+    expect(screen.getByLabelText("Split line 1 amount")).toHaveValue("125.50");
+    await user.click(
+      screen.getByPlaceholderText("Select split line 2 category")
+    );
+    await user.click(screen.getByRole("option", { name: /Food & Dining/iu }));
+    await user.clear(screen.getByLabelText("Split line 1 amount"));
+    await user.type(screen.getByLabelText("Split line 1 amount"), "100");
+    await user.type(screen.getByLabelText("Split line 2 amount"), "25.50");
+    await user.clear(screen.getByLabelText("Split line 1 amount"));
+    await user.type(screen.getByLabelText("Split line 1 amount"), "125.50");
+    await user.click(
+      screen.getByRole("button", { name: "Remove split line 2" })
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Create transaction" })
+    );
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        splits: [{ amount: "125.50", categoryId: expect.any(String) }],
+      })
+    );
+  });
+
+  it("blocks an unreconciled split", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await screen.findByText("Add transaction", { selector: "div" });
+
+    await user.click(screen.getByRole("combobox", { name: "Account" }));
+    await user.click(screen.getByRole("option", { name: /BPI Savings/iu }));
+    await user.click(screen.getByRole("combobox", { name: "Category" }));
+    await user.click(screen.getByRole("option", { name: /Groceries/iu }));
+    await user.type(screen.getByLabelText("Amount"), "125.50");
+    await user.click(screen.getByRole("button", { name: "Split transaction" }));
+    await user.clear(screen.getByLabelText("Split line 1 amount"));
+    await user.type(screen.getByLabelText("Split line 1 amount"), "100");
+    await user.type(screen.getByLabelText("Split line 2 amount"), "20");
+    await user.click(
+      screen.getByRole("button", { name: "Create transaction" })
+    );
+
+    expect(create).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText("Split amounts must equal the transaction amount")
     ).toBeInTheDocument();
   });
 });

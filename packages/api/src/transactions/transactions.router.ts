@@ -3,6 +3,7 @@ import {
   category,
   financialAccount,
   financialTransaction,
+  financialTransactionSplit,
   financialTransactionTag,
   tag,
 } from "@masdan/db/schema/index";
@@ -48,6 +49,26 @@ const transactionFields = {
 
 const isoDate = z.iso.date();
 const positiveDecimalPattern = /^\d+(?<fraction>\.\d{1,6})?$/u;
+const SCALE_FACTOR = 1_000_000n;
+
+const positiveAmount = z
+  .string()
+  .trim()
+  .regex(positiveDecimalPattern, "Use a positive amount")
+  .refine((value) => /[1-9]/u.test(value), "Amount must be greater than zero");
+
+const scaledAmount = (value: string): bigint => {
+  const [whole, fraction = ""] = value.split(".");
+  return BigInt(whole) * SCALE_FACTOR + BigInt(fraction.padEnd(6, "0"));
+};
+
+const splitTotal = (splits: { amount: string }[]): bigint => {
+  let total = 0n;
+  for (const split of splits) {
+    total += scaledAmount(split.amount);
+  }
+  return total;
+};
 
 const transactionIdInput = z.object({ transactionId: z.uuid() });
 
@@ -79,20 +100,19 @@ const transactionListValues = z
 
 type TransactionListInput = z.output<typeof transactionListValues>;
 
+const splitValues = z.object({
+  amount: positiveAmount,
+  categoryId: z.uuid(),
+});
+
 const transactionValues = z
   .object({
     accountId: z.uuid(),
-    amount: z
-      .string()
-      .trim()
-      .regex(positiveDecimalPattern, "Use a positive amount")
-      .refine(
-        (value) => /[1-9]/u.test(value),
-        "Amount must be greater than zero"
-      ),
+    amount: positiveAmount,
     categoryId: z.uuid(),
     notes: z.string().trim().max(2000).nullable().optional(),
     paidStatus: z.enum(TRANSACTION_PAID_STATUSES),
+    splits: z.array(splitValues).max(50).optional(),
     tagIds: z
       .array(z.uuid())
       .max(50)
@@ -100,7 +120,21 @@ const transactionValues = z
       .refine((ids) => new Set(ids).size === ids.length, "Duplicate tag"),
     transactionDate: isoDate,
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (!value.splits || value.splits.length === 0) {
+      return;
+    }
+
+    const total = splitTotal(value.splits);
+    if (total !== scaledAmount(value.amount)) {
+      context.addIssue({
+        code: "custom",
+        message: "Split amounts must equal the transaction amount",
+        path: ["splits"],
+      });
+    }
+  });
 
 interface TransactionRow {
   id: string;
@@ -204,11 +238,32 @@ const validTags = async (
   }
 };
 
-const withTags = async <T extends TransactionRow>(
+const transactionSplits = (db: Database, transactionId: string) =>
+  db
+    .select({
+      amount: financialTransactionSplit.amount,
+      categoryColor: category.color,
+      categoryIcon: category.icon,
+      categoryId: financialTransactionSplit.categoryId,
+      categoryName: category.name,
+      categoryType: category.type,
+      id: financialTransactionSplit.id,
+      sortOrder: financialTransactionSplit.sortOrder,
+    })
+    .from(financialTransactionSplit)
+    .innerJoin(category, eq(category.id, financialTransactionSplit.categoryId))
+    .where(eq(financialTransactionSplit.transactionId, transactionId))
+    .orderBy(
+      asc(financialTransactionSplit.sortOrder),
+      asc(financialTransactionSplit.id)
+    );
+
+const withDetails = async <T extends TransactionRow>(
   db: Database,
   row: T
 ): Promise<
   T & {
+    splits: Awaited<ReturnType<typeof transactionSplits>>;
     tags: {
       archivedAt: Date | null;
       color: string;
@@ -217,19 +272,22 @@ const withTags = async <T extends TransactionRow>(
     }[];
   }
 > => {
-  const tags = await db
-    .select({
-      archivedAt: tag.archivedAt,
-      color: tag.color,
-      id: tag.id,
-      name: tag.name,
-    })
-    .from(financialTransactionTag)
-    .innerJoin(tag, eq(tag.id, financialTransactionTag.tagId))
-    .where(eq(financialTransactionTag.transactionId, row.id))
-    .orderBy(asc(tag.name));
+  const [tags, splits] = await Promise.all([
+    db
+      .select({
+        archivedAt: tag.archivedAt,
+        color: tag.color,
+        id: tag.id,
+        name: tag.name,
+      })
+      .from(financialTransactionTag)
+      .innerJoin(tag, eq(tag.id, financialTransactionTag.tagId))
+      .where(eq(financialTransactionTag.transactionId, row.id))
+      .orderBy(asc(tag.name)),
+    transactionSplits(db, row.id),
+  ]);
 
-  return { ...row, tags };
+  return { ...row, splits, tags };
 };
 
 const transactionQuery = (db: Database) =>
@@ -380,6 +438,52 @@ const replaceTags = async (
   }
 };
 
+const replaceSplits = async (
+  db: Database,
+  transactionId: string,
+  splits: { amount: string; categoryId: string }[]
+): Promise<void> => {
+  await db
+    .delete(financialTransactionSplit)
+    .where(eq(financialTransactionSplit.transactionId, transactionId));
+
+  if (splits.length > 1) {
+    await db.insert(financialTransactionSplit).values(
+      splits.map((split, sortOrder) => ({
+        amount: split.amount,
+        categoryId: split.categoryId,
+        sortOrder,
+        transactionId,
+      }))
+    );
+  }
+};
+
+const validateSplitCategories = async (
+  db: Database,
+  organizationId: string,
+  parentType: string,
+  splits: { categoryId: string }[],
+  existingCategoryIds = new Set<string>()
+): Promise<void> => {
+  const selected = await Promise.all(
+    splits.map((split) =>
+      validCategory(
+        db,
+        organizationId,
+        split.categoryId,
+        existingCategoryIds.has(split.categoryId)
+      )
+    )
+  );
+
+  if (selected.some(({ type }) => type !== parentType)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Every split category must match the transaction type",
+    });
+  }
+};
+
 export const transactionsRouter = {
   archive: orgMutationProcedure
     .use(requirePermission({ transaction: ["archive"] }))
@@ -400,7 +504,7 @@ export const transactionsRouter = {
         throw transactionNotFound();
       }
 
-      return withTags(context.db, archived);
+      return withDetails(context.db, archived);
     }),
 
   create: orgMutationProcedure
@@ -412,11 +516,18 @@ export const transactionsRouter = {
         context.organizationId,
         input.accountId
       );
-      await validCategory(
+      const parentCategory = await validCategory(
         context.db,
         context.organizationId,
         input.categoryId,
         false
+      );
+      const splits = input.splits ?? [];
+      await validateSplitCategories(
+        context.db,
+        context.organizationId,
+        parentCategory.type,
+        splits
       );
       await validTags(context.db, context.organizationId, input.tagIds);
 
@@ -425,7 +536,10 @@ export const transactionsRouter = {
         .values({
           accountId: account.id,
           amount: input.amount,
-          categoryId: input.categoryId,
+          categoryId:
+            splits.length === 1
+              ? (splits[0]?.categoryId ?? input.categoryId)
+              : input.categoryId,
           currencyCode: account.currencyCode,
           notes: input.notes ?? null,
           organizationId: context.organizationId,
@@ -441,6 +555,7 @@ export const transactionsRouter = {
       }
 
       await replaceTags(context.db, created.id, input.tagIds);
+      await replaceSplits(context.db, created.id, splits);
       const [result] = await transactionQuery(context.db)
         .where(
           and(
@@ -451,8 +566,8 @@ export const transactionsRouter = {
         .limit(1);
 
       return result
-        ? withTags(context.db, result)
-        : withTags(context.db, created);
+        ? withDetails(context.db, result)
+        : withDetails(context.db, created);
     }),
 
   get: orgProcedure
@@ -472,7 +587,7 @@ export const transactionsRouter = {
         throw transactionNotFound();
       }
 
-      return withTags(context.db, result);
+      return withDetails(context.db, result);
     }),
 
   list: orgProcedure
@@ -506,7 +621,9 @@ export const transactionsRouter = {
       const total = countRows[0]?.total ?? 0;
 
       return {
-        items: await Promise.all(rows.map((row) => withTags(context.db, row))),
+        items: await Promise.all(
+          rows.map((row) => withDetails(context.db, row))
+        ),
         page: input.page,
         pageSize: input.pageSize,
         total,
@@ -533,7 +650,7 @@ export const transactionsRouter = {
         throw transactionNotFound();
       }
 
-      return withTags(context.db, restored);
+      return withDetails(context.db, restored);
     }),
 
   update: orgMutationProcedure
@@ -564,22 +681,41 @@ export const transactionsRouter = {
         });
       }
 
-      const currentTags = await context.db
-        .select({ tagId: financialTransactionTag.tagId })
-        .from(financialTransactionTag)
-        .where(eq(financialTransactionTag.transactionId, existing.id));
+      const [currentTags, currentSplits] = await Promise.all([
+        context.db
+          .select({ tagId: financialTransactionTag.tagId })
+          .from(financialTransactionTag)
+          .where(eq(financialTransactionTag.transactionId, existing.id)),
+        transactionSplits(context.db, existing.id),
+      ]);
       const existingTagIds = new Set(currentTags.map(({ tagId }) => tagId));
+      const existingSplitCategoryIds = new Set(
+        currentSplits.map(({ categoryId }) => categoryId)
+      );
+      const splits = input.splits ?? [];
+      const categoryId =
+        splits.length === 1
+          ? (splits[0]?.categoryId ?? input.categoryId)
+          : input.categoryId;
 
       const account = await activeAccount(
         context.db,
         context.organizationId,
         input.accountId
       );
-      await validCategory(
+      const parentCategory = await validCategory(
         context.db,
         context.organizationId,
-        input.categoryId,
-        input.categoryId === existing.categoryId
+        categoryId,
+        categoryId === existing.categoryId ||
+          existingSplitCategoryIds.has(categoryId)
+      );
+      await validateSplitCategories(
+        context.db,
+        context.organizationId,
+        parentCategory.type,
+        splits,
+        existingSplitCategoryIds
       );
       await validTags(
         context.db,
@@ -593,7 +729,7 @@ export const transactionsRouter = {
         .set({
           accountId: account.id,
           amount: input.amount,
-          categoryId: input.categoryId,
+          categoryId,
           currencyCode: account.currencyCode,
           notes: input.notes ?? null,
           paidStatus: input.paidStatus,
@@ -612,6 +748,7 @@ export const transactionsRouter = {
       }
 
       await replaceTags(context.db, updated.id, input.tagIds);
+      await replaceSplits(context.db, updated.id, splits);
       const [result] = await transactionQuery(context.db)
         .where(
           and(
@@ -622,7 +759,7 @@ export const transactionsRouter = {
         .limit(1);
 
       return result
-        ? withTags(context.db, result)
-        : withTags(context.db, updated);
+        ? withDetails(context.db, result)
+        : withDetails(context.db, updated);
     }),
 };

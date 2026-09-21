@@ -98,6 +98,9 @@ export const TransactionTable = ({
                   {transaction.tags.map((tag) => (
                     <TagBadge color={tag.color} key={tag.id} name={tag.name} />
                   ))}
+                  {transaction.splits.length > 0 ? (
+                    <Badge variant="outline">Split</Badge>
+                  ) : null}
                 </div>
                 {transaction.notes ? (
                   <div className="text-muted-foreground max-w-56 truncate text-xs">

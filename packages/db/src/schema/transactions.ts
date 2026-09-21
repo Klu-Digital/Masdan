@@ -2,12 +2,14 @@ import { sql } from "drizzle-orm";
 import {
   date,
   index,
+  integer,
   numeric,
   pgEnum,
   pgTable,
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -68,6 +70,30 @@ export const financialTransaction = pgTable(
       table.amount,
       table.id
     ),
+  ]
+);
+
+export const financialTransactionSplit = pgTable(
+  "financial_transaction_split",
+  {
+    amount: money("amount").notNull(),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => category.id, { onDelete: "cascade" }),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    sortOrder: integer("sort_order").notNull(),
+    transactionId: uuid("transaction_id")
+      .notNull()
+      .references(() => financialTransaction.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    uniqueIndex("financial_transaction_split_transaction_order_uidx").on(
+      table.transactionId,
+      table.sortOrder
+    ),
+    index("financial_transaction_split_category_idx").on(table.categoryId),
   ]
 );
 

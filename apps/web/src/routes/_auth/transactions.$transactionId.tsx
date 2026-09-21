@@ -20,6 +20,7 @@ import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 
 import { activeOrganizationQueryOptions } from "@/lib/organization";
 import { formatBalance } from "@/modules/accounts/components/account-manager";
+import { CategoryBadge } from "@/modules/categories/components/category-badge";
 import { TransactionFormDialog } from "@/modules/transactions/components/transaction-form";
 import {
   invalidateTransactions,
@@ -210,6 +211,29 @@ const TransactionPage = () => {
             <div className="mt-6">
               <dt className="text-muted-foreground text-sm">Notes</dt>
               <dd className="whitespace-pre-wrap">{current.notes}</dd>
+            </div>
+          ) : null}
+          {current.splits.length > 0 ? (
+            <div className="mt-6">
+              <h2 className="font-medium">Split allocation</h2>
+              <div className="mt-3 space-y-2">
+                {current.splits.map((split) => (
+                  <div
+                    className="flex items-center justify-between gap-3"
+                    key={split.id}
+                  >
+                    <CategoryBadge
+                      color={split.categoryColor}
+                      icon={split.categoryIcon}
+                      name={split.categoryName}
+                    />
+                    <span className="tabular-nums">
+                      {current.type === "income" ? "+" : "-"}
+                      {formatBalance(split.amount, current.currencyCode)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
         </CardPanel>

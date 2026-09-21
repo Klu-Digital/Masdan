@@ -215,6 +215,246 @@ describe("transactions lifecycle", () => {
   });
 });
 
+describe("split transactions", () => {
+  it("reconciles allocations without changing the parent account posting", async () => {
+    const user = await signUpTestUser();
+    const context = { context: await contextFor(user.headers) };
+    const organizationId = await activeOrganizationId(user.headers);
+    const account = await call(accountsRouter.create, accountInput, context);
+    const groceriesId = await categoryIdFor(organizationId, "Groceries");
+    const foodId = await categoryIdFor(organizationId, "Food & Dining");
+
+    const created = await call(
+      transactionsRouter.create,
+      {
+        accountId: account.id,
+        amount: "125.123456",
+        categoryId: groceriesId,
+        paidStatus: "paid",
+        splits: [
+          { amount: "100.123456", categoryId: groceriesId },
+          { amount: "25", categoryId: foodId },
+        ],
+        tagIds: [],
+        transactionDate: "2026-01-01",
+      },
+      context
+    );
+
+    expect(created.splits).toMatchObject([
+      { amount: "100.123456", categoryId: groceriesId, sortOrder: 0 },
+      { amount: "25.000000", categoryId: foodId, sortOrder: 1 },
+    ]);
+    await expect(
+      call(accountsRouter.get, { accountId: account.id }, context)
+    ).resolves.toMatchObject({ balance: "874.876544" });
+    await expect(
+      call(transactionsRouter.list, {}, context)
+    ).resolves.toMatchObject({
+      items: [
+        expect.objectContaining({ id: created.id, splits: expect.any(Array) }),
+      ],
+    });
+
+    const updated = await call(
+      transactionsRouter.update,
+      {
+        accountId: account.id,
+        amount: "125.123456",
+        categoryId: groceriesId,
+        paidStatus: "paid",
+        splits: [
+          { amount: "75.123456", categoryId: groceriesId },
+          { amount: "50", categoryId: foodId },
+        ],
+        tagIds: [],
+        transactionDate: "2026-01-01",
+        transactionId: created.id,
+      },
+      context
+    );
+
+    expect(updated.splits).toHaveLength(2);
+    await expect(
+      call(accountsRouter.get, { accountId: account.id }, context)
+    ).resolves.toMatchObject({ balance: "874.876544" });
+
+    const normalized = await call(
+      transactionsRouter.update,
+      {
+        accountId: account.id,
+        amount: "125.123456",
+        categoryId: groceriesId,
+        paidStatus: "paid",
+        splits: [{ amount: "125.123456", categoryId: foodId }],
+        tagIds: [],
+        transactionDate: "2026-01-01",
+        transactionId: created.id,
+      },
+      context
+    );
+
+    expect(normalized).toMatchObject({ categoryId: foodId, splits: [] });
+    await expect(
+      call(accountsRouter.get, { accountId: account.id }, context)
+    ).resolves.toMatchObject({ balance: "874.876544" });
+  });
+
+  it("rejects unreconciled and mixed-type allocations atomically", async () => {
+    const user = await signUpTestUser();
+    const context = { context: await contextFor(user.headers) };
+    const organizationId = await activeOrganizationId(user.headers);
+    const account = await call(accountsRouter.create, accountInput, context);
+    const expenseCategoryId = await categoryIdFor(organizationId, "Groceries");
+    const secondExpenseCategoryId = await categoryIdFor(
+      organizationId,
+      "Food & Dining"
+    );
+    const incomeCategoryId = await categoryIdFor(organizationId, "Salary");
+
+    expect(
+      await codeOf(
+        call(
+          transactionsRouter.create,
+          {
+            accountId: account.id,
+            amount: "100",
+            categoryId: expenseCategoryId,
+            paidStatus: "paid",
+            splits: [
+              { amount: "60", categoryId: expenseCategoryId },
+              { amount: "39", categoryId: secondExpenseCategoryId },
+            ],
+            tagIds: [],
+            transactionDate: "2026-01-01",
+          },
+          context
+        )
+      )
+    ).toBe("BAD_REQUEST");
+
+    expect(
+      await codeOf(
+        call(
+          transactionsRouter.create,
+          {
+            accountId: account.id,
+            amount: "100",
+            categoryId: expenseCategoryId,
+            paidStatus: "paid",
+            splits: [
+              { amount: "50", categoryId: expenseCategoryId },
+              { amount: "50", categoryId: incomeCategoryId },
+            ],
+            tagIds: [],
+            transactionDate: "2026-01-01",
+          },
+          context
+        )
+      )
+    ).toBe("BAD_REQUEST");
+
+    const created = await call(
+      transactionsRouter.create,
+      {
+        accountId: account.id,
+        amount: "100",
+        categoryId: expenseCategoryId,
+        paidStatus: "paid",
+        splits: [
+          { amount: "50", categoryId: expenseCategoryId },
+          { amount: "50", categoryId: secondExpenseCategoryId },
+        ],
+        tagIds: [],
+        transactionDate: "2026-01-01",
+      },
+      context
+    );
+
+    expect(
+      await codeOf(
+        call(
+          transactionsRouter.update,
+          {
+            accountId: account.id,
+            amount: "100",
+            categoryId: expenseCategoryId,
+            paidStatus: "paid",
+            splits: [
+              { amount: "50", categoryId: expenseCategoryId },
+              { amount: "49", categoryId: secondExpenseCategoryId },
+            ],
+            tagIds: [],
+            transactionDate: "2026-01-01",
+            transactionId: created.id,
+          },
+          context
+        )
+      )
+    ).toBe("BAD_REQUEST");
+
+    await expect(
+      call(transactionsRouter.get, { transactionId: created.id }, context)
+    ).resolves.toMatchObject({
+      amount: "100.000000",
+      splits: [
+        expect.objectContaining({ amount: "50.000000" }),
+        expect.objectContaining({ amount: "50.000000" }),
+      ],
+    });
+    await expect(
+      call(accountsRouter.get, { accountId: account.id }, context)
+    ).resolves.toMatchObject({ balance: "900.000000" });
+  });
+
+  it("keeps split rows household-scoped", async () => {
+    const first = await signUpTestUser();
+    const second = await signUpTestUser();
+    const firstContext = { context: await contextFor(first.headers) };
+    const secondContext = { context: await contextFor(second.headers) };
+    const firstOrganizationId = await activeOrganizationId(first.headers);
+    const secondOrganizationId = await activeOrganizationId(second.headers);
+    const firstAccount = await call(
+      accountsRouter.create,
+      accountInput,
+      firstContext
+    );
+    const firstCategoryId = await categoryIdFor(
+      firstOrganizationId,
+      "Groceries"
+    );
+    const secondCategoryId = await categoryIdFor(
+      secondOrganizationId,
+      "Groceries"
+    );
+
+    expect(
+      await codeOf(
+        call(
+          transactionsRouter.create,
+          {
+            accountId: firstAccount.id,
+            amount: "100",
+            categoryId: firstCategoryId,
+            paidStatus: "paid",
+            splits: [
+              { amount: "50", categoryId: firstCategoryId },
+              { amount: "50", categoryId: secondCategoryId },
+            ],
+            tagIds: [],
+            transactionDate: "2026-01-01",
+          },
+          firstContext
+        )
+      )
+    ).toBe("BAD_REQUEST");
+
+    await expect(
+      call(transactionsRouter.list, {}, secondContext)
+    ).resolves.toMatchObject({ items: [], total: 0 });
+  });
+});
+
 describe("transaction list", () => {
   it("combines filters and returns paginated metadata", async () => {
     const user = await signUpTestUser();

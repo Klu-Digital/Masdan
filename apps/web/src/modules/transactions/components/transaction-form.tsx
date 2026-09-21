@@ -51,22 +51,75 @@ import { invalidateTransactions, transactionQueryOptions } from "../queries";
 type Transaction = Awaited<ReturnType<typeof client.transactions.get>>;
 type Category = Awaited<ReturnType<typeof client.categories.list>>[number];
 
-const transactionSchema = z.object({
-  accountId: z.string().uuid("Choose an account"),
-  amount: z
-    .string()
-    .trim()
-    .regex(/^(?<whole>\d+)(?<fraction>\.\d{1,6})?$/u, "Use a positive amount")
-    .refine(
-      (value) => /[1-9]/u.test(value),
-      "Amount must be greater than zero"
-    ),
+const positiveAmountPattern = /^(?<whole>\d+)(?<fraction>\.\d{1,6})?$/u;
+const SCALE_FACTOR = 1_000_000n;
+
+const positiveAmount = z
+  .string()
+  .trim()
+  .regex(positiveAmountPattern, "Use a positive amount")
+  .refine((value) => /[1-9]/u.test(value), "Amount must be greater than zero");
+
+const splitSchema = z.object({
+  amount: positiveAmount,
   categoryId: z.string().uuid("Choose a category"),
-  notes: z.string().max(2000),
-  paidStatus: z.enum(TRANSACTION_PAID_STATUSES),
-  tagIds: z.array(z.string().uuid()),
-  transactionDate: z.string().min(1, "Date is required"),
 });
+
+const scaledAmount = (value: string): bigint | null => {
+  if (!positiveAmountPattern.test(value) || !/[1-9]/u.test(value)) {
+    return null;
+  }
+  const [whole, fraction = ""] = value.split(".");
+  return BigInt(whole) * SCALE_FACTOR + BigInt(fraction.padEnd(6, "0"));
+};
+
+const splitTotal = (splits: { amount: string }[]): bigint | null => {
+  let total = 0n;
+  for (const split of splits) {
+    const amount = scaledAmount(split.amount);
+    if (amount === null) {
+      return null;
+    }
+    total += amount;
+  }
+  return total;
+};
+
+const formatScaledAmount = (value: bigint): string => {
+  const sign = value < 0n ? "-" : "";
+  const absolute = value < 0n ? -value : value;
+  const whole = absolute / SCALE_FACTOR;
+  const fraction = String(absolute % SCALE_FACTOR)
+    .padStart(6, "0")
+    .replace(/0+$/u, "");
+  return `${sign}${whole}${fraction ? `.${fraction}` : ""}`;
+};
+
+const transactionSchema = z
+  .object({
+    accountId: z.string().uuid("Choose an account"),
+    amount: positiveAmount,
+    categoryId: z.string().uuid("Choose a category"),
+    notes: z.string().max(2000),
+    paidStatus: z.enum(TRANSACTION_PAID_STATUSES),
+    splits: z.array(splitSchema).max(50),
+    tagIds: z.array(z.string().uuid()),
+    transactionDate: z.string().min(1, "Date is required"),
+  })
+  .superRefine((value, context) => {
+    if (value.splits.length === 0) {
+      return;
+    }
+    const amount = scaledAmount(value.amount);
+    const total = splitTotal(value.splits);
+    if (amount === null || total !== amount) {
+      context.addIssue({
+        code: "custom",
+        message: "Split amounts must equal the transaction amount",
+        path: ["splits"],
+      });
+    }
+  });
 
 type TransactionFormValues = z.infer<typeof transactionSchema>;
 
@@ -115,10 +168,12 @@ const Picker = ({
 );
 
 const CategoryPicker = ({
+  ariaLabel = "Category",
   categories,
   onValueChange,
   value,
 }: {
+  ariaLabel?: string;
   categories: Category[];
   onValueChange: (value: string) => void;
   value: string;
@@ -133,7 +188,10 @@ const CategoryPicker = ({
       onValueChange={(item: Category | null) => onValueChange(item?.id ?? "")}
       value={selectedCategory}
     >
-      <ComboboxInput aria-label="Category" placeholder="Select category" />
+      <ComboboxInput
+        aria-label={ariaLabel}
+        placeholder={`Select ${ariaLabel.toLowerCase()}`}
+      />
       <ComboboxPopup>
         <ComboboxEmpty>No matching category.</ComboboxEmpty>
         <ComboboxList>
@@ -182,6 +240,11 @@ export const TransactionForm = ({
     categoryId: transaction?.categoryId ?? "",
     notes: transaction?.notes ?? "",
     paidStatus: transaction?.paidStatus ?? "paid",
+    splits:
+      transaction?.splits.map(({ amount, categoryId }) => ({
+        amount,
+        categoryId,
+      })) ?? [],
     tagIds: transaction?.tags.map(({ id }) => id) ?? [],
     transactionDate: transaction?.transactionDate ?? today(),
   };
@@ -247,7 +310,9 @@ export const TransactionForm = ({
     }));
   const categoryItems = categories.data.filter(
     (category) =>
-      category.archivedAt === null || category.id === transaction?.categoryId
+      category.archivedAt === null ||
+      category.id === transaction?.categoryId ||
+      transaction?.splits.some((split) => split.categoryId === category.id)
   );
   const tagItems = tags.data.filter(
     (tag) =>
@@ -298,6 +363,118 @@ export const TransactionForm = ({
             ))}
           </Field>
         )}
+      </form.Field>
+
+      <form.Field mode="array" name="splits">
+        {(field) => {
+          const splitMode = field.state.value.length > 0;
+          const parentType = categories.data.find(
+            (category) => category.id === form.state.values.categoryId
+          )?.type;
+          const splitCategories = categoryItems.filter(
+            (category) => !parentType || category.type === parentType
+          );
+          const amount = scaledAmount(form.state.values.amount);
+          const total = splitTotal(field.state.value);
+          const remaining =
+            amount === null || total === null ? null : amount - total;
+
+          return (
+            <Field name={field.name}>
+              <div className="flex items-center justify-between gap-4">
+                <FieldLabel>Category allocation</FieldLabel>
+                <Button
+                  onClick={() =>
+                    field.handleChange(
+                      splitMode
+                        ? []
+                        : [
+                            {
+                              amount: form.state.values.amount,
+                              categoryId: form.state.values.categoryId,
+                            },
+                            { amount: "", categoryId: "" },
+                          ]
+                    )
+                  }
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  {splitMode ? "Use one category" : "Split transaction"}
+                </Button>
+              </div>
+              {splitMode ? (
+                <div className="space-y-3">
+                  {field.state.value.map((split, index) => (
+                    <div className="flex items-end gap-2" key={index}>
+                      <Field
+                        className="min-w-0 flex-1"
+                        name={`split-category-${index}`}
+                      >
+                        <FieldLabel>Line {index + 1} category</FieldLabel>
+                        <CategoryPicker
+                          ariaLabel={`Split line ${index + 1} category`}
+                          categories={splitCategories}
+                          onValueChange={(categoryId) =>
+                            field.replaceValue(index, {
+                              ...split,
+                              categoryId,
+                            })
+                          }
+                          value={split.categoryId}
+                        />
+                      </Field>
+                      <Field className="w-36" name={`split-amount-${index}`}>
+                        <FieldLabel>Amount</FieldLabel>
+                        <Input
+                          aria-label={`Split line ${index + 1} amount`}
+                          inputMode="decimal"
+                          onChange={(event) =>
+                            field.replaceValue(index, {
+                              ...split,
+                              amount: event.target.value,
+                            })
+                          }
+                          value={split.amount}
+                        />
+                      </Field>
+                      <Button
+                        aria-label={`Remove split line ${index + 1}`}
+                        onClick={() => field.removeValue(index)}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    onClick={() =>
+                      field.pushValue({ amount: "", categoryId: "" })
+                    }
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    Add split line
+                  </Button>
+                  <p className="text-muted-foreground text-sm">
+                    {remaining === null
+                      ? "Enter valid split amounts to reconcile this transaction."
+                      : `Remaining: ${formatScaledAmount(remaining)}`}
+                  </p>
+                </div>
+              ) : null}
+              {field.state.meta.errors.map((error) => (
+                <FieldError key={error?.message} match>
+                  {error?.message}
+                </FieldError>
+              ))}
+            </Field>
+          );
+        }}
       </form.Field>
 
       <form.Field name="notes">
