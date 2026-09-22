@@ -1,5 +1,6 @@
 import type { Database } from "@masdan/db";
 import {
+  creditCardStatement,
   currency,
   financialAccount,
   financialAccountBalanceSnapshot,
@@ -56,6 +57,48 @@ const accountIdInput = z.object({ accountId: z.uuid() });
 const decimalPattern = /^-?\d+(?<fraction>\.\d{1,6})?$/u;
 const nonNegativeDecimalPattern = /^\d+(?<fraction>\.\d{1,6})?$/u;
 const isoDate = z.iso.date();
+const MONEY_SCALE = 1_000_000n;
+
+const scaledMoney = (value: string): bigint => {
+  const negative = value.startsWith("-");
+  const [whole = "0", fraction = ""] = value.replace("-", "").split(".");
+  const scaled = BigInt(whole) * MONEY_SCALE + BigInt(fraction.padEnd(6, "0"));
+  return negative ? -scaled : scaled;
+};
+
+const moneyFromScaled = (value: bigint): string => {
+  const absolute = value < 0 ? -value : value;
+  const whole = absolute / MONEY_SCALE;
+  const fraction = (absolute % MONEY_SCALE).toString().padStart(6, "0");
+  return `${value < 0 ? "-" : ""}${whole}.${fraction}`;
+};
+
+const creditMetrics = (
+  account: { accountType: string; creditLimit: string | null },
+  balance: string
+): { availableCredit: string | null; utilization: string | null } => {
+  if (account.accountType !== "credit_card" || account.creditLimit === null) {
+    return { availableCredit: null, utilization: null };
+  }
+
+  const limit = scaledMoney(account.creditLimit);
+  const outstanding = scaledMoney(balance);
+  const availableCredit = moneyFromScaled(limit - outstanding);
+  if (limit <= 0) {
+    return { availableCredit, utilization: null };
+  }
+
+  const utilizationHundredths =
+    ((outstanding > 0 ? outstanding : 0n) * 10_000n + limit / 2n) / limit;
+  return {
+    availableCredit,
+    utilization: `${utilizationHundredths / 100n}.${(
+      utilizationHundredths % 100n
+    )
+      .toString()
+      .padStart(2, "0")}`,
+  };
+};
 
 const accountValues = z
   .object({
@@ -173,6 +216,48 @@ const cardMetadata = (values: AccountValues) =>
         statementClosingDay: null,
       };
 
+const statementValues = z
+  .object({
+    accountId: z.uuid(),
+    dueDate: isoDate.nullable().optional(),
+    minimumAmountDue: z
+      .string()
+      .trim()
+      .regex(nonNegativeDecimalPattern, "Use a non-negative amount")
+      .nullable()
+      .optional(),
+    periodEnd: isoDate,
+    periodStart: isoDate,
+    statementBalance: z
+      .string()
+      .trim()
+      .regex(decimalPattern, "Use a valid amount"),
+    statementDate: isoDate,
+  })
+  .superRefine((value, context) => {
+    if (value.periodStart > value.periodEnd) {
+      context.addIssue({
+        code: "custom",
+        message: "Statement period must end on or after it starts",
+        path: ["periodEnd"],
+      });
+    }
+  });
+
+const statementFields = {
+  accountId: creditCardStatement.accountId,
+  createdAt: creditCardStatement.createdAt,
+  dueDate: creditCardStatement.dueDate,
+  id: creditCardStatement.id,
+  minimumAmountDue: creditCardStatement.minimumAmountDue,
+  organizationId: creditCardStatement.organizationId,
+  periodEnd: creditCardStatement.periodEnd,
+  periodStart: creditCardStatement.periodStart,
+  statementBalance: creditCardStatement.statementBalance,
+  statementDate: creditCardStatement.statementDate,
+  updatedAt: creditCardStatement.updatedAt,
+};
+
 const snapshotValues = z.object({
   accountId: z.uuid(),
   balance: z.string().trim().regex(decimalPattern, "Use a valid amount"),
@@ -183,6 +268,27 @@ const snapshotValues = z.object({
 
 const accountNotFound = () =>
   new ORPCError("NOT_FOUND", { message: "Financial account not found" });
+
+const requireCreditCard = async (
+  db: Database,
+  organizationId: string,
+  accountId: string
+): Promise<void> => {
+  const [account] = await db
+    .select({ accountType: financialAccount.accountType })
+    .from(financialAccount)
+    .where(
+      and(
+        eq(financialAccount.id, accountId),
+        eq(financialAccount.organizationId, organizationId)
+      )
+    )
+    .limit(1);
+
+  if (!account || account.accountType !== "credit_card") {
+    throw accountNotFound();
+  }
+};
 
 const validateOwners = async (
   db: Database,
@@ -229,9 +335,11 @@ export const accountsRouter = {
       if (!archived) {
         throw accountNotFound();
       }
+      const balance = await getAccountBalance(context.db, archived.id);
       return {
         ...archived,
-        balance: await getAccountBalance(context.db, archived.id),
+        balance,
+        ...creditMetrics(archived, balance),
       };
     }),
 
@@ -295,8 +403,36 @@ export const accountsRouter = {
       return {
         ...created,
         balance: created.openingBalance,
+        ...creditMetrics(created, created.openingBalance),
         ownerMemberIds,
       };
+    }),
+
+  createStatement: orgMutationProcedure
+    .use(requirePermission({ financialAccount: ["update"] }))
+    .input(statementValues)
+    .handler(async ({ context, input }) => {
+      await requireCreditCard(
+        context.db,
+        context.organizationId,
+        input.accountId
+      );
+
+      const [created] = await context.db
+        .insert(creditCardStatement)
+        .values({
+          ...input,
+          dueDate: input.dueDate ?? null,
+          minimumAmountDue: input.minimumAmountDue ?? null,
+          organizationId: context.organizationId,
+        })
+        .returning(statementFields);
+      if (!created) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR", {
+          message: "Could not create credit card statement",
+        });
+      }
+      return created;
     }),
 
   get: orgProcedure
@@ -323,9 +459,11 @@ export const accountsRouter = {
         .from(financialAccountOwner)
         .where(eq(financialAccountOwner.financialAccountId, account.id));
 
+      const balance = await getAccountBalance(context.db, account.id);
       return {
         ...account,
-        balance: await getAccountBalance(context.db, account.id),
+        balance,
+        ...creditMetrics(account, balance),
         ownerMemberIds: owners.map(({ memberId }) => memberId),
       };
     }),
@@ -375,11 +513,15 @@ export const accountsRouter = {
         accounts.map((account) => account.id)
       );
 
-      return accounts.map((account) => ({
-        ...account,
-        balance: balances.get(account.id) ?? account.openingBalance,
-        ownerMemberIds: ownerMemberIds.get(account.id) ?? [],
-      }));
+      return accounts.map((account) => {
+        const balance = balances.get(account.id) ?? account.openingBalance;
+        return {
+          ...account,
+          balance,
+          ...creditMetrics(account, balance),
+          ownerMemberIds: ownerMemberIds.get(account.id) ?? [],
+        };
+      });
     }),
 
   listSnapshots: orgProcedure
@@ -410,6 +552,31 @@ export const accountsRouter = {
         );
     }),
 
+  listStatements: orgProcedure
+    .use(requirePermission({ financialAccount: ["read"] }))
+    .input(accountIdInput)
+    .handler(async ({ context, input }) => {
+      await requireCreditCard(
+        context.db,
+        context.organizationId,
+        input.accountId
+      );
+
+      return context.db
+        .select(statementFields)
+        .from(creditCardStatement)
+        .where(
+          and(
+            eq(creditCardStatement.accountId, input.accountId),
+            eq(creditCardStatement.organizationId, context.organizationId)
+          )
+        )
+        .orderBy(
+          desc(creditCardStatement.statementDate),
+          desc(creditCardStatement.createdAt)
+        );
+    }),
+
   restore: orgMutationProcedure
     .use(requirePermission({ financialAccount: ["restore"] }))
     .input(accountIdInput)
@@ -428,9 +595,11 @@ export const accountsRouter = {
       if (!restored) {
         throw accountNotFound();
       }
+      const balance = await getAccountBalance(context.db, restored.id);
       return {
         ...restored,
-        balance: await getAccountBalance(context.db, restored.id),
+        balance,
+        ...creditMetrics(restored, balance),
       };
     }),
 
@@ -540,9 +709,11 @@ export const accountsRouter = {
         );
       }
 
+      const balance = await getAccountBalance(context.db, updated.id);
       return {
         ...updated,
-        balance: await getAccountBalance(context.db, updated.id),
+        balance,
+        ...creditMetrics(updated, balance),
         ownerMemberIds,
       };
     }),

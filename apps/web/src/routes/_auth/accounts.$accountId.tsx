@@ -31,6 +31,7 @@ import {
   AccountFormDialog,
   formatBalance,
 } from "@/modules/accounts/components/account-manager";
+import { CreditCardSection } from "@/modules/accounts/components/credit-card-summary";
 import {
   accountQueryOptions,
   accountSnapshotsQueryOptions,
@@ -218,55 +219,47 @@ const AccountPage = () => {
       </Card>
 
       {account.data.accountType === "credit_card" ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Credit card details</CardTitle>
-            <CardDescription>
-              Statement metadata is ready for future statement tracking.
-            </CardDescription>
-          </CardHeader>
-          <CardPanel>
-            <dl className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-muted-foreground text-sm">Network</dt>
-                <dd>{account.data.cardNetwork ?? "Not set"}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground text-sm">
-                  Last four digits
-                </dt>
-                <dd>
-                  {account.data.cardLastFour
-                    ? `•••• ${account.data.cardLastFour}`
-                    : "Not set"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground text-sm">Credit limit</dt>
-                <dd>
-                  {account.data.creditLimit
-                    ? formatBalance(
-                        account.data.creditLimit,
-                        account.data.currencyCode
-                      )
-                    : "Not set"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground text-sm">
-                  Statement closing day
-                </dt>
-                <dd>{account.data.statementClosingDay ?? "Not set"}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground text-sm">
-                  Payment due day
-                </dt>
-                <dd>{account.data.paymentDueDay ?? "Not set"}</dd>
-              </div>
-            </dl>
-          </CardPanel>
-        </Card>
+        <>
+          <CreditCardSection account={account.data} canUpdate={canUpdate} />
+          <Card>
+            <CardHeader>
+              <CardTitle>Credit card details</CardTitle>
+              <CardDescription>
+                Card identity and expected statement schedule.
+              </CardDescription>
+            </CardHeader>
+            <CardPanel>
+              <dl className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <dt className="text-muted-foreground text-sm">Network</dt>
+                  <dd>{account.data.cardNetwork ?? "Not set"}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-sm">
+                    Last four digits
+                  </dt>
+                  <dd>
+                    {account.data.cardLastFour
+                      ? `•••• ${account.data.cardLastFour}`
+                      : "Not set"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-sm">
+                    Statement closing day
+                  </dt>
+                  <dd>{account.data.statementClosingDay ?? "Not set"}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-sm">
+                    Payment due day
+                  </dt>
+                  <dd>{account.data.paymentDueDay ?? "Not set"}</dd>
+                </div>
+              </dl>
+            </CardPanel>
+          </Card>
+        </>
       ) : null}
 
       <Card>

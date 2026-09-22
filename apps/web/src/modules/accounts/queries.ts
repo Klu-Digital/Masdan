@@ -25,6 +25,12 @@ export const accountSnapshotsQueryOptions = (accountId: string) =>
     queryKey: ["account-snapshots", accountId] as const,
   });
 
+export const accountStatementsQueryOptions = (accountId: string) =>
+  queryOptions({
+    queryFn: () => client.accounts.listStatements({ accountId }),
+    queryKey: ["account-statements", accountId] as const,
+  });
+
 export const invalidateAccounts = (
   queryClient: QueryClient,
   activeOrganizationId: string | null

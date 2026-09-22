@@ -14,6 +14,7 @@ export { tag } from "./tags";
 export { featureFlag } from "./feature-flags";
 export { currency } from "./finance";
 export {
+  creditCardStatement,
   financialAccount,
   financialAccountBalanceSnapshot,
   financialAccountOwner,

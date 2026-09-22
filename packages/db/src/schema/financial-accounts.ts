@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   date,
   index,
   numeric,
@@ -63,6 +64,50 @@ export const financialAccount = pgTable(
       table.organizationId,
       table.accountClass,
       table.accountType
+    ),
+  ]
+);
+
+export const creditCardStatement = pgTable(
+  "credit_card_statement",
+  {
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    dueDate: date("due_date", { mode: "string" }),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    minimumAmountDue: money("minimum_amount_due"),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    periodEnd: date("period_end", { mode: "string" }).notNull(),
+    periodStart: date("period_start", { mode: "string" }).notNull(),
+    statementBalance: money("statement_balance").notNull(),
+    statementDate: date("statement_date", { mode: "string" }).notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "credit_card_statement_period_chk",
+      sql`${table.periodStart} <= ${table.periodEnd}`
+    ),
+    check(
+      "credit_card_statement_minimum_due_chk",
+      sql`${table.minimumAmountDue} IS NULL OR ${table.minimumAmountDue} >= 0`
+    ),
+    uniqueIndex("credit_card_statement_account_date_uidx").on(
+      table.accountId,
+      table.statementDate
+    ),
+    index("credit_card_statement_organization_date_idx").on(
+      table.organizationId,
+      table.statementDate
     ),
   ]
 );

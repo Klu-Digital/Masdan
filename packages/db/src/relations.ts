@@ -19,6 +19,18 @@ export const relations = defineRelations(schema, (r) => ({
     splitTransactions: r.many.financialTransactionSplit(),
     transactions: r.many.financialTransaction(),
   },
+  creditCardStatement: {
+    account: r.one.financialAccount({
+      from: r.creditCardStatement.accountId,
+      optional: false,
+      to: r.financialAccount.id,
+    }),
+    organization: r.one.organization({
+      from: r.creditCardStatement.organizationId,
+      optional: false,
+      to: r.organization.id,
+    }),
+  },
   file: {
     organization: r.one.organization({
       from: r.file.organizationId,
@@ -29,6 +41,7 @@ export const relations = defineRelations(schema, (r) => ({
   },
   financialAccount: {
     balanceSnapshots: r.many.financialAccountBalanceSnapshot(),
+    creditCardStatements: r.many.creditCardStatement(),
     organization: r.one.organization({
       from: r.financialAccount.organizationId,
       optional: false,
@@ -145,6 +158,7 @@ export const relations = defineRelations(schema, (r) => ({
   },
   organization: {
     categories: r.many.category(),
+    creditCardStatements: r.many.creditCardStatement(),
     files: r.many.file(),
     financialAccounts: r.many.financialAccount(),
     invitations: r.many.invitation(),
