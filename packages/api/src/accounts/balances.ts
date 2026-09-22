@@ -10,6 +10,14 @@ const balanceExpression = sql<string>`
   ${financialAccount.openingBalance} + COALESCE(
     SUM(
       CASE
+        WHEN ${financialTransaction.transferSide} = 'source' AND ${financialAccount.accountClass} = 'asset'
+          THEN -${financialTransaction.amount}
+        WHEN ${financialTransaction.transferSide} = 'source'
+          THEN ${financialTransaction.amount}
+        WHEN ${financialTransaction.transferSide} = 'destination' AND ${financialAccount.accountClass} = 'asset'
+          THEN ${financialTransaction.amount}
+        WHEN ${financialTransaction.transferSide} = 'destination'
+          THEN -${financialTransaction.amount}
         WHEN ${financialAccount.accountClass} = 'asset' AND ${category.type} = 'income'
           THEN ${financialTransaction.amount}
         WHEN ${financialAccount.accountClass} = 'asset'
@@ -49,8 +57,7 @@ export const getAccountBalances = async (
     .groupBy(
       financialAccount.id,
       financialAccount.accountClass,
-      financialAccount.openingBalance,
-      category.type
+      financialAccount.openingBalance
     );
 
   return new Map(rows.map(({ accountId, balance }) => [accountId, balance]));

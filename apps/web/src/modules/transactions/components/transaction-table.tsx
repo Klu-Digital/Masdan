@@ -1,3 +1,5 @@
+/* oxlint-disable complexity */
+
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import {
@@ -22,7 +24,9 @@ export const TransactionTable = ({
   canRestore,
   canUpdate,
   onArchive,
+  onDeleteTransfer,
   onEdit,
+  onEditTransfer,
   onRestore,
   onSort,
   sortBy,
@@ -33,7 +37,9 @@ export const TransactionTable = ({
   canRestore: boolean;
   canUpdate: boolean;
   onArchive: (id: string) => void;
+  onDeleteTransfer: (id: string) => void;
   onEdit: (transaction: Transaction) => void;
+  onEditTransfer: (transfer: NonNullable<Transaction["transfer"]>) => void;
   onRestore: (id: string) => void;
   onSort: (sortBy: TransactionSortBy) => void;
   sortBy: TransactionSortBy;
@@ -71,11 +77,28 @@ export const TransactionTable = ({
       </DataGridHeader>
       <DataGridBody>
         {transactions.map((transaction) => {
-          const archived = transaction.archivedAt !== null;
-          const income = transaction.type === "income";
+          const { accountClass, archivedAt, transfer, transferSide, type } =
+            transaction;
+          const archived = archivedAt !== null;
+          const income = type === "income";
+          const transferDecreasesBalance =
+            transfer !== null &&
+            ((accountClass === "asset" && transferSide === "source") ||
+              (accountClass === "liability" && transferSide === "destination"));
+          let amountPrefix = income ? "+" : "-";
+          if (transfer) {
+            amountPrefix = transferDecreasesBalance ? "-" : "+";
+          }
+          const decreasesBalance = transfer
+            ? transferDecreasesBalance
+            : !income;
           return (
             <DataGridRow
-              aria-label={`View ${transaction.categoryName} transaction`}
+              aria-label={
+                transfer
+                  ? `View transfer ${transfer.sourceAccount.name} to ${transfer.destinationAccount.name}`
+                  : `View ${transaction.categoryName ?? "transaction"} transaction`
+              }
               className="cursor-pointer"
               key={transaction.id}
               onClick={() => openTransaction(transaction.id)}
@@ -90,15 +113,29 @@ export const TransactionTable = ({
               <DataGridCell>{transaction.transactionDate}</DataGridCell>
               <DataGridCell>
                 <div className="flex flex-wrap items-center gap-2">
-                  <CategoryBadge
-                    color={transaction.categoryColor}
-                    icon={transaction.categoryIcon}
-                    name={transaction.categoryName}
-                  />
-                  {transaction.tags.map((tag) => (
-                    <TagBadge color={tag.color} key={tag.id} name={tag.name} />
-                  ))}
-                  {transaction.splits.length > 0 ? (
+                  {transfer ? (
+                    <Badge variant="outline">
+                      {transferSide === "source"
+                        ? `To ${transfer.destinationAccount.name}`
+                        : `From ${transfer.sourceAccount.name}`}
+                    </Badge>
+                  ) : (
+                    <CategoryBadge
+                      color={transaction.categoryColor ?? "slate"}
+                      icon={transaction.categoryIcon ?? ""}
+                      name={transaction.categoryName ?? "Transaction"}
+                    />
+                  )}
+                  {transfer === null
+                    ? transaction.tags.map((tag) => (
+                        <TagBadge
+                          color={tag.color}
+                          key={tag.id}
+                          name={tag.name}
+                        />
+                      ))
+                    : null}
+                  {transfer === null && transaction.splits.length > 0 ? (
                     <Badge variant="outline">Split</Badge>
                   ) : null}
                 </div>
@@ -111,31 +148,63 @@ export const TransactionTable = ({
               <DataGridCell>{transaction.accountName}</DataGridCell>
               <DataGridCell>
                 <div className="flex flex-wrap gap-1">
-                  <Badge
-                    variant={
-                      transaction.paidStatus === "paid" ? "default" : "outline"
-                    }
-                  >
-                    {transaction.paidStatus === "paid" ? "Paid" : "Unpaid"}
-                  </Badge>
+                  {transfer ? (
+                    <Badge>Transfer</Badge>
+                  ) : (
+                    <Badge
+                      variant={
+                        transaction.paidStatus === "paid"
+                          ? "default"
+                          : "outline"
+                      }
+                    >
+                      {transaction.paidStatus === "paid" ? "Paid" : "Unpaid"}
+                    </Badge>
+                  )}
                   {archived ? <Badge variant="outline">Archived</Badge> : null}
                 </div>
               </DataGridCell>
               <DataGridCell className="text-right">
                 <span
                   className={
-                    income
-                      ? "text-success tabular-nums"
-                      : "text-destructive tabular-nums"
+                    decreasesBalance
+                      ? "text-destructive tabular-nums"
+                      : "text-success tabular-nums"
                   }
                 >
-                  {income ? "+" : "-"}
+                  {amountPrefix}
                   {formatBalance(transaction.amount, transaction.currencyCode)}
                 </span>
               </DataGridCell>
               <DataGridCell>
                 <div className="flex justify-end gap-2">
-                  {canUpdate && !archived ? (
+                  {transfer && canUpdate ? (
+                    <Button
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onEditTransfer(transfer);
+                      }}
+                      onKeyDown={(event) => event.stopPropagation()}
+                      size="sm"
+                      variant="outline"
+                    >
+                      Edit
+                    </Button>
+                  ) : null}
+                  {transfer && canArchive ? (
+                    <Button
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onDeleteTransfer(transfer.id);
+                      }}
+                      onKeyDown={(event) => event.stopPropagation()}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Delete
+                    </Button>
+                  ) : null}
+                  {transfer === null && canUpdate && !archived ? (
                     <Button
                       onClick={(event) => {
                         event.stopPropagation();
@@ -148,7 +217,7 @@ export const TransactionTable = ({
                       Edit
                     </Button>
                   ) : null}
-                  {archived && canRestore ? (
+                  {transfer === null && archived && canRestore ? (
                     <Button
                       onClick={(event) => {
                         event.stopPropagation();
@@ -161,7 +230,7 @@ export const TransactionTable = ({
                       Restore
                     </Button>
                   ) : null}
-                  {!archived && canArchive ? (
+                  {transfer === null && !archived && canArchive ? (
                     <Button
                       onClick={(event) => {
                         event.stopPropagation();

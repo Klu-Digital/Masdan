@@ -30,6 +30,7 @@ import {
   orgProcedure,
   requirePermission,
 } from "../procedures";
+import { getTransfer } from "../transfers/transfers.router";
 import { TRANSACTION_PAID_STATUSES } from "./constants";
 
 const transactionFields = {
@@ -44,6 +45,8 @@ const transactionFields = {
   organizationId: financialTransaction.organizationId,
   paidStatus: financialTransaction.paidStatus,
   transactionDate: financialTransaction.transactionDate,
+  transferId: financialTransaction.transferId,
+  transferSide: financialTransaction.transferSide,
   updatedAt: financialTransaction.updatedAt,
 };
 
@@ -58,7 +61,7 @@ const positiveAmount = z
   .refine((value) => /[1-9]/u.test(value), "Amount must be greater than zero");
 
 const scaledAmount = (value: string): bigint => {
-  const [whole, fraction = ""] = value.split(".");
+  const [whole = "0", fraction = ""] = value.split(".");
   return BigInt(whole) * SCALE_FACTOR + BigInt(fraction.padEnd(6, "0"));
 };
 
@@ -138,6 +141,8 @@ const transactionValues = z
 
 interface TransactionRow {
   id: string;
+  organizationId: string;
+  transferId: string | null;
   [key: string]: unknown;
 }
 
@@ -270,9 +275,10 @@ const withDetails = async <T extends TransactionRow>(
       id: string;
       name: string;
     }[];
+    transfer: Awaited<ReturnType<typeof getTransfer>> | null;
   }
 > => {
-  const [tags, splits] = await Promise.all([
+  const [tags, splits, transfer] = await Promise.all([
     db
       .select({
         archivedAt: tag.archivedAt,
@@ -285,15 +291,19 @@ const withDetails = async <T extends TransactionRow>(
       .where(eq(financialTransactionTag.transactionId, row.id))
       .orderBy(asc(tag.name)),
     transactionSplits(db, row.id),
+    row.transferId
+      ? getTransfer(db, row.organizationId, row.transferId)
+      : Promise.resolve(null),
   ]);
 
-  return { ...row, splits, tags };
+  return { ...row, splits, tags, transfer };
 };
 
 const transactionQuery = (db: Database) =>
   db
     .select({
       ...transactionFields,
+      accountClass: financialAccount.accountClass,
       accountName: financialAccount.name,
       categoryColor: category.color,
       categoryIcon: category.icon,
@@ -305,7 +315,7 @@ const transactionQuery = (db: Database) =>
       financialAccount,
       eq(financialAccount.id, financialTransaction.accountId)
     )
-    .innerJoin(category, eq(category.id, financialTransaction.categoryId));
+    .leftJoin(category, eq(category.id, financialTransaction.categoryId));
 
 const transactionListConditions = (
   db: Database,
@@ -495,7 +505,8 @@ export const transactionsRouter = {
         .where(
           and(
             eq(financialTransaction.id, input.transactionId),
-            eq(financialTransaction.organizationId, context.organizationId)
+            eq(financialTransaction.organizationId, context.organizationId),
+            isNull(financialTransaction.transferId)
           )
         )
         .returning(transactionFields);
@@ -614,7 +625,7 @@ export const transactionsRouter = {
             financialAccount,
             eq(financialAccount.id, financialTransaction.accountId)
           )
-          .innerJoin(category, eq(category.id, financialTransaction.categoryId))
+          .leftJoin(category, eq(category.id, financialTransaction.categoryId))
           .where(and(...conditions)),
       ]);
 
@@ -641,7 +652,8 @@ export const transactionsRouter = {
         .where(
           and(
             eq(financialTransaction.id, input.transactionId),
-            eq(financialTransaction.organizationId, context.organizationId)
+            eq(financialTransaction.organizationId, context.organizationId),
+            isNull(financialTransaction.transferId)
           )
         )
         .returning(transactionFields);
@@ -662,6 +674,7 @@ export const transactionsRouter = {
           archivedAt: financialTransaction.archivedAt,
           categoryId: financialTransaction.categoryId,
           id: financialTransaction.id,
+          transferId: financialTransaction.transferId,
         })
         .from(financialTransaction)
         .where(
@@ -674,6 +687,11 @@ export const transactionsRouter = {
 
       if (!existing) {
         throw transactionNotFound();
+      }
+      if (existing.transferId !== null || existing.categoryId === null) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Use transfer actions to edit a transfer",
+        });
       }
       if (existing.archivedAt !== null) {
         throw new ORPCError("BAD_REQUEST", {

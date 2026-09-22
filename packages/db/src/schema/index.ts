@@ -22,7 +22,9 @@ export {
   financialTransaction,
   financialTransactionSplit,
   financialTransactionTag,
+  financialTransfer,
   paidStatusEnum,
+  transferSideEnum,
 } from "./transactions";
 export {
   postMigration,

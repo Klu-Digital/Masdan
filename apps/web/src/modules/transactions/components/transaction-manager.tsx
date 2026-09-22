@@ -45,7 +45,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import { DatePicker } from "@/components/date-picker";
-import { accountsQueryOptions } from "@/modules/accounts/queries";
+import {
+  accountsQueryOptions,
+  invalidateAccounts,
+} from "@/modules/accounts/queries";
 import { categoriesQueryOptions } from "@/modules/categories/queries";
 import { tagsQueryOptions } from "@/modules/tags/queries";
 import { client } from "@/utils/orpc";
@@ -55,6 +58,8 @@ import type { Transaction } from "../queries";
 import type { TransactionSearch } from "../search";
 import { TransactionFormDialog } from "./transaction-form";
 import { TransactionTable } from "./transaction-table";
+import { TransferFormDialog } from "./transfer-form";
+import type { Transfer } from "./transfer-form";
 
 interface FilterOption {
   label: string;
@@ -92,6 +97,7 @@ export const TransactionManager = ({
   );
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
+  const [editingTransfer, setEditingTransfer] = useState<Transfer | null>(null);
   const archiveMutation = useMutation({
     mutationFn: ({ id, restore }: { id: string; restore: boolean }) =>
       restore
@@ -106,6 +112,21 @@ export const TransactionManager = ({
         title: restore ? "Transaction restored" : "Transaction archived",
         type: "success",
       });
+    },
+  });
+
+  const deleteTransferMutation = useMutation({
+    mutationFn: (transferId: string) => client.transfers.delete({ transferId }),
+    onError: (error: Error) => {
+      toastManager.add({ title: error.message, type: "error" });
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        invalidateTransactions(queryClient, activeOrganizationId),
+        queryClient.invalidateQueries({ queryKey: ["transaction"] }),
+        invalidateAccounts(queryClient, activeOrganizationId),
+      ]);
+      toastManager.add({ title: "Transfer deleted", type: "success" });
     },
   });
 
@@ -169,7 +190,9 @@ export const TransactionManager = ({
             canRestore={canRestore}
             canUpdate={canUpdate}
             onArchive={(id) => archiveMutation.mutate({ id, restore: false })}
-            onEdit={setEditingTransaction}
+            onDeleteTransfer={(id) => deleteTransferMutation.mutate(id)}
+            onEdit={(transaction) => setEditingTransaction(transaction)}
+            onEditTransfer={(transfer) => setEditingTransfer(transfer)}
             onRestore={(id) => archiveMutation.mutate({ id, restore: true })}
             onSort={(sortBy) =>
               updateSearch({
@@ -257,10 +280,16 @@ export const TransactionManager = ({
                 permissions: { transaction: ["create"] },
                 role,
               }) ? (
-                <TransactionFormDialog
-                  activeOrganizationId={activeOrganizationId}
-                  canCreate
-                />
+                <div className="flex gap-2">
+                  <TransactionFormDialog
+                    activeOrganizationId={activeOrganizationId}
+                    canCreate
+                  />
+                  <TransferFormDialog
+                    activeOrganizationId={activeOrganizationId}
+                    canCreate
+                  />
+                </div>
               ) : null}
             </div>
             <FilterBar hasFilters={hasFilters} onClear={onClearFilters}>
@@ -441,6 +470,19 @@ export const TransactionManager = ({
           }}
           open
           transaction={editingTransaction}
+        />
+      ) : null}
+      {editingTransfer ? (
+        <TransferFormDialog
+          activeOrganizationId={activeOrganizationId}
+          canUpdate={canUpdate}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingTransfer(null);
+            }
+          }}
+          open
+          transfer={editingTransfer}
         />
       ) : null}
     </>

@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  check,
   date,
   index,
   integer,
@@ -22,6 +23,62 @@ import { tag } from "./tags";
 const money = (name: string) => numeric(name, { precision: 30, scale: 6 });
 
 export const paidStatusEnum = pgEnum("paid_status", ["paid", "unpaid"]);
+export const transferSideEnum = pgEnum("transfer_side", [
+  "source",
+  "destination",
+]);
+
+export const financialTransfer = pgTable(
+  "financial_transfer",
+  {
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    destinationAccountId: uuid("destination_account_id")
+      .notNull()
+      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    destinationAmount: money("destination_amount").notNull(),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    notes: text("notes"),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    sourceAccountId: uuid("source_account_id")
+      .notNull()
+      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    sourceAmount: money("source_amount").notNull(),
+    transactionDate: date("transaction_date", { mode: "string" }).notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "financial_transfer_distinct_accounts_chk",
+      sql`${table.sourceAccountId} <> ${table.destinationAccountId}`
+    ),
+    check(
+      "financial_transfer_positive_amounts_chk",
+      sql`${table.sourceAmount} > 0 AND ${table.destinationAmount} > 0`
+    ),
+    index("financial_transfer_organization_date_idx").on(
+      table.organizationId,
+      table.transactionDate,
+      table.id
+    ),
+    index("financial_transfer_source_account_idx").on(
+      table.sourceAccountId,
+      table.transactionDate,
+      table.id
+    ),
+    index("financial_transfer_destination_account_idx").on(
+      table.destinationAccountId,
+      table.transactionDate,
+      table.id
+    ),
+  ]
+);
 
 export const financialTransaction = pgTable(
   "financial_transaction",
@@ -31,9 +88,9 @@ export const financialTransaction = pgTable(
       .references(() => financialAccount.id, { onDelete: "cascade" }),
     amount: money("amount").notNull(),
     archivedAt: timestamp("archived_at"),
-    categoryId: uuid("category_id")
-      .notNull()
-      .references(() => category.id, { onDelete: "cascade" }),
+    categoryId: uuid("category_id").references(() => category.id, {
+      onDelete: "cascade",
+    }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     currencyCode: text("currency_code")
       .notNull()
@@ -47,6 +104,10 @@ export const financialTransaction = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     paidStatus: paidStatusEnum("paid_status").default("paid").notNull(),
     transactionDate: date("transaction_date", { mode: "string" }).notNull(),
+    transferId: uuid("transfer_id").references(() => financialTransfer.id, {
+      onDelete: "cascade",
+    }),
+    transferSide: transferSideEnum("transfer_side"),
     updatedAt: timestamp("updated_at")
       .defaultNow()
       .$onUpdate(() => new Date())
@@ -63,7 +124,16 @@ export const financialTransaction = pgTable(
       table.archivedAt,
       table.transactionDate
     ),
+    check(
+      "financial_transaction_category_or_transfer_chk",
+      sql`(
+        (${table.categoryId} IS NOT NULL AND ${table.transferId} IS NULL AND ${table.transferSide} IS NULL)
+        OR
+        (${table.categoryId} IS NULL AND ${table.transferId} IS NOT NULL AND ${table.transferSide} IS NOT NULL)
+      )`
+    ),
     index("financial_transaction_category_idx").on(table.categoryId),
+    index("financial_transaction_transfer_idx").on(table.transferId),
     index("financial_transaction_organization_amount_idx").on(
       table.organizationId,
       table.archivedAt,

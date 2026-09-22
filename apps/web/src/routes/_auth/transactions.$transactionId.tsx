@@ -22,6 +22,7 @@ import { activeOrganizationQueryOptions } from "@/lib/organization";
 import { formatBalance } from "@/modules/accounts/components/account-manager";
 import { CategoryBadge } from "@/modules/categories/components/category-badge";
 import { TransactionFormDialog } from "@/modules/transactions/components/transaction-form";
+import { TransferFormDialog } from "@/modules/transactions/components/transfer-form";
 import {
   invalidateTransactions,
   transactionQueryOptions,
@@ -59,6 +60,21 @@ const TransactionPage = () => {
         title: restore ? "Transaction restored" : "Transaction archived",
         type: "success",
       });
+    },
+  });
+  const deleteTransferMutation = useMutation({
+    mutationFn: (transferId: string) => client.transfers.delete({ transferId }),
+    onError: (error: Error) => {
+      toastManager.add({ title: error.message, type: "error" });
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        invalidateTransactions(queryClient, activeOrganizationId),
+        queryClient.invalidateQueries({ queryKey: ["transaction"] }),
+        queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+      ]);
+      toastManager.add({ title: "Transfer deleted", type: "success" });
+      window.history.back();
     },
   });
 
@@ -99,8 +115,9 @@ const TransactionPage = () => {
     );
   }
 
-  const current = transaction.data;
-  const archived = current.archivedAt !== null;
+  const { data: current } = transaction;
+  const { archivedAt, transfer } = current;
+  const archived = archivedAt !== null;
   const canUpdate = hasPermission({
     permissions: { transaction: ["update"] },
     role,
@@ -113,6 +130,12 @@ const TransactionPage = () => {
     permissions: { transaction: ["restore"] },
     role,
   });
+  let cardTitle = "Expense";
+  if (transfer) {
+    cardTitle = "Transfer";
+  } else if (current.type === "income") {
+    cardTitle = "Income";
+  }
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-6">
@@ -126,29 +149,47 @@ const TransactionPage = () => {
             ← Transactions
           </Link>
           <h1 className="font-heading mt-2 text-2xl font-semibold">
-            {current.categoryIcon} {current.categoryName}
+            {transfer
+              ? "Transfer"
+              : `${current.categoryIcon ?? ""} ${current.categoryName ?? "Transaction"}`}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {current.accountName} · {current.transactionDate}
+            {transfer
+              ? `${transfer.sourceAccount.name} → ${transfer.destinationAccount.name}`
+              : current.accountName}{" "}
+            · {current.transactionDate}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={archived ? "outline" : "default"}>
-            {archived ? "Archived" : "Active"}
-          </Badge>
-          {current.paidStatus === "paid" ? (
-            <Badge>Paid</Badge>
+          {transfer ? (
+            <Badge>Transfer</Badge>
           ) : (
-            <Badge variant="outline">Unpaid</Badge>
+            <>
+              <Badge variant={archived ? "outline" : "default"}>
+                {archived ? "Archived" : "Active"}
+              </Badge>
+              {current.paidStatus === "paid" ? (
+                <Badge>Paid</Badge>
+              ) : (
+                <Badge variant="outline">Unpaid</Badge>
+              )}
+            </>
           )}
-          {!archived && canUpdate ? (
+          {!transfer && !archived && canUpdate ? (
             <TransactionFormDialog
               activeOrganizationId={activeOrganizationId}
               canUpdate={canUpdate}
               transaction={current}
             />
           ) : null}
-          {archived && canRestore ? (
+          {transfer && canUpdate ? (
+            <TransferFormDialog
+              activeOrganizationId={activeOrganizationId}
+              canUpdate={canUpdate}
+              transfer={transfer}
+            />
+          ) : null}
+          {!transfer && archived && canRestore ? (
             <Button
               loading={archiveMutation.isPending}
               onClick={() => archiveMutation.mutate(true)}
@@ -157,7 +198,7 @@ const TransactionPage = () => {
               Restore
             </Button>
           ) : null}
-          {!archived && canArchive ? (
+          {!transfer && !archived && canArchive ? (
             <Button
               loading={archiveMutation.isPending}
               onClick={() => archiveMutation.mutate(false)}
@@ -166,76 +207,134 @@ const TransactionPage = () => {
               Archive
             </Button>
           ) : null}
+          {transfer && canArchive ? (
+            <Button
+              loading={deleteTransferMutation.isPending}
+              onClick={() => deleteTransferMutation.mutate(transfer.id)}
+              variant="ghost"
+            >
+              Delete
+            </Button>
+          ) : null}
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>
-            {current.type === "income" ? "Income" : "Expense"}
-          </CardTitle>
-          <CardDescription>Recorded in {current.currencyCode}.</CardDescription>
+          <CardTitle>{cardTitle}</CardTitle>
+          <CardDescription>
+            {transfer
+              ? `${transfer.sourceAccount.currencyCode} → ${transfer.destinationAccount.currencyCode}`
+              : `Recorded in ${current.currencyCode}.`}
+          </CardDescription>
         </CardHeader>
         <CardPanel>
-          <p className="font-heading text-3xl font-semibold tabular-nums">
-            {current.type === "income" ? "+" : "-"}
-            {formatBalance(current.amount, current.currencyCode)}
-          </p>
-          <dl className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div>
-              <dt className="text-muted-foreground text-sm">Category</dt>
-              <dd>{current.categoryName}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground text-sm">Account</dt>
-              <dd>{current.accountName}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground text-sm">Date</dt>
-              <dd>{current.transactionDate}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground text-sm">Tags</dt>
-              <dd className="flex flex-wrap gap-1">
-                {current.tags.length > 0
-                  ? current.tags.map((tag) => (
-                      <Badge key={tag.id} variant="outline">
-                        {tag.name}
-                      </Badge>
-                    ))
-                  : "None"}
-              </dd>
-            </div>
-          </dl>
-          {current.notes ? (
-            <div className="mt-6">
-              <dt className="text-muted-foreground text-sm">Notes</dt>
-              <dd className="whitespace-pre-wrap">{current.notes}</dd>
-            </div>
-          ) : null}
-          {current.splits.length > 0 ? (
-            <div className="mt-6">
-              <h2 className="font-medium">Split allocation</h2>
-              <div className="mt-3 space-y-2">
-                {current.splits.map((split) => (
-                  <div
-                    className="flex items-center justify-between gap-3"
-                    key={split.id}
-                  >
-                    <CategoryBadge
-                      color={split.categoryColor}
-                      icon={split.categoryIcon}
-                      name={split.categoryName}
-                    />
-                    <span className="tabular-nums">
-                      {current.type === "income" ? "+" : "-"}
-                      {formatBalance(split.amount, current.currencyCode)}
-                    </span>
+          {transfer ? (
+            <>
+              <dl className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <dt className="text-muted-foreground text-sm">From</dt>
+                  <dd>
+                    {transfer.sourceAccount.name} ·{" "}
+                    {transfer.sourceAccount.currencyCode}
+                  </dd>
+                  <dd className="mt-1 font-semibold tabular-nums">
+                    -
+                    {formatBalance(
+                      transfer.sourceAmount,
+                      transfer.sourceAccount.currencyCode
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-sm">To</dt>
+                  <dd>
+                    {transfer.destinationAccount.name} ·{" "}
+                    {transfer.destinationAccount.currencyCode}
+                  </dd>
+                  <dd className="mt-1 font-semibold tabular-nums">
+                    +
+                    {formatBalance(
+                      transfer.destinationAmount,
+                      transfer.destinationAccount.currencyCode
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-sm">Date</dt>
+                  <dd>{transfer.transactionDate}</dd>
+                </div>
+              </dl>
+              {transfer.notes ? (
+                <div className="mt-6">
+                  <dt className="text-muted-foreground text-sm">Notes</dt>
+                  <dd className="whitespace-pre-wrap">{transfer.notes}</dd>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <p className="font-heading text-3xl font-semibold tabular-nums">
+                {current.type === "income" ? "+" : "-"}
+                {formatBalance(current.amount, current.currencyCode)}
+              </p>
+              <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <dt className="text-muted-foreground text-sm">Category</dt>
+                  <dd>{current.categoryName}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-sm">Account</dt>
+                  <dd>{current.accountName}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-sm">Date</dt>
+                  <dd>{current.transactionDate}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-sm">Tags</dt>
+                  <dd className="flex flex-wrap gap-1">
+                    {current.tags.length > 0
+                      ? current.tags.map((tag) => (
+                          <Badge key={tag.id} variant="outline">
+                            {tag.name}
+                          </Badge>
+                        ))
+                      : "None"}
+                  </dd>
+                </div>
+              </dl>
+              {current.notes ? (
+                <div className="mt-6">
+                  <dt className="text-muted-foreground text-sm">Notes</dt>
+                  <dd className="whitespace-pre-wrap">{current.notes}</dd>
+                </div>
+              ) : null}
+              {current.splits.length > 0 ? (
+                <div className="mt-6">
+                  <h2 className="font-medium">Split allocation</h2>
+                  <div className="mt-3 space-y-2">
+                    {current.splits.map((split) => (
+                      <div
+                        className="flex items-center justify-between gap-3"
+                        key={split.id}
+                      >
+                        <CategoryBadge
+                          color={split.categoryColor}
+                          icon={split.categoryIcon}
+                          name={split.categoryName}
+                        />
+                        <span className="tabular-nums">
+                          {current.type === "income" ? "+" : "-"}
+                          {formatBalance(split.amount, current.currencyCode)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
+                </div>
+              ) : null}
+            </>
+          )}
         </CardPanel>
       </Card>
     </div>
@@ -250,7 +349,13 @@ export const Route = createFileRoute("/_auth/transactions/$transactionId")({
       transactionQueryOptions(params.transactionId)
     ),
   head: ({ loaderData }) => ({
-    meta: [{ title: loaderData?.categoryName ?? "Transaction" }],
+    meta: [
+      {
+        title: loaderData?.transfer
+          ? "Transfer"
+          : (loaderData?.categoryName ?? "Transaction"),
+      },
+    ],
   }),
 });
 /* oxlint-enable sort-keys */

@@ -11,6 +11,7 @@ import { jobsRouter } from "../jobs/jobs.router";
 import { protectedProcedure, publicProcedure } from "../procedures";
 import { tagsRouter } from "../tags/tags.router";
 import { transactionsRouter } from "../transactions/transactions.router";
+import { transfersRouter } from "../transfers/transfers.router";
 import { adminRouter } from "./admin";
 
 /**
@@ -37,6 +38,7 @@ export const appRouter = {
   })),
   tags: tagsRouter,
   transactions: transactionsRouter,
+  transfers: transfersRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

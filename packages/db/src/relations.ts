@@ -64,7 +64,7 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     category: r.one.category({
       from: r.financialTransaction.categoryId,
-      optional: false,
+      optional: true,
       to: r.category.id,
     }),
     organization: r.one.organization({
@@ -74,6 +74,11 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     splits: r.many.financialTransactionSplit(),
     tags: r.many.financialTransactionTag(),
+    transfer: r.one.financialTransfer({
+      from: r.financialTransaction.transferId,
+      optional: true,
+      to: r.financialTransfer.id,
+    }),
   },
   financialTransactionSplit: {
     category: r.one.category({
@@ -97,6 +102,24 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.financialTransactionTag.transactionId,
       optional: false,
       to: r.financialTransaction.id,
+    }),
+  },
+  financialTransfer: {
+    destinationAccount: r.one.financialAccount({
+      from: r.financialTransfer.destinationAccountId,
+      optional: false,
+      to: r.financialAccount.id,
+    }),
+    organization: r.one.organization({
+      from: r.financialTransfer.organizationId,
+      optional: false,
+      to: r.organization.id,
+    }),
+    postings: r.many.financialTransaction(),
+    sourceAccount: r.one.financialAccount({
+      from: r.financialTransfer.sourceAccountId,
+      optional: false,
+      to: r.financialAccount.id,
     }),
   },
   invitation: {
@@ -128,6 +151,7 @@ export const relations = defineRelations(schema, (r) => ({
     members: r.many.member(),
     tags: r.many.tag(),
     transactions: r.many.financialTransaction(),
+    transfers: r.many.financialTransfer(),
   },
   session: {
     user: r.one.user({

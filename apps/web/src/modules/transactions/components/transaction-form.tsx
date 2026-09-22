@@ -130,7 +130,7 @@ interface PickerItem {
   value: string;
 }
 
-const Picker = ({
+export const Picker = ({
   ariaLabel,
   items,
   onValueChange,
