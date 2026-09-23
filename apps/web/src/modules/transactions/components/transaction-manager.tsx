@@ -260,6 +260,14 @@ export const TransactionManager = ({
             ? "Try changing or clearing your filters."
             : "Add income or an expense to start building your household ledger."}
         </EmptyDescription>
+        {search.page > 1 ? (
+          <Button
+            onClick={() => updateSearch({ page: search.page - 1 }, false)}
+            variant="outline"
+          >
+            Previous page
+          </Button>
+        ) : null}
       </Empty>
     );
   })();

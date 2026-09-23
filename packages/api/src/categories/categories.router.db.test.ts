@@ -6,7 +6,9 @@ import { call, ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vite-plus/test";
 
+import { accountsRouter } from "../accounts/accounts.router";
 import type { Context } from "../context";
+import { transactionsRouter } from "../transactions/transactions.router";
 import { categoriesRouter } from "./categories.router";
 
 const caught = async (promise: Promise<unknown>): Promise<unknown> => {
@@ -91,6 +93,69 @@ describe("categories.list", () => {
 });
 
 describe("categories mutations", () => {
+  it("cannot change the type of a category used by financial history", async () => {
+    const user = await signUpTestUser();
+    const context = { context: await contextFor(user.headers) };
+    const organizationId = await activeOrganizationId(user.headers);
+    const [groceries] = await getTestDb()
+      .select({ id: category.id })
+      .from(category)
+      .where(
+        and(
+          eq(category.organizationId, organizationId),
+          eq(category.name, "Groceries")
+        )
+      )
+      .limit(1);
+    if (!groceries) {
+      throw new Error("Missing default category");
+    }
+    const account = await call(
+      accountsRouter.create,
+      {
+        accountClass: "asset",
+        accountType: "bank",
+        name: "Checking",
+        openingBalance: "1000",
+        openingBalanceDate: "2026-01-01",
+        ownerMemberIds: [],
+      },
+      context
+    );
+    await call(
+      transactionsRouter.create,
+      {
+        accountId: account.id,
+        amount: "100",
+        categoryId: groceries.id,
+        paidStatus: "paid",
+        tagIds: [],
+        transactionDate: "2026-01-02",
+      },
+      context
+    );
+    expect(
+      await codeOf(
+        call(
+          categoriesRouter.update,
+          {
+            categoryId: groceries.id,
+            color: "rose",
+            icon: "🛒",
+            name: "Groceries",
+            type: "income",
+          },
+          context
+        )
+      )
+    ).toBe("BAD_REQUEST");
+    const unchanged = await call(
+      accountsRouter.get,
+      { accountId: account.id },
+      context
+    );
+    expect(unchanged.balance).toBe("900.000000");
+  });
   it("creates, updates, rejects duplicates, and archives/restores", async () => {
     const owner = await signUpTestUser();
     const ownerContext = { context: await contextFor(owner.headers) };

@@ -58,7 +58,9 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
+import { householdToday } from "@/lib/household-date";
 import { currenciesQueryOptions } from "@/modules/currency/queries";
+import { householdProfileQueryOptions } from "@/modules/household/queries";
 import { client } from "@/utils/orpc";
 
 import { invalidateAccounts, accountsQueryOptions } from "../queries";
@@ -214,8 +216,6 @@ const accountSchema = z
 
 type AccountFormValues = z.infer<typeof accountSchema>;
 
-const today = () => new Date().toISOString().slice(0, 10);
-
 const accountTypeOptions = (accountClass: string) =>
   (accountClass === "asset"
     ? ASSET_ACCOUNT_TYPES
@@ -274,7 +274,13 @@ export const AccountFormDialog = ({
     name: account?.name ?? "",
     notes: account?.notes ?? "",
     openingBalance: account?.openingBalance ?? "0",
-    openingBalanceDate: account?.openingBalanceDate ?? today(),
+    openingBalanceDate:
+      account?.openingBalanceDate ??
+      householdToday(
+        queryClient.getQueryData(
+          householdProfileQueryOptions(activeOrganizationId).queryKey
+        )?.timezone ?? "Asia/Manila"
+      ),
     ownerMemberIds: account?.ownerMemberIds ?? [],
     paymentDueDay: account?.paymentDueDay ?? null,
     statementClosingDay: account?.statementClosingDay ?? null,

@@ -35,9 +35,9 @@ const { default: InvitationInbox } =
   await import("@/modules/household/components/invitation-inbox");
 
 const invitation = {
-  createdAt: new Date("2026-09-18T00:00:00Z"),
+  createdAt: new Date(Date.now() - 86_400_000),
   expired: false,
-  expiresAt: new Date("2026-09-20T00:00:00Z"),
+  expiresAt: new Date(Date.now() + 86_400_000),
   id: "invitation-1",
   organizationId: "household-1",
   organizationName: "Mallari Household",
@@ -48,7 +48,7 @@ const invitation = {
 const expiredInvitation = {
   ...invitation,
   expired: true,
-  expiresAt: new Date("2026-09-15T00:00:00Z"),
+  expiresAt: new Date(Date.now() - 86_400_000),
   id: "invitation-expired",
 };
 
@@ -119,6 +119,26 @@ describe("InvitationInbox", () => {
         organizationId: "household-1",
       });
       expect(screen.getByText("No pending invitations")).toBeInTheDocument();
+    });
+  });
+
+  it("reports a failed switch after accepting and refreshes the inbox", async () => {
+    const user = userEvent.setup();
+    listForCurrentUser
+      .mockResolvedValueOnce([invitation])
+      .mockResolvedValueOnce([]);
+    setActive.mockResolvedValueOnce({ error: { message: "Could not switch" } });
+    renderInbox();
+
+    await user.click(await screen.findByRole("button", { name: "Accept" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("No pending invitations")).toBeInTheDocument();
+      expect(addToast).toHaveBeenCalledWith({
+        title:
+          "Invitation accepted, but could not switch households: Could not switch",
+        type: "error",
+      });
     });
   });
 

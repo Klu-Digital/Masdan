@@ -21,6 +21,8 @@ import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { activeOrganizationQueryOptions } from "@/lib/organization";
 import { formatBalance } from "@/modules/accounts/components/account-manager";
 import { CategoryBadge } from "@/modules/categories/components/category-badge";
+import { householdProfileQueryOptions } from "@/modules/household/queries";
+import { DeleteTransferButton } from "@/modules/transactions/components/delete-transfer-button";
 import { TransactionFormDialog } from "@/modules/transactions/components/transaction-form";
 import { TransferFormDialog } from "@/modules/transactions/components/transfer-form";
 import {
@@ -41,6 +43,7 @@ const TransactionPage = () => {
   const organization = useQuery(
     activeOrganizationQueryOptions(activeOrganizationId)
   );
+  const profile = useQuery(householdProfileQueryOptions(activeOrganizationId));
   const archiveMutation = useMutation({
     mutationFn: (restore: boolean) =>
       restore
@@ -91,14 +94,16 @@ const TransactionPage = () => {
     );
   }
 
-  if (transaction.isPending || organization.isPending) {
+  if (transaction.isPending || organization.isPending || profile.isPending) {
     return <Skeleton className="m-6 h-96" />;
   }
   if (
     transaction.isError ||
     organization.isError ||
+    profile.isError ||
     !transaction.data ||
-    !organization.data
+    !organization.data ||
+    !profile.data
   ) {
     return (
       <p className="text-muted-foreground p-6">Could not load transaction.</p>
@@ -208,13 +213,12 @@ const TransactionPage = () => {
             </Button>
           ) : null}
           {transfer && canArchive ? (
-            <Button
+            <DeleteTransferButton
+              destination={transfer.destinationAccount.name}
               loading={deleteTransferMutation.isPending}
-              onClick={() => deleteTransferMutation.mutate(transfer.id)}
-              variant="ghost"
-            >
-              Delete
-            </Button>
+              onConfirm={() => deleteTransferMutation.mutate(transfer.id)}
+              source={transfer.sourceAccount.name}
+            />
           ) : null}
         </div>
       </div>

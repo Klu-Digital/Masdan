@@ -1,4 +1,8 @@
-import { category } from "@masdan/db/schema/index";
+import {
+  category,
+  financialTransaction,
+  financialTransactionSplit,
+} from "@masdan/db/schema/index";
 import { ORPCError } from "@orpc/server";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
@@ -155,6 +159,38 @@ export const categoriesRouter = {
     .handler(async ({ context, input }) => {
       const { categoryId, ...values } = input;
       try {
+        const [existing] = await context.db
+          .select({ type: category.type })
+          .from(category)
+          .where(
+            and(
+              eq(category.id, categoryId),
+              eq(category.organizationId, context.organizationId)
+            )
+          )
+          .limit(1);
+        if (!existing) {
+          throw categoryNotFound();
+        }
+        if (existing.type !== values.type) {
+          const transactions = await context.db
+            .select({ id: financialTransaction.id })
+            .from(financialTransaction)
+            .where(eq(financialTransaction.categoryId, categoryId))
+            .limit(1);
+          const splits = transactions.length
+            ? []
+            : await context.db
+                .select({ id: financialTransactionSplit.id })
+                .from(financialTransactionSplit)
+                .where(eq(financialTransactionSplit.categoryId, categoryId))
+                .limit(1);
+          if (transactions.length || splits.length) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Category type cannot change after transactions use it",
+            });
+          }
+        }
         const [updated] = await context.db
           .update(category)
           .set(values)

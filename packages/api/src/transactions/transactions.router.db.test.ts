@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vite-plus/test";
 
 import { accountsRouter } from "../accounts/accounts.router";
+import { categoriesRouter } from "../categories/categories.router";
 import type { Context } from "../context";
 import { tagsRouter } from "../tags/tags.router";
 import { transactionsRouter } from "./transactions.router";
@@ -255,6 +256,31 @@ describe("split transactions", () => {
         expect.objectContaining({ id: created.id, splits: expect.any(Array) }),
       ],
     });
+
+    expect(
+      await codeOf(
+        call(
+          categoriesRouter.update,
+          {
+            categoryId: foodId,
+            color: "rose",
+            icon: "🍽️",
+            name: "Food & Dining",
+            type: "income",
+          },
+          context
+        )
+      )
+    ).toBe("BAD_REQUEST");
+
+    for (const filter of [
+      { categoryIds: [foodId] },
+      { search: "Food & Dining" },
+    ]) {
+      const matching = await call(transactionsRouter.list, filter, context);
+      expect(matching).toMatchObject({ total: 1 });
+      expect(matching.items[0]?.id).toBe(created.id);
+    }
 
     const updated = await call(
       transactionsRouter.update,

@@ -81,11 +81,16 @@ export const acceptHouseholdInvitation = async (input: {
     throw new Error(error.message ?? "Could not accept the invitation");
   }
 
-  await authClient.organization.setActive({
+  const activation = await authClient.organization.setActive({
     organizationId: input.organizationId,
   });
   await invalidateSession(input.queryClient);
   await invalidateOrganizations(input.queryClient);
+  if (activation.error) {
+    throw new Error(
+      `Invitation accepted, but could not switch households: ${activation.error.message ?? "please switch manually"}`
+    );
+  }
 };
 
 export const rejectHouseholdInvitation = async (input: {

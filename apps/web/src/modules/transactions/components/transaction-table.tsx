@@ -18,6 +18,7 @@ import { TagBadge } from "@/modules/tags/components/tag-badge";
 
 import type { Transaction } from "../queries";
 import type { TransactionSortBy, TransactionSortDirection } from "../search";
+import { DeleteTransferButton } from "./delete-transfer-button";
 
 export const TransactionTable = ({
   canArchive,
@@ -192,17 +193,11 @@ export const TransactionTable = ({
                     </Button>
                   ) : null}
                   {transfer && canArchive ? (
-                    <Button
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onDeleteTransfer(transfer.id);
-                      }}
-                      onKeyDown={(event) => event.stopPropagation()}
-                      size="sm"
-                      variant="ghost"
-                    >
-                      Delete
-                    </Button>
+                    <DeleteTransferButton
+                      destination={transfer.destinationAccount.name}
+                      onConfirm={() => onDeleteTransfer(transfer.id)}
+                      source={transfer.sourceAccount.name}
+                    />
                   ) : null}
                   {transfer === null && canUpdate && !archived ? (
                     <Button

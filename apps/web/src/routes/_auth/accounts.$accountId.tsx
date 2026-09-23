@@ -39,6 +39,10 @@ import {
 } from "@/modules/accounts/queries";
 import { currenciesQueryOptions } from "@/modules/currency/queries";
 import { householdProfileQueryOptions } from "@/modules/household/queries";
+import { TransferFormDialog } from "@/modules/transactions/components/transfer-form";
+import { transactionsQueryOptions } from "@/modules/transactions/queries";
+import type { Transaction } from "@/modules/transactions/queries";
+import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
 import { client } from "@/utils/orpc";
 
 const routeApi = getRouteApi("/_auth/accounts/$accountId");
@@ -58,6 +62,87 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   property: "Property",
   receivable: "Receivable",
   vehicle: "Vehicle",
+};
+
+const cardActivityLabel = (entry: Transaction): string => {
+  if (!entry.transfer) {
+    return entry.categoryName ?? "Purchase";
+  }
+  return entry.transferSide === "destination" ? "Card payment" : "Transfer";
+};
+
+const CardActivity = ({
+  accountId,
+  organizationId,
+}: {
+  accountId: string;
+  organizationId: string;
+}) => {
+  const activity = useQuery(
+    transactionsQueryOptions(organizationId, {
+      accountIds: [accountId],
+      pageSize: 10,
+    })
+  );
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-start justify-between">
+        <div>
+          <CardTitle>Card activity</CardTitle>
+          <CardDescription>Recent purchases and payments.</CardDescription>
+        </div>
+        <Link
+          className="text-sm underline-offset-4 hover:underline"
+          search={{ ...DEFAULT_TRANSACTION_SEARCH, accountIds: [accountId] }}
+          to="/transactions"
+        >
+          View all
+        </Link>
+      </CardHeader>
+      <CardPanel>
+        {activity.isPending ? <Skeleton className="h-32 w-full" /> : null}
+        {activity.isError ? (
+          <p className="text-muted-foreground">Could not load card activity.</p>
+        ) : null}
+        {activity.data?.items.length === 0 ? (
+          <p className="text-muted-foreground">No card activity yet.</p>
+        ) : null}
+        {activity.data?.items.length ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Activity</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {activity.data.items.map((entry) => (
+                <TableRow key={entry.id}>
+                  <TableCell>{entry.transactionDate}</TableCell>
+                  <TableCell>
+                    <Link
+                      className="underline-offset-4 hover:underline"
+                      params={{ transactionId: entry.id }}
+                      to="/transactions/$transactionId"
+                    >
+                      {cardActivityLabel(entry)}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className="tabular-nums">
+                      {formatBalance(entry.amount, entry.currencyCode)}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : null}
+      </CardPanel>
+    </Card>
+  );
 };
 
 // Detail loading and permission states are kept together for one account view.
@@ -220,7 +305,20 @@ const AccountPage = () => {
 
       {account.data.accountType === "credit_card" ? (
         <>
-          <CreditCardSection account={account.data} canUpdate={canUpdate} />
+          {!archived &&
+          hasPermission({ permissions: { transaction: ["create"] }, role }) ? (
+            <TransferFormDialog
+              activeOrganizationId={activeOrganizationId}
+              canCreate
+              destinationAccountId={account.data.id}
+              triggerLabel="Pay card"
+            />
+          ) : null}
+          <CreditCardSection
+            account={account.data}
+            canUpdate={canUpdate}
+            organizationId={activeOrganizationId}
+          />
           <Card>
             <CardHeader>
               <CardTitle>Credit card details</CardTitle>
@@ -259,6 +357,10 @@ const AccountPage = () => {
               </dl>
             </CardPanel>
           </Card>
+          <CardActivity
+            accountId={account.data.id}
+            organizationId={activeOrganizationId}
+          />
         </>
       ) : null}
 

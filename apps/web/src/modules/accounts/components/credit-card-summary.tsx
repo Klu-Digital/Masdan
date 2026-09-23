@@ -32,7 +32,9 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { z } from "zod";
 
+import { householdToday } from "@/lib/household-date";
 import { accountStatementsQueryOptions } from "@/modules/accounts/queries";
+import { householdProfileQueryOptions } from "@/modules/household/queries";
 import { client } from "@/utils/orpc";
 
 import { formatBalance } from "./account-manager";
@@ -112,24 +114,30 @@ const STATEMENT_FIELDS = [
   },
 ] as const;
 
-const today = () => new Date().toISOString().slice(0, 10);
-
 const StatementFormDialog = ({
   accountId,
+  organizationId,
   onSaved,
 }: {
   accountId: string;
+  organizationId: string;
   onSaved: () => Promise<void>;
 }) => {
   const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const today = householdToday(
+    queryClient.getQueryData(
+      householdProfileQueryOptions(organizationId).queryKey
+    )?.timezone ?? "Asia/Manila"
+  );
   const form = useForm({
     defaultValues: {
       dueDate: "",
       minimumAmountDue: "",
-      periodEnd: today(),
-      periodStart: today(),
+      periodEnd: today,
+      periodStart: today,
       statementBalance: "",
-      statementDate: today(),
+      statementDate: today,
     } as StatementFormValues,
     onSubmit: async ({ value, formApi }) => {
       try {
@@ -167,7 +175,7 @@ const StatementFormDialog = ({
           </DialogDescription>
         </DialogHeader>
         <form
-          className="grid gap-5 sm:grid-cols-2"
+          className="grid max-h-[75vh] min-h-0 gap-5 overflow-y-auto px-6 pb-6 sm:grid-cols-2"
           onSubmit={(event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -335,9 +343,11 @@ export const CreditCardSummary = ({
 export const CreditCardSection = ({
   account,
   canUpdate,
+  organizationId,
 }: {
   account: CreditCardAccount;
   canUpdate: boolean;
+  organizationId: string;
 }) => {
   const queryClient = useQueryClient();
   const statements = useQuery(accountStatementsQueryOptions(account.id));
@@ -358,6 +368,7 @@ export const CreditCardSection = ({
         canUpdate ? (
           <StatementFormDialog
             accountId={account.id}
+            organizationId={organizationId}
             onSaved={() =>
               queryClient.invalidateQueries({
                 queryKey: ["account-statements", account.id],

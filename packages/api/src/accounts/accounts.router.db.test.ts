@@ -1,12 +1,13 @@
 import { auth } from "@masdan/auth";
 import { member, session } from "@masdan/db/schema/auth";
-import { financialAccount } from "@masdan/db/schema/index";
+import { category, financialAccount } from "@masdan/db/schema/index";
 import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
 import { call, ORPCError } from "@orpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vite-plus/test";
 
 import type { Context } from "../context";
+import { transactionsRouter } from "../transactions/transactions.router";
 import { accountsRouter } from "./accounts.router";
 
 const caught = async (promise: Promise<unknown>): Promise<unknown> => {
@@ -83,6 +84,46 @@ describe("financial accounts", () => {
       balance: created.balance,
       id: created.id,
     });
+  });
+
+  it("counts only postings on or after the opening-balance date", async () => {
+    const user = await signUpTestUser();
+    const context = { context: await contextFor(user.headers) };
+    const account = await call(accountsRouter.create, accountInput, context);
+    const organizationId = await activeOrganizationId(user.headers);
+    const [expense] = await getTestDb()
+      .select({ id: category.id })
+      .from(category)
+      .where(
+        and(
+          eq(category.organizationId, organizationId),
+          eq(category.name, "Groceries")
+        )
+      )
+      .limit(1);
+    if (!expense) {
+      throw new Error("Missing test category");
+    }
+    for (const transactionDate of ["2023-12-31", "2024-01-01", "2024-01-02"]) {
+      await call(
+        transactionsRouter.create,
+        {
+          accountId: account.id,
+          amount: "100",
+          categoryId: expense.id,
+          paidStatus: "paid",
+          tagIds: [],
+          transactionDate,
+        },
+        context
+      );
+    }
+    const current = await call(
+      accountsRouter.get,
+      { accountId: account.id },
+      context
+    );
+    expect(current.balance).toBe("119800.000000");
   });
 
   it("supports snapshots and archive/restore without deleting the account", async () => {
@@ -190,6 +231,85 @@ describe("financial accounts", () => {
       paymentDueDay: null,
       statementClosingDay: null,
     });
+  });
+
+  it("preserves account class and currency after transactions and card statements exist", async () => {
+    const user = await signUpTestUser();
+    const context = { context: await contextFor(user.headers) };
+    const cardInput = {
+      ...accountInput,
+      accountClass: "liability" as const,
+      accountType: "credit_card" as const,
+      liquidity: null,
+      name: "Posted card",
+    };
+    const card = await call(accountsRouter.create, cardInput, context);
+    const statement = await call(
+      accountsRouter.createStatement,
+      {
+        accountId: card.id,
+        periodEnd: "2026-02-28",
+        periodStart: "2026-02-01",
+        statementBalance: "100",
+        statementDate: "2026-02-28",
+      },
+      context
+    );
+    expect(
+      await codeOf(
+        call(
+          accountsRouter.update,
+          { ...accountInput, accountId: card.id },
+          context
+        )
+      )
+    ).toBe("BAD_REQUEST");
+    expect(
+      await call(accountsRouter.listStatements, { accountId: card.id }, context)
+    ).toEqual([expect.objectContaining({ id: statement.id })]);
+
+    const account = await call(accountsRouter.create, accountInput, context);
+    const organizationId = await activeOrganizationId(user.headers);
+    const [expense] = await getTestDb()
+      .select({ id: category.id })
+      .from(category)
+      .where(
+        and(
+          eq(category.organizationId, organizationId),
+          eq(category.name, "Groceries")
+        )
+      )
+      .limit(1);
+    if (!expense) {
+      throw new Error("Missing test category");
+    }
+    await call(
+      transactionsRouter.create,
+      {
+        accountId: account.id,
+        amount: "100",
+        categoryId: expense.id,
+        paidStatus: "paid",
+        tagIds: [],
+        transactionDate: "2026-02-01",
+      },
+      context
+    );
+    expect(
+      await codeOf(
+        call(
+          accountsRouter.update,
+          { ...accountInput, accountId: account.id, currencyCode: "USD" },
+          context
+        )
+      )
+    ).toBe("BAD_REQUEST");
+    const unchanged = await call(
+      accountsRouter.get,
+      { accountId: account.id },
+      context
+    );
+    expect(unchanged.currencyCode).toBe("PHP");
   });
 
   it("validates account class, type, currency, and ownership", async () => {

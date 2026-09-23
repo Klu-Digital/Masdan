@@ -4,7 +4,7 @@ import {
   financialAccount,
   financialTransaction,
 } from "@masdan/db/schema/index";
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 
 const balanceExpression = sql<string>`
   ${financialAccount.openingBalance} + COALESCE(
@@ -49,7 +49,11 @@ export const getAccountBalances = async (
       financialTransaction,
       and(
         eq(financialTransaction.accountId, financialAccount.id),
-        isNull(financialTransaction.archivedAt)
+        isNull(financialTransaction.archivedAt),
+        gte(
+          financialTransaction.transactionDate,
+          financialAccount.openingBalanceDate
+        )
       )
     )
     .leftJoin(category, eq(category.id, financialTransaction.categoryId))

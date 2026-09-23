@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, getRouteApi } from "@tanstack/react-router";
 
 import { activeOrganizationQueryOptions } from "@/lib/organization";
+import { householdProfileQueryOptions } from "@/modules/household/queries";
 import { TransactionManager } from "@/modules/transactions/components/transaction-manager";
 import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
 import type { TransactionSearch } from "@/modules/transactions/search";
@@ -37,6 +38,7 @@ const TransactionsPage = () => {
   const organization = useQuery(
     activeOrganizationQueryOptions(activeOrganizationId)
   );
+  const profile = useQuery(householdProfileQueryOptions(activeOrganizationId));
 
   if (!activeOrganizationId) {
     return (
@@ -51,10 +53,10 @@ const TransactionsPage = () => {
     );
   }
 
-  if (organization.isPending) {
+  if (organization.isPending || profile.isPending) {
     return <Skeleton className="m-6 h-96" />;
   }
-  if (!organization.data) {
+  if (!organization.data || !profile.data) {
     return (
       <p className="text-muted-foreground p-6">Could not load household.</p>
     );

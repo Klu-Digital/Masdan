@@ -124,6 +124,17 @@ describe("transfers", () => {
       call(accountsRouter.get, { accountId: destination.id }, context)
     ).resolves.toMatchObject({ balance: "350.000000" });
 
+    const householdHistory = await call(transactionsRouter.list, {}, context);
+    expect(householdHistory.total).toBe(1);
+    expect(householdHistory.items[0]?.transferId).toBe(created.id);
+
+    const combinedHistory = await call(
+      transactionsRouter.list,
+      { accountIds: [source.id, destination.id] },
+      context
+    );
+    expect(combinedHistory.total).toBe(1);
+
     const sourceHistory = await call(
       transactionsRouter.list,
       { accountIds: [source.id] },

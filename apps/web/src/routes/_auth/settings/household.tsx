@@ -351,7 +351,20 @@ const CreateOrganizationCard = () => {
         return;
       }
 
-      await authClient.organization.setActive({ organizationId: data.id });
+      const { error: activationError } =
+        await authClient.organization.setActive({
+          organizationId: data.id,
+        });
+      if (activationError) {
+        await invalidateOrganizations(queryClient);
+        toastManager.add({
+          title:
+            activationError.message ??
+            "Household created, but could not switch to it",
+          type: "error",
+        });
+        return;
+      }
       await invalidateSession(queryClient);
       await invalidateOrganizations(queryClient);
       await router.invalidate();

@@ -126,6 +126,19 @@ describe("TransactionManager", () => {
     );
   });
 
+  it("lets users return from an out-of-range empty page", async () => {
+    const user = userEvent.setup();
+    const { onSearchChange } = renderManager(
+      { items: [], page: 3, pageSize: 25, total: 1, totalPages: 1 },
+      { ...search, page: 3 }
+    );
+    expect(
+      await screen.findByText("No matching transactions")
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Previous page" }));
+    expect(onSearchChange).toHaveBeenCalledWith({ page: 2 }, false);
+  });
+
   it("shows a clear empty state for a filtered result", async () => {
     const { onClearFilters } = renderManager(
       {

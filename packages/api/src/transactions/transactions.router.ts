@@ -20,8 +20,10 @@ import {
   inArray,
   isNull,
   lte,
+  notExists,
   or,
 } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 import { CATEGORY_TYPES } from "../categories/constants";
@@ -317,6 +319,9 @@ const transactionQuery = (db: Database) =>
     )
     .leftJoin(category, eq(category.id, financialTransaction.categoryId));
 
+const splitCategory = alias(category, "split_category");
+const sourcePosting = alias(financialTransaction, "source_posting");
+
 const transactionListConditions = (
   db: Database,
   organizationId: string,
@@ -324,16 +329,69 @@ const transactionListConditions = (
 ) => {
   const conditions = [eq(financialTransaction.organizationId, organizationId)];
 
+  // An unfiltered household ledger shows one row per transfer, not both postings.
+  if (input.accountIds.length === 0) {
+    const logicalTransfer = or(
+      isNull(financialTransaction.transferId),
+      eq(financialTransaction.transferSide, "source")
+    );
+    if (logicalTransfer) {
+      conditions.push(logicalTransfer);
+    }
+  }
   if (!input.includeArchived) {
     conditions.push(isNull(financialTransaction.archivedAt));
   }
   if (input.accountIds.length > 0) {
     conditions.push(inArray(financialTransaction.accountId, input.accountIds));
+    if (input.accountIds.length > 1) {
+      const logicalTransfer = or(
+        isNull(financialTransaction.transferId),
+        eq(financialTransaction.transferSide, "source"),
+        notExists(
+          db
+            .select({ id: sourcePosting.id })
+            .from(sourcePosting)
+            .where(
+              and(
+                eq(sourcePosting.transferId, financialTransaction.transferId),
+                eq(sourcePosting.transferSide, "source"),
+                inArray(sourcePosting.accountId, input.accountIds)
+              )
+            )
+        )
+      );
+      if (logicalTransfer) {
+        conditions.push(logicalTransfer);
+      }
+    }
   }
   if (input.categoryIds.length > 0) {
-    conditions.push(
-      inArray(financialTransaction.categoryId, input.categoryIds)
+    const categoryCondition = or(
+      inArray(financialTransaction.categoryId, input.categoryIds),
+      exists(
+        db
+          .select({ id: financialTransactionSplit.id })
+          .from(financialTransactionSplit)
+          .innerJoin(
+            splitCategory,
+            eq(splitCategory.id, financialTransactionSplit.categoryId)
+          )
+          .where(
+            and(
+              eq(
+                financialTransactionSplit.transactionId,
+                financialTransaction.id
+              ),
+              eq(splitCategory.organizationId, organizationId),
+              inArray(financialTransactionSplit.categoryId, input.categoryIds)
+            )
+          )
+      )
     );
+    if (categoryCondition) {
+      conditions.push(categoryCondition);
+    }
   }
   if (input.dateFrom) {
     conditions.push(gte(financialTransaction.transactionDate, input.dateFrom));
@@ -375,6 +433,25 @@ const transactionListConditions = (
       ilike(financialTransaction.notes, pattern),
       ilike(financialAccount.name, pattern),
       ilike(category.name, pattern),
+      exists(
+        db
+          .select({ id: financialTransactionSplit.id })
+          .from(financialTransactionSplit)
+          .innerJoin(
+            splitCategory,
+            eq(splitCategory.id, financialTransactionSplit.categoryId)
+          )
+          .where(
+            and(
+              eq(
+                financialTransactionSplit.transactionId,
+                financialTransaction.id
+              ),
+              eq(splitCategory.organizationId, organizationId),
+              ilike(splitCategory.name, pattern)
+            )
+          )
+      ),
       exists(
         db
           .select({ transactionId: financialTransactionTag.transactionId })

@@ -37,12 +37,13 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
   </QueryClientProvider>
 );
 
-const renderForm = () =>
+const renderForm = (destinationAccountId?: string) =>
   render(
     <TransferForm
       activeOrganizationId="household-1"
       canCreate
       canUpdate
+      destinationAccountId={destinationAccountId}
       onSaved={vi.fn()}
     />,
     { wrapper: Wrapper }
@@ -76,6 +77,37 @@ beforeEach(() => {
 });
 
 describe("TransferForm", () => {
+  it("keeps a card payment destination fixed and only offers asset sources", async () => {
+    const user = userEvent.setup();
+    accountsList.mockResolvedValueOnce([
+      {
+        accountClass: "asset",
+        archivedAt: null,
+        currencyCode: "PHP",
+        id: "00000000-0000-4000-8000-000000000001",
+        name: "Checking",
+      },
+      {
+        accountClass: "liability",
+        archivedAt: null,
+        currencyCode: "PHP",
+        id: "00000000-0000-4000-8000-000000000002",
+        name: "Credit card",
+      },
+    ]);
+    renderForm("00000000-0000-4000-8000-000000000002");
+    expect(await screen.findByText("Credit card — PHP")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("combobox", { name: "To account" })
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("combobox", { name: "From account" }));
+    expect(
+      screen.getByRole("option", { name: /Checking/iu })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: /Credit card/iu })
+    ).not.toBeInTheDocument();
+  });
   it("submits both account sides and amounts", async () => {
     const user = userEvent.setup();
     renderForm();

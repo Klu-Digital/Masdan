@@ -37,12 +37,14 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
+import { householdToday } from "@/lib/household-date";
 import {
   accountsQueryOptions,
   invalidateAccounts,
 } from "@/modules/accounts/queries";
 import { CategoryBadge } from "@/modules/categories/components/category-badge";
 import { categoriesQueryOptions } from "@/modules/categories/queries";
+import { householdProfileQueryOptions } from "@/modules/household/queries";
 import { tagsQueryOptions } from "@/modules/tags/queries";
 import { client } from "@/utils/orpc";
 
@@ -122,8 +124,6 @@ const transactionSchema = z
   });
 
 type TransactionFormValues = z.infer<typeof transactionSchema>;
-
-const today = () => new Date().toISOString().slice(0, 10);
 
 interface PickerItem {
   label: string;
@@ -246,7 +246,13 @@ export const TransactionForm = ({
         categoryId,
       })) ?? [],
     tagIds: transaction?.tags.map(({ id }) => id) ?? [],
-    transactionDate: transaction?.transactionDate ?? today(),
+    transactionDate:
+      transaction?.transactionDate ??
+      householdToday(
+        queryClient.getQueryData(
+          householdProfileQueryOptions(activeOrganizationId).queryKey
+        )?.timezone ?? "Asia/Manila"
+      ),
   };
 
   const form = useForm({
@@ -322,7 +328,11 @@ export const TransactionForm = ({
 
   const formContent = (
     <form
-      className="flex flex-col gap-5"
+      className={
+        inDialog
+          ? "flex max-h-[75vh] min-h-0 flex-col gap-5 overflow-y-auto px-6 pb-6"
+          : "flex flex-col gap-5"
+      }
       onSubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();

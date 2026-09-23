@@ -5,6 +5,7 @@ import {
   financialAccount,
   financialAccountBalanceSnapshot,
   financialAccountOwner,
+  financialTransaction,
   member,
   organization,
 } from "@masdan/db/schema/index";
@@ -650,7 +651,11 @@ export const accountsRouter = {
         ...values
       } = input;
       const [existing] = await context.db
-        .select({ currencyCode: financialAccount.currencyCode })
+        .select({
+          accountClass: financialAccount.accountClass,
+          accountType: financialAccount.accountType,
+          currencyCode: financialAccount.currencyCode,
+        })
         .from(financialAccount)
         .where(
           and(
@@ -677,6 +682,39 @@ export const accountsRouter = {
         throw new ORPCError("BAD_REQUEST", {
           message: `Unknown currency ${currencyCode}`,
         });
+      }
+
+      if (
+        existing.accountClass !== input.accountClass ||
+        existing.accountType !== input.accountType ||
+        existing.currencyCode !== selectedCurrency.code
+      ) {
+        const postings = await context.db
+          .select({ id: financialTransaction.id })
+          .from(financialTransaction)
+          .where(eq(financialTransaction.accountId, accountId))
+          .limit(1);
+        const statements = postings.length
+          ? []
+          : await context.db
+              .select({ id: creditCardStatement.id })
+              .from(creditCardStatement)
+              .where(eq(creditCardStatement.accountId, accountId))
+              .limit(1);
+        const snapshots =
+          postings.length || statements.length
+            ? []
+            : await context.db
+                .select({ id: financialAccountBalanceSnapshot.id })
+                .from(financialAccountBalanceSnapshot)
+                .where(eq(financialAccountBalanceSnapshot.accountId, accountId))
+                .limit(1);
+        if (postings.length || statements.length || snapshots.length) {
+          throw new ORPCError("BAD_REQUEST", {
+            message:
+              "Account class, type, and currency cannot change after financial history exists",
+          });
+        }
       }
 
       const [updated] = await context.db

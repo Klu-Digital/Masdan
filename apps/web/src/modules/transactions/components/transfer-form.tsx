@@ -25,10 +25,12 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
+import { householdToday } from "@/lib/household-date";
 import {
   accountsQueryOptions,
   invalidateAccounts,
 } from "@/modules/accounts/queries";
+import { householdProfileQueryOptions } from "@/modules/household/queries";
 import { client } from "@/utils/orpc";
 
 import { invalidateTransactions } from "../queries";
@@ -63,13 +65,12 @@ const transferSchema = z
 
 type TransferFormValues = z.infer<typeof transferSchema>;
 
-const today = () => new Date().toISOString().slice(0, 10);
-
 // oxlint-disable-next-line complexity
 export const TransferForm = ({
   activeOrganizationId,
   canCreate,
   canUpdate,
+  destinationAccountId,
   inDialog = false,
   onSaved,
   transfer,
@@ -77,6 +78,7 @@ export const TransferForm = ({
   activeOrganizationId: string;
   canCreate: boolean;
   canUpdate: boolean;
+  destinationAccountId?: string;
   inDialog?: boolean;
   onSaved: (transferId: string) => void;
   transfer?: Transfer;
@@ -85,12 +87,19 @@ export const TransferForm = ({
   const editing = transfer !== undefined;
   const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
   const defaultValues: TransferFormValues = {
-    destinationAccountId: transfer?.destinationAccountId ?? "",
+    destinationAccountId:
+      transfer?.destinationAccountId ?? destinationAccountId ?? "",
     destinationAmount: transfer?.destinationAmount ?? "",
     notes: transfer?.notes ?? "",
     sourceAccountId: transfer?.sourceAccountId ?? "",
     sourceAmount: transfer?.sourceAmount ?? "",
-    transactionDate: transfer?.transactionDate ?? today(),
+    transactionDate:
+      transfer?.transactionDate ??
+      householdToday(
+        queryClient.getQueryData(
+          householdProfileQueryOptions(activeOrganizationId).queryKey
+        )?.timezone ?? "Asia/Manila"
+      ),
   };
 
   const form = useForm({
@@ -140,13 +149,18 @@ export const TransferForm = ({
   const accountItems = accounts.data
     .filter((account) => account.archivedAt === null)
     .map((account) => ({
+      accountClass: account.accountClass,
       label: `${account.name} — ${account.currencyCode}`,
       value: account.id,
     }));
 
   const formContent = (
     <form
-      className="flex flex-col gap-5"
+      className={
+        inDialog
+          ? "flex max-h-[75vh] min-h-0 flex-col gap-5 overflow-y-auto px-6 pb-6"
+          : "flex flex-col gap-5"
+      }
       onSubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -178,7 +192,13 @@ export const TransferForm = ({
               <FieldLabel>From account</FieldLabel>
               <Picker
                 ariaLabel="Source account"
-                items={accountItems}
+                items={
+                  destinationAccountId
+                    ? accountItems.filter(
+                        (account) => account.accountClass === "asset"
+                      )
+                    : accountItems
+                }
                 onValueChange={(value) => field.handleChange(value)}
                 value={field.state.value}
               />
@@ -196,14 +216,22 @@ export const TransferForm = ({
               {(field) => (
                 <Field name={field.name}>
                   <FieldLabel>To account</FieldLabel>
-                  <Picker
-                    ariaLabel="Destination account"
-                    items={accountItems.filter(
-                      (item) => item.value !== sourceAccountId
-                    )}
-                    onValueChange={(value) => field.handleChange(value)}
-                    value={field.state.value}
-                  />
+                  {destinationAccountId ? (
+                    <p className="text-sm">
+                      {accountItems.find(
+                        (item) => item.value === destinationAccountId
+                      )?.label ?? "Card unavailable"}
+                    </p>
+                  ) : (
+                    <Picker
+                      ariaLabel="Destination account"
+                      items={accountItems.filter(
+                        (item) => item.value !== sourceAccountId
+                      )}
+                      onValueChange={(value) => field.handleChange(value)}
+                      value={field.state.value}
+                    />
+                  )}
                   {field.state.meta.errors.map((error) => (
                     <FieldError key={error?.message} match>
                       {error?.message}
@@ -317,16 +345,20 @@ export const TransferFormDialog = ({
   activeOrganizationId,
   canCreate = false,
   canUpdate = false,
+  destinationAccountId,
   onOpenChange,
   open,
   transfer,
+  triggerLabel,
 }: {
   activeOrganizationId: string;
   canCreate?: boolean;
   canUpdate?: boolean;
+  destinationAccountId?: string;
   onOpenChange?: (open: boolean) => void;
   open?: boolean;
   transfer?: Transfer;
+  triggerLabel?: string;
 }) => {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const editing = transfer !== undefined;
@@ -340,7 +372,7 @@ export const TransferFormDialog = ({
     <Dialog onOpenChange={setDialogOpen} open={dialogOpen}>
       {open === undefined ? (
         <DialogTrigger render={<Button />}>
-          {editing ? "Edit" : "Add transfer"}
+          {triggerLabel ?? (editing ? "Edit" : "Add transfer")}
         </DialogTrigger>
       ) : null}
       <DialogPopup className="max-w-3xl">
@@ -356,6 +388,7 @@ export const TransferFormDialog = ({
           activeOrganizationId={activeOrganizationId}
           canCreate={canCreate}
           canUpdate={canUpdate}
+          destinationAccountId={destinationAccountId}
           inDialog
           onSaved={() => setDialogOpen(false)}
           transfer={transfer}
