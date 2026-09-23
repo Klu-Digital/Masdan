@@ -1,13 +1,28 @@
 import { cn } from "@masdan/ui/lib/utils";
 import type React from "react";
 
+const RADIUS = {
+  "2xl": "rounded-2xl",
+  "3xl": "rounded-3xl",
+  full: "rounded-full",
+  lg: "rounded-lg",
+  md: "rounded-md",
+  xl: "rounded-xl",
+} as const;
+
+/** A placeholder in the shape of what is loading. Match `radius` to it. */
 export const Skeleton = ({
   className,
+  radius = "md",
   ...props
-}: React.ComponentProps<"div">): React.ReactElement => (
+}: React.ComponentProps<"div"> & {
+  radius?: keyof typeof RADIUS;
+}): React.ReactElement => (
   <div
+    aria-hidden="true"
     className={cn(
-      "animate-skeleton rounded-sm [--skeleton-highlight:--alpha(var(--color-white)/64%)] [background:linear-gradient(120deg,transparent_40%,var(--skeleton-highlight),transparent_60%)_var(--color-muted)_0_0/200%_100%_fixed] dark:[--skeleton-highlight:--alpha(var(--color-white)/4%)]",
+      "animate-skeleton bg-secondary motion-reduce:animate-none",
+      RADIUS[radius],
       className
     )}
     data-slot="skeleton"

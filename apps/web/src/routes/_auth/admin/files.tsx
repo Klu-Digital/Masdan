@@ -339,7 +339,7 @@ const StuckPendingTable = () => {
 
 const RouteComponent = () => (
   <div className="space-y-6">
-    <h1 className="font-heading text-2xl font-semibold">Files</h1>
+    <h1 className="text-2xl font-bold">Files</h1>
 
     <Tabs defaultValue="all">
       <TabsList>

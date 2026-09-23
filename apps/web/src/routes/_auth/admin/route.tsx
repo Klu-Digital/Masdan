@@ -1,10 +1,11 @@
 import { isPlatformAdmin } from "@masdan/auth/permissions";
+import { Page } from "@masdan/ui/components/page";
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 
 const AdminLayout = () => (
-  <div className="mx-auto w-full p-6">
+  <Page>
     <Outlet />
-  </div>
+  </Page>
 );
 
 export const Route = createFileRoute("/_auth/admin")({

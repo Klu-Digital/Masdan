@@ -1,14 +1,12 @@
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardPanel,
-  CardTitle,
-} from "@masdan/ui/components/card";
 import type { ReactNode } from "react";
 
+import { BrandMark } from "./brand-mark";
 import { ModeToggle } from "./mode-toggle";
 
+/**
+ * Every signed-out screen: the mark, one question, one form. No card — the
+ * form sits on the canvas with room to breathe.
+ */
 const AuthShell = ({
   children,
   description,
@@ -20,30 +18,28 @@ const AuthShell = ({
   footer?: ReactNode;
   title: string;
 }) => (
-  <div className="flex min-h-svh flex-col">
-    <div className="flex justify-end p-4">
+  <div className="bg-background flex min-h-svh flex-col">
+    <header className="flex items-center justify-between px-5 pt-5">
+      <span className="flex items-center gap-2">
+        <BrandMark className="size-7" />
+        <span className="text-base font-semibold">Masdan</span>
+      </span>
       <ModeToggle />
-    </div>
-    <div className="flex flex-1 items-start justify-center px-4 pb-16">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          {/* An <h1> so each auth page has a document heading. The rule reads
-              the bare <h1 /> passed to `render` and cannot see that Base UI
-              merges the children into it. */}
-          {/* oxlint-disable-next-line jsx-a11y/heading-has-content */}
-          <CardTitle render={<h1 />}>{title}</CardTitle>
+    </header>
+    <main className="flex flex-1 items-start justify-center px-5 pt-16 pb-16 md:pt-24">
+      <div className="animate-enter flex w-full max-w-sm flex-col gap-7">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-bold">{title}</h1>
           {description ? (
-            <CardDescription>{description}</CardDescription>
+            <p className="text-muted-foreground text-sm">{description}</p>
           ) : null}
-        </CardHeader>
-        <CardPanel>{children}</CardPanel>
+        </div>
+        {children}
         {footer ? (
-          <div className="text-muted-foreground px-6 pb-6 text-center text-sm">
-            {footer}
-          </div>
+          <div className="text-muted-foreground text-sm">{footer}</div>
         ) : null}
-      </Card>
-    </div>
+      </div>
+    </main>
   </div>
 );
 

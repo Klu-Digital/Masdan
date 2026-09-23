@@ -22,6 +22,8 @@ export const transactionsQueryOptions = (
 ) =>
   queryOptions({
     enabled: activeOrganizationId !== null,
+    // Filter changes keep the current rows on screen until the next page lands.
+    placeholderData: (previous) => previous,
     queryFn: () => client.transactions.list(input),
     queryKey: transactionsQueryKey(activeOrganizationId, input),
   });
@@ -38,4 +40,40 @@ export const invalidateTransactions = (
 ) =>
   queryClient.invalidateQueries({
     queryKey: transactionsQueryKey(activeOrganizationId),
+  });
+
+export type TransactionDetail = Awaited<
+  ReturnType<typeof client.transactions.get>
+>;
+export type TransactionTotalsInput = Parameters<
+  typeof client.transactions.totals
+>[0];
+export type TransactionSummary = Awaited<
+  ReturnType<typeof client.transactions.summary>
+>;
+export type TransactionSummaryInput = Parameters<
+  typeof client.transactions.summary
+>[0];
+
+export const transactionTotalsQueryOptions = (
+  activeOrganizationId: string | null,
+  input: TransactionTotalsInput
+) =>
+  queryOptions({
+    enabled: activeOrganizationId !== null,
+    placeholderData: (previous) => previous,
+    queryFn: () => client.transactions.totals(input),
+    // Under the "transactions" key so every ledger write refreshes it too.
+    queryKey: ["transactions", activeOrganizationId, "totals", input] as const,
+  });
+
+export const transactionSummaryQueryOptions = (
+  activeOrganizationId: string | null,
+  input: TransactionSummaryInput
+) =>
+  queryOptions({
+    enabled: activeOrganizationId !== null,
+    placeholderData: (previous) => previous,
+    queryFn: () => client.transactions.summary(input),
+    queryKey: ["transactions", activeOrganizationId, "summary", input] as const,
   });

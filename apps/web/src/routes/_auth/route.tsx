@@ -1,16 +1,5 @@
 import { isPlatformAdmin } from "@masdan/auth/permissions";
-import {
-  Alert,
-  AlertAction,
-  AlertDescription,
-} from "@masdan/ui/components/alert";
 import { Button } from "@masdan/ui/components/button";
-import { Separator } from "@masdan/ui/components/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@masdan/ui/components/sidebar";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Outlet,
@@ -20,8 +9,8 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 
-import AppBreadcrumbs from "@/components/app-breadcrumbs";
-import AppSidebar from "@/components/app-sidebar";
+import { AppActionsProvider } from "@/components/app-actions";
+import { AppShell } from "@/components/shell/app-shell";
 import { authClient } from "@/lib/auth-client";
 import { invalidateSession } from "@/lib/session";
 
@@ -46,21 +35,17 @@ const ImpersonationBanner = () => {
   });
 
   return (
-    <Alert variant="warning">
-      <AlertDescription>
-        You are viewing this account as someone else.
-      </AlertDescription>
-      <AlertAction>
-        <Button
-          loading={stopImpersonating.isPending}
-          onClick={() => stopImpersonating.mutate()}
-          size="sm"
-          variant="outline"
-        >
-          Stop impersonating
-        </Button>
-      </AlertAction>
-    </Alert>
+    <output className="bg-warning-soft text-warning-foreground flex items-center justify-between gap-3 px-4 py-2 text-xs font-medium">
+      You are viewing Masdan as someone else.
+      <Button
+        loading={stopImpersonating.isPending}
+        onClick={() => stopImpersonating.mutate()}
+        size="xs"
+        variant="secondary"
+      >
+        Stop impersonating
+      </Button>
+    </output>
   );
 };
 
@@ -69,35 +54,17 @@ const AuthLayout = () => {
   const impersonating = Boolean(session.session.impersonatedBy);
 
   return (
-    // `bg-sidebar` hoists the page surface here so the tone runs edge to edge —
-    // the provider is the centred max-width box. `h-svh` pins the shell to the
-    // viewport so only the content pane scrolls.
-    <div className="bg-sidebar h-svh overflow-hidden">
-      <SidebarProvider className="mx-auto h-full max-w-400">
-        <AppSidebar
-          activeOrganizationId={activeOrganizationId}
-          isPlatformAdmin={isPlatformAdmin(session.user.role)}
-        />
-        <SidebarInset className="overflow-hidden">
-          {impersonating ? <ImpersonationBanner /> : null}
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
-            <SidebarTrigger className="-ms-1" />
-            <Separator className="me-2 h-4" orientation="vertical" />
-            <AppBreadcrumbs />
-          </header>
-          {/* `min-h-0` is what makes `overflow-y-auto` bite. A flex child's
-              default `min-height: auto` floors it at its content height, so
-              without this it grows past the pane instead of scrolling inside
-              it — and the overflow reappears on the window. */}
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <Outlet />
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
-    </div>
+    <AppActionsProvider>
+      <AppShell
+        activeOrganizationId={activeOrganizationId}
+        banner={impersonating ? <ImpersonationBanner /> : null}
+        isPlatformAdmin={isPlatformAdmin(session.user.role)}
+      >
+        <Outlet />
+      </AppShell>
+    </AppActionsProvider>
   );
 };
-
 export const Route = createFileRoute("/_auth")({
   beforeLoad: ({ context, location }) => {
     if (!context.session) {

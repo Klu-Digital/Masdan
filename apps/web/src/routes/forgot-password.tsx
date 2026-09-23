@@ -45,7 +45,7 @@ const RouteComponent = () => {
         description="If an account exists for that address, a reset link is on its way. The link expires in one hour."
         footer={
           <Link
-            className="text-foreground underline underline-offset-4"
+            className="text-brand-text font-medium underline-offset-4 hover:underline"
             to="/login"
           >
             Back to sign in
@@ -55,8 +55,9 @@ const RouteComponent = () => {
       >
         <Button
           className="w-full"
+          size="lg"
           onClick={() => setSent(false)}
-          variant="outline"
+          variant="secondary"
         >
           Use a different address
         </Button>
@@ -69,7 +70,7 @@ const RouteComponent = () => {
       description="We'll email you a link to set a new one."
       footer={
         <Link
-          className="text-foreground underline underline-offset-4"
+          className="text-brand-text font-medium underline-offset-4 hover:underline"
           to="/login"
         >
           Back to sign in
@@ -78,7 +79,7 @@ const RouteComponent = () => {
       title="Forgot your password?"
     >
       <form
-        className="space-y-4"
+        className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -117,6 +118,7 @@ const RouteComponent = () => {
           {({ canSubmit, isSubmitting }) => (
             <Button
               className="w-full"
+              size="lg"
               disabled={!canSubmit}
               loading={isSubmitting}
               type="submit"

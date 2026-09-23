@@ -1,12 +1,5 @@
 import { Button } from "@masdan/ui/components/button";
 import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardPanel,
-  CardTitle,
-} from "@masdan/ui/components/card";
-import {
   Combobox,
   ComboboxCollection,
   ComboboxEmpty,
@@ -16,6 +9,15 @@ import {
   ComboboxPopup,
 } from "@masdan/ui/components/combobox";
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
+import {
+  List,
+  ListItem,
+  ListItemContent,
+  ListItemTrailing,
+  ListSection,
+  ListSectionFooter,
+  ListSectionHeader,
+} from "@masdan/ui/components/list";
 import { toastManager } from "@masdan/ui/components/toast";
 import { useForm } from "@tanstack/react-form";
 import { useQueryClient } from "@tanstack/react-query";
@@ -49,16 +51,54 @@ const currencyLabel = (currency: Currency) =>
   `${currency.code} — ${currency.name}`;
 
 const financeProfileSchema = z.object({
-  defaultCurrency: z.string().trim().min(1, "Pick a currency"),
-  timezone: z.string().trim().min(1, "Pick a timezone"),
+  defaultCurrency: z.string().trim().min(1, "Choose a currency"),
+  timezone: z.string().trim().min(1, "Choose a timezone"),
 });
 
 const findItem = (items: PickerItem[], value: string) =>
   items.find((item) => item.value === value) ?? null;
 
+const Picker = ({
+  ariaLabel,
+  id,
+  items,
+  onValueChange,
+  placeholder,
+  value,
+}: {
+  ariaLabel: string;
+  id: string;
+  items: PickerItem[];
+  onValueChange: (value: string) => void;
+  placeholder: string;
+  value: string;
+}) => (
+  <Combobox
+    items={items}
+    onValueChange={(item: PickerItem | null) =>
+      onValueChange(item?.value ?? "")
+    }
+    value={findItem(items, value)}
+  >
+    <ComboboxInput aria-label={ariaLabel} id={id} placeholder={placeholder} />
+    <ComboboxPopup>
+      <ComboboxEmpty>Nothing matches.</ComboboxEmpty>
+      <ComboboxList>
+        <ComboboxCollection>
+          {(item: PickerItem) => (
+            <ComboboxItem key={item.value} value={item}>
+              {item.label}
+            </ComboboxItem>
+          )}
+        </ComboboxCollection>
+      </ComboboxList>
+    </ComboboxPopup>
+  </Combobox>
+);
+
 /**
- * The finance profile of the active household. Every member sees it; only a
- * role with `organization:update` gets the form, and that check is cosmetic —
+ * The household's money defaults. Every member sees them; only a role with
+ * `organization:update` can change them, and that check is cosmetic —
  * `households.updateProfile` is the authority.
  */
 export const HouseholdFinanceCard = ({
@@ -95,10 +135,7 @@ export const HouseholdFinanceCard = ({
           timezone: updated.timezone,
         });
         await invalidateHouseholdProfile(queryClient, activeOrganizationId);
-        toastManager.add({
-          title: "Household settings saved",
-          type: "success",
-        });
+        toastManager.add({ title: "Money defaults saved", type: "success" });
       } catch (error) {
         toastManager.add({
           title:
@@ -113,52 +150,33 @@ export const HouseholdFinanceCard = ({
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Financial settings</CardTitle>
-        <CardDescription>
-          Defaults for this household&apos;s accounts, transactions and reports.
-        </CardDescription>
-      </CardHeader>
-      <CardPanel>
-        {canManage ? (
-          <form
-            className="grid gap-4 sm:grid-cols-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              form.handleSubmit();
-            }}
-          >
+    <ListSection aria-label="Money defaults">
+      <ListSectionHeader>Money defaults</ListSectionHeader>
+      {canManage ? (
+        <form
+          className="bg-card dark:ring-hairline flex flex-col gap-4 rounded-2xl p-4 dark:ring-1"
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            form.handleSubmit();
+          }}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
             <form.Field name="defaultCurrency">
               {(field) => (
                 <Field name={field.name}>
-                  <FieldLabel htmlFor={field.name}>Default currency</FieldLabel>
-                  <Combobox
-                    items={currencyItems}
-                    onValueChange={(item: PickerItem | null) =>
-                      field.handleChange(item?.value ?? "")
-                    }
-                    value={findItem(currencyItems, field.state.value)}
-                  >
-                    <ComboboxInput
-                      aria-label="Default currency"
+                  <FieldLabel htmlFor={field.name}>Currency</FieldLabel>
+                  <div className="w-full">
+                    <Picker
+                      ariaLabel="Default currency"
                       id={field.name}
+                      items={currencyItems}
+                      onValueChange={field.handleChange}
                       placeholder="Search currencies"
+                      value={field.state.value}
                     />
-                    <ComboboxPopup>
-                      <ComboboxEmpty>No matching currency.</ComboboxEmpty>
-                      <ComboboxList>
-                        <ComboboxCollection>
-                          {(item: PickerItem) => (
-                            <ComboboxItem key={item.value} value={item}>
-                              {item.label}
-                            </ComboboxItem>
-                          )}
-                        </ComboboxCollection>
-                      </ComboboxList>
-                    </ComboboxPopup>
-                  </Combobox>
+                  </div>
                   {field.state.meta.errors.map((error) => (
                     <FieldError key={error?.message} match>
                       {error?.message}
@@ -171,31 +189,16 @@ export const HouseholdFinanceCard = ({
               {(field) => (
                 <Field name={field.name}>
                   <FieldLabel htmlFor={field.name}>Timezone</FieldLabel>
-                  <Combobox
-                    items={TIMEZONE_ITEMS}
-                    onValueChange={(item: PickerItem | null) =>
-                      field.handleChange(item?.value ?? "")
-                    }
-                    value={findItem(TIMEZONE_ITEMS, field.state.value)}
-                  >
-                    <ComboboxInput
-                      aria-label="Timezone"
+                  <div className="w-full">
+                    <Picker
+                      ariaLabel="Timezone"
                       id={field.name}
+                      items={TIMEZONE_ITEMS}
+                      onValueChange={field.handleChange}
                       placeholder="Search timezones"
+                      value={field.state.value}
                     />
-                    <ComboboxPopup>
-                      <ComboboxEmpty>No matching timezone.</ComboboxEmpty>
-                      <ComboboxList>
-                        <ComboboxCollection>
-                          {(item: PickerItem) => (
-                            <ComboboxItem key={item.value} value={item}>
-                              {item.label}
-                            </ComboboxItem>
-                          )}
-                        </ComboboxCollection>
-                      </ComboboxList>
-                    </ComboboxPopup>
-                  </Combobox>
+                  </div>
                   {field.state.meta.errors.map((error) => (
                     <FieldError key={error?.message} match>
                       {error?.message}
@@ -204,40 +207,51 @@ export const HouseholdFinanceCard = ({
                 </Field>
               )}
             </form.Field>
-            <form.Subscribe
-              selector={(state) => ({
-                canSubmit: state.canSubmit,
-                isSubmitting: state.isSubmitting,
-              })}
-            >
-              {({ canSubmit, isSubmitting }) => (
+          </div>
+          <form.Subscribe
+            selector={(state) => ({
+              canSubmit: state.canSubmit,
+              isDirty: state.isDirty,
+              isSubmitting: state.isSubmitting,
+            })}
+          >
+            {({ canSubmit, isDirty, isSubmitting }) => (
+              <div className="flex justify-end">
                 <Button
-                  className="sm:col-span-2 sm:justify-self-start"
-                  disabled={!canSubmit}
+                  disabled={!(canSubmit && isDirty)}
                   loading={isSubmitting}
                   type="submit"
                 >
-                  Save financial settings
+                  Save changes
                 </Button>
-              )}
-            </form.Subscribe>
-          </form>
-        ) : (
-          <dl className="grid gap-4 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-muted-foreground">Default currency</dt>
-              <dd className="font-medium">
-                {currencyLabel(profile.defaultCurrency)} (
-                {profile.defaultCurrency.symbolNative})
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Timezone</dt>
-              <dd className="font-medium">{profile.timezone}</dd>
-            </div>
-          </dl>
-        )}
-      </CardPanel>
-    </Card>
+              </div>
+            )}
+          </form.Subscribe>
+        </form>
+      ) : (
+        <List>
+          <ListItem className="min-h-12">
+            <ListItemContent>
+              <span className="text-muted-foreground text-sm">Currency</span>
+            </ListItemContent>
+            <ListItemTrailing>
+              {currencyLabel(profile.defaultCurrency)} (
+              {profile.defaultCurrency.symbolNative})
+            </ListItemTrailing>
+          </ListItem>
+          <ListItem className="min-h-12">
+            <ListItemContent>
+              <span className="text-muted-foreground text-sm">Timezone</span>
+            </ListItemContent>
+            <ListItemTrailing>
+              {profile.timezone.replaceAll("_", " ")}
+            </ListItemTrailing>
+          </ListItem>
+        </List>
+      )}
+      <ListSectionFooter>
+        New accounts start in this currency; “today” follows this timezone.
+      </ListSectionFooter>
+    </ListSection>
   );
 };

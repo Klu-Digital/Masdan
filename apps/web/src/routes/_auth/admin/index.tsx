@@ -45,7 +45,7 @@ const StatCard = ({
         <Skeleton className="h-8 w-16" />
       ) : (
         <CardTitle>
-          <span className="font-heading text-3xl">{value}</span>
+          <span className="text-2xl font-semibold tabular-nums">{value}</span>
         </CardTitle>
       )}
     </CardHeader>
@@ -189,7 +189,7 @@ const RouteComponent = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-heading text-2xl font-semibold">Overview</h1>
+      <h1 className="text-2xl font-bold">Overview</h1>
 
       <StatsRow stats={stats} />
 

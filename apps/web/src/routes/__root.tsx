@@ -1,5 +1,6 @@
 import { Button } from "@masdan/ui/components/button";
 import { ToastProvider } from "@masdan/ui/components/toast";
+import { TooltipProvider } from "@masdan/ui/components/tooltip";
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
@@ -25,13 +26,15 @@ const RootComponent = () => (
     <HeadContent />
     <ThemeProvider
       attribute="class"
-      defaultTheme="dark"
+      defaultTheme="system"
       disableTransitionOnChange
       storageKey="vite-ui-theme"
     >
-      <ToastProvider>
-        <Outlet />
-      </ToastProvider>
+      <TooltipProvider delay={400}>
+        <ToastProvider position="top-center">
+          <Outlet />
+        </ToastProvider>
+      </TooltipProvider>
     </ThemeProvider>
     <TanStackRouterDevtools position="bottom-left" />
     <ReactQueryDevtools buttonPosition="bottom-right" position="bottom" />
@@ -39,13 +42,11 @@ const RootComponent = () => (
 );
 
 const RootErrorComponent = ({ reset }: { reset: () => void }) => (
-  <div className="flex min-h-svh flex-col items-center justify-center gap-4 p-6 text-center">
-    <div>
-      <h1 className="font-heading text-xl font-semibold">
-        Something went wrong
-      </h1>
-      <p className="text-muted-foreground mt-1 text-sm">
-        We could not reach the server. Check your connection and try again.
+  <div className="animate-enter flex min-h-svh flex-col items-center justify-center gap-5 p-6 text-center">
+    <div className="flex max-w-sm flex-col gap-1.5">
+      <h1 className="text-xl font-semibold">Masdan can’t reach the server</h1>
+      <p className="text-muted-foreground text-sm">
+        Check your connection. Nothing you entered has been lost.
       </p>
     </div>
     <Button onClick={reset}>Try again</Button>
@@ -76,10 +77,10 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
     ],
     meta: [
       {
-        title: "masdan",
+        title: "Masdan",
       },
       {
-        content: "masdan is a web application",
+        content: "Masdan — household money, clearly.",
         name: "description",
       },
     ],

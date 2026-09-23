@@ -1,30 +1,22 @@
 import { cn } from "@masdan/ui/lib/utils";
-import { cva } from "class-variance-authority";
-import type { VariantProps } from "class-variance-authority";
 import type React from "react";
 
-const emptyMediaVariants = cva(
-  "flex shrink-0 items-center justify-center [&_svg]:pointer-events-none [&_svg]:shrink-0",
-  {
-    defaultVariants: {
-      variant: "default",
-    },
-    variants: {
-      variant: {
-        default: "bg-transparent",
-        icon: "bg-card text-foreground relative flex size-9 shrink-0 items-center justify-center rounded-md border shadow-sm/5 not-dark:bg-clip-padding before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-md)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] dark:before:shadow-[0_-1px_--theme(--color-white/6%)] [&_svg:not([class*='size-'])]:size-4.5",
-      },
-    },
-  }
-);
-
+/**
+ * Empty, error, and first-run states. Quiet by design: a tinted glyph, one line
+ * of title, one line of guidance, and at most one primary action.
+ */
 export const Empty = ({
   className,
+  size = "default",
   ...props
-}: React.ComponentProps<"div">): React.ReactElement => (
+}: React.ComponentProps<"div"> & {
+  /** `compact` for empty sections inside a page; `default` for a whole page. */
+  size?: "default" | "compact";
+}): React.ReactElement => (
   <div
     className={cn(
-      "flex min-w-0 flex-1 flex-col items-center justify-center gap-6 px-6 py-12 text-center text-balance md:py-20",
+      "flex min-w-0 flex-1 flex-col items-center justify-center gap-5 px-6 text-center text-balance",
+      size === "default" ? "py-14 md:py-20" : "py-10 md:py-12",
       className
     )}
     data-slot="empty"
@@ -45,39 +37,22 @@ export const EmptyHeader = ({
 
 export const EmptyMedia = ({
   className,
-  variant = "default",
+  variant = "icon",
   ...props
-}: React.ComponentProps<"div"> &
-  VariantProps<typeof emptyMediaVariants>): React.ReactElement => (
+}: React.ComponentProps<"div"> & {
+  variant?: "default" | "icon";
+}): React.ReactElement => (
   <div
-    className={cn("relative mb-6", className)}
+    className={cn(
+      "mb-4 flex shrink-0 items-center justify-center [&_svg]:pointer-events-none [&_svg]:shrink-0",
+      variant === "icon" &&
+        "bg-secondary text-muted-foreground size-12 rounded-2xl [&_svg:not([class*='size-'])]:size-6",
+      className
+    )}
     data-slot="empty-media"
     data-variant={variant}
     {...props}
-  >
-    {variant === "icon" && (
-      <>
-        <div
-          aria-hidden="true"
-          className={cn(
-            emptyMediaVariants({ className, variant }),
-            "pointer-events-none absolute bottom-px origin-bottom-left -translate-x-0.5 scale-84 -rotate-10 shadow-none"
-          )}
-        />
-        <div
-          aria-hidden="true"
-          className={cn(
-            emptyMediaVariants({ className, variant }),
-            "pointer-events-none absolute bottom-px origin-bottom-right translate-x-0.5 scale-84 rotate-10 shadow-none"
-          )}
-        />
-      </>
-    )}
-    <div
-      className={cn(emptyMediaVariants({ className, variant }))}
-      {...props}
-    />
-  </div>
+  />
 );
 
 export const EmptyTitle = ({
@@ -85,7 +60,7 @@ export const EmptyTitle = ({
   ...props
 }: React.ComponentProps<"div">): React.ReactElement => (
   <div
-    className={cn("font-heading text-xl font-semibold", className)}
+    className={cn("text-base font-semibold", className)}
     data-slot="empty-title"
     {...props}
   />
@@ -97,7 +72,7 @@ export const EmptyDescription = ({
 }: React.ComponentProps<"p">): React.ReactElement => (
   <div
     className={cn(
-      "text-muted-foreground [&>a:hover]:text-primary text-sm [&>a]:underline [&>a]:underline-offset-4 [[data-slot=empty-title]+&]:mt-1",
+      "text-muted-foreground [&>a]:text-brand-text max-w-xs text-sm [&>a]:underline-offset-4 [&>a:hover]:underline [[data-slot=empty-title]+&]:mt-1",
       className
     )}
     data-slot="empty-description"
@@ -111,7 +86,7 @@ export const EmptyContent = ({
 }: React.ComponentProps<"div">): React.ReactElement => (
   <div
     className={cn(
-      "flex w-full max-w-sm min-w-0 flex-col items-center gap-4 text-sm text-balance",
+      "flex w-full max-w-sm min-w-0 flex-col items-center gap-3 text-sm text-balance",
       className
     )}
     data-slot="empty-content"

@@ -56,7 +56,7 @@ export const GroupText = ({
 }: useRender.ComponentProps<"div">): React.ReactElement => {
   const defaultProps = {
     className: cn(
-      "border-input bg-muted text-muted-foreground dark:bg-input/64 relative inline-flex items-center gap-2 rounded-lg border px-[calc(--spacing(3)-1px)] text-base whitespace-nowrap shadow-xs/5 transition-shadow outline-none not-dark:bg-clip-padding before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-lg)-1px)] before:shadow-[0_1px_--theme(--color-black/6%)] sm:text-sm dark:before:shadow-[0_-1px_--theme(--color-white/6%)] [&_svg]:-mx-0.5 [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4",
+      "border-input bg-muted text-muted-foreground dark:bg-input/64 relative inline-flex items-center gap-2 rounded-lg border px-[calc(--spacing(3)-1px)] text-base whitespace-nowrap shadow-xs transition-shadow outline-none sm:text-sm [&_svg]:-mx-0.5 [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4",
       className
     ),
     "data-slot": "group-text",

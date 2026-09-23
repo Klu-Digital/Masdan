@@ -14,11 +14,6 @@ const accountsList = vi.hoisted(() => vi.fn());
 const categoriesList = vi.hoisted(() => vi.fn());
 const tagsList = vi.hoisted(() => vi.fn());
 const create = vi.hoisted(() => vi.fn());
-const get = vi.hoisted(() => vi.fn());
-const list = vi.hoisted(() => vi.fn());
-const update = vi.hoisted(() => vi.fn());
-const archive = vi.hoisted(() => vi.fn());
-const restore = vi.hoisted(() => vi.fn());
 
 vi.mock("@/utils/orpc", async (importOriginal) => {
   const actual = await importOriginal<typeof TypeImport___utils_orpc>();
@@ -28,14 +23,19 @@ vi.mock("@/utils/orpc", async (importOriginal) => {
       accounts: { list: accountsList },
       categories: { list: categoriesList },
       tags: { list: tagsList },
-      transactions: { archive, create, get, list, restore, update },
+      transactions: { create },
     },
   };
 });
 
 const { createQueryClient } = await import("@/utils/orpc");
-const { TransactionForm } =
-  await import("@/modules/transactions/components/transaction-form");
+const { TransactionForm } = await import("./transaction-form");
+
+const ACCOUNT = "00000000-0000-4000-8000-000000000001";
+const GROCERIES = "00000000-0000-4000-8000-000000000002";
+const SALARY = "00000000-0000-4000-8000-000000000003";
+const TAG = "00000000-0000-4000-8000-000000000004";
+const DINING = "00000000-0000-4000-8000-000000000005";
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={createQueryClient()}>
@@ -43,34 +43,36 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
   </QueryClientProvider>
 );
 
-const renderForm = () =>
+const renderForm = (kind: "expense" | "income" = "expense") => {
+  const onSaved = vi.fn();
   render(
     <TransactionForm
+      actions={({ isSubmitting }) => (
+        <button disabled={isSubmitting} type="submit">
+          Add
+        </button>
+      )}
       activeOrganizationId="household-1"
-      canCreate
-      canUpdate
-      onSaved={vi.fn()}
+      householdCurrency="PHP"
+      kind={kind}
+      onSaved={onSaved}
+      timezone="Asia/Manila"
     />,
     { wrapper: Wrapper }
   );
+  return { onSaved };
+};
 
 beforeEach(() => {
-  accountsList.mockReset();
-  categoriesList.mockReset();
-  tagsList.mockReset();
   create.mockReset();
-  get.mockReset();
-  list.mockReset();
-  update.mockReset();
-  archive.mockReset();
-  restore.mockReset();
   accountsList.mockResolvedValue([
     {
       accountClass: "asset",
       accountType: "bank",
       archivedAt: null,
+      color: null,
       currencyCode: "PHP",
-      id: "00000000-0000-4000-8000-000000000001",
+      id: ACCOUNT,
       name: "BPI Savings",
     },
   ]);
@@ -79,7 +81,7 @@ beforeEach(() => {
       archivedAt: null,
       color: "green",
       icon: "🛒",
-      id: "00000000-0000-4000-8000-000000000002",
+      id: GROCERIES,
       name: "Groceries",
       type: "expense",
     },
@@ -87,7 +89,7 @@ beforeEach(() => {
       archivedAt: null,
       color: "orange",
       icon: "🍽️",
-      id: "00000000-0000-4000-8000-000000000005",
+      id: DINING,
       name: "Food & Dining",
       type: "expense",
     },
@@ -95,125 +97,126 @@ beforeEach(() => {
       archivedAt: null,
       color: "emerald",
       icon: "💼",
-      id: "00000000-0000-4000-8000-000000000003",
+      id: SALARY,
       name: "Salary",
       type: "income",
     },
   ]);
   tagsList.mockResolvedValue([
-    {
-      archivedAt: null,
-      color: "blue",
-      id: "00000000-0000-4000-8000-000000000004",
-      name: "Vacation",
-    },
+    { archivedAt: null, color: "blue", id: TAG, name: "Vacation" },
   ]);
   create.mockResolvedValue({ id: "transaction-1" });
 });
 
+const chooseCategory = async (
+  user: ReturnType<typeof userEvent.setup>,
+  name: RegExp,
+  label = "Category"
+) => {
+  await user.click(screen.getByRole("combobox", { name: label }));
+  await user.click(await screen.findByRole("option", { name }));
+};
+
 describe("TransactionForm", () => {
-  it("submits a transaction with account, category, tag, status, and notes", async () => {
+  it("records an expense with the only account preselected, a tag and a note", async () => {
     const user = userEvent.setup();
-    renderForm();
-    await screen.findByText("Add transaction", { selector: "div" });
-
-    await user.click(screen.getByRole("combobox", { name: "Account" }));
-    await user.click(screen.getByRole("option", { name: /BPI Savings/iu }));
-    await user.click(screen.getByRole("combobox", { name: "Category" }));
-    await user.click(screen.getByRole("option", { name: /Groceries/iu }));
-    await user.type(screen.getByLabelText("Amount"), "125.50");
+    const { onSaved } = renderForm();
+    const amount = await screen.findByLabelText("Amount");
+    await user.type(amount, "125,5");
+    expect(amount).toHaveValue("125.5");
+    await chooseCategory(user, /Groceries/u);
+    await user.type(screen.getByLabelText("Note"), "Weekly market");
+    await user.click(screen.getByRole("button", { name: "More options" }));
     await user.click(screen.getByRole("button", { name: "Vacation" }));
-    await user.type(screen.getByLabelText("Notes"), "Trip groceries");
-    await user.click(
-      screen.getByRole("button", { name: "Create transaction" })
-    );
+    await user.click(screen.getByRole("button", { name: "Add" }));
 
     await waitFor(() => expect(create).toHaveBeenCalled());
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
-        accountId: "00000000-0000-4000-8000-000000000001",
-        amount: "125.50",
-        categoryId: "00000000-0000-4000-8000-000000000002",
-        notes: "Trip groceries",
+        accountId: ACCOUNT,
+        amount: "125.5",
+        categoryId: GROCERIES,
+        notes: "Weekly market",
         paidStatus: "paid",
-        tagIds: ["00000000-0000-4000-8000-000000000004"],
+        splits: [],
+        tagIds: [TAG],
       })
     );
+    expect(onSaved).toHaveBeenCalledWith("transaction-1");
   });
 
-  it("shows all categories in the category combobox", async () => {
+  it("offers only categories of the chosen kind", async () => {
     const user = userEvent.setup();
-    renderForm();
-    await screen.findByText("Add transaction", { selector: "div" });
-
+    renderForm("income");
+    await screen.findByLabelText("Amount");
     await user.click(screen.getByRole("combobox", { name: "Category" }));
-
     expect(
-      screen.getByRole("option", { name: /Salary/iu })
+      await screen.findByRole("option", { name: /Salary/u })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("option", { name: /Groceries/iu })
-    ).toBeInTheDocument();
+      screen.queryByRole("option", { name: /Groceries/u })
+    ).not.toBeInTheDocument();
   });
 
-  it("adds and removes reconciled split lines", async () => {
+  it("marks a bill unpaid", async () => {
     const user = userEvent.setup();
     renderForm();
-    await screen.findByText("Add transaction", { selector: "div" });
-
-    await user.click(screen.getByRole("combobox", { name: "Account" }));
-    await user.click(screen.getByRole("option", { name: /BPI Savings/iu }));
-    await user.click(screen.getByRole("combobox", { name: "Category" }));
-    await user.click(screen.getByRole("option", { name: /Groceries/iu }));
-    await user.type(screen.getByLabelText("Amount"), "125.50");
-    await user.click(screen.getByRole("button", { name: "Split transaction" }));
-
-    expect(screen.getByLabelText("Split line 1 amount")).toHaveValue("125.50");
-    await user.click(
-      screen.getByPlaceholderText("Select split line 2 category")
+    await user.type(await screen.findByLabelText("Amount"), "80");
+    await chooseCategory(user, /Groceries/u);
+    await user.click(screen.getByRole("button", { name: "More options" }));
+    await user.click(screen.getByRole("switch"));
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ paidStatus: "unpaid" })
     );
-    await user.click(screen.getByRole("option", { name: /Food & Dining/iu }));
-    await user.clear(screen.getByLabelText("Split line 1 amount"));
-    await user.type(screen.getByLabelText("Split line 1 amount"), "100");
-    await user.type(screen.getByLabelText("Split line 2 amount"), "25.50");
-    await user.clear(screen.getByLabelText("Split line 1 amount"));
-    await user.type(screen.getByLabelText("Split line 1 amount"), "125.50");
-    await user.click(
-      screen.getByRole("button", { name: "Remove split line 2" })
-    );
+  });
 
-    await user.click(
-      screen.getByRole("button", { name: "Create transaction" })
-    );
+  it("splits across categories and takes the first line as the parent", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.type(await screen.findByLabelText("Amount"), "125.50");
+    await chooseCategory(user, /Groceries/u);
+    await user.click(screen.getByRole("button", { name: "More options" }));
+    await user.click(screen.getByRole("button", { name: "Split" }));
+
+    expect(screen.getByLabelText("Line 1 amount")).toHaveValue("125.50");
+    await chooseCategory(user, /Food & Dining/u, "Line 2 category");
+    await user.clear(screen.getByLabelText("Line 1 amount"));
+    await user.type(screen.getByLabelText("Line 1 amount"), "100");
+    await user.type(screen.getByLabelText("Line 2 amount"), "25.50");
+    expect(screen.getByText("Fully allocated")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
     await waitFor(() => expect(create).toHaveBeenCalled());
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
-        splits: [{ amount: "125.50", categoryId: expect.any(String) }],
+        categoryId: GROCERIES,
+        splits: [
+          { amount: "100", categoryId: GROCERIES },
+          { amount: "25.50", categoryId: DINING },
+        ],
       })
     );
   });
 
-  it("blocks an unreconciled split", async () => {
+  it("refuses a split that doesn't add up", async () => {
     const user = userEvent.setup();
     renderForm();
-    await screen.findByText("Add transaction", { selector: "div" });
+    await user.type(await screen.findByLabelText("Amount"), "125.50");
+    await chooseCategory(user, /Groceries/u);
+    await user.click(screen.getByRole("button", { name: "More options" }));
+    await user.click(screen.getByRole("button", { name: "Split" }));
+    await chooseCategory(user, /Food & Dining/u, "Line 2 category");
+    await user.clear(screen.getByLabelText("Line 1 amount"));
+    await user.type(screen.getByLabelText("Line 1 amount"), "100");
+    await user.type(screen.getByLabelText("Line 2 amount"), "20");
+    expect(screen.getByText(/left to allocate/u)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add" }));
 
-    await user.click(screen.getByRole("combobox", { name: "Account" }));
-    await user.click(screen.getByRole("option", { name: /BPI Savings/iu }));
-    await user.click(screen.getByRole("combobox", { name: "Category" }));
-    await user.click(screen.getByRole("option", { name: /Groceries/iu }));
-    await user.type(screen.getByLabelText("Amount"), "125.50");
-    await user.click(screen.getByRole("button", { name: "Split transaction" }));
-    await user.clear(screen.getByLabelText("Split line 1 amount"));
-    await user.type(screen.getByLabelText("Split line 1 amount"), "100");
-    await user.type(screen.getByLabelText("Split line 2 amount"), "20");
-    await user.click(
-      screen.getByRole("button", { name: "Create transaction" })
-    );
-
-    expect(create).not.toHaveBeenCalled();
     expect(
-      await screen.findByText("Split amounts must equal the transaction amount")
+      await screen.findByText("Split lines must add up to the amount")
     ).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
   });
 });

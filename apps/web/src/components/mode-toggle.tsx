@@ -1,37 +1,70 @@
-import { Moon02Icon, Sun03Icon } from "@hugeicons/core-free-icons";
+import {
+  ComputerIcon,
+  Moon02Icon,
+  Sun03Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@masdan/ui/components/button";
 import {
   Menu,
-  MenuItem,
   MenuPopup,
+  MenuRadioGroup,
+  MenuRadioItem,
   MenuTrigger,
 } from "@masdan/ui/components/menu";
 
 import { useTheme } from "@/components/theme-provider";
 
 export const ModeToggle = () => {
-  const { setTheme } = useTheme();
+  const { resolvedTheme, setTheme, theme } = useTheme();
 
   return (
     <Menu>
-      <MenuTrigger render={<Button variant="outline" size="icon" />}>
+      <MenuTrigger
+        aria-label="Appearance"
+        render={<Button size="icon" variant="ghost" />}
+      >
         <HugeiconsIcon
-          icon={Sun03Icon}
-          strokeWidth={2}
-          className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90"
+          icon={resolvedTheme === "dark" ? Moon02Icon : Sun03Icon}
+          strokeWidth={1.8}
         />
-        <HugeiconsIcon
-          icon={Moon02Icon}
-          strokeWidth={2}
-          className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0"
-        />
-        <span className="sr-only">Toggle theme</span>
       </MenuTrigger>
       <MenuPopup align="end">
-        <MenuItem onClick={() => setTheme("light")}>Light</MenuItem>
-        <MenuItem onClick={() => setTheme("dark")}>Dark</MenuItem>
-        <MenuItem onClick={() => setTheme("system")}>System</MenuItem>
+        <MenuRadioGroup
+          onValueChange={(value) => setTheme(String(value))}
+          value={theme ?? "system"}
+        >
+          <MenuRadioItem value="light">
+            <span className="flex items-center gap-2">
+              <HugeiconsIcon
+                className="size-4"
+                icon={Sun03Icon}
+                strokeWidth={1.8}
+              />
+              Light
+            </span>
+          </MenuRadioItem>
+          <MenuRadioItem value="dark">
+            <span className="flex items-center gap-2">
+              <HugeiconsIcon
+                className="size-4"
+                icon={Moon02Icon}
+                strokeWidth={1.8}
+              />
+              Dark
+            </span>
+          </MenuRadioItem>
+          <MenuRadioItem value="system">
+            <span className="flex items-center gap-2">
+              <HugeiconsIcon
+                className="size-4"
+                icon={ComputerIcon}
+                strokeWidth={1.8}
+              />
+              System
+            </span>
+          </MenuRadioItem>
+        </MenuRadioGroup>
       </MenuPopup>
     </Menu>
   );

@@ -9,7 +9,7 @@ export const Field = ({
   ...props
 }: FieldPrimitive.Root.Props): React.ReactElement => (
   <FieldPrimitive.Root
-    className={cn("flex flex-col items-start gap-2", className)}
+    className={cn("flex flex-col items-start gap-1.5", className)}
     data-slot="field"
     {...props}
   />
@@ -21,7 +21,7 @@ export const FieldLabel = ({
 }: FieldPrimitive.Label.Props): React.ReactElement => (
   <FieldPrimitive.Label
     className={cn(
-      "text-foreground inline-flex items-center gap-2 text-base/4.5 font-medium data-disabled:opacity-64 sm:text-sm/4",
+      "text-muted-foreground inline-flex items-center gap-2 text-xs font-medium data-disabled:opacity-50",
       className
     )}
     data-slot="field-label"

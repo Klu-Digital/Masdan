@@ -139,7 +139,7 @@ const RouteComponent = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-heading text-2xl font-semibold">System</h1>
+      <h1 className="text-2xl font-bold">System</h1>
 
       {config.data && !config.data.trustProxyHeaders ? (
         <Alert variant="warning">

@@ -12,24 +12,22 @@ vi.mock("@masdan/ui/components/toast", () => ({
 
 const accountsList = vi.hoisted(() => vi.fn());
 const create = vi.hoisted(() => vi.fn());
-const get = vi.hoisted(() => vi.fn());
-const update = vi.hoisted(() => vi.fn());
-const deleteTransfer = vi.hoisted(() => vi.fn());
 
 vi.mock("@/utils/orpc", async (importOriginal) => {
   const actual = await importOriginal<typeof TypeImport___utils_orpc>();
   return {
     ...actual,
-    client: {
-      accounts: { list: accountsList },
-      transfers: { create, delete: deleteTransfer, get, update },
-    },
+    client: { accounts: { list: accountsList }, transfers: { create } },
   };
 });
 
 const { createQueryClient } = await import("@/utils/orpc");
-const { TransferForm } =
-  await import("@/modules/transactions/components/transfer-form");
+const { TransferForm } = await import("./transfer-form");
+
+const BANK = "00000000-0000-4000-8000-000000000001";
+const WALLET = "00000000-0000-4000-8000-000000000002";
+const CARD = "00000000-0000-4000-8000-000000000003";
+const USD = "00000000-0000-4000-8000-000000000004";
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={createQueryClient()}>
@@ -37,100 +35,147 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
   </QueryClientProvider>
 );
 
-const renderForm = (destinationAccountId?: string) =>
+const account = (
+  id: string,
+  name: string,
+  extra: Record<string, unknown> = {}
+) => ({
+  accountClass: "asset",
+  accountType: "bank",
+  archivedAt: null,
+  color: null,
+  currencyCode: "PHP",
+  id,
+  name,
+  ...extra,
+});
+
+beforeEach(() => {
+  create.mockReset();
+  create.mockResolvedValue({ id: "transfer-1" });
+  accountsList.mockResolvedValue([
+    account(BANK, "BPI Savings"),
+    account(WALLET, "GCash", { accountType: "e_wallet" }),
+    account(CARD, "Amore Visa", {
+      accountClass: "liability",
+      accountType: "credit_card",
+    }),
+    account(USD, "Wise USD", { currencyCode: "USD" }),
+  ]);
+});
+
+const renderForm = (props: Partial<Parameters<typeof TransferForm>[0]> = {}) =>
   render(
     <TransferForm
+      actions={() => <button type="submit">Save</button>}
       activeOrganizationId="household-1"
-      canCreate
-      canUpdate
-      destinationAccountId={destinationAccountId}
       onSaved={vi.fn()}
+      timezone="Asia/Manila"
+      {...props}
     />,
     { wrapper: Wrapper }
   );
 
-beforeEach(() => {
-  accountsList.mockReset();
-  create.mockReset();
-  get.mockReset();
-  update.mockReset();
-  deleteTransfer.mockReset();
-  accountsList.mockResolvedValue([
-    {
-      accountClass: "asset",
-      accountType: "bank",
-      archivedAt: null,
-      currencyCode: "PHP",
-      id: "00000000-0000-4000-8000-000000000001",
-      name: "BPI Savings",
-    },
-    {
-      accountClass: "asset",
-      accountType: "e_wallet",
-      archivedAt: null,
-      currencyCode: "PHP",
-      id: "00000000-0000-4000-8000-000000000002",
-      name: "Maya",
-    },
-  ]);
-  create.mockResolvedValue({ id: "transfer-1" });
-});
+const pick = async (
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+  name: RegExp
+) => {
+  await user.click(screen.getByRole("combobox", { name: label }));
+  await user.click(await screen.findByRole("option", { name }));
+};
 
 describe("TransferForm", () => {
-  it("keeps a card payment destination fixed and only offers asset sources", async () => {
+  it("mirrors the amount between same-currency accounts", async () => {
     const user = userEvent.setup();
-    accountsList.mockResolvedValueOnce([
-      {
-        accountClass: "asset",
-        archivedAt: null,
-        currencyCode: "PHP",
-        id: "00000000-0000-4000-8000-000000000001",
-        name: "Checking",
-      },
-      {
-        accountClass: "liability",
-        archivedAt: null,
-        currencyCode: "PHP",
-        id: "00000000-0000-4000-8000-000000000002",
-        name: "Credit card",
-      },
-    ]);
-    renderForm("00000000-0000-4000-8000-000000000002");
-    expect(await screen.findByText("Credit card — PHP")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("combobox", { name: "To account" })
-    ).not.toBeInTheDocument();
-    await user.click(screen.getByRole("combobox", { name: "From account" }));
-    expect(
-      screen.getByRole("option", { name: /Checking/iu })
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("option", { name: /Credit card/iu })
-    ).not.toBeInTheDocument();
-  });
-  it("submits both account sides and amounts", async () => {
-    const user = userEvent.setup();
-    renderForm();
-    await screen.findByText("Add transfer", { selector: "div" });
-
-    await user.click(screen.getByRole("combobox", { name: "From account" }));
-    await user.click(screen.getByRole("option", { name: /BPI Savings/iu }));
-    await user.click(screen.getByRole("combobox", { name: "To account" }));
-    await user.click(screen.getByRole("option", { name: /Maya/iu }));
-    await user.type(screen.getByLabelText("From amount"), "125.50");
-    await user.type(screen.getByLabelText("To amount"), "125.50");
-    await user.type(screen.getByLabelText("Notes"), "Move money");
-    await user.click(screen.getByRole("button", { name: "Create transfer" }));
+    renderForm({ sourceAccountId: BANK });
+    await user.type(await screen.findByLabelText("Amount"), "2500");
+    await pick(user, "To", /GCash/u);
+    expect(screen.queryByLabelText(/Amount received/u)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(create).toHaveBeenCalled());
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
-        destinationAccountId: "00000000-0000-4000-8000-000000000002",
-        destinationAmount: "125.50",
-        notes: "Move money",
-        sourceAccountId: "00000000-0000-4000-8000-000000000001",
-        sourceAmount: "125.50",
+        destinationAccountId: WALLET,
+        destinationAmount: "2500",
+        sourceAccountId: BANK,
+        sourceAmount: "2500",
       })
+    );
+  });
+
+  it("asks what arrived when currencies differ", async () => {
+    const user = userEvent.setup();
+    renderForm({ sourceAccountId: BANK });
+    await user.type(await screen.findByLabelText("Amount"), "5600");
+    await pick(user, "To", /Wise USD/u);
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(
+      await screen.findByText("Enter the amount received")
+    ).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText(/Amount received in USD/u), "100");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          destinationAmount: "100",
+          sourceAmount: "5600",
+        })
+      )
+    );
+  });
+
+  it("swaps the two accounts", async () => {
+    const user = userEvent.setup();
+    renderForm({ destinationAccountId: WALLET, sourceAccountId: BANK });
+    await user.type(await screen.findByLabelText("Amount"), "10");
+    await user.click(screen.getByRole("button", { name: "Swap accounts" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          destinationAccountId: BANK,
+          sourceAccountId: WALLET,
+        })
+      )
+    );
+  });
+
+  it("pays a card from asset accounts only, with quick amounts", async () => {
+    const user = userEvent.setup();
+    renderForm({
+      destinationAccountId: CARD,
+      lockDestination: true,
+      suggestions: [{ amount: "4200.000000", label: "Statement" }],
+    });
+    expect(await screen.findByText("Amore Visa")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("combobox", { name: "To" })
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("combobox", { name: "From" }));
+    expect(
+      await screen.findByRole("option", { name: /BPI Savings/u })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: /Amore Visa/u })
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("option", { name: /BPI Savings/u }));
+
+    await user.click(screen.getByRole("button", { name: /Statement/u }));
+    expect(screen.getByLabelText("Amount")).toHaveValue("4200");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          destinationAccountId: CARD,
+          sourceAccountId: BANK,
+          sourceAmount: "4200",
+        })
+      )
     );
   });
 });

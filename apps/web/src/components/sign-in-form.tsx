@@ -53,7 +53,7 @@ const SignInForm = ({ redirectTo }: { redirectTo: string }) => {
 
   return (
     <form
-      className="space-y-4"
+      className="flex flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -86,10 +86,10 @@ const SignInForm = ({ redirectTo }: { redirectTo: string }) => {
       <form.Field name="password">
         {(field) => (
           <Field name={field.name}>
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex w-full items-center justify-between gap-2">
               <FieldLabel htmlFor={field.name}>Password</FieldLabel>
               <Link
-                className="text-muted-foreground hover:text-foreground text-sm underline-offset-4 hover:underline"
+                className="text-brand-text text-xs font-medium underline-offset-4 hover:underline"
                 to="/forgot-password"
               >
                 Forgot password?
@@ -123,11 +123,12 @@ const SignInForm = ({ redirectTo }: { redirectTo: string }) => {
         {({ canSubmit, isSubmitting }) => (
           <Button
             className="w-full"
+            size="lg"
             disabled={!canSubmit}
             loading={isSubmitting}
             type="submit"
           >
-            Sign In
+            Sign in
           </Button>
         )}
       </form.Subscribe>

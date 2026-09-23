@@ -68,7 +68,7 @@ const ResetForm = ({ token }: { token: string }) => {
 
   return (
     <form
-      className="space-y-4"
+      className="flex flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -130,6 +130,7 @@ const ResetForm = ({ token }: { token: string }) => {
         {({ canSubmit, isSubmitting }) => (
           <Button
             className="w-full"
+            size="lg"
             disabled={!canSubmit}
             loading={isSubmitting}
             type="submit"
@@ -153,7 +154,7 @@ const RouteComponent = () => {
         description="This reset link is invalid or has expired. Reset links can only be used once."
         footer={
           <Link
-            className="text-foreground underline underline-offset-4"
+            className="text-brand-text font-medium underline-offset-4 hover:underline"
             to="/login"
           >
             Back to sign in
@@ -161,9 +162,13 @@ const RouteComponent = () => {
         }
         title="Link no longer valid"
       >
-        <Link to="/forgot-password">
-          <Button className="w-full">Request a new link</Button>
-        </Link>
+        <Button
+          className="w-full"
+          render={<Link to="/forgot-password" />}
+          size="lg"
+        >
+          Request a new link
+        </Button>
       </AuthShell>
     );
   }

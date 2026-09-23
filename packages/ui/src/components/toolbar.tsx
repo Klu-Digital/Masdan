@@ -10,7 +10,7 @@ export const Toolbar = ({
 }: ToolbarPrimitive.Root.Props): React.ReactElement => (
   <ToolbarPrimitive.Root
     className={cn(
-      "bg-card text-card-foreground relative flex gap-2 rounded-xl border p-1 not-dark:bg-clip-padding",
+      "bg-card text-card-foreground relative flex gap-2 rounded-xl border p-1",
       className
     )}
     data-slot="toolbar"

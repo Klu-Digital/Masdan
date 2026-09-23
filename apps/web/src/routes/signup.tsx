@@ -21,7 +21,7 @@ const RouteComponent = () => {
         <>
           Already have an account?{" "}
           <Link
-            className="text-foreground underline underline-offset-4"
+            className="text-brand-text font-medium underline-offset-4 hover:underline"
             search={{ redirect: requested }}
             to="/login"
           >

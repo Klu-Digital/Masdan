@@ -45,7 +45,7 @@ export const TooltipPopup = ({
     >
       <TooltipPrimitive.Popup
         className={cn(
-          "bg-popover text-popover-foreground relative flex h-(--popup-height,auto) w-(--popup-width,auto) origin-(--transform-origin) rounded-md border text-xs text-balance shadow-md/5 transition-[width,height,scale,opacity] not-dark:bg-clip-padding before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-md)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] data-ending-style:scale-98 data-ending-style:opacity-0 data-instant:duration-0 data-starting-style:scale-98 data-starting-style:opacity-0 dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
+          "bg-popover text-popover-foreground ease-spring relative flex h-(--popup-height,auto) w-(--popup-width,auto) origin-(--transform-origin) rounded-xl text-xs text-balance shadow-lg transition-[width,height,scale,opacity] duration-300 data-ending-style:scale-98 data-ending-style:opacity-0 data-ending-style:duration-150 data-instant:duration-0 data-starting-style:scale-96 data-starting-style:opacity-0 motion-reduce:data-starting-style:scale-100",
           className
         )}
         data-slot="tooltip-popup"

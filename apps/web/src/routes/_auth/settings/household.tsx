@@ -1,13 +1,13 @@
+import {
+  Cancel01Icon,
+  Copy01Icon,
+  MoreHorizontalIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { hasPermission } from "@masdan/auth/permissions";
+import { Avatar, AvatarFallback } from "@masdan/ui/components/avatar";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardPanel,
-  CardTitle,
-} from "@masdan/ui/components/card";
 import {
   Empty,
   EmptyDescription,
@@ -16,6 +16,24 @@ import {
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
 import { Input } from "@masdan/ui/components/input";
 import {
+  List,
+  ListItem,
+  ListItemContent,
+  ListItemDescription,
+  ListItemLeading,
+  ListItemTitle,
+  ListItemTrailing,
+  ListSection,
+  ListSectionFooter,
+  ListSectionHeader,
+} from "@masdan/ui/components/list";
+import {
+  Menu,
+  MenuItem,
+  MenuPopup,
+  MenuTrigger,
+} from "@masdan/ui/components/menu";
+import {
   Select,
   SelectItem,
   SelectPopup,
@@ -23,14 +41,6 @@ import {
   SelectValue,
 } from "@masdan/ui/components/select";
 import { Skeleton } from "@masdan/ui/components/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@masdan/ui/components/table";
 import { toastManager } from "@masdan/ui/components/toast";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -38,9 +48,13 @@ import {
   createFileRoute,
   getRouteApi,
   useRouter,
+  useRouterState,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { z } from "zod";
 
+import { HouseholdMark } from "@/components/shell/household-switcher";
+import { initialsOf } from "@/components/shell/initials";
 import { authClient } from "@/lib/auth-client";
 import {
   activeOrganizationQueryOptions,
@@ -55,73 +69,86 @@ const routeApi = getRouteApi("/_auth/settings/household");
 
 /** `owner` is deliberately absent: it transfers, it is not handed out. */
 const INVITABLE_ROLES = [
-  { label: "Member", value: "member" },
-  { label: "Admin", value: "admin" },
-  { label: "Viewer", value: "viewer" },
+  {
+    description: "Can add and edit money, not archive it",
+    label: "Member",
+    value: "member",
+  },
+  {
+    description: "Can manage everything, including people",
+    label: "Admin",
+    value: "admin",
+  },
+  { description: "Can look, not touch", label: "Viewer", value: "viewer" },
 ] as const;
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  member: "Member",
+  owner: "Owner",
+  viewer: "Viewer",
+};
+
+const roleLabel = (role: string | null | undefined) =>
+  role
+    ?.split(",")
+    .map((name) => ROLE_LABELS[name.trim()] ?? name.trim())
+    .join(", ") ?? "Member";
 
 const MIN_ORGANIZATION_NAME_LENGTH = 2;
 
 const inviteLink = (invitationId: string) =>
   `${window.location.origin}/accept-invite?invitation=${invitationId}`;
 
-const MembersCard = ({
-  canInvite,
+const Members = ({
+  currentUserId,
   members,
 }: {
-  canInvite: boolean;
+  currentUserId: string;
   members: {
     id: string;
     role: string;
     user: { email: string; name: string };
+    userId: string;
   }[];
 }) => (
-  <Card>
-    <CardHeader>
-      <CardTitle>Household members</CardTitle>
-      <CardDescription>Everyone with access to this household.</CardDescription>
-    </CardHeader>
-    <CardPanel>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {members.map((member) => (
-            <TableRow key={member.id}>
-              <TableCell>{member.user.name}</TableCell>
-              <TableCell>
-                <span className="text-muted-foreground">
-                  {member.user.email}
-                </span>
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline">{member.role}</Badge>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      {canInvite ? null : (
-        <p className="text-muted-foreground mt-4 text-sm">
-          Your role does not allow inviting people to this household.
-        </p>
-      )}
-    </CardPanel>
-  </Card>
+  <ListSection aria-label="Members">
+    <ListSectionHeader>
+      <span>Members</span>
+      <span>{members.length}</span>
+    </ListSectionHeader>
+    <List>
+      {members.map((member) => (
+        <ListItem key={member.id}>
+          <ListItemLeading>
+            <Avatar size="lg">
+              <AvatarFallback>{initialsOf(member.user.name)}</AvatarFallback>
+            </Avatar>
+          </ListItemLeading>
+          <ListItemContent>
+            <ListItemTitle>
+              {member.user.name}
+              {member.userId === currentUserId ? (
+                <span className="text-muted-foreground font-normal">(you)</span>
+              ) : null}
+            </ListItemTitle>
+            <ListItemDescription>{member.user.email}</ListItemDescription>
+          </ListItemContent>
+          <ListItemTrailing>
+            <Badge size="lg">{roleLabel(member.role)}</Badge>
+          </ListItemTrailing>
+        </ListItem>
+      ))}
+    </List>
+  </ListSection>
 );
 
-const InvitationsCard = ({
+const PendingInvitations = ({
   invitations,
 }: {
   invitations: { email: string; id: string; role: string; status: string }[];
 }) => {
   const queryClient = useQueryClient();
-
   const cancel = useMutation({
     mutationFn: async (invitationId: string) => {
       const { error } = await authClient.organization.cancelInvitation({
@@ -135,85 +162,75 @@ const InvitationsCard = ({
     onError: (error: Error) => {
       toastManager.add({ title: error.message, type: "error" });
     },
+    onSuccess: () => {
+      toastManager.add({ title: "Invitation cancelled", type: "success" });
+    },
   });
-
   const pending = invitations.filter(
     (invitation) => invitation.status === "pending"
   );
+  if (pending.length === 0) {
+    return null;
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Pending invitations</CardTitle>
-        <CardDescription>
-          Recipients see invitations in the app after signing in. A link is
-          available as an optional fallback.
-        </CardDescription>
-      </CardHeader>
-      <CardPanel>
-        {pending.length === 0 ? (
-          <Empty>
-            <EmptyTitle>No pending invitations</EmptyTitle>
-            <EmptyDescription>
-              Invite someone below and their link will appear here.
-            </EmptyDescription>
-          </Empty>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pending.map((invitation) => (
-                <TableRow key={invitation.id}>
-                  <TableCell>{invitation.email}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{invitation.role}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        onClick={async () => {
-                          await navigator.clipboard.writeText(
-                            inviteLink(invitation.id)
-                          );
-                          toastManager.add({
-                            title: "Invite link copied",
-                            type: "success",
-                          });
-                        }}
-                        size="sm"
-                        variant="outline"
-                      >
-                        Copy link (optional)
-                      </Button>
-                      <Button
-                        loading={cancel.isPending}
-                        onClick={() => cancel.mutate(invitation.id)}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardPanel>
-    </Card>
+    <ListSection aria-label="Pending invitations">
+      <ListSectionHeader>Pending invitations</ListSectionHeader>
+      <List>
+        {pending.map((invitation) => (
+          <ListItem key={invitation.id}>
+            <ListItemContent>
+              <ListItemTitle>{invitation.email}</ListItemTitle>
+              <ListItemDescription>
+                Invited as {roleLabel(invitation.role)}
+              </ListItemDescription>
+            </ListItemContent>
+            <ListItemTrailing>
+              <Menu>
+                <MenuTrigger
+                  aria-label={`Invitation for ${invitation.email}`}
+                  render={<Button size="icon-sm" variant="ghost" />}
+                >
+                  <HugeiconsIcon icon={MoreHorizontalIcon} strokeWidth={2} />
+                </MenuTrigger>
+                <MenuPopup align="end" className="min-w-52">
+                  <MenuItem
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(
+                        inviteLink(invitation.id)
+                      );
+                      toastManager.add({
+                        title: "Invite link copied",
+                        type: "success",
+                      });
+                    }}
+                  >
+                    <HugeiconsIcon icon={Copy01Icon} strokeWidth={1.8} />
+                    Copy invite link
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => cancel.mutate(invitation.id)}
+                    variant="destructive"
+                  >
+                    <HugeiconsIcon icon={Cancel01Icon} strokeWidth={1.8} />
+                    Cancel invitation
+                  </MenuItem>
+                </MenuPopup>
+              </Menu>
+            </ListItemTrailing>
+          </ListItem>
+        ))}
+      </List>
+      <ListSectionFooter>
+        They’ll see the invitation when they sign in with that email. The link
+        is a fallback.
+      </ListSectionFooter>
+    </ListSection>
   );
 };
 
 const InviteForm = ({ organizationId }: { organizationId: string }) => {
   const queryClient = useQueryClient();
-
   const form = useForm({
     defaultValues: { email: "", role: "member" as string },
     onSubmit: async ({ value }) => {
@@ -231,102 +248,99 @@ const InviteForm = ({ organizationId }: { organizationId: string }) => {
       }
       await invalidateOrganizations(queryClient);
       form.reset();
-      toastManager.add({ title: "Invitation created", type: "success" });
+      toastManager.add({ title: `Invited ${value.email}`, type: "success" });
     },
     validators: {
       onSubmit: z.object({
-        email: z.email("Invalid email address"),
+        email: z.email("Enter a valid email address"),
         role: z.string(),
       }),
     },
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Invite someone</CardTitle>
-        <CardDescription>
-          They join this household, not the app as a whole.
-        </CardDescription>
-      </CardHeader>
-      <CardPanel>
-        <form
-          className="flex flex-col gap-4 sm:flex-row sm:items-end"
-          onSubmit={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            form.handleSubmit();
-          }}
-        >
-          <form.Field name="email">
-            {(field) => (
-              <Field className="flex-1" name={field.name}>
-                <FieldLabel htmlFor={field.name}>Email</FieldLabel>
-                <Input
-                  aria-invalid={field.state.meta.errors.length > 0 || undefined}
-                  id={field.name}
-                  name={field.name}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  type="email"
-                  value={field.state.value}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <FieldError key={error?.message} match>
-                    {error?.message}
-                  </FieldError>
-                ))}
-              </Field>
-            )}
-          </form.Field>
-
-          <form.Field name="role">
-            {(field) => (
-              <Field className="sm:w-40" name={field.name}>
-                <FieldLabel>Role</FieldLabel>
-                <Select
-                  items={INVITABLE_ROLES}
-                  onValueChange={(value) => field.handleChange(value as string)}
-                  value={field.state.value}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectPopup>
-                    {INVITABLE_ROLES.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>
-                        {role.label}
-                      </SelectItem>
-                    ))}
-                  </SelectPopup>
-                </Select>
-              </Field>
-            )}
-          </form.Field>
-
-          <form.Subscribe
-            selector={(state) => ({
-              canSubmit: state.canSubmit,
-              isSubmitting: state.isSubmitting,
-            })}
-          >
-            {({ canSubmit, isSubmitting }) => (
-              <Button
-                disabled={!canSubmit}
-                loading={isSubmitting}
-                type="submit"
+    <ListSection aria-label="Invite someone">
+      <ListSectionHeader>Invite someone</ListSectionHeader>
+      <form
+        className="bg-card dark:ring-hairline flex flex-col gap-4 rounded-2xl p-4 sm:flex-row sm:items-end dark:ring-1"
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          form.handleSubmit();
+        }}
+      >
+        <form.Field name="email">
+          {(field) => (
+            <Field className="flex-1" name={field.name}>
+              <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+              <Input
+                aria-invalid={field.state.meta.errors.length > 0 || undefined}
+                autoComplete="email"
+                id={field.name}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                placeholder="name@example.com"
+                type="email"
+                value={field.state.value}
+              />
+              {field.state.meta.errors.map((error) => (
+                <FieldError key={error?.message} match>
+                  {error?.message}
+                </FieldError>
+              ))}
+            </Field>
+          )}
+        </form.Field>
+        <form.Field name="role">
+          {(field) => (
+            <Field className="sm:w-36" name={field.name}>
+              <FieldLabel>Role</FieldLabel>
+              <Select
+                items={INVITABLE_ROLES}
+                onValueChange={(value) => field.handleChange(String(value))}
+                value={field.state.value}
               >
-                Send invite
-              </Button>
-            )}
-          </form.Subscribe>
-        </form>
-      </CardPanel>
-    </Card>
+                <SelectTrigger aria-label="Role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectPopup>
+                  {INVITABLE_ROLES.map((role) => (
+                    <SelectItem key={role.value} value={role.value}>
+                      <span className="flex flex-col">
+                        <span>{role.label}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {role.description}
+                        </span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectPopup>
+              </Select>
+            </Field>
+          )}
+        </form.Field>
+        <form.Subscribe
+          selector={(state) => ({
+            canSubmit: state.canSubmit,
+            isSubmitting: state.isSubmitting,
+          })}
+        >
+          {({ canSubmit, isSubmitting }) => (
+            <Button disabled={!canSubmit} loading={isSubmitting} type="submit">
+              Send invite
+            </Button>
+          )}
+        </form.Subscribe>
+      </form>
+      <ListSectionFooter>
+        They join this household only, not your other households.
+      </ListSectionFooter>
+    </ListSection>
   );
 };
 
-const CreateOrganizationCard = () => {
+const CreateHousehold = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -342,7 +356,6 @@ const CreateOrganizationCard = () => {
           .replaceAll(/[^a-z0-9]+/gu, "-")
           .replaceAll(/^-+|-+$/gu, ""),
       });
-
       if (error || !data) {
         toastManager.add({
           title: error?.message ?? "Could not create the household",
@@ -350,7 +363,6 @@ const CreateOrganizationCard = () => {
         });
         return;
       }
-
       const { error: activationError } =
         await authClient.organization.setActive({
           organizationId: data.id,
@@ -367,6 +379,7 @@ const CreateOrganizationCard = () => {
       }
       await invalidateSession(queryClient);
       await invalidateOrganizations(queryClient);
+      await queryClient.invalidateQueries();
       await router.invalidate();
       form.reset();
       toastManager.add({ title: `Switched to ${data.name}`, type: "success" });
@@ -375,76 +388,73 @@ const CreateOrganizationCard = () => {
       onSubmit: z.object({
         name: z
           .string()
+          .trim()
           .min(
             MIN_ORGANIZATION_NAME_LENGTH,
-            `Name must be at least ${MIN_ORGANIZATION_NAME_LENGTH} characters`
+            `Use at least ${MIN_ORGANIZATION_NAME_LENGTH} characters`
           ),
       }),
     },
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>New household</CardTitle>
-        <CardDescription>
-          Creating one makes it active immediately.
-        </CardDescription>
-      </CardHeader>
-      <CardPanel>
-        <form
-          className="flex flex-col gap-4 sm:flex-row sm:items-end"
-          onSubmit={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            form.handleSubmit();
-          }}
+    <ListSection aria-label="New household" id="new-household">
+      <ListSectionHeader>New household</ListSectionHeader>
+      <form
+        className="bg-card dark:ring-hairline flex flex-col gap-4 rounded-2xl p-4 sm:flex-row sm:items-end dark:ring-1"
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          form.handleSubmit();
+        }}
+      >
+        <form.Field name="name">
+          {(field) => (
+            <Field className="flex-1" name={field.name}>
+              <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+              <Input
+                aria-invalid={field.state.meta.errors.length > 0 || undefined}
+                id={field.name}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                placeholder="e.g. The Santos family"
+                value={field.state.value}
+              />
+              {field.state.meta.errors.map((error) => (
+                <FieldError key={error?.message} match>
+                  {error?.message}
+                </FieldError>
+              ))}
+            </Field>
+          )}
+        </form.Field>
+        <form.Subscribe
+          selector={(state) => ({
+            canSubmit: state.canSubmit,
+            isSubmitting: state.isSubmitting,
+          })}
         >
-          <form.Field name="name">
-            {(field) => (
-              <Field className="flex-1" name={field.name}>
-                <FieldLabel htmlFor={field.name}>Name</FieldLabel>
-                <Input
-                  aria-invalid={field.state.meta.errors.length > 0 || undefined}
-                  id={field.name}
-                  name={field.name}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  value={field.state.value}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <FieldError key={error?.message} match>
-                    {error?.message}
-                  </FieldError>
-                ))}
-              </Field>
-            )}
-          </form.Field>
-
-          <form.Subscribe
-            selector={(state) => ({
-              canSubmit: state.canSubmit,
-              isSubmitting: state.isSubmitting,
-            })}
-          >
-            {({ canSubmit, isSubmitting }) => (
-              <Button
-                disabled={!canSubmit}
-                loading={isSubmitting}
-                type="submit"
-                variant="outline"
-              >
-                Create
-              </Button>
-            )}
-          </form.Subscribe>
-        </form>
-      </CardPanel>
-    </Card>
+          {({ canSubmit, isSubmitting }) => (
+            <Button
+              disabled={!canSubmit}
+              loading={isSubmitting}
+              type="submit"
+              variant="secondary"
+            >
+              Create and switch
+            </Button>
+          )}
+        </form.Subscribe>
+      </form>
+      <ListSectionFooter>
+        Keep separate books — a business, a trip, a family member’s money.
+      </ListSectionFooter>
+    </ListSection>
   );
 };
 
-const RouteComponent = () => {
+const HouseholdSettings = () => {
   const { activeOrganizationId, session } = routeApi.useRouteContext();
   const organization = useQuery(
     activeOrganizationQueryOptions(activeOrganizationId)
@@ -453,21 +463,38 @@ const RouteComponent = () => {
     householdProfileQueryOptions(activeOrganizationId)
   );
   const currencies = useQuery(currenciesQueryOptions());
+  const hash = useRouterState({ select: (state) => state.location.hash });
 
-  if (organization.isPending) {
-    return <Skeleton className="h-64 w-full" />;
+  const loaded = !organization.isPending;
+  useEffect(() => {
+    // Wait for the form to exist before scrolling to it.
+    if (loaded && hash === "new-household") {
+      document
+        .querySelector("#new-household")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [hash, loaded]);
+
+  if (activeOrganizationId && organization.isPending) {
+    return (
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-14 w-64" />
+        <Skeleton className="h-40 w-full" radius="2xl" />
+        <Skeleton className="h-56 w-full" radius="2xl" />
+      </div>
+    );
   }
 
   if (!organization.data) {
     return (
-      <div className="space-y-6">
-        <Empty>
+      <div className="flex flex-col gap-8">
+        <Empty size="compact">
           <EmptyTitle>No active household</EmptyTitle>
           <EmptyDescription>
             Create one to get started, or accept an invitation you were sent.
           </EmptyDescription>
         </Empty>
-        <CreateOrganizationCard />
+        <CreateHousehold />
       </div>
     );
   }
@@ -486,9 +513,22 @@ const RouteComponent = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-8">
+      <div className="flex items-center gap-4">
+        <HouseholdMark name={organization.data.name} size="lg" />
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate text-xl font-semibold">
+            {organization.data.name}
+          </span>
+          <span className="text-muted-foreground text-sm">
+            {members.length} {members.length === 1 ? "member" : "members"} ·
+            you’re {roleLabel(viewerRole).toLowerCase()}
+          </span>
+        </div>
+      </div>
+
       {householdProfile.isPending || currencies.isPending ? (
-        <Skeleton className="h-48 w-full" />
+        <Skeleton className="h-40 w-full" radius="2xl" />
       ) : null}
       {householdProfile.data && currencies.data ? (
         <HouseholdFinanceCard
@@ -500,22 +540,29 @@ const RouteComponent = () => {
       ) : null}
       {householdProfile.isError || currencies.isError ? (
         <p className="text-muted-foreground text-sm">
-          Could not load household financial settings.
+          Couldn’t load the household’s money defaults.
         </p>
       ) : null}
-      <MembersCard canInvite={canInvite} members={members} />
+
+      <Members currentUserId={session.user.id} members={members} />
       {canInvite ? (
         <>
-          <InvitationsCard invitations={organization.data.invitations ?? []} />
+          <PendingInvitations
+            invitations={organization.data.invitations ?? []}
+          />
           <InviteForm organizationId={organization.data.id} />
         </>
-      ) : null}
-      <CreateOrganizationCard />
+      ) : (
+        <p className="text-muted-foreground px-4 text-xs">
+          Only owners and admins can invite people to this household.
+        </p>
+      )}
+      <CreateHousehold />
     </div>
   );
 };
 
 export const Route = createFileRoute("/_auth/settings/household")({
-  component: RouteComponent,
+  component: HouseholdSettings,
   head: () => ({ meta: [{ title: "Household" }] }),
 });

@@ -47,7 +47,7 @@ export const BreadcrumbLink = ({
   ...props
 }: useRender.ComponentProps<"a">): React.ReactElement => {
   const defaultProps = {
-    className: cn("hover:text-foreground transition-colors", className),
+    className: cn("hover:text-foreground text-sm transition-colors", className),
     "data-slot": "breadcrumb-link",
   };
 
@@ -64,7 +64,7 @@ export const BreadcrumbPage = ({
 }: React.ComponentProps<"span">): React.ReactElement => (
   <span
     aria-current="page"
-    className={cn("text-foreground font-normal", className)}
+    className={cn("text-foreground truncate text-sm font-semibold", className)}
     data-slot="breadcrumb-page"
     {...props}
   />

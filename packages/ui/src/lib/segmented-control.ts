@@ -6,20 +6,20 @@ export const segmentedControlItemSizeClassNames: Record<
   SegmentedControlSize,
   string
 > = {
-  default: "h-8.5 px-[calc(--spacing(2.5)-1px)] sm:h-7.5",
-  lg: "h-9.5 px-[calc(--spacing(3)-1px)] sm:h-8.5",
-  sm: "h-7.5 px-[calc(--spacing(2)-1px)] sm:h-6.5",
+  default: "h-8 px-3 sm:h-7",
+  lg: "h-10 px-4 sm:h-9",
+  sm: "h-7 px-2.5 sm:h-6",
 };
 
 export const segmentedControlRootClassName =
-  "relative z-0 flex w-fit items-center justify-center gap-0.5 rounded-lg bg-muted p-0.5";
+  "relative z-0 flex w-fit items-center justify-center gap-0.5 rounded-lg bg-secondary p-0.5";
 
 export const segmentedControlItemLayoutClassName =
   "gap-1.5 [&_svg:not([class*='opacity-'])]:opacity-80 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:-mx-0.5 [&_svg]:shrink-0";
 
 export const segmentedControlItemVariants = cva(
   [
-    "text-muted-foreground/72 hover:text-muted-foreground focus-visible:outline-ring relative inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent text-base font-medium whitespace-nowrap outline-2 outline-transparent transition-[outline-color] select-none hover:bg-transparent disabled:pointer-events-none disabled:opacity-64 data-disabled:pointer-events-none data-disabled:opacity-64 sm:text-sm",
+    "text-muted-foreground hover:text-foreground focus-visible:outline-ring relative inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent text-base font-medium whitespace-nowrap outline-2 outline-transparent transition-[outline-color] select-none hover:bg-transparent disabled:pointer-events-none disabled:opacity-64 data-disabled:pointer-events-none data-disabled:opacity-64 sm:text-sm",
     segmentedControlItemLayoutClassName,
   ],
   {

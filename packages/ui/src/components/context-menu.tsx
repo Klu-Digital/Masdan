@@ -56,7 +56,7 @@ export const ContextMenuPopup = ({
     >
       <ContextMenuPrimitive.Popup
         className={cn(
-          "bg-popover relative flex origin-(--transform-origin) rounded-lg border shadow-lg/5 outline-none not-dark:bg-clip-padding not-[class*='w-']:min-w-32 before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-lg)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] focus:outline-none dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
+          "bg-popover ease-spring relative flex origin-(--transform-origin) rounded-xl shadow-lg transition-[scale,opacity] duration-300 outline-none not-[class*='w-']:min-w-32 focus:outline-none data-ending-style:scale-98 data-ending-style:opacity-0 data-ending-style:duration-150 data-instant:duration-0 data-starting-style:scale-96 data-starting-style:opacity-0 motion-reduce:data-starting-style:scale-100",
           className
         )}
         data-slot="context-menu-popup"
@@ -87,7 +87,7 @@ export const ContextMenuItem = ({
 }): React.ReactElement => (
   <ContextMenuPrimitive.Item
     className={cn(
-      "text-foreground data-highlighted:bg-accent data-[variant=destructive]:text-destructive-foreground data-highlighted:text-accent-foreground flex min-h-8 cursor-default items-center gap-2 rounded-sm px-2 py-1 text-base outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-64 data-inset:ps-8 sm:min-h-7 sm:text-sm [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0 [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4.5 sm:[&>svg:not([class*='size-'])]:size-4",
+      "text-foreground data-highlighted:bg-accent data-[variant=destructive]:text-destructive-foreground data-highlighted:text-accent-foreground flex min-h-9 cursor-default items-center gap-2 rounded-md px-2 py-1 text-base outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-inset:ps-8 sm:min-h-8 sm:text-sm [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0 [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4.5 sm:[&>svg:not([class*='size-'])]:size-4",
       className
     )}
     data-inset={inset}
@@ -109,7 +109,7 @@ export const ContextMenuLinkItem = ({
 }): React.ReactElement => (
   <ContextMenuPrimitive.LinkItem
     className={cn(
-      "text-foreground data-highlighted:bg-accent data-[variant=destructive]:text-destructive-foreground data-highlighted:text-accent-foreground flex min-h-8 cursor-default items-center gap-2 rounded-sm px-2 py-1 text-base outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-64 data-inset:ps-8 sm:min-h-7 sm:text-sm [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0 [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4.5 sm:[&>svg:not([class*='size-'])]:size-4",
+      "text-foreground data-highlighted:bg-accent data-[variant=destructive]:text-destructive-foreground data-highlighted:text-accent-foreground flex min-h-9 cursor-default items-center gap-2 rounded-md px-2 py-1 text-base outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-inset:ps-8 sm:min-h-8 sm:text-sm [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0 [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4.5 sm:[&>svg:not([class*='size-'])]:size-4",
       className
     )}
     closeOnClick={closeOnClick}
@@ -132,7 +132,7 @@ export const ContextMenuCheckboxItem = ({
   <ContextMenuPrimitive.CheckboxItem
     checked={checked}
     className={cn(
-      "text-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground grid min-h-8 cursor-default items-center gap-2 rounded-sm py-1 ps-2 text-base outline-none in-data-[side=none]:min-w-[calc(var(--anchor-width)+1.25rem)] data-disabled:pointer-events-none data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4",
+      "text-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground grid min-h-9 cursor-default items-center gap-2 rounded-md py-1 ps-2 text-base outline-none in-data-[side=none]:min-w-[calc(var(--anchor-width)+1.25rem)] data-disabled:pointer-events-none data-disabled:opacity-50 sm:min-h-8 sm:text-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4",
       variant === "switch"
         ? "grid-cols-[1fr_auto] gap-4 pe-1.5"
         : "grid-cols-[.75rem_1fr] pe-4",
@@ -145,10 +145,10 @@ export const ContextMenuCheckboxItem = ({
       <>
         <span className="col-start-1">{children}</span>
         <ContextMenuPrimitive.CheckboxItemIndicator
-          className="focus-visible:ring-ring focus-visible:ring-offset-background data-checked:bg-primary data-unchecked:bg-input inline-flex h-[calc(var(--thumb-size)+2px)] w-[calc(var(--thumb-size)*2-2px)] shrink-0 items-center rounded-full p-px inset-shadow-[0_1px_--theme(--color-black/4%)] transition-[background-color,box-shadow] duration-200 outline-none [--thumb-size:--spacing(4)] focus-visible:ring-2 focus-visible:ring-offset-1 data-disabled:opacity-64 sm:[--thumb-size:--spacing(3)]"
+          className="focus-visible:ring-ring focus-visible:ring-offset-background data-checked:bg-primary data-unchecked:bg-input inline-flex h-[calc(var(--thumb-size)+2px)] w-[calc(var(--thumb-size)*2-2px)] shrink-0 items-center rounded-full p-px inset-shadow-[0_1px_--theme(--color-black/4%)] transition-[background-color,box-shadow] duration-200 outline-none [--thumb-size:--spacing(4)] focus-visible:ring-2 focus-visible:ring-offset-1 data-disabled:opacity-50 sm:[--thumb-size:--spacing(3)]"
           keepMounted
         >
-          <span className="bg-background pointer-events-none block aspect-square h-full origin-left rounded-(--thumb-size) shadow-sm/5 will-change-transform [transition:translate_.15s,border-radius_.15s,scale_.1s_.1s,transform-origin_.15s] in-[[data-slot=context-menu-checkbox-item]:active]:rounded-[var(--thumb-size)/calc(var(--thumb-size)*1.10)] in-[[data-slot=context-menu-checkbox-item]:active]:not-data-disabled:scale-x-110 in-[[data-slot=context-menu-checkbox-item][data-checked]]:origin-[var(--thumb-size)_50%] in-[[data-slot=context-menu-checkbox-item][data-checked]]:translate-x-[calc(var(--thumb-size)-4px)]" />
+          <span className="bg-background pointer-events-none block aspect-square h-full origin-left rounded-(--thumb-size) shadow-xs will-change-transform [transition:translate_.15s,border-radius_.15s,scale_.1s_.1s,transform-origin_.15s] in-[[data-slot=context-menu-checkbox-item]:active]:rounded-[var(--thumb-size)/calc(var(--thumb-size)*1.10)] in-[[data-slot=context-menu-checkbox-item]:active]:not-data-disabled:scale-x-110 in-[[data-slot=context-menu-checkbox-item][data-checked]]:origin-[var(--thumb-size)_50%] in-[[data-slot=context-menu-checkbox-item][data-checked]]:translate-x-[calc(var(--thumb-size)-4px)]" />
         </ContextMenuPrimitive.CheckboxItemIndicator>
       </>
     ) : (
@@ -191,7 +191,7 @@ export const ContextMenuRadioItem = ({
 }: ContextMenuPrimitive.RadioItem.Props): React.ReactElement => (
   <ContextMenuPrimitive.RadioItem
     className={cn(
-      "text-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground grid min-h-8 cursor-default grid-cols-[.75rem_1fr] items-center gap-2 rounded-sm py-1 ps-2 pe-4 text-base outline-none in-data-[side=none]:min-w-[calc(var(--anchor-width)+1.25rem)] data-disabled:pointer-events-none data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4",
+      "text-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground grid min-h-9 cursor-default grid-cols-[.75rem_1fr] items-center gap-2 rounded-md py-1 ps-2 pe-4 text-base outline-none in-data-[side=none]:min-w-[calc(var(--anchor-width)+1.25rem)] data-disabled:pointer-events-none data-disabled:opacity-50 sm:min-h-8 sm:text-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4",
       className
     )}
     data-slot="context-menu-radio-item"
@@ -252,7 +252,7 @@ export const ContextMenuShortcut = ({
 }: React.ComponentProps<"kbd">): React.ReactElement => (
   <kbd
     className={cn(
-      "text-muted-foreground/72 ms-auto font-sans text-xs font-medium tracking-widest",
+      "text-faint ms-auto font-sans text-xs font-medium tracking-widest",
       className
     )}
     data-slot="context-menu-shortcut"
@@ -276,7 +276,7 @@ export const ContextMenuSubTrigger = ({
 }): React.ReactElement => (
   <ContextMenuPrimitive.SubmenuTrigger
     className={cn(
-      "text-foreground data-highlighted:bg-accent data-popup-open:bg-accent data-highlighted:text-accent-foreground data-popup-open:text-accent-foreground flex min-h-8 items-center gap-2 rounded-sm px-2 py-1 text-base outline-none data-disabled:pointer-events-none data-disabled:opacity-64 data-inset:ps-8 sm:min-h-7 sm:text-sm [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&>svg:not(:last-child)]:-mx-0.5",
+      "text-foreground data-highlighted:bg-accent data-popup-open:bg-accent data-highlighted:text-accent-foreground data-popup-open:text-accent-foreground flex min-h-9 items-center gap-2 rounded-md px-2 py-1 text-base outline-none data-disabled:pointer-events-none data-disabled:opacity-50 data-inset:ps-8 sm:min-h-8 sm:text-sm [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&>svg:not(:last-child)]:-mx-0.5",
       className
     )}
     data-inset={inset}

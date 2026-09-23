@@ -70,15 +70,16 @@ describe("HouseholdFinanceCard", () => {
 
     expect(screen.getByText(/Philippine Peso/u)).toBeTruthy();
     expect(screen.getByText("Asia/Manila")).toBeTruthy();
+    expect(screen.getByText("Money defaults")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Save/u })).toBeNull();
   });
 
   it("seeds both pickers from the current profile", () => {
     renderCard(true);
 
-    expect(
-      screen.getByRole("combobox", { name: "Default currency" })
-    ).toHaveValue("PHP — Philippine Peso");
+    expect(screen.getByRole("combobox", { name: "Currency" })).toHaveValue(
+      "PHP — Philippine Peso"
+    );
     expect(screen.getByRole("combobox", { name: "Timezone" })).toHaveValue(
       "Asia/Manila"
     );
@@ -88,7 +89,7 @@ describe("HouseholdFinanceCard", () => {
     const user = userEvent.setup();
     renderCard(true);
 
-    const currency = screen.getByRole("combobox", { name: "Default currency" });
+    const currency = screen.getByRole("combobox", { name: "Currency" });
     await user.clear(currency);
     await user.type(currency, "Japanese");
     await user.click(await screen.findByRole("option", { name: /Japanese/u }));

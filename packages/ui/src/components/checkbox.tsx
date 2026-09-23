@@ -10,14 +10,14 @@ export const Checkbox = ({
 }: CheckboxPrimitive.Root.Props): React.ReactElement => (
   <CheckboxPrimitive.Root
     className={cn(
-      "border-input bg-background ring-ring focus-visible:ring-offset-background aria-invalid:border-destructive/36 focus-visible:aria-invalid:border-destructive/64 focus-visible:aria-invalid:ring-destructive/48 dark:not-data-checked:bg-input/32 dark:aria-invalid:ring-destructive/24 relative inline-flex size-4.5 shrink-0 items-center justify-center rounded-[.25rem] border shadow-xs/5 transition-shadow outline-none not-dark:bg-clip-padding before:pointer-events-none before:absolute before:inset-0 before:rounded-[3px] not-data-disabled:not-data-checked:not-aria-invalid:before:shadow-[0_1px_--theme(--color-black/4%)] focus-visible:ring-2 focus-visible:ring-offset-1 data-disabled:cursor-not-allowed data-disabled:opacity-64 sm:size-4 dark:not-data-disabled:not-data-checked:not-aria-invalid:before:shadow-[0_-1px_--theme(--color-white/6%)] [[data-disabled],[data-checked],[aria-invalid]]:shadow-none",
+      "border-input bg-background ring-ring focus-visible:ring-offset-background aria-invalid:border-destructive/36 focus-visible:aria-invalid:border-destructive/64 focus-visible:aria-invalid:ring-destructive/48 dark:not-data-checked:bg-input/32 dark:aria-invalid:ring-destructive/24 relative inline-flex size-4.5 shrink-0 items-center justify-center rounded-[.25rem] border shadow-xs transition-shadow outline-none before:rounded-[3px] focus-visible:ring-2 focus-visible:ring-offset-1 data-disabled:cursor-not-allowed data-disabled:opacity-50 sm:size-4 [[data-disabled],[data-checked],[aria-invalid]]:shadow-none",
       className
     )}
     data-slot="checkbox"
     {...props}
   >
     <CheckboxPrimitive.Indicator
-      className="text-primary-foreground data-checked:bg-primary data-indeterminate:text-foreground absolute -inset-px flex items-center justify-center rounded-[.25rem] data-unchecked:hidden"
+      className="text-brand-foreground data-checked:bg-brand data-indeterminate:text-foreground absolute -inset-px flex items-center justify-center rounded-[.25rem] data-unchecked:hidden"
       data-slot="checkbox-indicator"
       render={(
         indicatorProps: React.ComponentProps<"span">,

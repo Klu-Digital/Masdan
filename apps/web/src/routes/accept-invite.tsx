@@ -94,13 +94,17 @@ const InvitationCard = ({ invitationId }: { invitationId: string }) => {
         title="Invitation unavailable"
       >
         <div className="grid gap-2">
-          <Link to="/dashboard">
-            <Button className="w-full" variant="outline">
-              Go to the app
-            </Button>
-          </Link>
           <Button
             className="w-full"
+            render={<Link to="/dashboard" />}
+            size="lg"
+            variant="secondary"
+          >
+            Go to the app
+          </Button>
+          <Button
+            className="w-full"
+            size="lg"
             onClick={async () => {
               await authClient.signOut();
               await invalidateSession(queryClient);
@@ -125,6 +129,7 @@ const InvitationCard = ({ invitationId }: { invitationId: string }) => {
       <div className="grid gap-2">
         <Button
           className="w-full"
+          size="lg"
           loading={accept.isPending}
           onClick={() => accept.mutate(invitation.data.organizationId)}
         >
@@ -132,6 +137,7 @@ const InvitationCard = ({ invitationId }: { invitationId: string }) => {
         </Button>
         <Button
           className="w-full"
+          size="lg"
           loading={decline.isPending}
           onClick={() => decline.mutate()}
           variant="ghost"
@@ -152,9 +158,9 @@ const RouteComponent = () => {
         description="That invitation link is missing its identifier. Ask whoever invited you to send it again."
         title="Invitation link incomplete"
       >
-        <Link to="/dashboard">
-          <Button className="w-full">Go to the app</Button>
-        </Link>
+        <Button className="w-full" render={<Link to="/dashboard" />} size="lg">
+          Go to the app
+        </Button>
       </AuthShell>
     );
   }

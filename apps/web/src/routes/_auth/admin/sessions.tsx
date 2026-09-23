@@ -171,7 +171,7 @@ const RouteComponent = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl font-semibold">Sessions</h1>
+        <h1 className="text-2xl font-bold">Sessions</h1>
         <div className="flex items-center gap-2 text-sm">
           <label htmlFor="active-only">Active only</label>
           <Switch

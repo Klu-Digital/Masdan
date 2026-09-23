@@ -1,47 +1,55 @@
-import { TAILWIND_COLORS } from "@masdan/api/colors";
-import type { TailwindColor } from "@masdan/api/colors";
+import { Tick02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { PALETTE, PALETTE_COLORS } from "@masdan/ui/lib/palette";
+import type { PaletteColor } from "@masdan/ui/lib/palette";
 import { cn } from "@masdan/ui/lib/utils";
 
-import { COLOR_STYLES } from "./color-styles";
+const colorLabel = (color: string) => color[0]?.toUpperCase() + color.slice(1);
 
-const colorLabel = (color: TailwindColor) =>
-  color[0].toUpperCase() + color.slice(1);
-
-export const ColorSelector = ({
-  legend = "Colors",
+/** A row of swatches; arrow keys move within the group like any radio set. */
+export const ColorSelector = <T extends string>({
+  legend = "Color",
   onValueChange,
   value,
 }: {
   legend?: string;
-  onValueChange: (value: TailwindColor) => void;
-  value: TailwindColor;
+  onValueChange: (value: T) => void;
+  value: T | null;
 }) => (
-  <fieldset className="grid grid-cols-4 gap-2 sm:grid-cols-8 lg:grid-cols-11">
+  <fieldset className="flex flex-wrap gap-2">
     <legend className="sr-only">{legend}</legend>
-    {TAILWIND_COLORS.map((color) => (
-      <button
-        aria-label={colorLabel(color)}
-        aria-pressed={color === value}
-        className={cn(
-          "focus-visible:ring-ring flex w-full flex-col items-center gap-1 rounded-md text-xs outline-none focus-visible:ring-2 data-[selected=true]:ring-2",
-          COLOR_STYLES[color].ring
-        )}
-        data-selected={color === value}
-        key={color}
-        onClick={() => onValueChange(color)}
-        title={colorLabel(color)}
-        type="button"
-      >
-        <span
-          aria-hidden="true"
-          className={cn(
-            "border-border block size-8 rounded-md border",
-            color === value
-              ? COLOR_STYLES[color].swatch
-              : COLOR_STYLES[color].badge
-          )}
-        />
-      </button>
-    ))}
+    {PALETTE_COLORS.map((color: PaletteColor) => {
+      const selected = color === value;
+      return (
+        <label className="relative" key={color} title={colorLabel(color)}>
+          <input
+            aria-label={colorLabel(color)}
+            checked={selected}
+            className="peer sr-only"
+            name={legend}
+            onChange={() => onValueChange(color as T)}
+            type="radio"
+            value={color}
+          />
+          <span
+            aria-hidden="true"
+            className={cn(
+              "text-brand-foreground peer-focus-visible:ring-ring/50 flex size-7 cursor-pointer items-center justify-center rounded-full transition-transform duration-150 peer-focus-visible:ring-3 hover:scale-110 active:scale-95 motion-reduce:hover:scale-100",
+              PALETTE[color].solid,
+              selected &&
+                "ring-foreground ring-offset-background ring-2 ring-offset-2"
+            )}
+          >
+            {selected ? (
+              <HugeiconsIcon
+                className="size-3.5"
+                icon={Tick02Icon}
+                strokeWidth={3}
+              />
+            ) : null}
+          </span>
+        </label>
+      );
+    })}
   </fieldset>
 );

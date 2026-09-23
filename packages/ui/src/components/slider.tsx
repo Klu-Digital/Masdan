@@ -35,7 +35,7 @@ export const Slider = ({
     >
       {children}
       <SliderPrimitive.Control
-        className="flex touch-none select-none data-disabled:pointer-events-none data-disabled:opacity-64 data-[orientation=horizontal]:w-full data-[orientation=horizontal]:min-w-44 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:flex-col"
+        className="flex touch-none select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-[orientation=horizontal]:w-full data-[orientation=horizontal]:min-w-44 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:flex-col"
         data-slot="slider-control"
       >
         <SliderPrimitive.Track
@@ -48,7 +48,7 @@ export const Slider = ({
           />
           {Array.from({ length: _values.length }, (_, index) => (
             <SliderPrimitive.Thumb
-              className="border-input has-focus-visible:ring-ring/24 dark:border-background dark:has-focus-visible:ring-ring/48 block size-5 shrink-0 rounded-full border bg-white shadow-xs/5 transition-[box-shadow,scale] outline-none select-none not-dark:bg-clip-padding before:absolute before:inset-0 before:rounded-full before:shadow-[0_1px_--theme(--color-black/4%)] has-focus-visible:ring-[3px] data-dragging:scale-120 sm:size-4 [:has(*:focus-visible),[data-dragging]]:shadow-none"
+              className="border-input has-focus-visible:ring-ring/24 dark:border-background dark:has-focus-visible:ring-ring/48 block size-5 shrink-0 rounded-full border bg-white shadow-xs transition-[box-shadow,scale] outline-none select-none before:rounded-full has-focus-visible:ring-3 data-dragging:scale-120 sm:size-4 [:has(*:focus-visible),[data-dragging]]:shadow-none"
               data-slot="slider-thumb"
               index={index}
               key={String(index)}

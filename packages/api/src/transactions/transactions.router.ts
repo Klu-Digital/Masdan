@@ -12,6 +12,7 @@ import {
   and,
   asc,
   count,
+  countDistinct,
   desc,
   eq,
   exists,
@@ -22,11 +23,13 @@ import {
   lte,
   notExists,
   or,
+  sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 import { CATEGORY_TYPES } from "../categories/constants";
+import type { CategoryType } from "../categories/constants";
 import {
   orgMutationProcedure,
   orgProcedure,
@@ -77,33 +80,55 @@ const splitTotal = (splits: { amount: string }[]): bigint => {
 
 const transactionIdInput = z.object({ transactionId: z.uuid() });
 
+const dateRangeOrder = (
+  value: { dateFrom?: string; dateTo?: string },
+  context: z.RefinementCtx
+): void => {
+  if (value.dateFrom && value.dateTo && value.dateFrom > value.dateTo) {
+    context.addIssue({
+      code: "custom",
+      message: "The start date must be before the end date",
+      path: ["dateFrom"],
+    });
+  }
+};
+
+const transactionFilterFields = {
+  accountIds: z.array(z.uuid()).max(50).default([]),
+  categoryIds: z.array(z.uuid()).max(50).default([]),
+  dateFrom: isoDate.optional(),
+  dateTo: isoDate.optional(),
+  includeArchived: z.boolean().default(false),
+  paidStatuses: z.array(z.enum(TRANSACTION_PAID_STATUSES)).max(2).default([]),
+  search: z.string().trim().max(120).default(""),
+  tagIds: z.array(z.uuid()).max(50).default([]),
+  types: z.array(z.enum(CATEGORY_TYPES)).max(2).default([]),
+};
+
+const transactionFilterValues = z
+  .object(transactionFilterFields)
+  .superRefine(dateRangeOrder);
+
 const transactionListValues = z
   .object({
-    accountIds: z.array(z.uuid()).max(50).default([]),
-    categoryIds: z.array(z.uuid()).max(50).default([]),
-    dateFrom: isoDate.optional(),
-    dateTo: isoDate.optional(),
-    includeArchived: z.boolean().default(false),
+    ...transactionFilterFields,
     page: z.number().int().min(1).default(1),
     pageSize: z.number().int().min(1).max(100).default(25),
-    paidStatuses: z.array(z.enum(TRANSACTION_PAID_STATUSES)).max(2).default([]),
-    search: z.string().trim().max(120).default(""),
     sortBy: z.enum(["date", "amount"]).default("date"),
     sortDirection: z.enum(["asc", "desc"]).default("desc"),
-    tagIds: z.array(z.uuid()).max(50).default([]),
-    types: z.array(z.enum(CATEGORY_TYPES)).max(2).default([]),
   })
-  .superRefine((value, context) => {
-    if (value.dateFrom && value.dateTo && value.dateFrom > value.dateTo) {
-      context.addIssue({
-        code: "custom",
-        message: "The start date must be before the end date",
-        path: ["dateFrom"],
-      });
-    }
-  });
+  .superRefine(dateRangeOrder);
 
+type TransactionFilterInput = z.output<typeof transactionFilterValues>;
 type TransactionListInput = z.output<typeof transactionListValues>;
+
+const transactionSummaryValues = z
+  .object({
+    accountIds: z.array(z.uuid()).max(50).default([]),
+    dateFrom: isoDate,
+    dateTo: isoDate,
+  })
+  .superRefine(dateRangeOrder);
 
 const splitValues = z.object({
   amount: positiveAmount,
@@ -325,7 +350,7 @@ const sourcePosting = alias(financialTransaction, "source_posting");
 const transactionListConditions = (
   db: Database,
   organizationId: string,
-  input: TransactionListInput
+  input: TransactionFilterInput
 ) => {
   const conditions = [eq(financialTransaction.organizationId, organizationId)];
 
@@ -571,6 +596,17 @@ const validateSplitCategories = async (
   }
 };
 
+const sumWhereType = (type: CategoryType) =>
+  sql<string>`coalesce(sum(${financialTransaction.amount}) filter (where ${category.type} = ${type}), 0)::text`;
+
+const incomeTotal = sumWhereType("income");
+const expenseTotal = sumWhereType("expense");
+const transactionMonth = sql<string>`to_char(${financialTransaction.transactionDate}, 'YYYY-MM')`;
+// A split parent's own category must not also receive the full amount.
+const lineCategoryId = sql`coalesce(${financialTransactionSplit.categoryId}, ${financialTransaction.categoryId})`;
+const lineAmount = sql`coalesce(${financialTransactionSplit.amount}, ${financialTransaction.amount})`;
+const lineTotal = sql`coalesce(sum(${lineAmount}), 0)`;
+
 export const transactionsRouter = {
   archive: orgMutationProcedure
     .use(requirePermission({ transaction: ["archive"] }))
@@ -740,6 +776,114 @@ export const transactionsRouter = {
       }
 
       return withDetails(context.db, restored);
+    }),
+
+  summary: orgProcedure
+    .use(requirePermission({ transaction: ["read"] }))
+    .input(transactionSummaryValues)
+    .handler(async ({ context, input }) => {
+      const conditions = [
+        eq(financialTransaction.organizationId, context.organizationId),
+        isNull(financialTransaction.archivedAt),
+        isNull(financialTransaction.transferId),
+        gte(financialTransaction.transactionDate, input.dateFrom),
+        lte(financialTransaction.transactionDate, input.dateTo),
+      ];
+      if (input.accountIds.length > 0) {
+        conditions.push(
+          inArray(financialTransaction.accountId, input.accountIds)
+        );
+      }
+
+      const [cashFlow, categories] = await Promise.all([
+        context.db
+          .select({
+            currencyCode: financialTransaction.currencyCode,
+            expense: expenseTotal,
+            income: incomeTotal,
+            month: transactionMonth,
+          })
+          .from(financialTransaction)
+          .innerJoin(category, eq(category.id, financialTransaction.categoryId))
+          .where(and(...conditions))
+          .groupBy(transactionMonth, financialTransaction.currencyCode)
+          .orderBy(
+            asc(transactionMonth),
+            asc(financialTransaction.currencyCode)
+          ),
+        context.db
+          .select({
+            categoryId: category.id,
+            color: category.color,
+            count: countDistinct(financialTransaction.id),
+            currencyCode: financialTransaction.currencyCode,
+            icon: category.icon,
+            name: category.name,
+            total: sql<string>`${lineTotal}::text`,
+            type: sql<CategoryType>`${category.type}`,
+          })
+          .from(financialTransaction)
+          .leftJoin(
+            financialTransactionSplit,
+            eq(financialTransactionSplit.transactionId, financialTransaction.id)
+          )
+          .innerJoin(
+            category,
+            and(
+              eq(category.id, lineCategoryId),
+              eq(category.organizationId, context.organizationId)
+            )
+          )
+          .where(and(...conditions))
+          .groupBy(category.id, financialTransaction.currencyCode)
+          .orderBy(
+            desc(lineTotal),
+            asc(category.name),
+            asc(financialTransaction.currencyCode)
+          ),
+      ]);
+
+      return { cashFlow, categories };
+    }),
+
+  totals: orgProcedure
+    .use(requirePermission({ transaction: ["read"] }))
+    .input(transactionFilterValues)
+    .handler(async ({ context, input }) => {
+      const conditions = transactionListConditions(
+        context.db,
+        context.organizationId,
+        input
+      );
+
+      const [countRows, currencies] = await Promise.all([
+        context.db
+          .select({ total: count() })
+          .from(financialTransaction)
+          .innerJoin(
+            financialAccount,
+            eq(financialAccount.id, financialTransaction.accountId)
+          )
+          .leftJoin(category, eq(category.id, financialTransaction.categoryId))
+          .where(and(...conditions)),
+        context.db
+          .select({
+            currencyCode: financialTransaction.currencyCode,
+            expense: expenseTotal,
+            income: incomeTotal,
+          })
+          .from(financialTransaction)
+          .innerJoin(
+            financialAccount,
+            eq(financialAccount.id, financialTransaction.accountId)
+          )
+          .leftJoin(category, eq(category.id, financialTransaction.categoryId))
+          .where(and(...conditions, isNull(financialTransaction.transferId)))
+          .groupBy(financialTransaction.currencyCode)
+          .orderBy(asc(financialTransaction.currencyCode)),
+      ]);
+
+      return { count: countRows[0]?.total ?? 0, currencies };
     }),
 
   update: orgMutationProcedure

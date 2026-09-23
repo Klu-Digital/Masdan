@@ -57,7 +57,7 @@ const RouteComponent = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading flex items-center gap-2 text-2xl font-semibold">
+        <h1 className="flex items-center gap-2 text-2xl font-bold">
           {organization.name}
           {organization.isPersonal ? (
             <Badge variant="outline">personal</Badge>

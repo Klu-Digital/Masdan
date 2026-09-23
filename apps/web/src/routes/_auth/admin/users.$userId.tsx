@@ -468,7 +468,7 @@ const RouteComponent = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-semibold">{user.name}</h1>
+        <h1 className="text-2xl font-bold">{user.name}</h1>
         <p className="text-muted-foreground text-sm">{user.email}</p>
       </div>
 

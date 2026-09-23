@@ -5,131 +5,275 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Masdan design tokens.
+ *
+ * Surfaces step by luminance: canvas → surface (grouped content) → raised
+ * (menus, sheets, dialogs). Money has its own semantic colours: income is
+ * `positive`, spending stays in `foreground` so a ledger never reads as a wall
+ * of red, and red is reserved for real problems (over limit, overdue, errors).
+ */
 :root {
-  --background: var(--color-white);
-  --foreground: var(--color-neutral-800);
-  --card: var(--color-white);
-  --card-foreground: var(--color-neutral-800);
-  --popover: var(--color-white);
-  --popover-foreground: var(--color-neutral-800);
-  --primary: var(--color-neutral-800);
-  --primary-foreground: var(--color-neutral-50);
-  --secondary: --alpha(var(--color-black) / 4%);
-  --secondary-foreground: var(--color-neutral-800);
-  --muted: --alpha(var(--color-black) / 4%);
-  --muted-foreground: color-mix(
-    in srgb,
-    var(--color-neutral-500) 90%,
-    var(--color-black)
-  );
-  --accent: --alpha(var(--color-black) / 4%);
-  --accent-foreground: var(--color-neutral-800);
-  --destructive: var(--color-red-500);
-  --border: --alpha(var(--color-black) / 8%);
-  --input: --alpha(var(--color-black) / 10%);
-  --ring: var(--color-neutral-400);
-  --chart-1: var(--color-orange-600);
-  --chart-2: var(--color-teal-600);
-  --chart-3: var(--color-cyan-900);
-  --chart-4: var(--color-amber-400);
-  --chart-5: var(--color-amber-500);
-  --code: var(--color-white);
+  --background: #ffffff;
+  --foreground: #1d1d1f;
+  --surface: #f5f5f7;
+  --surface-hover: #eeeef1;
+  --card: #f5f5f7;
+  --card-foreground: #1d1d1f;
+  --popover: #ffffff;
+  --popover-foreground: #1d1d1f;
+  --primary: #1d1d1f;
+  --primary-foreground: #ffffff;
+  --secondary: rgb(0 0 0 / 5%);
+  --secondary-foreground: #1d1d1f;
+  --muted: rgb(0 0 0 / 4%);
+  --muted-foreground: #6e6e73;
+  --faint: #a1a1a6;
+  --accent: rgb(0 0 0 / 4.5%);
+  --accent-foreground: #1d1d1f;
+  --brand: #3e63dd;
+  --brand-foreground: #ffffff;
+  --brand-text: #3451c7;
+  --brand-soft: rgb(62 99 221 / 10%);
+  --destructive: #e5484d;
+  --destructive-foreground: #ce2c31;
+  --positive: #30a46c;
+  --positive-foreground: #18794e;
+  --positive-soft: rgb(48 164 108 / 12%);
+  --warning: #f5a524;
+  --warning-foreground: #ab5b00;
+  --warning-soft: rgb(245 165 36 / 14%);
+  --danger-soft: rgb(229 72 77 / 10%);
+  --info: #3e63dd;
+  --info-foreground: #3451c7;
+  --success: #30a46c;
+  --success-foreground: #18794e;
+  --border: rgb(0 0 0 / 8%);
+  --hairline: rgb(0 0 0 / 7%);
+  --input: rgb(0 0 0 / 12%);
+  --ring: #3e63dd;
+  --chart-1: #3e63dd;
+  --chart-2: #30a46c;
+  --chart-3: #1d1d1f;
+  --chart-4: #f5a524;
+  --chart-5: #b4b4b9;
+  --chart-grid: rgb(0 0 0 / 6%);
+  --code: #f5f5f7;
   --code-foreground: var(--foreground);
-  --code-highlight: --alpha(var(--color-black) / 4%);
-  --radius: 0.625rem;
-  --sidebar: color-mix(
-    in srgb,
-    var(--color-neutral-100) 65%,
-    var(--color-neutral-50)
-  );
-  --sidebar-foreground: color-mix(
-    in srgb,
-    var(--color-neutral-800) 64%,
-    var(--sidebar)
-  );
-  --sidebar-primary: var(--color-neutral-800);
-  --sidebar-primary-foreground: var(--color-neutral-50);
-  --sidebar-accent: --alpha(var(--color-black) / 4%);
-  --sidebar-accent-foreground: var(--color-neutral-800);
-  --sidebar-border: --alpha(var(--color-black) / 6%);
-  --sidebar-ring: var(--color-neutral-400);
-  --destructive-foreground: var(--color-red-700);
-  --info: var(--color-blue-500);
-  --info-foreground: var(--color-blue-700);
-  --success: var(--color-emerald-500);
-  --success-foreground: var(--color-emerald-700);
-  --warning: var(--color-amber-500);
-  --warning-foreground: var(--color-amber-700);
+  --code-highlight: rgb(0 0 0 / 4%);
+  --sidebar: #f5f5f7;
+  --sidebar-foreground: #3a3a3c;
+  --sidebar-primary: #1d1d1f;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgb(0 0 0 / 6%);
+  --sidebar-accent-foreground: #1d1d1f;
+  --sidebar-border: rgb(0 0 0 / 6%);
+  --sidebar-ring: #3e63dd;
+  --material: rgb(255 255 255 / 78%);
+  --scrim: rgb(0 0 0 / 28%);
+  --elevation-raised:
+    0 0 0 0.5px rgb(0 0 0 / 7%), 0 2px 6px -1px rgb(0 0 0 / 6%),
+    0 12px 32px -8px rgb(0 0 0 / 14%);
+  --elevation-overlay:
+    0 0 0 0.5px rgb(0 0 0 / 6%), 0 8px 20px -4px rgb(0 0 0 / 8%),
+    0 32px 64px -16px rgb(0 0 0 / 22%);
+  --elevation-control: 0 0 0 0.5px rgb(0 0 0 / 6%), 0 1px 2px rgb(0 0 0 / 6%);
+  color-scheme: light;
 }
 
 .dark {
-  --background: color-mix(
-    in srgb,
-    var(--color-neutral-950) 93%,
-    var(--color-white)
-  );
-  --foreground: var(--color-neutral-100);
-  --card: color-mix(in srgb, var(--background) 98%, var(--color-white));
-  --card-foreground: var(--color-neutral-100);
-  --popover: color-mix(in srgb, var(--background) 98%, var(--color-white));
-  --popover-foreground: var(--color-neutral-100);
-  --primary: var(--color-neutral-100);
-  --primary-foreground: var(--color-neutral-800);
-  --secondary: --alpha(var(--color-white) / 4%);
-  --secondary-foreground: var(--color-neutral-100);
-  --muted: --alpha(var(--color-white) / 4%);
-  --muted-foreground: color-mix(
-    in srgb,
-    var(--color-neutral-500) 90%,
-    var(--color-white)
-  );
-  --accent: --alpha(var(--color-white) / 4%);
-  --accent-foreground: var(--color-neutral-100);
-  --destructive: color-mix(
-    in srgb,
-    var(--color-red-500) 90%,
-    var(--color-white)
-  );
-  --border: --alpha(var(--color-white) / 6%);
-  --input: --alpha(var(--color-white) / 8%);
-  --ring: var(--color-neutral-500);
-  --chart-1: var(--color-blue-700);
-  --chart-2: var(--color-emerald-500);
-  --chart-3: var(--color-amber-500);
-  --chart-4: var(--color-purple-500);
-  --chart-5: var(--color-rose-500);
-  --code: color-mix(in srgb, var(--background) 98%, var(--color-white));
+  --background: #151517;
+  --foreground: #f5f5f7;
+  --surface: #1e1e21;
+  --surface-hover: #26262a;
+  --card: #1e1e21;
+  --card-foreground: #f5f5f7;
+  --popover: #232327;
+  --popover-foreground: #f5f5f7;
+  --primary: #f5f5f7;
+  --primary-foreground: #151517;
+  --secondary: rgb(255 255 255 / 8%);
+  --secondary-foreground: #f5f5f7;
+  --muted: rgb(255 255 255 / 5%);
+  --muted-foreground: #98989f;
+  --faint: #636369;
+  --accent: rgb(255 255 255 / 6.5%);
+  --accent-foreground: #f5f5f7;
+  --brand: #5472e4;
+  --brand-foreground: #ffffff;
+  --brand-text: #9eb1ff;
+  --brand-soft: rgb(84 114 228 / 18%);
+  --destructive: #e5484d;
+  --destructive-foreground: #ff9592;
+  --positive: #33b074;
+  --positive-foreground: #3dd68c;
+  --positive-soft: rgb(51 176 116 / 16%);
+  --warning: #ffc53d;
+  --warning-foreground: #ffca16;
+  --warning-soft: rgb(255 197 61 / 14%);
+  --danger-soft: rgb(229 72 77 / 18%);
+  --info: #5472e4;
+  --info-foreground: #9eb1ff;
+  --success: #33b074;
+  --success-foreground: #3dd68c;
+  --border: rgb(255 255 255 / 8%);
+  --hairline: rgb(255 255 255 / 7%);
+  --input: rgb(255 255 255 / 12%);
+  --ring: #7d95f5;
+  --chart-1: #6e8bf0;
+  --chart-2: #2f9e68;
+  --chart-3: #e8e8ed;
+  --chart-4: #ffc53d;
+  --chart-5: #48484e;
+  --chart-grid: rgb(255 255 255 / 7%);
+  --code: #1e1e21;
   --code-foreground: var(--foreground);
-  --code-highlight: --alpha(var(--color-white) / 4%);
-  --sidebar: color-mix(
-    in srgb,
-    var(--color-neutral-950) 97%,
-    var(--color-white)
+  --code-highlight: rgb(255 255 255 / 5%);
+  --sidebar: #1c1c1f;
+  --sidebar-foreground: #c7c7cc;
+  --sidebar-primary: #f5f5f7;
+  --sidebar-primary-foreground: #151517;
+  --sidebar-accent: rgb(255 255 255 / 7%);
+  --sidebar-accent-foreground: #f5f5f7;
+  --sidebar-border: rgb(255 255 255 / 6%);
+  --sidebar-ring: #7d95f5;
+  --material: rgb(21 21 23 / 76%);
+  --scrim: rgb(0 0 0 / 52%);
+  --elevation-raised:
+    0 0 0 0.5px rgb(255 255 255 / 9%), 0 2px 6px -1px rgb(0 0 0 / 30%),
+    0 16px 36px -8px rgb(0 0 0 / 50%);
+  --elevation-overlay:
+    0 0 0 0.5px rgb(255 255 255 / 10%), 0 8px 24px -4px rgb(0 0 0 / 40%),
+    0 40px 80px -16px rgb(0 0 0 / 60%);
+  --elevation-control:
+    0 0 0 0.5px rgb(255 255 255 / 8%), 0 1px 2px rgb(0 0 0 / 30%);
+  color-scheme: dark;
+}
+
+@theme {
+  /* The type scale rides Tailwind's own size names so tooling that only
+     knows the defaults (tailwind-merge, the lint rules) classifies it
+     correctly. Size-specific tracking: large type tightens, body stays near
+     zero.
+       text-4xl  display   34/40  — the one hero figure per screen
+       text-2xl  title 1   26/32  — page titles (with font-bold)
+       text-xl   title 2   20/26  — sheet titles, secondary figures
+       text-base title 3   16/22  — section headings (with font-semibold)
+       text-sm   body      14/20
+       text-xs   caption   12/16
+       text-2xs  micro     11/14 */
+  --text-4xl: 2.125rem;
+  --text-4xl--line-height: 2.5rem;
+  --text-4xl--letter-spacing: -0.028em;
+  --text-2xl: 1.625rem;
+  --text-2xl--line-height: 2rem;
+  --text-2xl--letter-spacing: -0.022em;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.625rem;
+  --text-xl--letter-spacing: -0.017em;
+  --text-base--line-height: 1.375rem;
+  --text-base--letter-spacing: -0.011em;
+  --text-sm--letter-spacing: -0.006em;
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 0.875rem;
+  --text-2xs--letter-spacing: 0.02em;
+
+  /* Critically damped spring (damping 1.0), sampled for CSS. Settles in
+     ~490ms at response 0.35s; scale the duration for other responses. */
+  --ease-spring: linear(
+    0,
+    0.0528,
+    0.1674,
+    0.3008,
+    0.4308,
+    0.5468,
+    0.6452,
+    0.7259,
+    0.7905,
+    0.8412,
+    0.8806,
+    0.9107,
+    0.9336,
+    0.9509,
+    0.9638,
+    0.9734,
+    0.9805,
+    0.9858,
+    0.9896,
+    0.9925,
+    0.9945,
+    0.996,
+    0.9971,
+    0.9979,
+    1
   );
-  --sidebar-foreground: color-mix(
-    in srgb,
-    var(--color-neutral-100) 64%,
-    var(--sidebar)
+  /* Damping 0.8 — only where a gesture carried momentum into the motion. */
+  --ease-spring-bounce: linear(
+    0,
+    0.0274,
+    0.0957,
+    0.188,
+    0.2915,
+    0.3972,
+    0.499,
+    0.593,
+    0.6768,
+    0.7496,
+    0.8112,
+    0.8622,
+    0.9034,
+    0.936,
+    0.9611,
+    0.98,
+    0.9936,
+    1.0031,
+    1.0093,
+    1.0129,
+    1.0147,
+    1.0152,
+    1.0147,
+    1.0136,
+    1.0122,
+    1.0106,
+    1.009,
+    1.0075,
+    1.0061,
+    1.0048,
+    1.0037,
+    1.0028,
+    1
   );
-  --sidebar-primary: var(--color-neutral-100);
-  --sidebar-primary-foreground: var(--color-neutral-800);
-  --sidebar-accent: --alpha(var(--color-white) / 4%);
-  --sidebar-accent-foreground: var(--color-neutral-100);
-  --sidebar-border: --alpha(var(--color-white) / 5%);
-  --sidebar-ring: var(--color-neutral-400);
-  --destructive-foreground: var(--color-red-400);
-  --info: var(--color-blue-500);
-  --info-foreground: var(--color-blue-400);
-  --success: var(--color-emerald-500);
-  --success-foreground: var(--color-emerald-400);
-  --warning: var(--color-amber-500);
-  --warning-foreground: var(--color-amber-400);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-enter: enter 420ms var(--ease-spring) both;
+  --animate-fade: fade 200ms ease-out both;
+  --animate-grow-y: grow-y 700ms var(--ease-spring) both;
+
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes grow-y {
+    from {
+      transform: scaleY(0);
+    }
+  }
 }
 
 @theme inline {
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans:
+    ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   --font-heading: var(--font-sans);
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
   --color-code-highlight: var(--code-highlight);
   --color-code-foreground: var(--code-foreground);
   --color-code: var(--code);
@@ -141,6 +285,7 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-chart-grid: var(--chart-grid);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -149,9 +294,11 @@
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
+  --color-hairline: var(--hairline);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  --color-faint: var(--faint);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -162,16 +309,45 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
-  --animate-skeleton: skeleton 2s -1s infinite linear;
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-text: var(--brand-text);
+  --color-brand-soft: var(--brand-soft);
+  --color-positive: var(--positive);
+  --color-positive-foreground: var(--positive-foreground);
+  --color-positive-soft: var(--positive-soft);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger-soft: var(--danger-soft);
+  --color-material: var(--material);
+  /* Fixed in both themes: ink on saturated tints (card faces). */
+  --color-on-tint: #ffffff;
+  --color-sheen: rgb(255 255 255 / 24%);
+  --color-shade: rgb(0 0 0 / 22%);
+  --color-scrim: var(--scrim);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning: var(--warning);
+  --color-success-foreground: var(--success-foreground);
+  --color-success: var(--success);
+  --color-info-foreground: var(--info-foreground);
+  --color-info: var(--info);
+  --color-destructive-foreground: var(--destructive-foreground);
+  /* Three elevations on Tailwind's names: controls, raised popovers, overlays. */
+  --shadow-xs: var(--elevation-control);
+  --shadow-lg: var(--elevation-raised);
+  --shadow-2xl: var(--elevation-overlay);
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 20px;
+  --radius-4xl: 24px;
+  --animate-skeleton: skeleton 1.6s ease-in-out infinite;
   --animate-caret-blink: 1s ease-out infinite caret-blink;
   --animate-toast-success-odd: toast-success-odd 0.32s
     cubic-bezier(0.5, 1, 0.89, 1);
@@ -180,16 +356,13 @@
   --animate-toast-error-odd: toast-error-odd 0.28s cubic-bezier(0.5, 1, 0.89, 1);
   --animate-toast-error-even: toast-error-even 0.28s
     cubic-bezier(0.5, 1, 0.89, 1);
-  --color-warning-foreground: var(--warning-foreground);
-  --color-warning: var(--warning);
-  --color-success-foreground: var(--success-foreground);
-  --color-success: var(--success);
-  --color-info-foreground: var(--info-foreground);
-  --color-info: var(--info);
-  --color-destructive-foreground: var(--destructive-foreground);
   @keyframes skeleton {
-    to {
-      background-position: -200% 0;
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
     }
   }
   @keyframes caret-blink {
@@ -208,10 +381,7 @@
       scale: 1;
     }
     30% {
-      scale: 1.025;
-    }
-    60% {
-      scale: 0.99;
+      scale: 1.02;
     }
     100% {
       scale: 1;
@@ -228,7 +398,7 @@
       translate: 3px 0;
     }
     75% {
-      translate: -3px 0;
+      translate: -2px 0;
     }
     100% {
       translate: 0 0;
@@ -239,10 +409,7 @@
       scale: 1;
     }
     30% {
-      scale: 1.025;
-    }
-    60% {
-      scale: 0.99;
+      scale: 1.02;
     }
     100% {
       scale: 1;
@@ -259,7 +426,7 @@
       translate: 3px 0;
     }
     75% {
-      translate: -3px 0;
+      translate: -2px 0;
     }
     100% {
       translate: 0 0;
@@ -269,18 +436,71 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground font-sans;
+    @apply border-border outline-ring/60;
   }
   html {
     @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    /* Theme switches ease rather than flash. */
+    transition: background-color 240ms ease;
+  }
+  ::selection {
+    background-color: var(--brand-soft);
   }
   code,
   kbd,
   samp,
   pre {
     font-family: var(--font-mono);
+  }
+  :focus-visible {
+    outline-offset: 2px;
+  }
+  /* Quiet scrollbars that still exist for mouse users. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(128 128 128 / 35%) transparent;
+  }
+}
+
+/* Vestibular-safe: keyframe motion becomes a short cross-fade. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-enter {
+    animation: fade 160ms ease-out both;
+  }
+  .animate-grow-y {
+    animation: fade 160ms ease-out both;
+  }
+}
+
+/* Translucent chrome turns solid for people who asked for less transparency. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --material: #ffffff;
+  }
+  .dark {
+    --material: #151517;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --border: rgb(0 0 0 / 22%);
+    --hairline: rgb(0 0 0 / 18%);
+    --input: rgb(0 0 0 / 32%);
+    --muted-foreground: #4a4a4f;
+  }
+  .dark {
+    --border: rgb(255 255 255 / 24%);
+    --hairline: rgb(255 255 255 / 20%);
+    --input: rgb(255 255 255 / 32%);
+    --muted-foreground: #c0c0c6;
   }
 }

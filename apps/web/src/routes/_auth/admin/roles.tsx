@@ -25,7 +25,7 @@ import { createFileRoute } from "@tanstack/react-router";
  */
 const RouteComponent = () => (
   <div className="space-y-6">
-    <h1 className="font-heading text-2xl font-semibold">Roles</h1>
+    <h1 className="text-2xl font-bold">Roles</h1>
 
     {(Object.entries(statement) as [keyof Statement, readonly string[]][]).map(
       ([resource, actions]) => (

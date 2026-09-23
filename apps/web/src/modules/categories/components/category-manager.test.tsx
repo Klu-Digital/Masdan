@@ -1,13 +1,13 @@
-import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
+import { renderWithProviders } from "@/test/render";
 import type * as TypeImport___utils_orpc from "@/utils/orpc";
 
+const toastAdd = vi.hoisted(() => vi.fn());
 vi.mock("@masdan/ui/components/toast", () => ({
-  toastManager: { add: vi.fn(), close: vi.fn(), update: vi.fn() },
+  toastManager: { add: toastAdd, close: vi.fn(), update: vi.fn() },
 }));
 
 const list = vi.hoisted(() => vi.fn());
@@ -15,6 +15,7 @@ const create = vi.hoisted(() => vi.fn());
 const update = vi.hoisted(() => vi.fn());
 const archive = vi.hoisted(() => vi.fn());
 const restore = vi.hoisted(() => vi.fn());
+const summary = vi.hoisted(() => vi.fn());
 
 vi.mock("@/utils/orpc", async (importOriginal) => {
   const actual = await importOriginal<typeof TypeImport___utils_orpc>();
@@ -22,13 +23,12 @@ vi.mock("@/utils/orpc", async (importOriginal) => {
     ...actual,
     client: {
       categories: { archive, create, list, restore, update },
+      transactions: { summary },
     },
   };
 });
 
-const { createQueryClient } = await import("@/utils/orpc");
-const { CategoryManager } =
-  await import("@/modules/categories/components/category-manager");
+const { CategoryManager } = await import("./category-manager");
 
 const categories = [
   {
@@ -37,9 +37,19 @@ const categories = [
     icon: "🍽️",
     id: "food",
     name: "Food & Dining",
-    organizationId: "household-1",
+    organizationId: "h",
     sortOrder: 10,
     type: "expense",
+  },
+  {
+    archivedAt: null,
+    color: "emerald",
+    icon: "💼",
+    id: "salary",
+    name: "Salary",
+    organizationId: "h",
+    sortOrder: 20,
+    type: "income",
   },
   {
     archivedAt: new Date("2026-01-01"),
@@ -47,72 +57,111 @@ const categories = [
     icon: "🗂️",
     id: "old",
     name: "Old Category",
-    organizationId: "household-1",
-    sortOrder: 20,
+    organizationId: "h",
+    sortOrder: 30,
     type: "expense",
   },
 ];
 
-const Wrapper = ({ children }: { children: ReactNode }) => (
-  <QueryClientProvider client={createQueryClient()}>
-    {children}
-  </QueryClientProvider>
-);
-
-const renderManager = () =>
-  render(
+const renderManager = (currency?: string) =>
+  renderWithProviders(
     <CategoryManager
       activeOrganizationId="household-1"
       canArchive
       canCreate
       canRestore
       canUpdate
-    />,
-    { wrapper: Wrapper }
+      currency={currency}
+      today="2026-09-24"
+    />
   );
 
 beforeEach(() => {
-  list.mockReset();
-  create.mockReset();
-  update.mockReset();
-  archive.mockReset();
-  restore.mockReset();
+  for (const mock of [
+    list,
+    create,
+    update,
+    archive,
+    restore,
+    summary,
+    toastAdd,
+  ]) {
+    mock.mockReset();
+  }
   list.mockResolvedValue(categories);
+  summary.mockResolvedValue({
+    cashFlow: [],
+    categories: [
+      {
+        categoryId: "food",
+        color: "orange",
+        count: 3,
+        currencyCode: "PHP",
+        icon: "🍽️",
+        name: "Food & Dining",
+        total: "1250.000000",
+        type: "expense",
+      },
+    ],
+  });
+  create.mockResolvedValue({ id: "new" });
+  archive.mockResolvedValue({});
+  restore.mockResolvedValue({});
 });
 
 describe("CategoryManager", () => {
-  it("shows active categories and can reveal archived categories", async () => {
+  it("lists one type at a time and keeps archived ones behind a toggle", async () => {
     const user = userEvent.setup();
     renderManager();
+    expect(await screen.findByText("Food & Dining")).toBeInTheDocument();
+    expect(screen.queryByText("Salary")).not.toBeInTheDocument();
+    expect(screen.queryByText("Old Category")).not.toBeInTheDocument();
 
-    expect(await screen.findByText("Food & Dining")).toBeTruthy();
-    expect(screen.queryByText("Old Category")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Show 1 archived" }));
+    expect(screen.getByText("Old Category")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Show archived" }));
-
-    expect(screen.getByText("Old Category")).toBeTruthy();
-    expect(screen.getByText("Archived")).toBeTruthy();
+    await user.click(screen.getByRole("tab", { name: /Income/u }));
+    expect(await screen.findByText("Salary")).toBeInTheDocument();
   });
 
-  it("opens the category form", async () => {
+  it("shows this month's spending beside each category", async () => {
+    renderManager("PHP");
+    expect(
+      await screen.findByText(/this month · 3 entries/u)
+    ).toBeInTheDocument();
+  });
+
+  it("creates a category of the type being viewed", async () => {
     const user = userEvent.setup();
     renderManager();
+    await screen.findByText("Food & Dining");
+    await user.click(screen.getByRole("tab", { name: /Income/u }));
+    await user.click(screen.getByRole("button", { name: "New category" }));
+    await user.type(await screen.findByLabelText("Name"), "Freelance");
+    await user.click(screen.getByRole("button", { name: "Add category" }));
 
-    await user.click(
-      await screen.findByRole("button", { name: "Add category" })
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Freelance", type: "income" })
     );
+  });
 
-    expect(screen.getByRole("dialog")).toBeTruthy();
-    expect(screen.getByText("Preview")).toBeTruthy();
-    expect(screen.getByText("Category name")).toBeTruthy();
-    expect(screen.getByRole("textbox", { name: "Name" })).toBeTruthy();
-    const radios = screen.getAllByRole("radio");
-    expect(radios).toHaveLength(2);
-    expect(radios[0]).toHaveAttribute("aria-checked", "true");
-    await user.click(screen.getByText("Income"));
-    expect(radios[1]).toHaveAttribute("aria-checked", "true");
-    expect(screen.queryByRole("combobox")).toBeNull();
-    expect(screen.getByRole("group", { name: "Category colors" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Choose emoji" })).toBeTruthy();
+  it("archives from the row menu and offers undo", async () => {
+    const user = userEvent.setup();
+    renderManager();
+    await user.click(
+      await screen.findByRole("button", { name: "Food & Dining actions" })
+    );
+    await user.click(await screen.findByRole("menuitem", { name: "Archive" }));
+
+    await waitFor(() =>
+      expect(archive).toHaveBeenCalledWith({ categoryId: "food" })
+    );
+    const toast = toastAdd.mock.calls.at(-1)?.[0];
+    expect(toast.title).toBe("Category archived");
+    toast.actionProps.onClick();
+    await waitFor(() =>
+      expect(restore).toHaveBeenCalledWith({ categoryId: "food" })
+    );
   });
 });

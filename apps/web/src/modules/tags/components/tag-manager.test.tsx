@@ -1,9 +1,8 @@
-import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
+import { renderWithProviders } from "@/test/render";
 import type * as TypeImport___utils_orpc from "@/utils/orpc";
 
 vi.mock("@masdan/ui/components/toast", () => ({
@@ -24,101 +23,76 @@ vi.mock("@/utils/orpc", async (importOriginal) => {
   };
 });
 
-const { createQueryClient } = await import("@/utils/orpc");
-const { TagManager } = await import("@/modules/tags/components/tag-manager");
+const { TagManager } = await import("./tag-manager");
 
-const tags = [
-  {
-    archivedAt: null,
-    color: "orange",
-    id: "vacation",
-    name: "Vacation",
-    organizationId: "household-1",
-  },
-  {
-    archivedAt: new Date("2026-01-01"),
-    color: "blue",
-    id: "old",
-    name: "Old Tag",
-    organizationId: "household-1",
-  },
-];
-
-const Wrapper = ({ children }: { children: ReactNode }) => (
-  <QueryClientProvider client={createQueryClient()}>
-    {children}
-  </QueryClientProvider>
-);
-
-const renderManager = () =>
-  render(
+const renderManager = (canUpdate = true) =>
+  renderWithProviders(
     <TagManager
       activeOrganizationId="household-1"
       canArchive
       canCreate
       canRestore
-      canUpdate
-    />,
-    { wrapper: Wrapper }
+      canUpdate={canUpdate}
+    />
   );
 
 beforeEach(() => {
-  list.mockReset();
-  create.mockReset();
-  update.mockReset();
-  archive.mockReset();
-  restore.mockReset();
-  list.mockResolvedValue(tags);
+  for (const mock of [list, create, update, archive, restore]) {
+    mock.mockReset();
+  }
+  list.mockResolvedValue([
+    { archivedAt: null, color: "blue", id: "vacation", name: "Vacation" },
+    {
+      archivedAt: new Date("2026-01-01"),
+      color: "red",
+      id: "old",
+      name: "Old Tag",
+    },
+  ]);
+  create.mockResolvedValue({ id: "new" });
+  update.mockResolvedValue({ id: "vacation" });
+  restore.mockResolvedValue({});
 });
 
 describe("TagManager", () => {
-  it("shows active tags and can reveal archived tags", async () => {
+  it("shows active tags and restores an archived one", async () => {
     const user = userEvent.setup();
     renderManager();
-
-    expect(await screen.findByText("Vacation")).toBeTruthy();
-    expect(screen.queryByText("Old Tag")).toBeNull();
-
-    await user.click(screen.getByRole("button", { name: "Show archived" }));
-
-    expect(screen.getByText("Old Tag")).toBeTruthy();
-    expect(screen.getByText("Archived")).toBeTruthy();
+    expect(await screen.findByText("Vacation")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Show 1 archived" }));
+    await user.click(screen.getByRole("button", { name: "Old Tag actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Restore" }));
+    await waitFor(() => expect(restore).toHaveBeenCalledWith({ tagId: "old" }));
   });
 
-  it("creates a tag from the form", async () => {
+  it("creates a tag with a colour", async () => {
     const user = userEvent.setup();
-    create.mockResolvedValue({
-      archivedAt: null,
-      color: "blue",
-      id: "new",
-      name: "Reimbursable",
-      organizationId: "household-1",
-    });
     renderManager();
-
-    await user.click(await screen.findByRole("button", { name: "Add tag" }));
-    await user.type(
-      screen.getByRole("textbox", { name: "Name" }),
-      "Reimbursable"
+    await screen.findByText("Vacation");
+    await user.click(screen.getByRole("button", { name: "New tag" }));
+    await user.type(await screen.findByLabelText("Name"), "Wedding");
+    await user.click(screen.getByRole("radio", { name: "Rose" }));
+    await user.click(screen.getByRole("button", { name: "Add tag" }));
+    await waitFor(() =>
+      expect(create).toHaveBeenCalledWith({ color: "rose", name: "Wedding" })
     );
-    await user.click(screen.getByRole("button", { name: "Blue" }));
-    await user.click(screen.getByRole("button", { name: "Create tag" }));
-
-    expect(create).toHaveBeenCalledWith({
-      color: "blue",
-      name: "Reimbursable",
-    });
   });
 
-  it("opens the tag form with color selection and preview", async () => {
+  it("edits a tag by clicking its row", async () => {
     const user = userEvent.setup();
     renderManager();
-
-    await user.click(await screen.findByRole("button", { name: "Add tag" }));
-
-    expect(screen.getByRole("dialog")).toBeTruthy();
-    expect(screen.getByText("Preview")).toBeTruthy();
-    expect(screen.getByText("Tag name")).toBeTruthy();
-    expect(screen.getByRole("group", { name: "Tag colors" })).toBeTruthy();
+    await user.click(await screen.findByText("Vacation"));
+    const name = await screen.findByLabelText("Name");
+    expect(name).toHaveValue("Vacation");
+    await user.clear(name);
+    await user.type(name, "Holidays");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith({
+        color: "blue",
+        name: "Holidays",
+        tagId: "vacation",
+      })
+    );
   });
 });

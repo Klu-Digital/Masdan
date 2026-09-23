@@ -74,19 +74,17 @@ describe("InvitationInbox", () => {
     listForCurrentUser.mockReturnValue(pending.promise);
     renderInbox();
 
-    expect(screen.getByText("Household invitations")).toBeInTheDocument();
     expect(
-      screen.queryByText("No pending invitations")
-    ).not.toBeInTheDocument();
+      screen.getByRole("heading", { name: "Invitations" })
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No invitations")).not.toBeInTheDocument();
   });
 
-  it("shows the empty state when there are no pending invitations", async () => {
+  it("shows the empty state when nobody has invited you", async () => {
     listForCurrentUser.mockResolvedValue([]);
     renderInbox();
 
-    expect(
-      await screen.findByText("No pending invitations")
-    ).toBeInTheDocument();
+    expect(await screen.findByText("No invitations")).toBeInTheDocument();
   });
 
   it("shows active invitations and makes expired invitations non-actionable", async () => {
@@ -95,10 +93,8 @@ describe("InvitationInbox", () => {
 
     expect(await screen.findAllByText("Mallari Household")).toHaveLength(2);
     expect(screen.getByText("Expired")).toBeInTheDocument();
-    expect(
-      screen.getByText("This invitation has expired.")
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Accept" })).toBeInTheDocument();
+    expect(screen.getByText("This invitation has expired")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Join" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Decline" })).toBeInTheDocument();
   });
 
@@ -109,7 +105,7 @@ describe("InvitationInbox", () => {
       .mockResolvedValueOnce([]);
     renderInbox();
 
-    await user.click(await screen.findByRole("button", { name: "Accept" }));
+    await user.click(await screen.findByRole("button", { name: "Join" }));
 
     await waitFor(() => {
       expect(acceptInvitation).toHaveBeenCalledWith({
@@ -118,7 +114,7 @@ describe("InvitationInbox", () => {
       expect(setActive).toHaveBeenCalledWith({
         organizationId: "household-1",
       });
-      expect(screen.getByText("No pending invitations")).toBeInTheDocument();
+      expect(screen.getByText("No invitations")).toBeInTheDocument();
     });
   });
 
@@ -130,10 +126,10 @@ describe("InvitationInbox", () => {
     setActive.mockResolvedValueOnce({ error: { message: "Could not switch" } });
     renderInbox();
 
-    await user.click(await screen.findByRole("button", { name: "Accept" }));
+    await user.click(await screen.findByRole("button", { name: "Join" }));
 
     await waitFor(() => {
-      expect(screen.getByText("No pending invitations")).toBeInTheDocument();
+      expect(screen.getByText("No invitations")).toBeInTheDocument();
       expect(addToast).toHaveBeenCalledWith({
         title:
           "Invitation accepted, but could not switch households: Could not switch",
@@ -155,7 +151,7 @@ describe("InvitationInbox", () => {
       expect(rejectInvitation).toHaveBeenCalledWith({
         invitationId: "invitation-1",
       });
-      expect(screen.getByText("No pending invitations")).toBeInTheDocument();
+      expect(screen.getByText("No invitations")).toBeInTheDocument();
     });
   });
 
@@ -165,7 +161,7 @@ describe("InvitationInbox", () => {
     acceptInvitation.mockRejectedValueOnce(new Error("Invitation expired"));
     renderInbox();
 
-    await user.click(await screen.findByRole("button", { name: "Accept" }));
+    await user.click(await screen.findByRole("button", { name: "Join" }));
 
     await waitFor(() => {
       expect(addToast).toHaveBeenCalledWith({

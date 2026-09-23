@@ -50,9 +50,9 @@ const VerifyToken = ({ token }: { token: string }) => {
         description="This verification link is invalid or has already been used. Sign in and we can send you a fresh one."
         title="Couldn't verify that link"
       >
-        <Link to="/login">
-          <Button className="w-full">Go to sign in</Button>
-        </Link>
+        <Button className="w-full" render={<Link to="/login" />} size="lg">
+          Go to sign in
+        </Button>
       </AuthShell>
     );
   }
@@ -62,9 +62,9 @@ const VerifyToken = ({ token }: { token: string }) => {
       description="Thanks — your email address is confirmed."
       title="Email verified"
     >
-      <Link to="/dashboard">
-        <Button className="w-full">Continue to the app</Button>
-      </Link>
+      <Button className="w-full" render={<Link to="/dashboard" />} size="lg">
+        Continue to the app
+      </Button>
     </AuthShell>
   );
 };
@@ -94,9 +94,9 @@ const AwaitingVerification = ({ email }: { email: string | null }) => {
         description="Open the link from your verification email, or sign in to request a new one."
         title="Verify your email"
       >
-        <Link to="/login">
-          <Button className="w-full">Go to sign in</Button>
-        </Link>
+        <Button className="w-full" render={<Link to="/login" />} size="lg">
+          Go to sign in
+        </Button>
       </AuthShell>
     );
   }
@@ -108,9 +108,10 @@ const AwaitingVerification = ({ email }: { email: string | null }) => {
     >
       <Button
         className="w-full"
+        size="lg"
         loading={resend.isPending}
         onClick={() => resend.mutate(email)}
-        variant="outline"
+        variant="secondary"
       >
         Resend verification email
       </Button>

@@ -54,7 +54,7 @@ const SignUpForm = ({ redirectTo }: { redirectTo: string }) => {
 
   return (
     <form
-      className="space-y-4"
+      className="flex flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -138,6 +138,7 @@ const SignUpForm = ({ redirectTo }: { redirectTo: string }) => {
         {({ canSubmit, isSubmitting }) => (
           <Button
             className="w-full"
+            size="lg"
             disabled={!canSubmit}
             loading={isSubmitting}
             type="submit"

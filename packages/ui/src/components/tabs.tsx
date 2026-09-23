@@ -44,7 +44,7 @@ export const TabsList = ({
       "text-muted-foreground relative z-0 flex w-fit items-center justify-center gap-x-0.5",
       "data-[orientation=vertical]:flex-col",
       variant === "default"
-        ? "bg-muted text-muted-foreground/72 rounded-lg p-0.5"
+        ? "bg-secondary text-muted-foreground rounded-lg p-0.5"
         : "*:data-[slot=tabs-tab]:hover:bg-accent data-[orientation=horizontal]:py-1 data-[orientation=vertical]:px-1",
       className
     )}
@@ -55,10 +55,10 @@ export const TabsList = ({
     <TabsListContext.Provider value={size}>{children}</TabsListContext.Provider>
     <TabsPrimitive.Indicator
       className={cn(
-        "absolute bottom-0 left-0 h-(--active-tab-height) w-(--active-tab-width) translate-x-(--active-tab-left) -translate-y-(--active-tab-bottom) transition-[width,translate] duration-200 ease-in-out",
+        "ease-spring absolute bottom-0 left-0 h-(--active-tab-height) w-(--active-tab-width) translate-x-(--active-tab-left) -translate-y-(--active-tab-bottom) transition-[width,translate] duration-[420ms] motion-reduce:transition-none",
         variant === "underline"
           ? "bg-primary z-10 data-[orientation=horizontal]:h-0.5 data-[orientation=horizontal]:translate-y-px data-[orientation=vertical]:w-0.5 data-[orientation=vertical]:-translate-x-px"
-          : "bg-background dark:bg-input -z-1 rounded-md shadow-sm/5"
+          : "bg-background dark:bg-surface-hover -z-1 rounded-md shadow-xs"
       )}
       data-slot="tab-indicator"
     />
@@ -78,7 +78,7 @@ export const TabsTab = ({
   return (
     <TabsPrimitive.Tab
       className={cn(
-        "hover:text-muted-foreground focus-visible:ring-ring data-active:text-foreground relative flex shrink-0 grow cursor-pointer items-center justify-center rounded-md border border-transparent text-base font-medium whitespace-nowrap transition-[color,background-color,box-shadow] outline-none focus-visible:ring-2 data-disabled:pointer-events-none data-disabled:opacity-64 data-[orientation=vertical]:w-full data-[orientation=vertical]:justify-start sm:text-sm",
+        "hover:text-foreground focus-visible:ring-ring/50 data-active:text-foreground relative flex shrink-0 grow cursor-pointer items-center justify-center rounded-md border border-transparent text-base font-medium whitespace-nowrap transition-[color,background-color,box-shadow] outline-none focus-visible:ring-3 data-disabled:pointer-events-none data-disabled:opacity-50 data-[orientation=vertical]:w-full data-[orientation=vertical]:justify-start sm:text-sm",
         segmentedControlItemLayoutClassName,
         segmentedControlItemSizeClassNames[resolvedSize],
         className
