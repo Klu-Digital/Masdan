@@ -21,6 +21,7 @@ export {
 } from "./financial-accounts";
 export {
   financialTransaction,
+  financialTransactionAttachment,
   financialTransactionSplit,
   financialTransactionTag,
   financialTransfer,

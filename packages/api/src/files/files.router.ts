@@ -7,11 +7,15 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
-  assertPermission,
   orgMutationProcedure,
   orgProcedure,
   requirePermission,
 } from "../procedures";
+import {
+  deleteHouseholdFile,
+  fileNotFound,
+  presignFileDownload,
+} from "./files.operations";
 
 const fileIdInput = z.object({ fileId: z.uuid() });
 
@@ -130,48 +134,9 @@ export const filesRouter = {
   deleteFile: orgMutationProcedure
     .use(requirePermission({ file: ["delete"] }))
     .input(fileIdInput)
-    .handler(async ({ context, input }) => {
-      const [target] = await context.db
-        .select({ userId: file.userId })
-        .from(file)
-        .where(
-          and(
-            eq(file.id, input.fileId),
-            eq(file.organizationId, context.organizationId)
-          )
-        )
-        .limit(1);
-
-      if (!target) {
-        throw new ORPCError("NOT_FOUND", { message: "File not found" });
-      }
-
-      // The route check established "may delete files at all"; ownership decides
-      // whose. Roles can't express that, hence `delete:any` and a check on the row.
-      if (target.userId !== context.session.user.id) {
-        assertPermission(context, { file: ["delete:any"] });
-      }
-
-      const [row] = await context.db
-        .delete(file)
-        .where(
-          and(
-            eq(file.id, input.fileId),
-            eq(file.organizationId, context.organizationId)
-          )
-        )
-        .returning();
-
-      if (!row) {
-        throw new ORPCError("NOT_FOUND", { message: "File not found" });
-      }
-
-      // After the row write: the transaction can still roll back, and an orphaned
-      // object is recoverable in a way a deleted one is not.
-      await storage.deleteObject({ key: row.key });
-
-      return { fileId: row.id };
-    }),
+    .handler(({ context, input }) =>
+      deleteHouseholdFile(context, input.fileId)
+    ),
 
   getDownloadUrl: orgProcedure
     .use(requirePermission({ file: ["read"] }))
@@ -189,21 +154,10 @@ export const filesRouter = {
         .limit(1);
 
       if (!row) {
-        throw new ORPCError("NOT_FOUND", { message: "File not found" });
+        throw fileNotFound();
       }
 
-      if (row.status !== "ready") {
-        throw new ORPCError("CONFLICT", {
-          message: "File upload is not complete",
-        });
-      }
-
-      const downloadUrl = await storage.presignDownload({
-        downloadFileName: row.name,
-        key: row.key,
-      });
-
-      return { downloadUrl };
+      return presignFileDownload(row);
     }),
 
   listFiles: orgProcedure

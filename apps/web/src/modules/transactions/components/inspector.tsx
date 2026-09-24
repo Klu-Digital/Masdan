@@ -31,6 +31,7 @@ import { transactionQueryOptions } from "../queries";
 import type { TransactionDetail } from "../queries";
 import type { LedgerActions } from "../use-ledger-actions";
 import { DeleteTransferDialog } from "./delete-transfer-dialog";
+import { TransactionAttachments } from "./transaction-attachments";
 import type { LedgerPermissions } from "./transaction-menu";
 import { TransactionTile } from "./transaction-tile";
 
@@ -259,6 +260,13 @@ export const TransactionInspector = ({
             </p>
           </section>
         ) : null}
+
+        {transfer ? null : (
+          <TransactionAttachments
+            editable={!archived}
+            transactionId={detail.id}
+          />
+        )}
 
         <div className="flex flex-wrap gap-2">
           {canEdit ? (

@@ -18,6 +18,7 @@ import { organization } from "./auth";
 import { category } from "./categories";
 import { currency } from "./finance";
 import { financialAccount } from "./financial-accounts";
+import { file } from "./storage";
 import { tag } from "./tags";
 
 const money = (name: string) => numeric(name, { precision: 30, scale: 6 });
@@ -169,6 +170,27 @@ export const financialTransactionSplit = pgTable(
       table.sortOrder
     ),
     index("financial_transaction_split_category_idx").on(table.categoryId),
+  ]
+);
+
+/**
+ * A file belongs to at most one transaction, so removing the attachment can
+ * delete the file outright. Same-household is enforced by the attach procedure.
+ */
+export const financialTransactionAttachment = pgTable(
+  "financial_transaction_attachment",
+  {
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    fileId: uuid("file_id")
+      .notNull()
+      .references(() => file.id, { onDelete: "cascade" }),
+    transactionId: uuid("transaction_id")
+      .notNull()
+      .references(() => financialTransaction.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.transactionId, table.fileId] }),
+    uniqueIndex("financial_transaction_attachment_file_uidx").on(table.fileId),
   ]
 );
 

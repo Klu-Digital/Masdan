@@ -14,6 +14,14 @@ const accountsList = vi.hoisted(() => vi.fn());
 const categoriesList = vi.hoisted(() => vi.fn());
 const tagsList = vi.hoisted(() => vi.fn());
 const create = vi.hoisted(() => vi.fn());
+const attachmentsList = vi.hoisted(() => vi.fn());
+
+vi.mock("@/hooks/use-household", () => ({
+  useHousehold: () => ({
+    can: () => true,
+    session: { user: { id: "user-1" } },
+  }),
+}));
 
 vi.mock("@/utils/orpc", async (importOriginal) => {
   const actual = await importOriginal<typeof TypeImport___utils_orpc>();
@@ -21,6 +29,7 @@ vi.mock("@/utils/orpc", async (importOriginal) => {
     ...actual,
     client: {
       accounts: { list: accountsList },
+      attachments: { list: attachmentsList },
       categories: { list: categoriesList },
       tags: { list: tagsList },
       transactions: { create },
@@ -106,6 +115,18 @@ beforeEach(() => {
     { archivedAt: null, color: "blue", id: TAG, name: "Vacation" },
   ]);
   create.mockResolvedValue({ id: "transaction-1" });
+  attachmentsList.mockReset().mockResolvedValue([
+    {
+      contentType: "application/pdf",
+      createdAt: new Date("2026-01-05T00:00:00Z"),
+      id: "file-1",
+      name: "receipt.pdf",
+      size: 2048,
+      status: "ready",
+      transactionId: "transaction-1",
+      userId: "user-1",
+    },
+  ]);
 });
 
 const chooseCategory = async (
@@ -143,6 +164,46 @@ describe("TransactionForm", () => {
       })
     );
     expect(onSaved).toHaveBeenCalledWith("transaction-1");
+  });
+
+  it("manages attachments only when editing an existing entry", async () => {
+    const { unmount } = render(
+      <TransactionForm
+        actions={() => null}
+        activeOrganizationId="household-1"
+        householdCurrency="PHP"
+        kind="expense"
+        onSaved={vi.fn()}
+        timezone="Asia/Manila"
+        transaction={
+          {
+            accountId: ACCOUNT,
+            amount: "125.500000",
+            categoryId: GROCERIES,
+            currencyCode: "PHP",
+            id: "transaction-1",
+            notes: null,
+            paidStatus: "paid",
+            splits: [],
+            tags: [],
+            transactionDate: "2026-01-05",
+          } as never
+        }
+      />,
+      { wrapper: Wrapper }
+    );
+
+    expect(await screen.findByText("receipt.pdf")).toBeInTheDocument();
+    expect(attachmentsList).toHaveBeenCalledWith({
+      transactionId: "transaction-1",
+    });
+    unmount();
+
+    renderForm();
+    await screen.findByLabelText("Amount");
+    expect(
+      screen.queryByRole("region", { name: "Attachments" })
+    ).not.toBeInTheDocument();
   });
 
   it("offers only categories of the chosen kind", async () => {

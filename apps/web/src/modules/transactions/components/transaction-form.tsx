@@ -33,6 +33,7 @@ import { client } from "@/utils/orpc";
 
 import { invalidateTransactions, transactionQueryOptions } from "../queries";
 import type { TransactionDetail } from "../queries";
+import { TransactionAttachments } from "./transaction-attachments";
 
 const positiveAmountPattern = /^(?<whole>\d+)(?<fraction>\.\d{1,6})?$/u;
 const SCALE_FACTOR = 1_000_000n;
@@ -447,6 +448,10 @@ export const TransactionForm = ({
           </Field>
         )}
       </form.Field>
+
+      {transaction ? (
+        <TransactionAttachments editable transactionId={transaction.id} />
+      ) : null}
 
       <MoreOptions defaultOpen={opensAdvanced}>
         <form.Field name="paidStatus">

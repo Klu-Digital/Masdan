@@ -75,6 +75,7 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
       to: r.financialAccount.id,
     }),
+    attachments: r.many.financialTransactionAttachment(),
     category: r.one.category({
       from: r.financialTransaction.categoryId,
       optional: true,
@@ -91,6 +92,18 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.financialTransaction.transferId,
       optional: true,
       to: r.financialTransfer.id,
+    }),
+  },
+  financialTransactionAttachment: {
+    file: r.one.file({
+      from: r.financialTransactionAttachment.fileId,
+      optional: false,
+      to: r.file.id,
+    }),
+    transaction: r.one.financialTransaction({
+      from: r.financialTransactionAttachment.transactionId,
+      optional: false,
+      to: r.financialTransaction.id,
     }),
   },
   financialTransactionSplit: {

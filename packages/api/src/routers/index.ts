@@ -1,6 +1,7 @@
 import type { RouterClient } from "@orpc/server";
 
 import { accountsRouter } from "../accounts/accounts.router";
+import { attachmentsRouter } from "../attachments/attachments.router";
 import { categoriesRouter } from "../categories/categories.router";
 import { currenciesRouter } from "../currencies/currencies.router";
 import { exportsRouter } from "../exports/exports.router";
@@ -27,6 +28,7 @@ import { adminRouter } from "./admin";
 export const appRouter = {
   accounts: accountsRouter,
   admin: adminRouter,
+  attachments: attachmentsRouter,
   categories: categoriesRouter,
   currencies: currenciesRouter,
   exports: exportsRouter,
