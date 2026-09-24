@@ -1,4 +1,5 @@
 import {
+  Analytics01Icon,
   Building01Icon,
   Clock01Icon,
   File01Icon,
@@ -28,11 +29,12 @@ export interface NavDestination {
   to: NavPath;
 }
 
-/** The three places people live. Everything else is one level down. */
+/** The mobile tab bar fits the first three; the rest go under More. */
 export const PRIMARY_NAV: NavDestination[] = [
   { icon: Home01Icon, label: "Overview", to: "/dashboard" },
   { icon: Invoice02Icon, label: "Transactions", to: "/transactions" },
   { icon: Wallet01Icon, label: "Accounts", to: "/accounts" },
+  { icon: Analytics01Icon, label: "Reports", to: "/reports" },
 ];
 
 export const ORGANIZE_NAV: NavDestination[] = [

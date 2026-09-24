@@ -35,14 +35,11 @@ import { useState } from "react";
 import { useAppActions } from "@/components/app-actions";
 import type { ActiveHousehold } from "@/components/household-gate";
 import { householdToday } from "@/lib/household-date";
+import { netWorthQueryOptions } from "@/modules/reports/queries";
+import type { NetWorthReport } from "@/modules/reports/queries";
 
 import { ACCOUNT_GROUPS, ACCOUNT_KINDS } from "../kinds";
-import {
-  groupOf,
-  groupTotal,
-  netWorthByCurrency,
-  primaryPosition,
-} from "../net-worth";
+import { groupOf, groupTotal } from "../net-worth";
 import { accountsQueryOptions } from "../queries";
 import { AccountRow } from "./account-row";
 
@@ -80,6 +77,71 @@ const FirstRun = ({ canCreate }: { canCreate: boolean }) => {
   );
 };
 
+const NetWorthHeadline = ({
+  currency,
+  report,
+}: {
+  currency: string | null;
+  report: NetWorthReport | undefined;
+}) => {
+  if (!report) {
+    return <Skeleton className="h-36 w-full sm:max-w-xl" radius="2xl" />;
+  }
+  const primary =
+    report.positions.find(
+      (position) =>
+        position.currencyCode === (currency ?? report.defaultCurrency)
+    ) ?? report.positions[0];
+  if (!primary) {
+    return null;
+  }
+  const others = report.positions.filter((position) => position !== primary);
+  return (
+    <section aria-label="Net worth" className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <span className="text-muted-foreground text-xs font-medium">
+          Net worth
+        </span>
+        <Amount
+          animate
+          currency={primary.currencyCode}
+          size="display"
+          value={primary.netWorth}
+        />
+      </div>
+      <StatGroup className="sm:max-w-xl">
+        <Stat>
+          <StatLabel>Assets</StatLabel>
+          <StatValue>
+            <Amount currency={primary.currencyCode} value={primary.assets} />
+          </StatValue>
+        </Stat>
+        <Stat>
+          <StatLabel>Liabilities</StatLabel>
+          <StatValue>
+            <Amount
+              currency={primary.currencyCode}
+              value={primary.liabilities}
+            />
+          </StatValue>
+        </Stat>
+        {others.length > 0 ? (
+          <Stat className="col-span-2">
+            <StatLabel>Other currencies</StatLabel>
+            <StatValue>
+              {others
+                .map((position) =>
+                  formatMoney(position.netWorth, position.currencyCode)
+                )
+                .join(" · ")}
+            </StatValue>
+          </Stat>
+        ) : null}
+      </StatGroup>
+    </section>
+  );
+};
+
 export const AccountsOverview = ({
   household,
 }: {
@@ -88,6 +150,7 @@ export const AccountsOverview = ({
   const { activeOrganizationId, can, currency, timezone } = household;
   const { composeAccount } = useAppActions();
   const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
+  const netWorth = useQuery(netWorthQueryOptions(activeOrganizationId));
   const [showArchived, setShowArchived] = useState(false);
   const today = householdToday(timezone);
   const canCreate = can({ financialAccount: ["create"] });
@@ -121,10 +184,6 @@ export const AccountsOverview = ({
   const archived = accounts.data.filter(
     (account) => account.archivedAt !== null
   );
-  const { others, primary } = primaryPosition(
-    netWorthByCurrency(active),
-    currency
-  );
 
   return (
     <Page>
@@ -146,53 +205,7 @@ export const AccountsOverview = ({
         <FirstRun canCreate={canCreate} />
       ) : (
         <>
-          {primary ? (
-            <section aria-label="Net worth" className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1">
-                <span className="text-muted-foreground text-xs font-medium">
-                  Net worth
-                </span>
-                <Amount
-                  animate
-                  currency={primary.currencyCode}
-                  size="display"
-                  value={primary.net}
-                />
-              </div>
-              <StatGroup className="sm:max-w-xl">
-                <Stat>
-                  <StatLabel>Assets</StatLabel>
-                  <StatValue>
-                    <Amount
-                      currency={primary.currencyCode}
-                      value={primary.assets}
-                    />
-                  </StatValue>
-                </Stat>
-                <Stat>
-                  <StatLabel>Liabilities</StatLabel>
-                  <StatValue>
-                    <Amount
-                      currency={primary.currencyCode}
-                      value={primary.liabilities}
-                    />
-                  </StatValue>
-                </Stat>
-                {others.length > 0 ? (
-                  <Stat className="col-span-2">
-                    <StatLabel>Other currencies</StatLabel>
-                    <StatValue>
-                      {others
-                        .map((position) =>
-                          formatMoney(position.net, position.currencyCode)
-                        )
-                        .join(" · ")}
-                    </StatValue>
-                  </Stat>
-                ) : null}
-              </StatGroup>
-            </section>
-          ) : null}
+          <NetWorthHeadline currency={currency} report={netWorth.data} />
 
           <div className="grid items-start gap-8 lg:grid-cols-2">
             {ACCOUNT_GROUPS.map((group) => {

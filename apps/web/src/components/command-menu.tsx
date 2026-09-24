@@ -1,4 +1,5 @@
 import {
+  Analytics01Icon,
   ArrowDataTransferHorizontalIcon,
   FileImportIcon,
   Folder02Icon,
@@ -88,6 +89,7 @@ export const CommandMenu = ({
         | "/dashboard"
         | "/transactions"
         | "/accounts"
+        | "/reports"
         | "/categories"
         | "/tags"
         | "/settings"
@@ -171,6 +173,13 @@ export const CommandMenu = ({
           id: "go-accounts",
           keywords: "balances net worth",
           label: "Accounts",
+        },
+        {
+          handleSelect: go("/reports"),
+          icon: Analytics01Icon,
+          id: "go-reports",
+          keywords: "net worth cash flow spending income expenses history",
+          label: "Reports",
         },
         {
           handleSelect: go("/categories"),

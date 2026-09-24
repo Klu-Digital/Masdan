@@ -268,7 +268,7 @@ const MoreSheet = ({
               />
             </div>
             <List>
-              {ORGANIZE_NAV.map((item) => (
+              {[...PRIMARY_NAV.slice(3), ...ORGANIZE_NAV].map((item) => (
                 <ListItem
                   key={item.to}
                   render={

@@ -12,7 +12,6 @@ import {
   and,
   asc,
   count,
-  countDistinct,
   desc,
   eq,
   exists,
@@ -23,18 +22,22 @@ import {
   lte,
   notExists,
   or,
-  sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 import { CATEGORY_TYPES } from "../categories/constants";
-import type { CategoryType } from "../categories/constants";
 import {
   orgMutationProcedure,
   orgProcedure,
   requirePermission,
 } from "../procedures";
+import {
+  expenseTotal,
+  getCategoryTotals,
+  getMonthlyCashFlow,
+  incomeTotal,
+} from "../reports/reports.queries";
 import { getTransfer } from "../transfers/transfers.router";
 import { positiveAmount, scaledAmount } from "./amounts";
 import { TRANSACTION_PAID_STATUSES } from "./constants";
@@ -530,17 +533,6 @@ const validateSplitCategories = async (
   }
 };
 
-const sumWhereType = (type: CategoryType) =>
-  sql<string>`coalesce(sum(${financialTransaction.amount}) filter (where ${category.type} = ${type}), 0)::text`;
-
-const incomeTotal = sumWhereType("income");
-const expenseTotal = sumWhereType("expense");
-const transactionMonth = sql<string>`to_char(${financialTransaction.transactionDate}, 'YYYY-MM')`;
-// A split parent's own category must not also receive the full amount.
-const lineCategoryId = sql`coalesce(${financialTransactionSplit.categoryId}, ${financialTransaction.categoryId})`;
-const lineAmount = sql`coalesce(${financialTransactionSplit.amount}, ${financialTransaction.amount})`;
-const lineTotal = sql`coalesce(sum(${lineAmount}), 0)`;
-
 export const transactionsRouter = {
   archive: orgMutationProcedure
     .use(requirePermission({ transaction: ["archive"] }))
@@ -715,65 +707,9 @@ export const transactionsRouter = {
     .use(requirePermission({ transaction: ["read"] }))
     .input(transactionSummaryValues)
     .handler(async ({ context, input }) => {
-      const conditions = [
-        eq(financialTransaction.organizationId, context.organizationId),
-        isNull(financialTransaction.archivedAt),
-        isNull(financialTransaction.transferId),
-        gte(financialTransaction.transactionDate, input.dateFrom),
-        lte(financialTransaction.transactionDate, input.dateTo),
-      ];
-      if (input.accountIds.length > 0) {
-        conditions.push(
-          inArray(financialTransaction.accountId, input.accountIds)
-        );
-      }
-
       const [cashFlow, categories] = await Promise.all([
-        context.db
-          .select({
-            currencyCode: financialTransaction.currencyCode,
-            expense: expenseTotal,
-            income: incomeTotal,
-            month: transactionMonth,
-          })
-          .from(financialTransaction)
-          .innerJoin(category, eq(category.id, financialTransaction.categoryId))
-          .where(and(...conditions))
-          .groupBy(transactionMonth, financialTransaction.currencyCode)
-          .orderBy(
-            asc(transactionMonth),
-            asc(financialTransaction.currencyCode)
-          ),
-        context.db
-          .select({
-            categoryId: category.id,
-            color: category.color,
-            count: countDistinct(financialTransaction.id),
-            currencyCode: financialTransaction.currencyCode,
-            icon: category.icon,
-            name: category.name,
-            total: sql<string>`${lineTotal}::text`,
-            type: sql<CategoryType>`${category.type}`,
-          })
-          .from(financialTransaction)
-          .leftJoin(
-            financialTransactionSplit,
-            eq(financialTransactionSplit.transactionId, financialTransaction.id)
-          )
-          .innerJoin(
-            category,
-            and(
-              eq(category.id, lineCategoryId),
-              eq(category.organizationId, context.organizationId)
-            )
-          )
-          .where(and(...conditions))
-          .groupBy(category.id, financialTransaction.currencyCode)
-          .orderBy(
-            desc(lineTotal),
-            asc(category.name),
-            asc(financialTransaction.currencyCode)
-          ),
+        getMonthlyCashFlow(context.db, context.organizationId, input),
+        getCategoryTotals(context.db, context.organizationId, input),
       ]);
 
       return { cashFlow, categories };

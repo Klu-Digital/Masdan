@@ -4,9 +4,14 @@ import {
   financialAccount,
   financialTransaction,
 } from "@masdan/db/schema/index";
-import { and, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 
-const balanceExpression = sql<string>`
+/**
+ * The one balance formula. Aggregate it over `financial_account` joined with
+ * `balancePostings()` and `balanceCategory`, grouped by the account.
+ */
+export const balanceExpression = sql<string>`
   ${financialAccount.openingBalance} + COALESCE(
     SUM(
       CASE
@@ -31,6 +36,26 @@ const balanceExpression = sql<string>`
   )
 `;
 
+/**
+ * Join condition for the postings that move a balance. Rows dated before the
+ * opening balance date are already inside the opening balance; `asOf` stops
+ * at that calendar day, and without it every posting counts, future-dated too.
+ */
+export const balancePostings = (asOf?: SQL | string): SQL | undefined =>
+  and(
+    eq(financialTransaction.accountId, financialAccount.id),
+    isNull(financialTransaction.archivedAt),
+    gte(
+      financialTransaction.transactionDate,
+      financialAccount.openingBalanceDate
+    ),
+    asOf === undefined
+      ? undefined
+      : lte(financialTransaction.transactionDate, asOf)
+  );
+
+export const balanceCategory = eq(category.id, financialTransaction.categoryId);
+
 export const getAccountBalances = async (
   db: Database,
   accountIds: string[]
@@ -45,18 +70,8 @@ export const getAccountBalances = async (
       balance: balanceExpression,
     })
     .from(financialAccount)
-    .leftJoin(
-      financialTransaction,
-      and(
-        eq(financialTransaction.accountId, financialAccount.id),
-        isNull(financialTransaction.archivedAt),
-        gte(
-          financialTransaction.transactionDate,
-          financialAccount.openingBalanceDate
-        )
-      )
-    )
-    .leftJoin(category, eq(category.id, financialTransaction.categoryId))
+    .leftJoin(financialTransaction, balancePostings())
+    .leftJoin(category, balanceCategory)
     .where(inArray(financialAccount.id, accountIds))
     .groupBy(
       financialAccount.id,

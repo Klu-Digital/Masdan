@@ -165,12 +165,14 @@ describe("transactions summary", () => {
         expense: "120.500000",
         income: "5000.000000",
         month: "2026-01",
+        net: "4879.500000",
       },
       {
         currencyCode: "PHP",
         expense: "380.000000",
         income: "5000.000000",
         month: "2026-02",
+        net: "4620.000000",
       },
     ]);
     expect(
@@ -222,6 +224,7 @@ describe("transactions summary", () => {
           expense: "80.000000",
           income: "0",
           month: "2026-02",
+          net: "-80.000000",
         },
       ],
       categories: [
@@ -270,12 +273,14 @@ describe("transactions summary", () => {
         expense: "100.000000",
         income: "0",
         month: "2026-01",
+        net: "-100.000000",
       },
       {
         currencyCode: "USD",
         expense: "25.500000",
         income: "1000.000000",
         month: "2026-01",
+        net: "974.500000",
       },
     ]);
     expect(
