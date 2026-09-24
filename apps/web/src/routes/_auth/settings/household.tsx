@@ -62,6 +62,7 @@ import {
 } from "@/lib/organization";
 import { invalidateSession } from "@/lib/session";
 import { currenciesQueryOptions } from "@/modules/currency/queries";
+import { DataExportSection } from "@/modules/exports/components/data-export-section";
 import { HouseholdFinanceCard } from "@/modules/household/components/household-finance-card";
 import { householdProfileQueryOptions } from "@/modules/household/queries";
 
@@ -557,6 +558,13 @@ const HouseholdSettings = () => {
           Only owners and admins can invite people to this household.
         </p>
       )}
+      <DataExportSection
+        householdName={organization.data.name}
+        timeZone={
+          householdProfile.data?.timezone ??
+          new Intl.DateTimeFormat().resolvedOptions().timeZone
+        }
+      />
       <CreateHousehold />
     </div>
   );

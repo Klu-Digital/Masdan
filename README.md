@@ -399,6 +399,18 @@ Things to know:
 
 Full guide, including the ownership (`:any`) convention and how to add a resource: [`packages/auth/README.md`](packages/auth/README.md).
 
+## Data export
+
+Households can download their records as CSV from **Settings → Household → Export data**: transactions, splits, transaction tags, transfers, accounts, balance history, credit-card statements, categories and tags. Each file comes from its own `exports.*` procedure, is generated synchronously from Postgres, and covers only the active household.
+
+Things to know:
+
+- **Archived rows are exported, not dropped.** They carry `archived_at`.
+- **Amounts are exact numeric text** (`-1234.500000`). Free-text cells that start with `= + - @` get a leading `'` to block spreadsheet formula injection. Amount columns are never prefixed.
+- **Every join repeats the `organization_id` filter.** Keep it that way when adding columns.
+
+Column reference, ordering and format rules: [`packages/api/src/exports/README.md`](packages/api/src/exports/README.md).
+
 ## Project Structure
 
 ```

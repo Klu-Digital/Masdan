@@ -3,6 +3,7 @@ import type { RouterClient } from "@orpc/server";
 import { accountsRouter } from "../accounts/accounts.router";
 import { categoriesRouter } from "../categories/categories.router";
 import { currenciesRouter } from "../currencies/currencies.router";
+import { exportsRouter } from "../exports/exports.router";
 import { featureFlagsRouter } from "../feature-flags/feature-flags.router";
 import { filesRouter } from "../files/files.router";
 import { householdsRouter } from "../households/households.router";
@@ -27,6 +28,7 @@ export const appRouter = {
   admin: adminRouter,
   categories: categoriesRouter,
   currencies: currenciesRouter,
+  exports: exportsRouter,
   featureFlags: featureFlagsRouter,
   files: filesRouter,
   healthCheck: publicProcedure.handler(() => "OK"),
