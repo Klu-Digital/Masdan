@@ -1,4 +1,5 @@
-import { ColumnChart } from "@masdan/ui/charts/column-chart";
+import { EChartsComposedChart } from "@masdan/ui/components/evilcharts/charts/echarts-composed-chart";
+import type { ChartConfig } from "@masdan/ui/components/evilcharts/charts/echarts-composed-chart";
 import { Amount } from "@masdan/ui/components/amount";
 import { IconTile } from "@masdan/ui/components/icon-tile";
 import {
@@ -55,6 +56,69 @@ const Card = ({ children }: { children: ReactNode }) => (
 
 const compactAxis = (currency: string) => (value: number) =>
   formatMoney(value, currency, { compact: true, sign: "none" });
+
+// Both themes point at the same token; `.dark` redefines it, so the chart follows.
+const themeColor = (token: string) => ({
+  dark: [`var(${token})`],
+  light: [`var(${token})`],
+});
+
+const NET_WORTH_CONFIG = {
+  assets: { colors: themeColor("--chart-2"), label: "Assets" },
+  liabilities: { colors: themeColor("--chart-1"), label: "Liabilities" },
+  netWorth: { colors: themeColor("--chart-3"), label: "Net worth" },
+} satisfies ChartConfig;
+
+const CASH_FLOW_CONFIG = {
+  expense: { colors: themeColor("--chart-1"), label: "Money out" },
+  income: { colors: themeColor("--chart-2"), label: "Money in" },
+} satisfies ChartConfig;
+
+interface ChartRow {
+  /** Axis label ("Sep"). */
+  label: string;
+  /** Tooltip and table label ("September 2026"); the chart's category key. */
+  period: string;
+}
+
+/** The canvas is invisible to assistive tech, so its values ride along here. */
+const ChartTable = <Row extends ChartRow>({
+  caption,
+  columns,
+  currency,
+  rows,
+}: {
+  caption: string;
+  columns: { key: keyof Row & string; label: string }[];
+  currency: string;
+  rows: Row[];
+}) => (
+  <table className="sr-only">
+    <caption>{caption}</caption>
+    <thead>
+      <tr>
+        <th scope="col">Period</th>
+        {columns.map((column) => (
+          <th key={column.key} scope="col">
+            {column.label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr key={row.period}>
+          <th scope="row">{row.period}</th>
+          {columns.map((column) => (
+            <td key={column.key}>
+              {formatMoney(Number(row[column.key]), currency)}
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
 
 /* ------------------------------------------------------------------ */
 /* Net worth today                                                     */
@@ -147,17 +211,14 @@ export const NetWorthHistoryChart = ({
       (item) => item.currencyCode === currency
     );
     return {
-      key: point.date,
+      assets: toNumber(position?.assets ?? 0),
       label:
         history?.granularity === "month"
           ? formatMonth(point.date)
           : formatShortDate(point.date, today),
-      longLabel: formatLongDate(point.date),
-      values: {
-        assets: toNumber(position?.assets ?? 0),
-        liabilities: toNumber(position?.liabilities ?? 0),
-        netWorth: toNumber(position?.netWorth ?? 0),
-      },
+      liabilities: toNumber(position?.liabilities ?? 0),
+      netWorth: toNumber(position?.netWorth ?? 0),
+      period: formatLongDate(point.date),
     };
   });
 
@@ -180,38 +241,37 @@ export const NetWorthHistoryChart = ({
       ) : null}
       {data.length > 0 ? (
         <Card>
-          <ColumnChart
+          <EChartsComposedChart
+            className="h-60"
+            config={NET_WORTH_CONFIG}
+            curveType="monotone"
             data={data}
-            formatAxis={compactAxis(currency)}
-            formatValue={(value) => (
-              <Amount currency={currency} value={value} />
-            )}
-            readoutExtra={(datum) => (
-              <div className="flex flex-col gap-0.5">
-                <span className="text-muted-foreground text-xs">Net worth</span>
-                <span className="text-base font-semibold">
-                  <Amount
-                    currency={currency}
-                    value={datum.values.netWorth ?? 0}
-                  />
-                </span>
-              </div>
-            )}
-            series={[
-              {
-                fillClassName: "fill-chart-2",
-                key: "assets",
-                label: "Assets",
-                swatchClassName: "bg-chart-2",
-              },
-              {
-                fillClassName: "fill-chart-1",
-                key: "liabilities",
-                label: "Liabilities",
-                swatchClassName: "bg-chart-1",
-              },
+            xDataKey="period"
+          >
+            <EChartsComposedChart.Grid />
+            <EChartsComposedChart.XAxis
+              tickFormatter={(_, index) => data[index]?.label ?? ""}
+            />
+            <EChartsComposedChart.YAxis tickFormatter={compactAxis(currency)} />
+            <EChartsComposedChart.Legend align="left" />
+            <EChartsComposedChart.Tooltip
+              valueFormatter={(value) => formatMoney(value, currency)}
+            />
+            <EChartsComposedChart.Bar dataKey="assets" />
+            <EChartsComposedChart.Bar dataKey="liabilities" />
+            <EChartsComposedChart.Line dataKey="netWorth">
+              <EChartsComposedChart.Dot />
+            </EChartsComposedChart.Line>
+          </EChartsComposedChart>
+          <ChartTable
+            caption="Assets and liabilities over time"
+            columns={[
+              { key: "assets", label: "Assets" },
+              { key: "liabilities", label: "Liabilities" },
+              { key: "netWorth", label: "Net worth" },
             ]}
-            title="Assets and liabilities over time"
+            currency={currency}
+            rows={data}
           />
         </Card>
       ) : null}
@@ -236,13 +296,10 @@ export const CashFlowSection = ({
       (item) => item.month === month && item.currencyCode === currency
     );
     return {
-      key: month,
+      expense: toNumber(flow?.expense ?? 0),
+      income: toNumber(flow?.income ?? 0),
       label: formatMonth(month),
-      longLabel: formatMonthYear(month),
-      values: {
-        expense: toNumber(flow?.expense ?? 0),
-        income: toNumber(flow?.income ?? 0),
-      },
+      period: formatMonthYear(month),
     };
   });
   const net = toNumber(total?.net ?? 0);
@@ -286,27 +343,34 @@ export const CashFlowSection = ({
             </Stat>
           </StatGroup>
           <Card>
-            <ColumnChart
+            <EChartsComposedChart
+              className="h-60"
+              config={CASH_FLOW_CONFIG}
               data={data}
-              formatAxis={compactAxis(currency)}
-              formatValue={(value) => (
-                <Amount currency={currency} value={value} />
-              )}
-              series={[
-                {
-                  fillClassName: "fill-chart-2",
-                  key: "income",
-                  label: "Money in",
-                  swatchClassName: "bg-chart-2",
-                },
-                {
-                  fillClassName: "fill-chart-1",
-                  key: "expense",
-                  label: "Money out",
-                  swatchClassName: "bg-chart-1",
-                },
+              xDataKey="period"
+            >
+              <EChartsComposedChart.Grid />
+              <EChartsComposedChart.XAxis
+                tickFormatter={(_, index) => data[index]?.label ?? ""}
+              />
+              <EChartsComposedChart.YAxis
+                tickFormatter={compactAxis(currency)}
+              />
+              <EChartsComposedChart.Legend align="left" />
+              <EChartsComposedChart.Tooltip
+                valueFormatter={(value) => formatMoney(value, currency)}
+              />
+              <EChartsComposedChart.Bar dataKey="income" />
+              <EChartsComposedChart.Bar dataKey="expense" />
+            </EChartsComposedChart>
+            <ChartTable
+              caption="Money in and out by month"
+              columns={[
+                { key: "income", label: "Money in" },
+                { key: "expense", label: "Money out" },
               ]}
-              title="Money in and out by month"
+              currency={currency}
+              rows={data}
             />
           </Card>
         </>
