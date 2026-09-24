@@ -1,5 +1,6 @@
 import {
   category,
+  categoryBudget,
   financialTransaction,
   financialTransactionSplit,
 } from "@masdan/db/schema/index";
@@ -188,6 +189,16 @@ export const categoriesRouter = {
           if (transactions.length || splits.length) {
             throw new ORPCError("BAD_REQUEST", {
               message: "Category type cannot change after transactions use it",
+            });
+          }
+          const [budgeted] = await context.db
+            .select({ id: categoryBudget.id })
+            .from(categoryBudget)
+            .where(eq(categoryBudget.categoryId, categoryId))
+            .limit(1);
+          if (budgeted) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Category type cannot change after budgets use it",
             });
           }
         }

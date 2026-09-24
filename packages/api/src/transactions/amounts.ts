@@ -26,3 +26,21 @@ export const formatScaledAmount = (scaled: bigint): string => {
     .replace(/0+$/u, "");
   return fraction ? `${whole}.${fraction}` : whole.toString();
 };
+
+/** `scaledAmount` for ledger results, which can be negative: `"-1.5"` → `-1500000n`. */
+export const signedScaledAmount = (value: string): bigint => {
+  const trimmed = value.trim();
+  return trimmed.startsWith("-")
+    ? -scaledAmount(trimmed.slice(1))
+    : scaledAmount(trimmed);
+};
+
+/** Fixed six places, the way Postgres prints `numeric(30,6)`: `-1500000n` → `"-1.500000"`. */
+export const fixedAmountText = (scaled: bigint): string => {
+  const sign = scaled < 0n ? "-" : "";
+  const magnitude = scaled < 0n ? -scaled : scaled;
+  const fraction = (magnitude % SCALE_FACTOR)
+    .toString()
+    .padStart(AMOUNT_SCALE, "0");
+  return `${sign}${magnitude / SCALE_FACTOR}.${fraction}`;
+};

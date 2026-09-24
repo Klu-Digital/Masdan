@@ -30,6 +30,16 @@ const canSchedule = (
 ): boolean =>
   hasPermission({ permissions: { recurringTransaction: [action] }, role });
 
+const canBudget = (
+  role: string,
+  action: "read" | "update" | "delete"
+): boolean => hasPermission({ permissions: { budget: [action] }, role });
+
+const canGoal = (
+  role: string,
+  action: "create" | "read" | "update" | "archive" | "restore"
+): boolean => hasPermission({ permissions: { savingsGoal: [action] }, role });
+
 describe("roles", () => {
   it("defines the two names better-auth writes into member.role on its own", () => {
     expect(APP_ROLES).toContain("owner");
@@ -133,6 +143,24 @@ describe("roles", () => {
     expect(canSchedule("member", "stop")).toBe(false);
     expect(canSchedule("viewer", "read")).toBe(true);
     expect(canSchedule("viewer", "create")).toBe(false);
+  });
+
+  it("grades budget access across the household roles", () => {
+    expect(canBudget("owner", "delete")).toBe(true);
+    expect(canBudget("admin", "delete")).toBe(true);
+    expect(canBudget("member", "update")).toBe(true);
+    expect(canBudget("member", "delete")).toBe(false);
+    expect(canBudget("viewer", "read")).toBe(true);
+    expect(canBudget("viewer", "update")).toBe(false);
+  });
+
+  it("grades savings goal access across the household roles", () => {
+    expect(canGoal("owner", "archive")).toBe(true);
+    expect(canGoal("admin", "restore")).toBe(true);
+    expect(canGoal("member", "update")).toBe(true);
+    expect(canGoal("member", "archive")).toBe(false);
+    expect(canGoal("viewer", "read")).toBe(true);
+    expect(canGoal("viewer", "create")).toBe(false);
   });
 
   it("grades file access across the ladder", () => {

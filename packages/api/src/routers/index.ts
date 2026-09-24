@@ -2,11 +2,13 @@ import type { RouterClient } from "@orpc/server";
 
 import { accountsRouter } from "../accounts/accounts.router";
 import { attachmentsRouter } from "../attachments/attachments.router";
+import { budgetsRouter } from "../budgets/budgets.router";
 import { categoriesRouter } from "../categories/categories.router";
 import { currenciesRouter } from "../currencies/currencies.router";
 import { exportsRouter } from "../exports/exports.router";
 import { featureFlagsRouter } from "../feature-flags/feature-flags.router";
 import { filesRouter } from "../files/files.router";
+import { goalsRouter } from "../goals/goals.router";
 import { householdsRouter } from "../households/households.router";
 import { importsRouter } from "../imports/imports.router";
 import { invitationsRouter } from "../invitations/invitations.router";
@@ -31,11 +33,13 @@ export const appRouter = {
   accounts: accountsRouter,
   admin: adminRouter,
   attachments: attachmentsRouter,
+  budgets: budgetsRouter,
   categories: categoriesRouter,
   currencies: currenciesRouter,
   exports: exportsRouter,
   featureFlags: featureFlagsRouter,
   files: filesRouter,
+  goals: goalsRouter,
   healthCheck: publicProcedure.handler(() => "OK"),
   households: householdsRouter,
   imports: importsRouter,

@@ -11,6 +11,7 @@ export const relations = defineRelations(schema, (r) => ({
     }),
   },
   category: {
+    budgets: r.many.categoryBudget(),
     organization: r.one.organization({
       from: r.category.organizationId,
       optional: false,
@@ -18,6 +19,18 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     splitTransactions: r.many.financialTransactionSplit(),
     transactions: r.many.financialTransaction(),
+  },
+  categoryBudget: {
+    category: r.one.category({
+      from: r.categoryBudget.categoryId,
+      optional: false,
+      to: r.category.id,
+    }),
+    organization: r.one.organization({
+      from: r.categoryBudget.organizationId,
+      optional: false,
+      to: r.organization.id,
+    }),
   },
   creditCardStatement: {
     account: r.one.financialAccount({
@@ -48,6 +61,7 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.organization.id,
     }),
     owners: r.many.financialAccountOwner(),
+    savingsGoals: r.many.savingsGoal(),
     transactions: r.many.financialTransaction(),
   },
   financialAccountBalanceSnapshot: {
@@ -176,12 +190,14 @@ export const relations = defineRelations(schema, (r) => ({
   },
   organization: {
     categories: r.many.category(),
+    categoryBudgets: r.many.categoryBudget(),
     creditCardStatements: r.many.creditCardStatement(),
     files: r.many.file(),
     financialAccounts: r.many.financialAccount(),
     invitations: r.many.invitation(),
     members: r.many.member(),
     recurringSchedules: r.many.recurringSchedule(),
+    savingsGoals: r.many.savingsGoal(),
     tags: r.many.tag(),
     transactionRules: r.many.transactionRule(),
     transactions: r.many.financialTransaction(),
@@ -216,6 +232,18 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.recurringScheduleTag.tagId,
       optional: false,
       to: r.tag.id,
+    }),
+  },
+  savingsGoal: {
+    account: r.one.financialAccount({
+      from: r.savingsGoal.accountId,
+      optional: false,
+      to: r.financialAccount.id,
+    }),
+    organization: r.one.organization({
+      from: r.savingsGoal.organizationId,
+      optional: false,
+      to: r.organization.id,
     }),
   },
   session: {

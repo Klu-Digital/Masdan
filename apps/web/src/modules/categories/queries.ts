@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 
+import { invalidateBudgets } from "@/modules/budgets/queries";
 import { client } from "@/utils/orpc";
 
 export const categoriesQueryKey = (activeOrganizationId: string | null) =>
@@ -13,10 +14,14 @@ export const categoriesQueryOptions = (activeOrganizationId: string | null) =>
     queryKey: categoriesQueryKey(activeOrganizationId),
   });
 
+/** Budget lines carry category names and archive state, so they refresh too. */
 export const invalidateCategories = (
   queryClient: QueryClient,
   activeOrganizationId: string | null
 ) =>
-  queryClient.invalidateQueries({
-    queryKey: categoriesQueryKey(activeOrganizationId),
-  });
+  Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: categoriesQueryKey(activeOrganizationId),
+    }),
+    invalidateBudgets(queryClient, activeOrganizationId),
+  ]);

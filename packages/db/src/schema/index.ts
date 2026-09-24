@@ -9,9 +9,11 @@ export {
   user,
   verification,
 } from "./auth";
+export { categoryBudget } from "./budgets";
 export { category } from "./categories";
 export { tag } from "./tags";
 export { featureFlag } from "./feature-flags";
+export { savingsGoal } from "./goals";
 export { currency } from "./finance";
 export {
   creditCardStatement,

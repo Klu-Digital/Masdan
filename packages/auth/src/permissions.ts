@@ -13,6 +13,9 @@ import {
  */
 export const statement = {
   ...defaultStatements,
+  // Monthly category budgets. `update` sets an amount; removing one is
+  // permanent, so it is graded like archive.
+  budget: ["read", "update", "delete"],
   category: ["create", "read", "update", "archive", "restore"],
   // Example resource, wired up in `@masdan/api`'s storage router. `:any` is the
   // convention for "act on rows you do not own".
@@ -23,6 +26,8 @@ export const statement = {
   recurringTransaction: ["create", "read", "update", "stop"],
   // Categorization rules; deleting one is permanent, so it is graded like archive.
   rule: ["create", "read", "update", "delete"],
+  // Savings goals. `update` covers edit, complete and reopen.
+  savingsGoal: ["create", "read", "update", "archive", "restore"],
   tag: ["create", "read", "update", "archive", "restore"],
   transaction: ["create", "read", "update", "archive", "restore"],
 } as const;
@@ -39,41 +44,49 @@ export const ac = createAccessControl(statement);
 export const roles = {
   admin: ac.newRole({
     ...adminAc.statements,
+    budget: ["read", "update", "delete"],
     category: ["create", "read", "update", "archive", "restore"],
     file: ["create", "read", "delete", "delete:any"],
     financialAccount: ["create", "read", "update", "archive", "restore"],
     recurringTransaction: ["create", "read", "update", "stop"],
     rule: ["create", "read", "update", "delete"],
+    savingsGoal: ["create", "read", "update", "archive", "restore"],
     tag: ["create", "read", "update", "archive", "restore"],
     transaction: ["create", "read", "update", "archive", "restore"],
   }),
   member: ac.newRole({
     ...memberAc.statements,
+    budget: ["read", "update"],
     category: ["create", "read", "update"],
     file: ["create", "read", "delete"],
     financialAccount: ["create", "read", "update"],
     recurringTransaction: ["create", "read", "update"],
     rule: ["create", "read", "update"],
+    savingsGoal: ["create", "read", "update"],
     tag: ["create", "read", "update"],
     transaction: ["create", "read", "update"],
   }),
   owner: ac.newRole({
     ...ownerAc.statements,
+    budget: ["read", "update", "delete"],
     category: ["create", "read", "update", "archive", "restore"],
     file: ["create", "read", "delete", "delete:any"],
     financialAccount: ["create", "read", "update", "archive", "restore"],
     recurringTransaction: ["create", "read", "update", "stop"],
     rule: ["create", "read", "update", "delete"],
+    savingsGoal: ["create", "read", "update", "archive", "restore"],
     tag: ["create", "read", "update", "archive", "restore"],
     transaction: ["create", "read", "update", "archive", "restore"],
   }),
   viewer: ac.newRole({
     ...memberAc.statements,
+    budget: ["read"],
     category: ["read"],
     file: ["read"],
     financialAccount: ["read"],
     recurringTransaction: ["read"],
     rule: ["read"],
+    savingsGoal: ["read"],
     tag: ["read"],
     transaction: ["read"],
   }),
