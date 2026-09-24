@@ -25,8 +25,15 @@ export {
   financialTransactionSplit,
   financialTransactionTag,
   financialTransfer,
+  MAX_RECURRING_INTERVAL,
   paidStatusEnum,
+  recurringFrequencies,
+  recurringSchedule,
+  recurringScheduleStatuses,
+  recurringScheduleTag,
   transferSideEnum,
+  type RecurringFrequency,
+  type RecurringScheduleStatus,
 } from "./transactions";
 export {
   transactionImport,

@@ -12,6 +12,7 @@ import { importsRouter } from "../imports/imports.router";
 import { invitationsRouter } from "../invitations/invitations.router";
 import { jobsRouter } from "../jobs/jobs.router";
 import { protectedProcedure, publicProcedure } from "../procedures";
+import { recurringRouter } from "../recurring/recurring.router";
 import { reportsRouter } from "../reports/reports.router";
 import { rulesRouter } from "../rules/rules.router";
 import { tagsRouter } from "../tags/tags.router";
@@ -44,6 +45,7 @@ export const appRouter = {
     message: "This is private",
     user: context.session?.user,
   })),
+  recurring: recurringRouter,
   reports: reportsRouter,
   rules: rulesRouter,
   tags: tagsRouter,

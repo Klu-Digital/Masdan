@@ -7,6 +7,7 @@ import {
   Home01Icon,
   Invoice02Icon,
   MagicWand01Icon,
+  RepeatIcon,
   Shield01Icon,
   Tag01Icon,
   ToggleOnIcon,
@@ -36,6 +37,7 @@ export const PRIMARY_NAV: NavDestination[] = [
   { icon: Invoice02Icon, label: "Transactions", to: "/transactions" },
   { icon: Wallet01Icon, label: "Accounts", to: "/accounts" },
   { icon: Analytics01Icon, label: "Reports", to: "/reports" },
+  { icon: RepeatIcon, label: "Recurring", to: "/recurring" },
 ];
 
 export const ORGANIZE_NAV: NavDestination[] = [

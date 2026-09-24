@@ -86,6 +86,11 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
       to: r.organization.id,
     }),
+    recurringSchedule: r.one.recurringSchedule({
+      from: r.financialTransaction.recurringScheduleId,
+      optional: true,
+      to: r.recurringSchedule.id,
+    }),
     splits: r.many.financialTransactionSplit(),
     tags: r.many.financialTransactionTag(),
     transfer: r.one.financialTransfer({
@@ -176,10 +181,42 @@ export const relations = defineRelations(schema, (r) => ({
     financialAccounts: r.many.financialAccount(),
     invitations: r.many.invitation(),
     members: r.many.member(),
+    recurringSchedules: r.many.recurringSchedule(),
     tags: r.many.tag(),
     transactionRules: r.many.transactionRule(),
     transactions: r.many.financialTransaction(),
     transfers: r.many.financialTransfer(),
+  },
+  recurringSchedule: {
+    account: r.one.financialAccount({
+      from: r.recurringSchedule.accountId,
+      optional: false,
+      to: r.financialAccount.id,
+    }),
+    category: r.one.category({
+      from: r.recurringSchedule.categoryId,
+      optional: false,
+      to: r.category.id,
+    }),
+    organization: r.one.organization({
+      from: r.recurringSchedule.organizationId,
+      optional: false,
+      to: r.organization.id,
+    }),
+    tags: r.many.recurringScheduleTag(),
+    transactions: r.many.financialTransaction(),
+  },
+  recurringScheduleTag: {
+    schedule: r.one.recurringSchedule({
+      from: r.recurringScheduleTag.scheduleId,
+      optional: false,
+      to: r.recurringSchedule.id,
+    }),
+    tag: r.one.tag({
+      from: r.recurringScheduleTag.tagId,
+      optional: false,
+      to: r.tag.id,
+    }),
   },
   session: {
     user: r.one.user({

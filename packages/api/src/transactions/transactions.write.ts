@@ -1,22 +1,22 @@
 import type { Database } from "@masdan/db";
-import type {
-  financialTransaction,
-  TransactionRuleApplication,
-} from "@masdan/db/schema/index";
+import type { TransactionRuleApplication } from "@masdan/db/schema/index";
 import {
   category,
   financialAccount,
+  financialTransaction,
+  financialTransactionSplit,
   financialTransactionTag,
   tag,
 } from "@masdan/db/schema/index";
 import { ORPCError } from "@orpc/server";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import type { TransactionPaidStatus } from "./constants";
 
 /**
- * Transaction writes shared by manual entry and CSV import. Kept free of the
- * procedure ladder so apps/workers can import it without auth or server env.
+ * Transaction writes shared by manual entry, CSV import and recurring
+ * schedules. Kept free of the procedure ladder so apps/workers can import it
+ * without auth or server env.
  */
 
 export interface LedgerAccount {
@@ -137,12 +137,65 @@ export const replaceTags = async (
   }
 };
 
+export const replaceSplits = async (
+  db: Database,
+  transactionId: string,
+  splits: { amount: string; categoryId: string }[]
+): Promise<void> => {
+  await db
+    .delete(financialTransactionSplit)
+    .where(eq(financialTransactionSplit.transactionId, transactionId));
+
+  if (splits.length > 1) {
+    await db.insert(financialTransactionSplit).values(
+      splits.map((split, sortOrder) => ({
+        amount: split.amount,
+        categoryId: split.categoryId,
+        sortOrder,
+        transactionId,
+      }))
+    );
+  }
+};
+
+export const validateSplitCategories = async (
+  db: Database,
+  organizationId: string,
+  parentType: string,
+  splits: { categoryId: string }[],
+  existingCategoryIds = new Set<string>()
+): Promise<void> => {
+  const selected = await Promise.all(
+    splits.map((split) =>
+      validCategory(
+        db,
+        organizationId,
+        split.categoryId,
+        existingCategoryIds.has(split.categoryId)
+      )
+    )
+  );
+
+  if (selected.some(({ type }) => type !== parentType)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Every split category must match the transaction type",
+    });
+  }
+};
+
+/** The schedule occurrence a generated transaction stands for. */
+export interface RecurringOccurrence {
+  occurrenceDate: string;
+  scheduleId: string;
+}
+
 export interface TransactionWrite {
   amount: string;
   categoryId: string;
   importFingerprint?: string | null;
   notes: string | null;
   paidStatus: TransactionPaidStatus;
+  recurrence?: RecurringOccurrence | null;
   ruleApplication?: TransactionRuleApplication | null;
   transactionDate: string;
 }
@@ -161,6 +214,87 @@ export const transactionInsertValues = (
   notes: values.notes,
   organizationId,
   paidStatus: values.paidStatus,
+  recurringOccurrenceDate: values.recurrence?.occurrenceDate ?? null,
+  recurringScheduleId: values.recurrence?.scheduleId ?? null,
   ruleApplication: values.ruleApplication ?? null,
   transactionDate: values.transactionDate,
 });
+
+export interface TransactionCreate {
+  accountId: string;
+  amount: string;
+  categoryId: string;
+  notes: string | null;
+  paidStatus: TransactionPaidStatus;
+  splits: { amount: string; categoryId: string }[];
+  tagIds: string[];
+  transactionDate: string;
+}
+
+/**
+ * The one create path for an income or expense: manual entry and recurring
+ * schedules both go through it, so they share account, category, split and
+ * tag validation. With `recurrence`, an occurrence that already has its
+ * transaction is a no-op returning null — the unique index decides, not a
+ * prior read, so concurrent generators cannot both insert.
+ */
+export const createTransaction = async (
+  db: Database,
+  organizationId: string,
+  input: TransactionCreate,
+  recurrence?: RecurringOccurrence
+): Promise<{ id: string } | null> => {
+  const account = await activeAccount(db, organizationId, input.accountId);
+  const parentCategory = await validCategory(
+    db,
+    organizationId,
+    input.categoryId,
+    false
+  );
+  const { splits } = input;
+  await validateSplitCategories(
+    db,
+    organizationId,
+    parentCategory.type,
+    splits
+  );
+  await validTags(db, organizationId, input.tagIds);
+
+  const insert = db.insert(financialTransaction).values(
+    transactionInsertValues(organizationId, account, {
+      amount: input.amount,
+      categoryId:
+        splits.length === 1
+          ? (splits[0]?.categoryId ?? input.categoryId)
+          : input.categoryId,
+      notes: input.notes,
+      paidStatus: input.paidStatus,
+      recurrence: recurrence ?? null,
+      transactionDate: input.transactionDate,
+    })
+  );
+  const [created] = await (
+    recurrence
+      ? insert.onConflictDoNothing({
+          target: [
+            financialTransaction.recurringScheduleId,
+            financialTransaction.recurringOccurrenceDate,
+          ],
+          where: sql`${financialTransaction.recurringScheduleId} IS NOT NULL`,
+        })
+      : insert
+  ).returning({ id: financialTransaction.id });
+
+  if (!created) {
+    if (recurrence) {
+      return null;
+    }
+    throw new ORPCError("INTERNAL_SERVER_ERROR", {
+      message: "Could not create transaction",
+    });
+  }
+
+  await replaceTags(db, created.id, input.tagIds);
+  await replaceSplits(db, created.id, splits);
+  return created;
+};

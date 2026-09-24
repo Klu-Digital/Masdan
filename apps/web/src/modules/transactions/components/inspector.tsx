@@ -132,6 +132,18 @@ const EntryDetails = ({ detail }: { detail: TransactionDetail }) => (
         </Badge>
       )}
     </Row>
+    {detail.recurringScheduleId && detail.recurringOccurrenceDate ? (
+      <ListItem className="min-h-11" render={<Link to="/recurring" />}>
+        <ListItemContent className="flex-none">
+          <span className="text-muted-foreground text-sm">Posted by</span>
+        </ListItemContent>
+        <ListItemTrailing chevron className="min-w-0 flex-1 shrink justify-end">
+          <span className="truncate">
+            {`${detail.recurringScheduleName ?? "Recurring schedule"} · ${formatLongDate(detail.recurringOccurrenceDate)}`}
+          </span>
+        </ListItemTrailing>
+      </ListItem>
+    ) : null}
     {detail.tags.length > 0 ? (
       <Row label="Tags">
         <span className="flex flex-wrap justify-end gap-x-3 gap-y-1">

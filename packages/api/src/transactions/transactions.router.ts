@@ -6,6 +6,7 @@ import {
   financialTransaction,
   financialTransactionSplit,
   financialTransactionTag,
+  recurringSchedule,
   tag,
 } from "@masdan/db/schema/index";
 import { ORPCError } from "@orpc/server";
@@ -45,10 +46,12 @@ import { positiveAmount, scaledAmount } from "./amounts";
 import { TRANSACTION_PAID_STATUSES } from "./constants";
 import {
   activeAccount,
+  createTransaction,
+  replaceSplits,
   replaceTags,
-  transactionInsertValues,
   validCategory,
   validTags,
+  validateSplitCategories,
 } from "./transactions.write";
 
 const transactionFields = {
@@ -62,6 +65,8 @@ const transactionFields = {
   notes: financialTransaction.notes,
   organizationId: financialTransaction.organizationId,
   paidStatus: financialTransaction.paidStatus,
+  recurringOccurrenceDate: financialTransaction.recurringOccurrenceDate,
+  recurringScheduleId: financialTransaction.recurringScheduleId,
   ruleApplication: financialTransaction.ruleApplication,
   transactionDate: financialTransaction.transactionDate,
   transferId: financialTransaction.transferId,
@@ -242,6 +247,7 @@ const transactionQuery = (db: Database) =>
       categoryColor: category.color,
       categoryIcon: category.icon,
       categoryName: category.name,
+      recurringScheduleName: recurringSchedule.name,
       type: category.type,
     })
     .from(financialTransaction)
@@ -249,7 +255,11 @@ const transactionQuery = (db: Database) =>
       financialAccount,
       eq(financialAccount.id, financialTransaction.accountId)
     )
-    .leftJoin(category, eq(category.id, financialTransaction.categoryId));
+    .leftJoin(category, eq(category.id, financialTransaction.categoryId))
+    .leftJoin(
+      recurringSchedule,
+      eq(recurringSchedule.id, financialTransaction.recurringScheduleId)
+    );
 
 const splitCategory = alias(category, "split_category");
 const sourcePosting = alias(financialTransaction, "source_posting");
@@ -441,52 +451,6 @@ const transactionOrderBy = (input: TransactionListInput) => {
   ];
 };
 
-const replaceSplits = async (
-  db: Database,
-  transactionId: string,
-  splits: { amount: string; categoryId: string }[]
-): Promise<void> => {
-  await db
-    .delete(financialTransactionSplit)
-    .where(eq(financialTransactionSplit.transactionId, transactionId));
-
-  if (splits.length > 1) {
-    await db.insert(financialTransactionSplit).values(
-      splits.map((split, sortOrder) => ({
-        amount: split.amount,
-        categoryId: split.categoryId,
-        sortOrder,
-        transactionId,
-      }))
-    );
-  }
-};
-
-const validateSplitCategories = async (
-  db: Database,
-  organizationId: string,
-  parentType: string,
-  splits: { categoryId: string }[],
-  existingCategoryIds = new Set<string>()
-): Promise<void> => {
-  const selected = await Promise.all(
-    splits.map((split) =>
-      validCategory(
-        db,
-        organizationId,
-        split.categoryId,
-        existingCategoryIds.has(split.categoryId)
-      )
-    )
-  );
-
-  if (selected.some(({ type }) => type !== parentType)) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "Every split category must match the transaction type",
-    });
-  }
-};
-
 /** A split transaction's categories come from its splits, never a rule. */
 const keptRuleApplication = (
   application: TransactionRuleApplication | null,
@@ -650,62 +614,33 @@ export const transactionsRouter = {
     .use(requirePermission({ transaction: ["create"] }))
     .input(transactionValues)
     .handler(async ({ context, input }) => {
-      const account = await activeAccount(
+      const created = await createTransaction(
         context.db,
         context.organizationId,
-        input.accountId
+        {
+          ...input,
+          notes: input.notes ?? null,
+          splits: input.splits ?? [],
+        }
       );
-      const parentCategory = await validCategory(
-        context.db,
-        context.organizationId,
-        input.categoryId,
-        false
-      );
-      const splits = input.splits ?? [];
-      await validateSplitCategories(
-        context.db,
-        context.organizationId,
-        parentCategory.type,
-        splits
-      );
-      await validTags(context.db, context.organizationId, input.tagIds);
+      const [result] = created
+        ? await transactionQuery(context.db)
+            .where(
+              and(
+                eq(financialTransaction.id, created.id),
+                eq(financialTransaction.organizationId, context.organizationId)
+              )
+            )
+            .limit(1)
+        : [];
 
-      const [created] = await context.db
-        .insert(financialTransaction)
-        .values(
-          transactionInsertValues(context.organizationId, account, {
-            amount: input.amount,
-            categoryId:
-              splits.length === 1
-                ? (splits[0]?.categoryId ?? input.categoryId)
-                : input.categoryId,
-            notes: input.notes ?? null,
-            paidStatus: input.paidStatus,
-            transactionDate: input.transactionDate,
-          })
-        )
-        .returning(transactionFields);
-
-      if (!created) {
+      if (!result) {
         throw new ORPCError("INTERNAL_SERVER_ERROR", {
           message: "Could not create transaction",
         });
       }
 
-      await replaceTags(context.db, created.id, input.tagIds);
-      await replaceSplits(context.db, created.id, splits);
-      const [result] = await transactionQuery(context.db)
-        .where(
-          and(
-            eq(financialTransaction.id, created.id),
-            eq(financialTransaction.organizationId, context.organizationId)
-          )
-        )
-        .limit(1);
-
-      return result
-        ? withDetails(context.db, result)
-        : withDetails(context.db, created);
+      return withDetails(context.db, result);
     }),
 
   get: orgProcedure

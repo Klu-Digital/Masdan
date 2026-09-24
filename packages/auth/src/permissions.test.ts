@@ -24,6 +24,12 @@ const canRule = (
   action: "create" | "read" | "update" | "delete"
 ): boolean => hasPermission({ permissions: { rule: [action] }, role });
 
+const canSchedule = (
+  role: string,
+  action: "create" | "read" | "update" | "stop"
+): boolean =>
+  hasPermission({ permissions: { recurringTransaction: [action] }, role });
+
 describe("roles", () => {
   it("defines the two names better-auth writes into member.role on its own", () => {
     expect(APP_ROLES).toContain("owner");
@@ -118,6 +124,15 @@ describe("roles", () => {
     expect(canRule("member", "delete")).toBe(false);
     expect(canRule("viewer", "read")).toBe(true);
     expect(canRule("viewer", "create")).toBe(false);
+  });
+
+  it("grades recurring schedule access across the household roles", () => {
+    expect(canSchedule("owner", "stop")).toBe(true);
+    expect(canSchedule("admin", "stop")).toBe(true);
+    expect(canSchedule("member", "update")).toBe(true);
+    expect(canSchedule("member", "stop")).toBe(false);
+    expect(canSchedule("viewer", "read")).toBe(true);
+    expect(canSchedule("viewer", "create")).toBe(false);
   });
 
   it("grades file access across the ladder", () => {

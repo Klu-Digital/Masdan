@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   check,
   date,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -30,6 +31,101 @@ export const transferSideEnum = pgEnum("transfer_side", [
   "source",
   "destination",
 ]);
+
+export const recurringScheduleStatuses = [
+  "active",
+  "paused",
+  "stopped",
+] as const;
+export type RecurringScheduleStatus =
+  (typeof recurringScheduleStatuses)[number];
+
+export const recurringFrequencies = ["daily", "weekly", "monthly"] as const;
+export type RecurringFrequency = (typeof recurringFrequencies)[number];
+
+/** Upper bound on "every N days/weeks/months"; keeps date math in range. */
+export const MAX_RECURRING_INTERVAL = 366;
+
+/**
+ * A template that posts an income or expense on a calendar rhythm. Occurrences
+ * are household calendar days counted from `startDate`; `nextOccurrenceDate`
+ * is the next one still to post, and is null once the schedule is stopped.
+ */
+export const recurringSchedule = pgTable(
+  "recurring_schedule",
+  {
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    amount: money("amount").notNull(),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => category.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    frequency: text("frequency", { enum: recurringFrequencies }).notNull(),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    interval: integer("interval").default(1).notNull(),
+    /** Why generation paused the schedule on its own, shown until resumed. */
+    lastError: text("last_error"),
+    name: text("name").notNull(),
+    nextOccurrenceDate: date("next_occurrence_date", { mode: "string" }),
+    notes: text("notes"),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    paidStatus: paidStatusEnum("paid_status").default("paid").notNull(),
+    pausedAt: timestamp("paused_at"),
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    status: text("status", { enum: recurringScheduleStatuses })
+      .default("active")
+      .notNull(),
+    stoppedAt: timestamp("stopped_at"),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    check("recurring_schedule_positive_amount_chk", sql`${table.amount} > 0`),
+    check(
+      "recurring_schedule_interval_chk",
+      sql`${table.interval} BETWEEN 1 AND ${sql.raw(String(MAX_RECURRING_INTERVAL))}`
+    ),
+    check(
+      "recurring_schedule_next_occurrence_chk",
+      sql`(${table.status} = 'stopped') = (${table.nextOccurrenceDate} IS NULL)
+        AND (${table.nextOccurrenceDate} IS NULL OR ${table.nextOccurrenceDate} >= ${table.startDate})`
+    ),
+    index("recurring_schedule_organization_idx").on(
+      table.organizationId,
+      table.status,
+      table.nextOccurrenceDate
+    ),
+    index("recurring_schedule_due_idx")
+      .on(table.nextOccurrenceDate)
+      .where(sql`${table.status} = 'active'`),
+    index("recurring_schedule_account_idx").on(table.accountId),
+    index("recurring_schedule_category_idx").on(table.categoryId),
+  ]
+);
+
+export const recurringScheduleTag = pgTable(
+  "recurring_schedule_tag",
+  {
+    scheduleId: uuid("schedule_id")
+      .notNull()
+      .references(() => recurringSchedule.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tag.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.scheduleId, table.tagId] }),
+    index("recurring_schedule_tag_tag_idx").on(table.tagId),
+  ]
+);
 
 export const financialTransfer = pgTable(
   "financial_transfer",
@@ -108,6 +204,14 @@ export const financialTransaction = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     paidStatus: paidStatusEnum("paid_status").default("paid").notNull(),
+    /**
+     * The schedule occurrence this transaction was posted for. No `onDelete`:
+     * schedules are stopped, never deleted, so history keeps its origin.
+     */
+    recurringOccurrenceDate: date("recurring_occurrence_date", {
+      mode: "string",
+    }),
+    recurringScheduleId: uuid("recurring_schedule_id"),
     /** The rule behind the current category/tags; cleared once they stop holding. */
     ruleApplication:
       jsonb("rule_application").$type<TransactionRuleApplication>(),
@@ -151,6 +255,19 @@ export const financialTransaction = pgTable(
     uniqueIndex("financial_transaction_account_import_fingerprint_uidx")
       .on(table.accountId, table.importFingerprint)
       .where(sql`${table.importFingerprint} IS NOT NULL`),
+    foreignKey({
+      columns: [table.recurringScheduleId],
+      foreignColumns: [recurringSchedule.id],
+      name: "financial_transaction_recurring_schedule_id_fkey",
+    }),
+    check(
+      "financial_transaction_recurring_occurrence_chk",
+      sql`(${table.recurringScheduleId} IS NULL) = (${table.recurringOccurrenceDate} IS NULL)`
+    ),
+    // One transaction per schedule occurrence, however many workers race for it.
+    uniqueIndex("financial_transaction_recurring_occurrence_uidx")
+      .on(table.recurringScheduleId, table.recurringOccurrenceDate)
+      .where(sql`${table.recurringScheduleId} IS NOT NULL`),
   ]
 );
 

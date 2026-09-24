@@ -18,6 +18,9 @@ export const statement = {
   // convention for "act on rows you do not own".
   file: ["create", "read", "delete", "delete:any"],
   financialAccount: ["create", "read", "update", "archive", "restore"],
+  // Recurring schedules. `update` covers edit, pause and resume; stopping is
+  // permanent, so it is graded like archive.
+  recurringTransaction: ["create", "read", "update", "stop"],
   // Categorization rules; deleting one is permanent, so it is graded like archive.
   rule: ["create", "read", "update", "delete"],
   tag: ["create", "read", "update", "archive", "restore"],
@@ -39,6 +42,7 @@ export const roles = {
     category: ["create", "read", "update", "archive", "restore"],
     file: ["create", "read", "delete", "delete:any"],
     financialAccount: ["create", "read", "update", "archive", "restore"],
+    recurringTransaction: ["create", "read", "update", "stop"],
     rule: ["create", "read", "update", "delete"],
     tag: ["create", "read", "update", "archive", "restore"],
     transaction: ["create", "read", "update", "archive", "restore"],
@@ -48,6 +52,7 @@ export const roles = {
     category: ["create", "read", "update"],
     file: ["create", "read", "delete"],
     financialAccount: ["create", "read", "update"],
+    recurringTransaction: ["create", "read", "update"],
     rule: ["create", "read", "update"],
     tag: ["create", "read", "update"],
     transaction: ["create", "read", "update"],
@@ -57,6 +62,7 @@ export const roles = {
     category: ["create", "read", "update", "archive", "restore"],
     file: ["create", "read", "delete", "delete:any"],
     financialAccount: ["create", "read", "update", "archive", "restore"],
+    recurringTransaction: ["create", "read", "update", "stop"],
     rule: ["create", "read", "update", "delete"],
     tag: ["create", "read", "update", "archive", "restore"],
     transaction: ["create", "read", "update", "archive", "restore"],
@@ -66,6 +72,7 @@ export const roles = {
     category: ["read"],
     file: ["read"],
     financialAccount: ["read"],
+    recurringTransaction: ["read"],
     rule: ["read"],
     tag: ["read"],
     transaction: ["read"],

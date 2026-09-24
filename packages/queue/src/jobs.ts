@@ -59,6 +59,27 @@ export const jobs = defineJobs({
     queue: { retryBackoff: true, retryDelay: 5, retryLimit: 2 },
     schema: z.object({ importId: z.uuid() }),
   },
+  /**
+   * Posts one schedule's due occurrences. Safe to deliver twice or retry: the
+   * unique (schedule, occurrence date) index turns a repeat into a no-op.
+   */
+  "recurring.generate": {
+    queue: { retryBackoff: true, retryDelay: 30, retryLimit: 5 },
+    schema: z.object({ scheduleId: z.uuid() }),
+  },
+  /**
+   * Finds schedules due in their household's timezone and enqueues
+   * `recurring.generate` for each. The cron only sets how often to look —
+   * `tz` is stated so no one reads it as the household's clock, which it is
+   * not: due-ness is decided per household when the sweep runs.
+   */
+  "recurring.sweep": {
+    cron: { data: {}, expression: "*/15 * * * *", tz: "UTC" },
+    // `singleton` so a slow sweep can't stack up behind the next; the next tick
+    // replaces a failed one.
+    queue: { policy: "singleton", retryLimit: 0 },
+    schema: z.object({}).strict(),
+  },
 });
 
 export type JobName = keyof typeof jobs & string;
