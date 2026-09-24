@@ -1,6 +1,7 @@
 import {
   ArrowRight01Icon,
   CheckmarkCircle02Icon,
+  FileImportIcon,
   Invoice02Icon,
   Mail01Icon,
   PlusSignIcon,
@@ -8,9 +9,15 @@ import {
   Wallet01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ColumnChart } from "@masdan/ui/charts/column-chart";
 import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
+import { Button } from "@masdan/ui/components/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyTitle,
+} from "@masdan/ui/components/empty";
 import { IconTile } from "@masdan/ui/components/icon-tile";
 import {
   List,
@@ -30,60 +37,78 @@ import {
   PageHeading,
   PageTitle,
   Section,
-  SectionDescription,
   SectionHeader,
   SectionTitle,
 } from "@masdan/ui/components/page";
 import { Skeleton } from "@masdan/ui/components/skeleton";
 import { formatMoney, toNumber } from "@masdan/ui/lib/money";
+import { cn } from "@masdan/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { Link, createLink } from "@tanstack/react-router";
+import type { ComponentProps, ReactNode } from "react";
 
 import { useAppActions } from "@/components/app-actions";
 import type { ActiveHousehold } from "@/components/household-gate";
 import {
-  addMonths,
+  formatDay,
   formatLongDate,
-  formatMonth,
-  formatMonthName,
   formatMonthYear,
   formatRelativeDays,
   formatShortDate,
   parseIsoDate,
-  startOfMonth,
 } from "@/lib/dates";
 import { householdToday } from "@/lib/household-date";
 import { userInvitationsQueryOptions } from "@/lib/organization";
 import { AccountTile } from "@/modules/accounts/components/account-row";
 import { nextPaymentDue } from "@/modules/accounts/credit";
 import { ACCOUNT_GROUPS } from "@/modules/accounts/kinds";
-import {
-  groupOf,
-  groupTotal,
-  netWorthByCurrency,
-  primaryPosition,
-} from "@/modules/accounts/net-worth";
+import { groupOf, groupTotal } from "@/modules/accounts/net-worth";
 import {
   accountStatementsQueryOptions,
   accountsQueryOptions,
 } from "@/modules/accounts/queries";
-import { Ledger } from "@/modules/transactions/components/ledger";
+import { NetWorthHistoryChart } from "@/modules/reports/components/report-sections";
+import {
+  cashFlowQueryOptions,
+  netWorthHistoryQueryOptions,
+  netWorthQueryOptions,
+  spendingQueryOptions,
+} from "@/modules/reports/queries";
+import type {
+  CashFlowReport,
+  LedgerReportInput,
+  NetWorthHistoryInput,
+  NetWorthReport,
+  SpendingReport,
+} from "@/modules/reports/queries";
 import { TransactionTile } from "@/modules/transactions/components/transaction-tile";
 import { describeTransaction } from "@/modules/transactions/presentation";
-import {
-  transactionSummaryQueryOptions,
-  transactionsQueryOptions,
-} from "@/modules/transactions/queries";
-import type { TransactionSummary } from "@/modules/transactions/queries";
+import { transactionsQueryOptions } from "@/modules/transactions/queries";
 import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
 import type { client } from "@/utils/orpc";
 
 type Account = Awaited<ReturnType<typeof client.accounts.list>>;
 
-const MONTHS_OF_HISTORY = 6;
-const TOP_CATEGORIES = 6;
+/** The slice of the active household this page reads. */
+export interface OverviewHousehold extends Pick<
+  ActiveHousehold,
+  "activeOrganizationId" | "can" | "currency" | "timezone"
+> {
+  organization: { name: string } | null;
+  session: { user: { name: string } };
+}
+
+const THIS_MONTH = {
+  preset: "this_month",
+} as const satisfies LedgerReportInput;
+const NET_WORTH_TREND = {
+  granularity: "month",
+  preset: "last_6_months",
+} as const satisfies NetWorthHistoryInput;
+
+const TOP_CATEGORIES = 5;
 const RECENT_COUNT = 8;
+const UPCOMING_BILLS = 5;
 
 const greeting = (now: Date): string => {
   const hour = now.getHours();
@@ -102,369 +127,343 @@ const weekdayFormat = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
 });
 
-const SeeAll = ({
+const SeeAllAnchor = ({
   children,
-  to,
-  search,
-}: {
-  children: ReactNode;
-  search?: Record<string, unknown>;
-  to: "/transactions" | "/accounts";
-}) => (
-  <Link
-    className="text-brand-text hover:bg-brand-soft focus-visible:ring-ring/50 -me-2 inline-flex h-7 items-center gap-0.5 rounded-md px-2 text-xs font-medium outline-none focus-visible:ring-3"
-    search={search as never}
-    to={to}
+  className,
+  ...props
+}: ComponentProps<"a">) => (
+  <a
+    className={cn(
+      "text-brand-text hover:bg-brand-soft focus-visible:ring-ring/50 -me-2 inline-flex h-7 shrink-0 items-center gap-0.5 rounded-md px-2 text-xs font-medium outline-none focus-visible:ring-3",
+      className
+    )}
+    {...props}
   >
     {children}
     <HugeiconsIcon
+      aria-hidden="true"
       className="size-3.5"
       icon={ArrowRight01Icon}
       strokeWidth={2}
     />
-  </Link>
+  </a>
+);
+
+const SeeAll = createLink(SeeAllAnchor);
+
+const EmptyNote = ({ children }: { children: ReactNode }) => (
+  <p className="bg-card text-muted-foreground dark:ring-hairline rounded-3xl px-5 py-8 text-center text-sm dark:ring-1">
+    {children}
+  </p>
+);
+
+const LoadFailed = ({ onRetry }: { onRetry: () => void }) => (
+  <div className="bg-card dark:ring-hairline flex items-center justify-between gap-3 rounded-2xl px-4 py-3 dark:ring-1">
+    <p className="text-muted-foreground text-sm">Couldn’t load this.</p>
+    <Button onClick={onRetry} size="sm" variant="secondary">
+      Try again
+    </Button>
+  </div>
 );
 
 /* ------------------------------------------------------------------ */
 /* Net worth + this month                                              */
 /* ------------------------------------------------------------------ */
 
-const monthFlow = (
-  summary: TransactionSummary | undefined,
-  month: string,
-  currency: string
-) => {
-  const entry = summary?.cashFlow.find(
-    (item) => item.month === month && item.currencyCode === currency
-  );
-  return {
-    expense: toNumber(entry?.expense ?? 0),
-    income: toNumber(entry?.income ?? 0),
-  };
-};
-
-const HeadlineFigures = ({
-  accounts,
+const NetWorthCard = ({
   currency,
-  summary,
-  today,
+  failed,
+  onRetry,
+  report,
 }: {
-  accounts: Account;
   currency: string;
-  summary: TransactionSummary | undefined;
-  today: string;
+  failed: boolean;
+  onRetry: () => void;
+  report: NetWorthReport | undefined;
 }) => {
-  const { others, primary } = primaryPosition(
-    netWorthByCurrency(accounts),
-    currency
+  const position = report?.positions.find(
+    (item) => item.currencyCode === currency
   );
-  const thisMonth = monthFlow(summary, today.slice(0, 7), currency);
-  const lastMonth = monthFlow(
-    summary,
-    addMonths(today, -1).slice(0, 7),
-    currency
-  );
-  const left = thisMonth.income - thisMonth.expense;
-  const spendChange =
-    lastMonth.expense > 0
-      ? (thisMonth.expense - lastMonth.expense) / lastMonth.expense
-      : null;
+  const others =
+    report?.positions.filter((item) => item.currencyCode !== currency) ?? [];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <section
-        aria-label="Net worth"
-        className="bg-card dark:ring-hairline flex flex-col justify-between gap-6 rounded-3xl p-5 sm:p-6 dark:ring-1"
-      >
-        <div className="flex flex-col gap-1">
+    <section
+      aria-busy={report === undefined && !failed}
+      aria-label="Net worth"
+      className="bg-card dark:ring-hairline flex flex-col justify-between gap-6 rounded-3xl p-5 sm:p-6 dark:ring-1"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-col gap-1">
           <span className="text-muted-foreground text-xs font-medium">
             Net worth
           </span>
-          {primary ? (
+          {report ? (
             <Amount
               animate
-              currency={primary.currencyCode}
+              currency={currency}
               size="display"
-              value={primary.net}
+              value={position?.netWorth ?? 0}
             />
-          ) : (
-            <Amount currency={currency} size="display" value={0} />
-          )}
+          ) : null}
           {others.length > 0 ? (
             <span className="text-muted-foreground text-xs">
               Plus{" "}
               {others
-                .map((position) =>
-                  formatMoney(position.net, position.currencyCode)
-                )
+                .map((item) => formatMoney(item.netWorth, item.currencyCode))
                 .join(" · ")}
             </span>
           ) : null}
         </div>
-        {primary ? (
-          <dl className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-0.5">
-              <dt className="text-muted-foreground text-xs">Assets</dt>
-              <dd className="text-sm font-semibold">
-                <Amount
-                  currency={primary.currencyCode}
-                  value={primary.assets}
-                />
-              </dd>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <dt className="text-muted-foreground text-xs">Liabilities</dt>
-              <dd className="text-sm font-semibold">
-                <Amount
-                  currency={primary.currencyCode}
-                  value={primary.liabilities}
-                />
-              </dd>
-            </div>
-          </dl>
-        ) : null}
-      </section>
-
-      <section
-        aria-label={`${formatMonthYear(today)} so far`}
-        className="bg-card dark:ring-hairline flex flex-col gap-4 rounded-3xl p-5 sm:p-6 dark:ring-1"
-      >
-        <span className="text-muted-foreground text-xs font-medium">
-          {formatMonthYear(today)} so far
-        </span>
-        <dl className="flex flex-col gap-2.5">
-          <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-sm">Money in</dt>
-            <dd className="text-base font-semibold">
-              <Amount
-                currency={currency}
-                sign={thisMonth.income > 0 ? "in" : "none"}
-                tone="auto"
-                value={thisMonth.income}
-              />
+        <SeeAll to="/accounts">Accounts</SeeAll>
+      </div>
+      {failed ? <LoadFailed onRetry={onRetry} /> : null}
+      {!report && !failed ? (
+        <Skeleton className="h-24 w-full" radius="xl" />
+      ) : null}
+      {report ? (
+        <dl className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-0.5">
+            <dt className="text-muted-foreground text-xs">Assets</dt>
+            <dd className="text-sm font-semibold">
+              <Amount currency={currency} value={position?.assets ?? 0} />
             </dd>
           </div>
-          <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-sm">Money out</dt>
-            <dd className="text-base font-semibold">
-              <Amount
-                currency={currency}
-                sign={thisMonth.expense > 0 ? "out" : "none"}
-                value={thisMonth.expense}
-              />
-            </dd>
-          </div>
-          <div className="border-hairline flex items-baseline justify-between gap-4 border-t pt-2.5">
-            <dt className="text-sm font-medium">
-              {left >= 0 ? "Left over" : "Overspent"}
-            </dt>
-            <dd className="text-base font-semibold">
-              <Amount
-                currency={currency}
-                sign="none"
-                tone={left < 0 ? "negative" : "default"}
-                value={Math.abs(left)}
-              />
+          <div className="flex flex-col gap-0.5">
+            <dt className="text-muted-foreground text-xs">Liabilities</dt>
+            <dd className="text-sm font-semibold">
+              <Amount currency={currency} value={position?.liabilities ?? 0} />
             </dd>
           </div>
         </dl>
-        {spendChange === null ? null : (
-          <p className="text-muted-foreground text-xs">
-            Spending is {Math.abs(Math.round(spendChange * 100))}%{" "}
-            {spendChange <= 0 ? "below" : "above"} all of{" "}
-            {formatMonthName(addMonths(today, -1))} (
-            {formatMoney(lastMonth.expense, currency)}).
-          </p>
-        )}
-      </section>
-    </div>
+      ) : null}
+    </section>
   );
 };
 
-/* ------------------------------------------------------------------ */
-/* Cash flow chart                                                     */
-/* ------------------------------------------------------------------ */
-
-const CashFlow = ({
+const MonthFigures = ({
   currency,
-  summary,
-  today,
+  report,
 }: {
   currency: string;
-  summary: TransactionSummary | undefined;
-  today: string;
+  report: CashFlowReport;
 }) => {
-  const months = Array.from({ length: MONTHS_OF_HISTORY }, (_, index) =>
-    addMonths(startOfMonth(today), index - (MONTHS_OF_HISTORY - 1)).slice(0, 7)
-  );
-  const data = months.map((month) => {
-    const flow = monthFlow(summary, month, currency);
-    return {
-      key: month,
-      label: formatMonth(month),
-      longLabel:
-        month === today.slice(0, 7)
-          ? `${formatMonthYear(month)} so far`
-          : formatMonthYear(month),
-      values: { expense: flow.expense, income: flow.income },
-    };
-  });
+  const total = report.totals.find((item) => item.currencyCode === currency);
+  const income = total?.income ?? 0;
+  const expense = total?.expense ?? 0;
+  const net = total?.net ?? 0;
+  const overspent = toNumber(net) < 0;
 
   return (
-    <Section aria-label="Cash flow">
-      <SectionHeader>
-        <SectionTitle>Cash flow</SectionTitle>
-        <SectionDescription>
-          Last {MONTHS_OF_HISTORY} months · {currency}
-        </SectionDescription>
-      </SectionHeader>
-      <div className="bg-card dark:ring-hairline rounded-3xl p-5 sm:p-6 dark:ring-1">
-        {summary ? (
-          <ColumnChart
-            data={data}
-            formatAxis={(value) =>
-              formatMoney(value, currency, { compact: true, sign: "none" })
-            }
-            formatValue={(value) => (
-              <Amount currency={currency} value={value} />
-            )}
-            series={[
-              {
-                fillClassName: "fill-chart-2",
-                key: "income",
-                label: "Money in",
-                swatchClassName: "bg-chart-2",
-              },
-              {
-                fillClassName: "fill-chart-1",
-                key: "expense",
-                label: "Money out",
-                swatchClassName: "bg-chart-1",
-              },
-            ]}
-            title="Money in and out by month"
-          />
-        ) : (
-          <Skeleton className="h-60 w-full" radius="xl" />
-        )}
-      </div>
-    </Section>
+    <>
+      <dl className="flex flex-col gap-2.5">
+        <div className="flex items-baseline justify-between gap-4">
+          <dt className="text-sm">Money in</dt>
+          <dd className="text-base font-semibold">
+            <Amount
+              currency={currency}
+              sign={toNumber(income) > 0 ? "in" : "none"}
+              tone="auto"
+              value={income}
+            />
+          </dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-4">
+          <dt className="text-sm">Money out</dt>
+          <dd className="text-base font-semibold">
+            <Amount
+              currency={currency}
+              sign={toNumber(expense) > 0 ? "out" : "none"}
+              value={expense}
+            />
+          </dd>
+        </div>
+        <div className="border-hairline flex items-baseline justify-between gap-4 border-t pt-2.5">
+          <dt className="text-sm font-medium">
+            {overspent ? "Overspent" : "Left over"}
+          </dt>
+          <dd className="text-base font-semibold">
+            <Amount
+              currency={currency}
+              sign="none"
+              tone={overspent ? "negative" : "default"}
+              value={net}
+            />
+          </dd>
+        </div>
+      </dl>
+      <SeeAll
+        className="self-start"
+        search={{
+          ...DEFAULT_TRANSACTION_SEARCH,
+          dateFrom: report.period.dateFrom,
+          dateTo: report.period.dateTo,
+        }}
+        to="/transactions"
+      >
+        This month’s transactions
+      </SeeAll>
+    </>
   );
 };
 
-/* ------------------------------------------------------------------ */
-/* Spending by category                                                */
-/* ------------------------------------------------------------------ */
-
-const SpendingByCategory = ({
+const MonthCard = ({
   currency,
-  summary,
-  today,
+  failed,
+  onRetry,
+  report,
 }: {
   currency: string;
-  summary: TransactionSummary | undefined;
-  today: string;
+  failed: boolean;
+  onRetry: () => void;
+  report: CashFlowReport | undefined;
+}) => (
+  <section
+    aria-busy={report === undefined && !failed}
+    aria-label="This month"
+    className="bg-card dark:ring-hairline flex flex-col gap-4 rounded-3xl p-5 sm:p-6 dark:ring-1"
+  >
+    <div className="flex items-start justify-between gap-4">
+      <span className="text-muted-foreground text-xs font-medium">
+        {report
+          ? `${formatMonthYear(report.period.dateFrom)} so far`
+          : "This month"}
+      </span>
+      <SeeAll to="/reports">Reports</SeeAll>
+    </div>
+    {failed ? <LoadFailed onRetry={onRetry} /> : null}
+    {!report && !failed ? (
+      <Skeleton className="h-28 w-full" radius="xl" />
+    ) : null}
+    {report ? <MonthFigures currency={currency} report={report} /> : null}
+  </section>
+);
+
+/* ------------------------------------------------------------------ */
+/* Spending this month                                                 */
+/* ------------------------------------------------------------------ */
+
+const SpendingRows = ({
+  currency,
+  report,
+}: {
+  currency: string;
+  report: SpendingReport;
 }) => {
-  const rows = (summary?.categories ?? []).filter(
-    (row) => row.type === "expense" && row.currencyCode === currency
+  const rows = report.categories.filter((row) => row.currencyCode === currency);
+  const total = toNumber(
+    report.totals.find((item) => item.currencyCode === currency)?.total ?? 0
   );
-  const total = rows.reduce((sum, row) => sum + toNumber(row.total), 0);
   const top = rows.slice(0, TOP_CATEGORIES);
-  const rest = rows.slice(TOP_CATEGORIES);
-  const restTotal = rest.reduce((sum, row) => sum + toNumber(row.total), 0);
+  const more = rows.length - top.length;
   const largest = toNumber(top[0]?.total ?? 0);
 
+  if (rows.length === 0) {
+    return <EmptyNote>No spending recorded this month yet.</EmptyNote>;
+  }
   return (
-    <Section aria-label="Spending by category">
-      <SectionHeader>
-        <SectionTitle>Where it went</SectionTitle>
+    <List>
+      {top.map((row) => {
+        const value = toNumber(row.total);
+        return (
+          <ListItem
+            key={row.categoryId}
+            render={
+              <Link
+                search={{
+                  ...DEFAULT_TRANSACTION_SEARCH,
+                  categoryIds: [row.categoryId],
+                  dateFrom: report.period.dateFrom,
+                  dateTo: report.period.dateTo,
+                }}
+                to="/transactions"
+              />
+            }
+          >
+            <ListItemLeading>
+              <IconTile tint={row.color}>{row.icon}</IconTile>
+            </ListItemLeading>
+            <ListItemContent>
+              <span className="flex items-baseline justify-between gap-3">
+                <ListItemTitle>{row.name}</ListItemTitle>
+                <span className="shrink-0 text-sm font-medium">
+                  <Amount currency={currency} value={row.total} />
+                </span>
+              </span>
+              <span className="flex items-center gap-3">
+                <Meter
+                  aria-label={`${row.name} share of spending`}
+                  className="flex-1"
+                  max={largest}
+                  value={value}
+                >
+                  <MeterTrack>
+                    <MeterIndicator tone="brand" />
+                  </MeterTrack>
+                </Meter>
+                <span className="text-muted-foreground w-9 shrink-0 text-right text-xs tabular-nums">
+                  {total > 0 ? Math.round((value / total) * 100) : 0}%
+                </span>
+              </span>
+            </ListItemContent>
+          </ListItem>
+        );
+      })}
+      {more > 0 ? (
+        <ListItem render={<Link to="/reports" />}>
+          <ListItemLeading>
+            <IconTile>…</IconTile>
+          </ListItemLeading>
+          <ListItemContent>
+            <ListItemTitle>
+              {more === 1 ? "1 more category" : `${more} more categories`}
+            </ListItemTitle>
+          </ListItemContent>
+          <ListItemTrailing chevron />
+        </ListItem>
+      ) : null}
+    </List>
+  );
+};
+
+const SpendingHighlights = ({
+  currency,
+  failed,
+  onRetry,
+  report,
+}: {
+  currency: string;
+  failed: boolean;
+  onRetry: () => void;
+  report: SpendingReport | undefined;
+}) => (
+  <Section
+    aria-busy={report === undefined && !failed}
+    aria-label="Spending this month"
+  >
+    <SectionHeader>
+      <SectionTitle>Where it went</SectionTitle>
+      {report ? (
         <SeeAll
           search={{
             ...DEFAULT_TRANSACTION_SEARCH,
-            dateFrom: startOfMonth(today),
-            dateTo: today,
+            dateFrom: report.period.dateFrom,
+            dateTo: report.period.dateTo,
             types: ["expense"],
           }}
           to="/transactions"
         >
           This month’s spending
         </SeeAll>
-      </SectionHeader>
-      {summary === undefined ? (
-        <Skeleton className="h-64 w-full" radius="3xl" />
       ) : null}
-      {summary && rows.length === 0 ? (
-        <p className="bg-card text-muted-foreground dark:ring-hairline rounded-3xl px-5 py-8 text-center text-sm dark:ring-1">
-          No spending recorded this month yet.
-        </p>
-      ) : null}
-      {rows.length > 0 ? (
-        <List>
-          {top.map((row) => {
-            const value = toNumber(row.total);
-            const share = total > 0 ? value / total : 0;
-            return (
-              <ListItem
-                key={row.categoryId}
-                render={
-                  <Link
-                    search={{
-                      ...DEFAULT_TRANSACTION_SEARCH,
-                      categoryIds: [row.categoryId],
-                      dateFrom: startOfMonth(today),
-                      dateTo: today,
-                    }}
-                    to="/transactions"
-                  />
-                }
-              >
-                <ListItemLeading>
-                  <IconTile tint={row.color}>{row.icon}</IconTile>
-                </ListItemLeading>
-                <ListItemContent>
-                  <span className="flex items-baseline justify-between gap-3">
-                    <ListItemTitle>{row.name}</ListItemTitle>
-                    <span className="shrink-0 text-sm font-medium">
-                      <Amount currency={currency} value={value} />
-                    </span>
-                  </span>
-                  <span className="flex items-center gap-3">
-                    <Meter
-                      aria-label={`${row.name} share of spending`}
-                      className="flex-1"
-                      max={largest}
-                      value={value}
-                    >
-                      <MeterTrack>
-                        <MeterIndicator tone="brand" />
-                      </MeterTrack>
-                    </Meter>
-                    <span className="text-muted-foreground w-9 shrink-0 text-right text-xs tabular-nums">
-                      {Math.round(share * 100)}%
-                    </span>
-                  </span>
-                </ListItemContent>
-              </ListItem>
-            );
-          })}
-          {rest.length > 0 ? (
-            <ListItem>
-              <ListItemLeading>
-                <IconTile>…</IconTile>
-              </ListItemLeading>
-              <ListItemContent>
-                <ListItemTitle>{rest.length} more categories</ListItemTitle>
-              </ListItemContent>
-              <ListItemTrailing>
-                <Amount currency={currency} value={restTotal} />
-              </ListItemTrailing>
-            </ListItem>
-          ) : null}
-        </List>
-      ) : null}
-    </Section>
-  );
-};
+    </SectionHeader>
+    {failed ? <LoadFailed onRetry={onRetry} /> : null}
+    {!report && !failed ? (
+      <Skeleton className="h-64 w-full" radius="3xl" />
+    ) : null}
+    {report ? <SpendingRows currency={currency} report={report} /> : null}
+  </Section>
+);
 
 /* ------------------------------------------------------------------ */
 /* Upcoming: card payments and unpaid bills                           */
@@ -525,15 +524,13 @@ const Upcoming = ({
   organizationId: string;
   today: string;
 }) => {
-  const { inspect } = useAppActions();
   const cards = accounts.filter(
-    (account) =>
-      account.accountType === "credit_card" && account.archivedAt === null
+    (account) => account.accountType === "credit_card"
   );
   const unpaid = useQuery(
     transactionsQueryOptions(organizationId, {
       ...DEFAULT_TRANSACTION_SEARCH,
-      pageSize: 5,
+      pageSize: UPCOMING_BILLS,
       paidStatuses: ["unpaid"],
       sortDirection: "asc",
     })
@@ -544,7 +541,7 @@ const Upcoming = ({
   );
 
   return (
-    <Section aria-label="Coming up">
+    <Section aria-busy={unpaid.isPending} aria-label="Coming up">
       <SectionHeader>
         <SectionTitle>Coming up</SectionTitle>
         {(unpaid.data?.total ?? 0) > bills.length ? (
@@ -575,7 +572,15 @@ const Upcoming = ({
           {bills.map((bill) => {
             const view = describeTransaction(bill);
             return (
-              <ListItemButton key={bill.id} onClick={() => inspect(bill.id)}>
+              <ListItem
+                key={bill.id}
+                render={
+                  <Link
+                    params={{ transactionId: bill.id }}
+                    to="/transactions/$transactionId"
+                  />
+                }
+              >
                 <ListItemLeading>
                   <TransactionTile transaction={bill} />
                 </ListItemLeading>
@@ -594,7 +599,7 @@ const Upcoming = ({
                     value={bill.amount}
                   />
                 </ListItemTrailing>
-              </ListItemButton>
+              </ListItem>
             );
           })}
         </List>
@@ -618,22 +623,33 @@ const AccountsGlance = ({ accounts }: { accounts: Account }) => (
         const members = accounts.filter(
           (account) => groupOf(account) === group.key
         );
-        if (members.length === 0) {
+        const [first] = members;
+        if (!first) {
           return null;
         }
         const total = groupTotal(members);
-        const [first] = members;
+        const only = members.length === 1;
         return (
-          <ListItem key={group.key} render={<Link to="/accounts" />}>
+          <ListItem
+            key={group.key}
+            render={
+              only ? (
+                <Link
+                  params={{ accountId: first.id }}
+                  to="/accounts/$accountId"
+                />
+              ) : (
+                <Link to="/accounts" />
+              )
+            }
+          >
             <ListItemLeading>
-              {first ? <AccountTile account={first} /> : null}
+              <AccountTile account={first} />
             </ListItemLeading>
             <ListItemContent>
               <ListItemTitle>{group.label}</ListItemTitle>
               <ListItemDescription>
-                {members.length === 1
-                  ? members[0]?.name
-                  : `${members.length} accounts`}
+                {only ? first.name : `${members.length} accounts`}
               </ListItemDescription>
             </ListItemContent>
             <ListItemTrailing chevron>
@@ -660,22 +676,52 @@ const AccountsGlance = ({ accounts }: { accounts: Account }) => (
 /* Recent activity                                                     */
 /* ------------------------------------------------------------------ */
 
+const NoTransactions = ({ canCreate }: { canCreate: boolean }) => {
+  const { compose } = useAppActions();
+  return (
+    <div className="bg-card dark:ring-hairline rounded-3xl dark:ring-1">
+      <Empty size="compact">
+        <EmptyTitle>No transactions yet</EmptyTitle>
+        <EmptyDescription>
+          Record what comes in and goes out, or bring in a bank export.
+        </EmptyDescription>
+        {canCreate ? (
+          <EmptyContent>
+            <Button
+              onClick={() => compose({ kind: "expense", type: "transaction" })}
+            >
+              <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
+              Add a transaction
+            </Button>
+            <Button render={<Link to="/imports" />} variant="secondary">
+              <HugeiconsIcon icon={FileImportIcon} strokeWidth={1.8} />
+              Import from CSV
+            </Button>
+          </EmptyContent>
+        ) : null}
+      </Empty>
+    </div>
+  );
+};
+
 const RecentActivity = ({
+  canCreate,
   organizationId,
   today,
 }: {
+  canCreate: boolean;
   organizationId: string;
   today: string;
 }) => {
-  const { inspect } = useAppActions();
   const recent = useQuery(
     transactionsQueryOptions(organizationId, {
       ...DEFAULT_TRANSACTION_SEARCH,
       pageSize: RECENT_COUNT,
     })
   );
+  const items = recent.data?.items ?? [];
   return (
-    <Section aria-label="Recent activity">
+    <Section aria-busy={recent.isPending} aria-label="Recent activity">
       <SectionHeader>
         <SectionTitle>Recent activity</SectionTitle>
         <SeeAll to="/transactions">All transactions</SeeAll>
@@ -683,18 +729,47 @@ const RecentActivity = ({
       {recent.isPending ? (
         <Skeleton className="h-72 w-full" radius="3xl" />
       ) : null}
-      {recent.data && recent.data.items.length === 0 ? (
-        <p className="bg-card text-muted-foreground dark:ring-hairline rounded-3xl px-5 py-8 text-center text-sm dark:ring-1">
-          Transactions you record will appear here.
-        </p>
+      {recent.isError ? <LoadFailed onRetry={() => recent.refetch()} /> : null}
+      {recent.data && items.length === 0 ? (
+        <NoTransactions canCreate={canCreate} />
       ) : null}
-      {recent.data && recent.data.items.length > 0 ? (
-        <Ledger
-          grouped
-          onOpen={(transaction) => inspect(transaction.id)}
-          today={today}
-          transactions={recent.data.items}
-        />
+      {items.length > 0 ? (
+        <List>
+          {items.map((transaction) => {
+            const view = describeTransaction(transaction);
+            return (
+              <ListItem
+                key={transaction.id}
+                render={
+                  <Link
+                    params={{ transactionId: transaction.id }}
+                    to="/transactions/$transactionId"
+                  />
+                }
+              >
+                <ListItemLeading>
+                  <TransactionTile transaction={transaction} />
+                </ListItemLeading>
+                <ListItemContent>
+                  <ListItemTitle>{view.title}</ListItemTitle>
+                  <ListItemDescription>
+                    {formatDay(transaction.transactionDate, today)} ·{" "}
+                    {view.subtitle}
+                  </ListItemDescription>
+                </ListItemContent>
+                <ListItemTrailing>
+                  <Amount
+                    weight="medium"
+                    currency={transaction.currencyCode}
+                    sign={view.sign}
+                    tone="auto"
+                    value={transaction.amount}
+                  />
+                </ListItemTrailing>
+              </ListItem>
+            );
+          })}
+        </List>
       ) : null}
     </Section>
   );
@@ -704,8 +779,9 @@ const RecentActivity = ({
 /* First run                                                           */
 /* ------------------------------------------------------------------ */
 
-const Welcome = ({ household }: { household: ActiveHousehold }) => {
+const Welcome = ({ household }: { household: OverviewHousehold }) => {
   const { compose, composeAccount } = useAppActions();
+  const canCreateTransaction = household.can({ transaction: ["create"] });
   const steps = [
     {
       allowed: household.can({ financialAccount: ["create"] }),
@@ -715,7 +791,7 @@ const Welcome = ({ household }: { household: ActiveHousehold }) => {
       title: "Add an account",
     },
     {
-      allowed: household.can({ transaction: ["create"] }),
+      allowed: canCreateTransaction,
       description: "Every entry updates balances and this overview.",
       handleClick: () => compose({ kind: "expense", type: "transaction" }),
       icon: Invoice02Icon,
@@ -732,8 +808,8 @@ const Welcome = ({ household }: { household: ActiveHousehold }) => {
           Let’s set up {household.organization?.name ?? "your household"}
         </h2>
         <p className="text-muted-foreground text-sm">
-          Two steps and this page fills in with your net worth, cash flow and
-          what’s due.
+          Add an account, then record or import transactions, and this page
+          fills in with your net worth, spending and what’s due.
         </p>
       </div>
       <List variant="inset">
@@ -759,6 +835,22 @@ const Welcome = ({ household }: { household: ActiveHousehold }) => {
               </ListItemTrailing>
             </ListItemButton>
           ))}
+        {canCreateTransaction ? (
+          <ListItem render={<Link to="/imports" />}>
+            <ListItemLeading>
+              <IconTile tint="orange">
+                <HugeiconsIcon icon={FileImportIcon} strokeWidth={1.8} />
+              </IconTile>
+            </ListItemLeading>
+            <ListItemContent>
+              <ListItemTitle>Import from CSV</ListItemTitle>
+              <ListItemDescription>
+                Bring in a bank or card export instead of typing it.
+              </ListItemDescription>
+            </ListItemContent>
+            <ListItemTrailing chevron />
+          </ListItem>
+        ) : null}
         <ListItem render={<Link to="/settings/household" />}>
           <ListItemLeading>
             <IconTile tint="violet">
@@ -808,23 +900,22 @@ const InvitationNotice = () => {
   );
 };
 
-export const OverviewPage = ({ household }: { household: ActiveHousehold }) => {
-  const { activeOrganizationId, currency, session, timezone } = household;
+const Overview = ({ household }: { household: OverviewHousehold }) => {
+  const { activeOrganizationId, can, session, timezone } = household;
   const today = householdToday(timezone);
   const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
-  const history = useQuery(
-    transactionSummaryQueryOptions(activeOrganizationId, {
-      dateFrom: startOfMonth(addMonths(today, -(MONTHS_OF_HISTORY - 1))),
-      dateTo: today,
-    })
-  );
+  const netWorth = useQuery(netWorthQueryOptions(activeOrganizationId));
   const month = useQuery(
-    transactionSummaryQueryOptions(activeOrganizationId, {
-      dateFrom: startOfMonth(today),
-      dateTo: today,
-    })
+    cashFlowQueryOptions(activeOrganizationId, THIS_MONTH)
   );
-  const householdCurrency = currency ?? "PHP";
+  const spending = useQuery(
+    spendingQueryOptions(activeOrganizationId, THIS_MONTH)
+  );
+  const trend = useQuery(
+    netWorthHistoryQueryOptions(activeOrganizationId, NET_WORTH_TREND)
+  );
+  const currency =
+    household.currency ?? netWorth.data?.defaultCurrency ?? "PHP";
   const firstName = session.user.name.split(" ")[0] ?? session.user.name;
   const activeAccounts = (accounts.data ?? []).filter(
     (account) => account.archivedAt === null
@@ -844,10 +935,18 @@ export const OverviewPage = ({ household }: { household: ActiveHousehold }) => {
       <InvitationNotice />
 
       {accounts.isPending ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <section
+          aria-busy="true"
+          aria-label="Loading overview"
+          className="grid gap-4 md:grid-cols-2"
+        >
           <Skeleton className="h-44" radius="3xl" />
           <Skeleton className="h-44" radius="3xl" />
-        </div>
+        </section>
+      ) : null}
+
+      {accounts.isError ? (
+        <LoadFailed onRetry={() => accounts.refetch()} />
       ) : null}
 
       {accounts.data && activeAccounts.length === 0 ? (
@@ -856,25 +955,39 @@ export const OverviewPage = ({ household }: { household: ActiveHousehold }) => {
 
       {activeAccounts.length > 0 ? (
         <>
-          <HeadlineFigures
-            accounts={activeAccounts}
-            currency={householdCurrency}
-            summary={history.data}
-            today={today}
-          />
+          <div className="grid gap-4 md:grid-cols-2">
+            <NetWorthCard
+              currency={currency}
+              failed={netWorth.isError}
+              onRetry={() => netWorth.refetch()}
+              report={netWorth.data}
+            />
+            <MonthCard
+              currency={currency}
+              failed={month.isError}
+              onRetry={() => month.refetch()}
+              report={month.data}
+            />
+          </div>
           <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <div className="flex min-w-0 flex-col gap-8">
-              <CashFlow
-                currency={householdCurrency}
-                summary={history.data}
-                today={today}
-              />
-              <SpendingByCategory
-                currency={householdCurrency}
-                summary={month.data}
-                today={today}
+              {trend.isError ? (
+                <LoadFailed onRetry={() => trend.refetch()} />
+              ) : (
+                <NetWorthHistoryChart
+                  action={<SeeAll to="/reports">Reports</SeeAll>}
+                  currency={currency}
+                  history={trend.data}
+                />
+              )}
+              <SpendingHighlights
+                currency={currency}
+                failed={spending.isError}
+                onRetry={() => spending.refetch()}
+                report={spending.data}
               />
               <RecentActivity
+                canCreate={can({ transaction: ["create"] })}
                 organizationId={activeOrganizationId}
                 today={today}
               />
@@ -887,8 +1000,8 @@ export const OverviewPage = ({ household }: { household: ActiveHousehold }) => {
               />
               <AccountsGlance accounts={activeAccounts} />
               <p className="text-muted-foreground px-1 text-xs">
-                Figures are in {householdCurrency}, the household’s default
-                currency. Updated {formatLongDate(today)}.
+                Figures are in {currency}, the household’s default currency.
+                Updated {formatLongDate(today)}.
               </p>
             </div>
           </div>
@@ -897,3 +1010,13 @@ export const OverviewPage = ({ household }: { household: ActiveHousehold }) => {
     </Page>
   );
 };
+
+export const OverviewPage = ({
+  household,
+}: {
+  household: OverviewHousehold;
+}) => (
+  // Remount per household: report queries keep placeholder data across key
+  // changes, which would show the previous household's figures under this one.
+  <Overview household={household} key={household.activeOrganizationId} />
+);

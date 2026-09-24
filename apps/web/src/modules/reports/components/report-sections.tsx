@@ -131,9 +131,12 @@ export const NetWorthSummary = ({
 /* ------------------------------------------------------------------ */
 
 export const NetWorthHistoryChart = ({
+  action,
   currency,
   history,
 }: {
+  /** Replaces the header's description, e.g. a link to the full report. */
+  action?: ReactNode;
   currency: string;
   history: NetWorthHistory | undefined;
 }) => {
@@ -159,10 +162,12 @@ export const NetWorthHistoryChart = ({
   });
 
   return (
-    <Section aria-label="Net worth history">
+    <Section aria-busy={history === undefined} aria-label="Net worth history">
       <SectionHeader>
         <SectionTitle>Net worth over time</SectionTitle>
-        <SectionDescription>Balances at each period end</SectionDescription>
+        {action ?? (
+          <SectionDescription>Balances at each period end</SectionDescription>
+        )}
       </SectionHeader>
       {history === undefined ? (
         <Skeleton className="h-60 w-full" radius="3xl" />

@@ -1,43 +1,15 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import { nextPaymentDue, utilizationTone } from "./credit";
-import { groupTotal, netWorthByCurrency, primaryPosition } from "./net-worth";
+import { groupTotal } from "./net-worth";
 
 const account = (overrides: Record<string, unknown>) => ({
-  accountClass: "asset",
-  accountType: "bank",
-  archivedAt: null,
   balance: "0",
   currencyCode: "PHP",
-  includeInNetWorth: true,
   ...overrides,
 });
 
-describe("net worth", () => {
-  it("subtracts liabilities and never mixes currencies", () => {
-    const positions = netWorthByCurrency([
-      account({ balance: "10000" }),
-      account({
-        accountClass: "liability",
-        accountType: "credit_card",
-        balance: "2500",
-      }),
-      account({ balance: "300", currencyCode: "USD" }),
-      account({ balance: "999", includeInNetWorth: false }),
-      account({ archivedAt: new Date(), balance: "5000" }),
-    ]);
-    const { others, primary } = primaryPosition(positions, "PHP");
-    expect(primary).toEqual({
-      assets: 10_000,
-      currencyCode: "PHP",
-      liabilities: 2500,
-      net: 7500,
-    });
-    expect(others).toEqual([
-      { assets: 300, currencyCode: "USD", liabilities: 0, net: 300 },
-    ]);
-  });
-
+describe("account groups", () => {
   it("totals a group only when it shares one currency", () => {
     expect(
       groupTotal([account({ balance: "1" }), account({ balance: "2" })])
