@@ -7,12 +7,14 @@ import {
   startTestQueue,
   stopTestQueue,
 } from "@masdan/testing";
+import { parseCsvRecords } from "@masdan/testing/csv";
 import { call } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vite-plus/test";
 
 import { accountsRouter } from "../accounts/accounts.router";
 import type { Context } from "../context";
+import { exportsRouter } from "../exports/exports.router";
 import { processImport } from "../imports/imports.process";
 import { importsRouter } from "../imports/imports.router";
 import { transactionsRouter } from "../transactions/transactions.router";
@@ -43,7 +45,7 @@ const CSV = [
 ].join("\n");
 
 describe("reports over imported history", () => {
-  it("counts imported rows exactly like manual ones", async () => {
+  it("flows imported history through ledger, balances, reports and export", async () => {
     const { headers, user } = await signUpTestUser();
     const session = await getSessionFor(headers);
     const organizationId = session?.session.activeOrganizationId;
@@ -191,5 +193,63 @@ describe("reports over imported history", () => {
       ["Groceries", 2, "350.000000"],
       ["Transport", 1, "100.000000"],
     ]);
+
+    const ledger = await call(
+      transactionsRouter.list,
+      { accountIds: [account.id], sortDirection: "asc" },
+      context
+    );
+    expect(
+      ledger.items.map(({ amount, transactionDate }) => [
+        transactionDate,
+        amount,
+      ])
+    ).toEqual([
+      ["2026-01-15", "2000.000000"],
+      ["2026-02-10", "300.000000"],
+      ["2026-03-02", "50.000000"],
+      ["2026-03-05", "100.000000"],
+    ]);
+    await expect(
+      call(accountsRouter.get, { accountId: account.id }, context)
+    ).resolves.toMatchObject({ balance: "2550.000000" });
+
+    const exportFile = await call(
+      exportsRouter.transactions,
+      undefined,
+      context
+    );
+    const exported = parseCsvRecords(exportFile.csv).records;
+    expect(
+      exported.map((row) => [
+        row.transaction_date,
+        row.amount,
+        row.import_file_name,
+        row.import_source_row,
+      ])
+    ).toEqual([
+      ["2026-01-15", "2000.000000", "bank.csv", "2"],
+      ["2026-02-10", "300.000000", "bank.csv", "3"],
+      ["2026-03-02", "50.000000", "", ""],
+      ["2026-03-05", "100.000000", "bank.csv", "4"],
+    ]);
+
+    const other = await signUpTestUser();
+    const otherContext = {
+      context: {
+        auth: null,
+        db: getTestDb(),
+        log: undefined,
+        session: await getSessionFor(other.headers),
+      } as unknown as Context,
+    };
+    const [otherLedger, otherFlow, otherExport] = await Promise.all([
+      call(transactionsRouter.list, {}, otherContext),
+      call(reportsRouter.cashFlow, range, otherContext),
+      call(exportsRouter.transactions, undefined, otherContext),
+    ]);
+    expect(otherLedger.total).toBe(0);
+    expect(otherFlow.totals).toEqual([]);
+    expect(parseCsvRecords(otherExport.csv).records).toEqual([]);
   });
 });
