@@ -8,6 +8,10 @@ import {
   handleRecurringGenerate,
   handleRecurringSweep,
 } from "./handlers/recurring";
+import {
+  handleRemindersRefresh,
+  handleRemindersSweep,
+} from "./handlers/reminders";
 
 type Handlers = {
   [N in JobName]: (job: JobOf<N>) => Promise<void>;
@@ -23,6 +27,8 @@ const handlers: Handlers = {
   "imports.process": handleImportProcess,
   "recurring.generate": handleRecurringGenerate,
   "recurring.sweep": handleRecurringSweep,
+  "reminders.refresh": handleRemindersRefresh,
+  "reminders.sweep": handleRemindersSweep,
 };
 
 /** Starts one worker per job. Call after `queue.start("consumer")` has resolved. */

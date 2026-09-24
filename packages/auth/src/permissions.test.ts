@@ -40,6 +40,9 @@ const canGoal = (
   action: "create" | "read" | "update" | "archive" | "restore"
 ): boolean => hasPermission({ permissions: { savingsGoal: [action] }, role });
 
+const canRemind = (role: string, action: "read" | "dismiss"): boolean =>
+  hasPermission({ permissions: { reminder: [action] }, role });
+
 describe("roles", () => {
   it("defines the two names better-auth writes into member.role on its own", () => {
     expect(APP_ROLES).toContain("owner");
@@ -161,6 +164,14 @@ describe("roles", () => {
     expect(canGoal("member", "archive")).toBe(false);
     expect(canGoal("viewer", "read")).toBe(true);
     expect(canGoal("viewer", "create")).toBe(false);
+  });
+
+  it("lets every household role read reminders but only contributors dismiss them", () => {
+    for (const role of ["owner", "admin", "member"]) {
+      expect(canRemind(role, "dismiss")).toBe(true);
+    }
+    expect(canRemind("viewer", "read")).toBe(true);
+    expect(canRemind("viewer", "dismiss")).toBe(false);
   });
 
   it("grades file access across the ladder", () => {

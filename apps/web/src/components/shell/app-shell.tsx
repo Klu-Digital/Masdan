@@ -52,7 +52,9 @@ import { useEffect, useRef, useState } from "react";
 import { useAppActions } from "@/components/app-actions";
 import AppBreadcrumbs from "@/components/app-breadcrumbs";
 import { useTheme } from "@/components/theme-provider";
+import { useHousehold } from "@/hooks/use-household";
 import { userInvitationsQueryOptions } from "@/lib/organization";
+import { RemindersMenu } from "@/modules/reminders/components/reminders-menu";
 
 import { HouseholdSwitcher } from "./household-switcher";
 import { ADMIN_NAV, ORGANIZE_NAV, PRIMARY_NAV } from "./navigation";
@@ -158,6 +160,19 @@ const Sidebar = ({
   );
 };
 
+const HouseholdReminders = () => {
+  const { activeOrganizationId, can } = useHousehold();
+  if (!can({ reminder: ["read"] })) {
+    return null;
+  }
+  return (
+    <RemindersMenu
+      activeOrganizationId={activeOrganizationId}
+      canDismiss={can({ reminder: ["dismiss"] })}
+    />
+  );
+};
+
 const TopBar = () => {
   const { openCommandMenu } = useAppActions();
   return (
@@ -189,6 +204,7 @@ const TopBar = () => {
       >
         <HugeiconsIcon icon={Search01Icon} strokeWidth={1.8} />
       </Button>
+      <HouseholdReminders />
     </AppTopBar>
   );
 };

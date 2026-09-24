@@ -80,6 +80,33 @@ export const jobs = defineJobs({
     queue: { policy: "singleton", retryLimit: 0 },
     schema: z.object({}).strict(),
   },
+  /**
+   * Generates and resolves one household's credit-card reminders. Safe to
+   * deliver twice: the unique (card, kind, date) index turns a repeat into a
+   * no-op. `stately` with the household as `singletonKey` keeps at most one
+   * queued refresh per household however many edits ask for one.
+   */
+  "reminders.refresh": {
+    queue: {
+      policy: "stately",
+      retryBackoff: true,
+      retryDelay: 30,
+      retryLimit: 3,
+    },
+    schema: z.object({ organizationId: z.uuid() }),
+  },
+  /**
+   * Enqueues `reminders.refresh` for every household with cards to remind
+   * about. Hourly because reminders are day-granular: a household's day turns
+   * over at its own midnight, so the lag is at most an hour.
+   */
+  "reminders.sweep": {
+    cron: { data: {}, expression: "7 * * * *", tz: "UTC" },
+    // `singleton` so a slow sweep can't stack up behind the next; the next tick
+    // replaces a failed one.
+    queue: { policy: "singleton", retryLimit: 0 },
+    schema: z.object({}).strict(),
+  },
 });
 
 export type JobName = keyof typeof jobs & string;

@@ -1,0 +1,99 @@
+import { sql } from "drizzle-orm";
+import {
+  check,
+  date,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
+
+import { organization, user } from "./auth";
+import { creditCardStatement, financialAccount } from "./financial-accounts";
+
+/** `statement`: a closing date to record; `payment`: a due date to pay. */
+export const cardReminderKinds = ["statement", "payment"] as const;
+export type CardReminderKind = (typeof cardReminderKinds)[number];
+
+export const cardReminderStatuses = [
+  "active",
+  "dismissed",
+  "resolved",
+] as const;
+export type CardReminderStatus = (typeof cardReminderStatuses)[number];
+
+export const cardReminderResolutions = [
+  "recorded",
+  "paid",
+  "superseded",
+  "expired",
+  "account_archived",
+] as const;
+export type CardReminderResolution = (typeof cardReminderResolutions)[number];
+
+/**
+ * One reminder per card, kind and date, written by the reminders worker. The
+ * row outlives dismissal and resolution on purpose: the unique index is what
+ * stops a handled date from being generated again.
+ */
+export const creditCardReminder = pgTable(
+  "credit_card_reminder",
+  {
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    dismissedAt: timestamp("dismissed_at"),
+    dismissedByUserId: uuid("dismissed_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    /** The closing or due date, a household calendar day. */
+    eventDate: date("event_date", { mode: "string" }).notNull(),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    kind: text("kind", { enum: cardReminderKinds }).notNull(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    /** Payment reminders only: transfers into the card dated after this day pay it. */
+    paymentsAfter: date("payments_after", { mode: "string" }),
+    resolution: text("resolution", { enum: cardReminderResolutions }),
+    resolvedAt: timestamp("resolved_at"),
+    /** Set when the due date came from a recorded statement; null when projected from the card's due day. */
+    statementId: uuid("statement_id").references(() => creditCardStatement.id, {
+      onDelete: "cascade",
+    }),
+    status: text("status", { enum: cardReminderStatuses })
+      .default("active")
+      .notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "credit_card_reminder_resolution_chk",
+      sql`(${table.status} = 'resolved') = (${table.resolution} IS NOT NULL)`
+    ),
+    check(
+      "credit_card_reminder_payment_fields_chk",
+      sql`(${table.kind} = 'payment') = (${table.paymentsAfter} IS NOT NULL)
+        AND (${table.kind} = 'payment' OR ${table.statementId} IS NULL)`
+    ),
+    uniqueIndex("credit_card_reminder_account_kind_date_uidx").on(
+      table.accountId,
+      table.kind,
+      table.eventDate
+    ),
+    index("credit_card_reminder_organization_status_idx").on(
+      table.organizationId,
+      table.status,
+      table.eventDate
+    ),
+    index("credit_card_reminder_statement_idx").on(table.statementId),
+  ]
+);

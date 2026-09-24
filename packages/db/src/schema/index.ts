@@ -14,6 +14,15 @@ export { category } from "./categories";
 export { tag } from "./tags";
 export { featureFlag } from "./feature-flags";
 export { savingsGoal } from "./goals";
+export {
+  cardReminderKinds,
+  cardReminderResolutions,
+  cardReminderStatuses,
+  creditCardReminder,
+  type CardReminderKind,
+  type CardReminderResolution,
+  type CardReminderStatus,
+} from "./reminders";
 export { currency } from "./finance";
 export {
   creditCardStatement,

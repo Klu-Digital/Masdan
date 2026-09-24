@@ -32,6 +32,22 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.organization.id,
     }),
   },
+  creditCardReminder: {
+    account: r.one.financialAccount({
+      from: r.creditCardReminder.accountId,
+      optional: false,
+      to: r.financialAccount.id,
+    }),
+    organization: r.one.organization({
+      from: r.creditCardReminder.organizationId,
+      optional: false,
+      to: r.organization.id,
+    }),
+    statement: r.one.creditCardStatement({
+      from: r.creditCardReminder.statementId,
+      to: r.creditCardStatement.id,
+    }),
+  },
   creditCardStatement: {
     account: r.one.financialAccount({
       from: r.creditCardStatement.accountId,
@@ -54,6 +70,7 @@ export const relations = defineRelations(schema, (r) => ({
   },
   financialAccount: {
     balanceSnapshots: r.many.financialAccountBalanceSnapshot(),
+    creditCardReminders: r.many.creditCardReminder(),
     creditCardStatements: r.many.creditCardStatement(),
     organization: r.one.organization({
       from: r.financialAccount.organizationId,
@@ -191,6 +208,7 @@ export const relations = defineRelations(schema, (r) => ({
   organization: {
     categories: r.many.category(),
     categoryBudgets: r.many.categoryBudget(),
+    creditCardReminders: r.many.creditCardReminder(),
     creditCardStatements: r.many.creditCardStatement(),
     files: r.many.file(),
     financialAccounts: r.many.financialAccount(),

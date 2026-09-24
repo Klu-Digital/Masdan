@@ -24,6 +24,9 @@ export const statement = {
   // Recurring schedules. `update` covers edit, pause and resume; stopping is
   // permanent, so it is graded like archive.
   recurringTransaction: ["create", "read", "update", "stop"],
+  // Credit-card statement and payment reminders. `dismiss` covers undoing one;
+  // a dismissal is household-wide, not per viewer.
+  reminder: ["read", "dismiss"],
   // Categorization rules; deleting one is permanent, so it is graded like archive.
   rule: ["create", "read", "update", "delete"],
   // Savings goals. `update` covers edit, complete and reopen.
@@ -49,6 +52,7 @@ export const roles = {
     file: ["create", "read", "delete", "delete:any"],
     financialAccount: ["create", "read", "update", "archive", "restore"],
     recurringTransaction: ["create", "read", "update", "stop"],
+    reminder: ["read", "dismiss"],
     rule: ["create", "read", "update", "delete"],
     savingsGoal: ["create", "read", "update", "archive", "restore"],
     tag: ["create", "read", "update", "archive", "restore"],
@@ -61,6 +65,7 @@ export const roles = {
     file: ["create", "read", "delete"],
     financialAccount: ["create", "read", "update"],
     recurringTransaction: ["create", "read", "update"],
+    reminder: ["read", "dismiss"],
     rule: ["create", "read", "update"],
     savingsGoal: ["create", "read", "update"],
     tag: ["create", "read", "update"],
@@ -73,6 +78,7 @@ export const roles = {
     file: ["create", "read", "delete", "delete:any"],
     financialAccount: ["create", "read", "update", "archive", "restore"],
     recurringTransaction: ["create", "read", "update", "stop"],
+    reminder: ["read", "dismiss"],
     rule: ["create", "read", "update", "delete"],
     savingsGoal: ["create", "read", "update", "archive", "restore"],
     tag: ["create", "read", "update", "archive", "restore"],
@@ -85,6 +91,7 @@ export const roles = {
     file: ["read"],
     financialAccount: ["read"],
     recurringTransaction: ["read"],
+    reminder: ["read"],
     rule: ["read"],
     savingsGoal: ["read"],
     tag: ["read"],

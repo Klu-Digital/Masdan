@@ -15,6 +15,7 @@ import { invitationsRouter } from "../invitations/invitations.router";
 import { jobsRouter } from "../jobs/jobs.router";
 import { protectedProcedure, publicProcedure } from "../procedures";
 import { recurringRouter } from "../recurring/recurring.router";
+import { remindersRouter } from "../reminders/reminders.router";
 import { reportsRouter } from "../reports/reports.router";
 import { rulesRouter } from "../rules/rules.router";
 import { tagsRouter } from "../tags/tags.router";
@@ -50,6 +51,7 @@ export const appRouter = {
     user: context.session?.user,
   })),
   recurring: recurringRouter,
+  reminders: remindersRouter,
   reports: reportsRouter,
   rules: rulesRouter,
   tags: tagsRouter,

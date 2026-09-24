@@ -19,6 +19,7 @@ import {
   orgProcedure,
   requirePermission,
 } from "../procedures";
+import { enqueueReminderRefresh } from "../reminders/reminders.router";
 import { getAccountBalance, getAccountBalances } from "./balances";
 import {
   ACCOUNT_CLASSES,
@@ -400,6 +401,9 @@ export const accountsRouter = {
           }))
         );
       }
+      if (created.accountType === "credit_card") {
+        await enqueueReminderRefresh(context.db, context.organizationId);
+      }
 
       return {
         ...created,
@@ -433,6 +437,7 @@ export const accountsRouter = {
           message: "Could not create credit card statement",
         });
       }
+      await enqueueReminderRefresh(context.db, context.organizationId);
       return created;
     }),
 
@@ -596,6 +601,9 @@ export const accountsRouter = {
       if (!restored) {
         throw accountNotFound();
       }
+      if (restored.accountType === "credit_card") {
+        await enqueueReminderRefresh(context.db, context.organizationId);
+      }
       const balance = await getAccountBalance(context.db, restored.id);
       return {
         ...restored,
@@ -745,6 +753,9 @@ export const accountsRouter = {
             memberId,
           }))
         );
+      }
+      if (updated.accountType === "credit_card") {
+        await enqueueReminderRefresh(context.db, context.organizationId);
       }
 
       const balance = await getAccountBalance(context.db, updated.id);

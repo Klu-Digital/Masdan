@@ -9,6 +9,7 @@ import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
 import { addDays, nextDayOfMonth, previousDayOfMonth } from "@/lib/dates";
+import { invalidateAllReminders } from "@/modules/reminders/queries";
 import { FormActions } from "@/modules/transactions/components/transaction-form";
 import { client } from "@/utils/orpc";
 
@@ -101,9 +102,12 @@ export const StatementComposer = ({
           dueDate: value.dueDate || null,
           minimumAmountDue: value.minimumAmountDue || null,
         });
-        await queryClient.invalidateQueries({
-          queryKey: accountStatementsQueryOptions(card.id).queryKey,
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: accountStatementsQueryOptions(card.id).queryKey,
+          }),
+          invalidateAllReminders(queryClient),
+        ]);
         onOpenChange(false);
         toastManager.add({ title: "Statement recorded", type: "success" });
       } catch (error) {
