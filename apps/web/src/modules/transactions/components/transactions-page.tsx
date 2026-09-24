@@ -1,6 +1,7 @@
 import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
+  FileImportIcon,
   Invoice02Icon,
   PlusSignIcon,
   Search01Icon,
@@ -39,7 +40,7 @@ import {
   StatValue,
 } from "@masdan/ui/components/stat";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import type React from "react";
 
@@ -390,6 +391,10 @@ export const TransactionsPage = ({
               <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
               Add your first expense
             </Button>
+            <Button render={<Link to="/imports" />} variant="secondary">
+              <HugeiconsIcon icon={FileImportIcon} strokeWidth={1.8} />
+              Import from CSV
+            </Button>
           </EmptyContent>
         ) : null}
       </Empty>
@@ -403,6 +408,12 @@ export const TransactionsPage = ({
           <PageTitle>Transactions</PageTitle>
         </PageHeading>
         <PageActions className="max-md:hidden">
+          {can({ transaction: ["create"] }) ? (
+            <Button render={<Link to="/imports" />} variant="secondary">
+              <HugeiconsIcon icon={FileImportIcon} strokeWidth={1.8} />
+              Import
+            </Button>
+          ) : null}
           <NewMenu
             trigger={
               <Button>

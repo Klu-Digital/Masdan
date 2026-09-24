@@ -22,8 +22,23 @@ export const sharedServerVariables = {
   REDIS_KEY_PREFIX: z.string().min(1).optional(),
   /** Redis-backed features degrade gracefully when unset. */
   REDIS_URL: z.string().min(1).optional(),
+  S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  S3_BUCKET: z.string().min(1).optional(),
+  /** Server -> bucket. Omit for real AWS S3. */
+  S3_ENDPOINT: z.url().optional(),
+  /** Required by MinIO; false for R2 and irrelevant for AWS. */
+  S3_FORCE_PATH_STYLE: z.stringbool().default(false),
+  /** Host baked into presigned URLs handed to clients. */
+  S3_PUBLIC_ENDPOINT: z.url().optional(),
+  S3_REGION: z.string().min(1).default("auto"),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   /** Tags every log line, so a shared drain can distinguish processes. */
   SERVICE_NAME: z.string().min(1).default("masdan-server"),
+  STORAGE_MAX_UPLOAD_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(26_214_400),
   /** Workers spawned per queue, per process. */
   WORKERS_CONCURRENCY: z.coerce.number().int().positive().default(1),
   WORKERS_POLLING_INTERVAL_SECONDS: z.coerce.number().positive().default(2),

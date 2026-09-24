@@ -3,6 +3,7 @@ import { queue } from "@masdan/queue";
 import type { JobName, JobOf } from "@masdan/queue";
 
 import { handleEcho, handleHeartbeat } from "./handlers/example";
+import { handleImportProcess } from "./handlers/imports";
 
 type Handlers = {
   [N in JobName]: (job: JobOf<N>) => Promise<void>;
@@ -15,6 +16,7 @@ type Handlers = {
 const handlers: Handlers = {
   "example.echo": handleEcho,
   "example.heartbeat": handleHeartbeat,
+  "imports.process": handleImportProcess,
 };
 
 /** Starts one worker per job. Call after `queue.start("consumer")` has resolved. */

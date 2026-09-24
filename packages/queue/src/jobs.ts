@@ -51,6 +51,14 @@ export const jobs = defineJobs({
     queue: { policy: "singleton", retryLimit: 0 },
     schema: z.object({ source: z.enum(["cron", "manual"]) }),
   },
+  /**
+   * Validates or commits a CSV import, whichever its status asks for, so a
+   * duplicate or retried job is a no-op once the import has moved on.
+   */
+  "imports.process": {
+    queue: { retryBackoff: true, retryDelay: 5, retryLimit: 2 },
+    schema: z.object({ importId: z.uuid() }),
+  },
 });
 
 export type JobName = keyof typeof jobs & string;

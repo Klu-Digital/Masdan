@@ -11,10 +11,12 @@
   "dependencies": {
     "@hono/node-server": "^2.0.12",
     "@hono/prometheus": "catalog:",
+    "@masdan/api": "workspace:*",
     "@masdan/db": "workspace:*",
     "@masdan/env": "workspace:*",
     "@masdan/observability": "workspace:*",
     "@masdan/queue": "workspace:*",
+    "@masdan/storage": "workspace:*",
     "dotenv": "catalog:",
     "evlog": "catalog:",
     "hono": "catalog:",
@@ -25,6 +27,7 @@
     "@masdan/config": "workspace:*",
     "@masdan/testing": "workspace:*",
     "@types/node": "catalog:",
+    "drizzle-orm": "catalog:",
     "tsdown": "^0.22.14",
     "tsx": "^4.23.1",
     "typescript": "^6.0.3"

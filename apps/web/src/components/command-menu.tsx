@@ -1,5 +1,6 @@
 import {
   ArrowDataTransferHorizontalIcon,
+  FileImportIcon,
   Folder02Icon,
   Home01Icon,
   Invoice02Icon,
@@ -122,6 +123,15 @@ export const CommandMenu = ({
             id: "new-transfer",
             keywords: "move pay card",
             label: "New transfer",
+          },
+          {
+            handleSelect: done(() => {
+              navigate({ to: "/imports" });
+            }),
+            icon: FileImportIcon,
+            id: "import-csv",
+            keywords: "csv upload bank statement history backfill",
+            label: "Import transactions",
           },
         ]
       : [];

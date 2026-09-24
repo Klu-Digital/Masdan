@@ -1,4 +1,4 @@
-import { env } from "@masdan/env/server";
+import { env } from "@masdan/env/shared-server";
 
 export interface StorageConfig {
   bucket: string;

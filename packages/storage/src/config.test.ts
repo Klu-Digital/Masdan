@@ -16,7 +16,7 @@ const mockEnv = vi.hoisted(() => ({
   STORAGE_MAX_UPLOAD_BYTES: 26_214_400,
 }));
 
-vi.mock("@masdan/env/server", () => ({ env: mockEnv }));
+vi.mock("@masdan/env/shared-server", () => ({ env: mockEnv }));
 
 const { isStorageConfigured, resolveStorageConfig } = await import("./config");
 

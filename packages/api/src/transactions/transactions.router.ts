@@ -36,7 +36,13 @@ import {
   requirePermission,
 } from "../procedures";
 import { getTransfer } from "../transfers/transfers.router";
+import { positiveAmount, scaledAmount } from "./amounts";
 import { TRANSACTION_PAID_STATUSES } from "./constants";
+import {
+  activeAccount,
+  transactionInsertValues,
+  validCategory,
+} from "./transactions.write";
 
 const transactionFields = {
   accountId: financialTransaction.accountId,
@@ -56,19 +62,6 @@ const transactionFields = {
 };
 
 const isoDate = z.iso.date();
-const positiveDecimalPattern = /^\d+(?<fraction>\.\d{1,6})?$/u;
-const SCALE_FACTOR = 1_000_000n;
-
-const positiveAmount = z
-  .string()
-  .trim()
-  .regex(positiveDecimalPattern, "Use a positive amount")
-  .refine((value) => /[1-9]/u.test(value), "Amount must be greater than zero");
-
-const scaledAmount = (value: string): bigint => {
-  const [whole = "0", fraction = ""] = value.split(".");
-  return BigInt(whole) * SCALE_FACTOR + BigInt(fraction.padEnd(6, "0"));
-};
 
 const splitTotal = (splits: { amount: string }[]): bigint => {
   let total = 0n;
@@ -175,65 +168,6 @@ interface TransactionRow {
 
 const transactionNotFound = () =>
   new ORPCError("NOT_FOUND", { message: "Transaction not found" });
-
-const activeAccount = async (
-  db: Database,
-  organizationId: string,
-  accountId: string
-) => {
-  const [account] = await db
-    .select({
-      currencyCode: financialAccount.currencyCode,
-      id: financialAccount.id,
-    })
-    .from(financialAccount)
-    .where(
-      and(
-        eq(financialAccount.id, accountId),
-        eq(financialAccount.organizationId, organizationId),
-        isNull(financialAccount.archivedAt)
-      )
-    )
-    .limit(1);
-
-  if (!account) {
-    throw new ORPCError("NOT_FOUND", {
-      message: "Financial account not found",
-    });
-  }
-
-  return account;
-};
-
-const validCategory = async (
-  db: Database,
-  organizationId: string,
-  categoryId: string,
-  allowArchived: boolean
-) => {
-  const [selected] = await db
-    .select({
-      archivedAt: category.archivedAt,
-      id: category.id,
-      type: category.type,
-    })
-    .from(category)
-    .where(
-      and(
-        eq(category.id, categoryId),
-        eq(category.organizationId, organizationId)
-      )
-    )
-    .limit(1);
-
-  if (!selected || (!allowArchived && selected.archivedAt !== null)) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "Choose an active category",
-    });
-  }
-
-  return selected;
-};
 
 const validTags = async (
   db: Database,
@@ -657,19 +591,18 @@ export const transactionsRouter = {
 
       const [created] = await context.db
         .insert(financialTransaction)
-        .values({
-          accountId: account.id,
-          amount: input.amount,
-          categoryId:
-            splits.length === 1
-              ? (splits[0]?.categoryId ?? input.categoryId)
-              : input.categoryId,
-          currencyCode: account.currencyCode,
-          notes: input.notes ?? null,
-          organizationId: context.organizationId,
-          paidStatus: input.paidStatus,
-          transactionDate: input.transactionDate,
-        })
+        .values(
+          transactionInsertValues(context.organizationId, account, {
+            amount: input.amount,
+            categoryId:
+              splits.length === 1
+                ? (splits[0]?.categoryId ?? input.categoryId)
+                : input.categoryId,
+            notes: input.notes ?? null,
+            paidStatus: input.paidStatus,
+            transactionDate: input.transactionDate,
+          })
+        )
         .returning(transactionFields);
 
       if (!created) {

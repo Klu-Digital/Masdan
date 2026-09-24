@@ -6,6 +6,7 @@ import { currenciesRouter } from "../currencies/currencies.router";
 import { featureFlagsRouter } from "../feature-flags/feature-flags.router";
 import { filesRouter } from "../files/files.router";
 import { householdsRouter } from "../households/households.router";
+import { importsRouter } from "../imports/imports.router";
 import { invitationsRouter } from "../invitations/invitations.router";
 import { jobsRouter } from "../jobs/jobs.router";
 import { protectedProcedure, publicProcedure } from "../procedures";
@@ -30,6 +31,7 @@ export const appRouter = {
   files: filesRouter,
   healthCheck: publicProcedure.handler(() => "OK"),
   households: householdsRouter,
+  imports: importsRouter,
   invitations: invitationsRouter,
   jobs: jobsRouter,
   privateData: protectedProcedure.handler(({ context }) => ({

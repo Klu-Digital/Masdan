@@ -2,6 +2,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  NoSuchKey,
   NotFound,
   PutObjectCommand,
   S3Client,
@@ -48,6 +49,15 @@ const requireConfig = (): StorageConfig => {
   }
   return config;
 };
+
+const isMissingObject = (error: unknown): boolean =>
+  error instanceof NotFound ||
+  error instanceof NoSuchKey ||
+  (typeof error === "object" &&
+    error !== null &&
+    "$metadata" in error &&
+    (error as { $metadata?: { httpStatusCode?: number } }).$metadata
+      ?.httpStatusCode === 404);
 
 const buildClient = (
   endpoint: string | undefined,
@@ -97,6 +107,24 @@ export const createStorage = () => {
       );
     },
 
+    /** Server-side reads (import jobs). `null` when the object does not exist. */
+    async getObject({ key }: { key: string }): Promise<Uint8Array | null> {
+      const config = requireConfig();
+      try {
+        const result = await getCommandClient(config).send(
+          new GetObjectCommand({ Bucket: config.bucket, Key: key })
+        );
+        return result.Body
+          ? await result.Body.transformToByteArray()
+          : new Uint8Array();
+      } catch (error) {
+        if (isMissingObject(error)) {
+          return null;
+        }
+        throw error;
+      }
+    },
+
     /** `null` when the object does not exist — an expected outcome on confirm, not an error. */
     async headObject({ key }: { key: string }): Promise<ObjectMetadata | null> {
       const config = requireConfig();
@@ -110,16 +138,7 @@ export const createStorage = () => {
           size: result.ContentLength ?? 0,
         };
       } catch (error) {
-        if (error instanceof NotFound) {
-          return null;
-        }
-        if (
-          typeof error === "object" &&
-          error !== null &&
-          "$metadata" in error &&
-          (error as { $metadata?: { httpStatusCode?: number } }).$metadata
-            ?.httpStatusCode === 404
-        ) {
+        if (isMissingObject(error)) {
           return null;
         }
         throw error;

@@ -98,6 +98,8 @@ export const financialTransaction = pgTable(
     id: uuid("id")
       .primaryKey()
       .default(sql`uuidv7()`),
+    /** Set by CSV import; unique per account so a re-import skips the row. */
+    importFingerprint: text("import_fingerprint"),
     notes: text("notes"),
     organizationId: uuid("organization_id")
       .notNull()
@@ -140,6 +142,9 @@ export const financialTransaction = pgTable(
       table.amount,
       table.id
     ),
+    uniqueIndex("financial_transaction_account_import_fingerprint_uidx")
+      .on(table.accountId, table.importFingerprint)
+      .where(sql`${table.importFingerprint} IS NOT NULL`),
   ]
 );
 

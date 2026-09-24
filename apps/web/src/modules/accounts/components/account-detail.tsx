@@ -2,6 +2,7 @@ import {
   Archive02Icon,
   ArchiveRestoreIcon,
   ArrowDataTransferHorizontalIcon,
+  FileImportIcon,
   Invoice02Icon,
   MoreHorizontalIcon,
   PencilEdit02Icon,
@@ -588,6 +589,15 @@ export const AccountDetailPage = ({
                 strokeWidth={1.8}
               />
               Transfer
+            </Button>
+          ) : null}
+          {canTransact && !archived ? (
+            <Button
+              render={<Link search={{ accountId: data.id }} to="/imports" />}
+              variant="secondary"
+            >
+              <HugeiconsIcon icon={FileImportIcon} strokeWidth={1.8} />
+              Import CSV
             </Button>
           ) : null}
           {canUpdate || canArchive || canRestore ? (

@@ -21,7 +21,7 @@ const declaredServerVars = (): string[] => {
     readFileSync(path.join(repoRoot, "packages/env/src", file), "utf-8")
   );
   const names = sources.flatMap((source) => [
-    ...source.matchAll(/^ {4}(?<name>[A-Z][A-Z0-9_]*):/gmu),
+    ...source.matchAll(/^ {2}(?: {2})?(?<name>[A-Z][A-Z0-9_]*):/gmu),
   ]);
   return [...new Set(names.map((m) => m.groups?.name ?? ""))];
 };

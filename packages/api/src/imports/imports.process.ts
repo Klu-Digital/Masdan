@@ -1,0 +1,633 @@
+import { createHash } from "node:crypto";
+
+import type { Database } from "@masdan/db";
+import {
+  category,
+  file,
+  financialAccount,
+  financialTransaction,
+  transactionImport,
+  transactionImportRow,
+} from "@masdan/db/schema/index";
+import type {
+  TransactionImportRowError,
+  TransactionImportRowStatus,
+} from "@masdan/db/schema/index";
+import { log, parseError } from "@masdan/observability";
+import { storage } from "@masdan/storage";
+import { and, asc, count, eq, inArray, sql } from "drizzle-orm";
+
+import { getAccountBalance } from "../accounts/balances";
+import { scaledAmount } from "../transactions/amounts";
+import { transactionInsertValues } from "../transactions/transactions.write";
+import { decodeCsvBytes, parseCsv } from "./csv";
+import {
+  MAX_IMPORT_ROWS,
+  importMappingSchema,
+  normalizeImportRow,
+  splitHeader,
+} from "./mapping";
+import type { ImportDirection, OpeningBalanceMode } from "./mapping";
+
+/** Worker-side import processing. No procedure ladder: apps/workers runs it. */
+
+const CHUNK_SIZE = 500;
+
+/** A failure the user can act on; its message is shown as-is. */
+export class ImportFailureError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ImportFailureError";
+  }
+}
+
+const sha256 = (value: string | Uint8Array): string =>
+  createHash("sha256").update(value).digest("hex");
+
+const chunks = <T>(items: T[], size = CHUNK_SIZE): T[][] => {
+  const result: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    result.push(items.slice(index, index + size));
+  }
+  return result;
+};
+
+const normalizeDescription = (value: string | null): string =>
+  (value ?? "").toLowerCase().replaceAll(/\s+/gu, " ").trim();
+
+interface ImportCategory {
+  archivedAt: Date | null;
+  id: string;
+  name: string;
+  type: string;
+}
+
+const openingDateMessage = (openingBalanceDate: string): string =>
+  `Dated before this account's opening balance date (${openingBalanceDate}). Choose to add earlier rows as history, or move the account's opening date.`;
+
+const lockImport = async (db: Database, importId: string) => {
+  const [locked] = await db
+    .select()
+    .from(transactionImport)
+    .where(eq(transactionImport.id, importId))
+    .for("update")
+    .limit(1);
+  return locked;
+};
+
+const loadAccount = async (
+  db: Database,
+  organizationId: string,
+  accountId: string
+) => {
+  const [account] = await db
+    .select({
+      archivedAt: financialAccount.archivedAt,
+      currencyCode: financialAccount.currencyCode,
+      id: financialAccount.id,
+      openingBalanceDate: financialAccount.openingBalanceDate,
+    })
+    .from(financialAccount)
+    .where(
+      and(
+        eq(financialAccount.id, accountId),
+        eq(financialAccount.organizationId, organizationId)
+      )
+    )
+    .limit(1);
+  if (!account || account.archivedAt !== null) {
+    throw new ImportFailureError(
+      "The destination account was archived or removed. Start a new import for another account."
+    );
+  }
+  return account;
+};
+
+const rowCounts = async (db: Database, importId: string) => {
+  const rows = await db
+    .select({ status: transactionImportRow.status, total: count() })
+    .from(transactionImportRow)
+    .where(eq(transactionImportRow.importId, importId))
+    .groupBy(transactionImportRow.status);
+  const totals = new Map(rows.map(({ status, total }) => [status, total]));
+  return {
+    duplicateRows: totals.get("duplicate") ?? 0,
+    importedRows: totals.get("imported") ?? 0,
+    invalidRows: totals.get("invalid") ?? 0,
+    totalRows: rows.reduce((sum, { total }) => sum + total, 0),
+    validRows: totals.get("valid") ?? 0,
+  };
+};
+
+const readSource = async (db: Database, importId: string) => {
+  const [source] = await db
+    .select({
+      fileStatus: file.status,
+      key: file.key,
+      organizationId: transactionImport.organizationId,
+    })
+    .from(transactionImport)
+    .leftJoin(
+      file,
+      and(
+        eq(file.id, transactionImport.sourceFileId),
+        eq(file.organizationId, transactionImport.organizationId)
+      )
+    )
+    .where(eq(transactionImport.id, importId))
+    .limit(1);
+
+  if (!source?.key || source.fileStatus !== "ready") {
+    throw new ImportFailureError(
+      "The uploaded file is no longer available. Upload it again."
+    );
+  }
+  if (!storage.isConfigured()) {
+    throw new ImportFailureError(
+      "File storage is not configured for background processing."
+    );
+  }
+  const bytes = await storage.getObject({ key: source.key });
+  if (!bytes) {
+    throw new ImportFailureError(
+      "The uploaded file is no longer available. Upload it again."
+    );
+  }
+  return bytes;
+};
+
+interface ClassifiedRow {
+  amount: string | null;
+  categoryId: string | null;
+  description: string | null;
+  errors: TransactionImportRowError[];
+  fingerprint: string | null;
+  notes: string | null;
+  raw: string[];
+  rowNumber: number;
+  status: TransactionImportRowStatus;
+  transactionDate: string | null;
+  type: ImportDirection | null;
+}
+
+const existingFingerprints = async (
+  db: Database,
+  accountId: string,
+  fingerprints: string[]
+): Promise<Set<string>> => {
+  const found = new Set<string>();
+  for (const batch of chunks(fingerprints, 1000)) {
+    const rows = await db
+      .select({ fingerprint: financialTransaction.importFingerprint })
+      .from(financialTransaction)
+      .where(
+        and(
+          eq(financialTransaction.accountId, accountId),
+          inArray(financialTransaction.importFingerprint, batch)
+        )
+      );
+    for (const { fingerprint } of rows) {
+      if (fingerprint) {
+        found.add(fingerprint);
+      }
+    }
+  }
+  return found;
+};
+
+const validateImport = async (
+  db: Database,
+  importId: string
+): Promise<void> => {
+  // Read before the transaction: no row lock held across a bucket round trip.
+  const bytes = await readSource(db, importId);
+  const checksum = sha256(bytes);
+
+  await db.transaction(async (tx) => {
+    const current = await lockImport(tx, importId);
+    if (current?.status !== "validating") {
+      return;
+    }
+    const parsedMapping = importMappingSchema.safeParse(current.mapping);
+    if (!parsedMapping.success) {
+      throw new ImportFailureError(
+        "The column mapping is invalid. Map it again."
+      );
+    }
+    const mapping = parsedMapping.data;
+    const account = await loadAccount(
+      tx,
+      current.organizationId,
+      current.accountId
+    );
+
+    const parsed = parseCsv(decodeCsvBytes(bytes), {
+      delimiter: mapping.delimiter,
+      maxRecords: MAX_IMPORT_ROWS + 1,
+    });
+    const { dataRecords, headers } = splitHeader(
+      parsed.records,
+      mapping.hasHeaderRow
+    );
+    if (parsed.truncated || dataRecords.length > MAX_IMPORT_ROWS) {
+      throw new ImportFailureError(
+        `This file has more than ${MAX_IMPORT_ROWS.toLocaleString("en-US")} rows. Split it into smaller files.`
+      );
+    }
+    if (dataRecords.length === 0) {
+      throw new ImportFailureError("The file has no rows to import.");
+    }
+
+    const categories: ImportCategory[] = await tx
+      .select({
+        archivedAt: category.archivedAt,
+        id: category.id,
+        name: category.name,
+        type: category.type,
+      })
+      .from(category)
+      .where(eq(category.organizationId, current.organizationId));
+    const byName = new Map(
+      categories.map((item) => [item.name.toLowerCase(), item])
+    );
+    const defaults: Record<ImportDirection, string> = {
+      expense: current.defaultExpenseCategoryId,
+      income: current.defaultIncomeCategoryId,
+    };
+
+    const occurrences = new Map<string, number>();
+    const classified: ClassifiedRow[] = dataRecords.map((record) => {
+      const row = normalizeImportRow(record, mapping);
+      const errors: TransactionImportRowError[] = [...row.errors];
+
+      if (parsed.unterminatedQuoteRow === record.rowNumber) {
+        errors.push({
+          field: "row",
+          message:
+            "A quoted value on this row is never closed, so the rest of the file was read into it.",
+        });
+      }
+
+      let categoryId: string | null = row.type ? defaults[row.type] : null;
+      if (row.categoryName && row.type) {
+        const match = byName.get(row.categoryName.toLowerCase());
+        if (!match) {
+          errors.push({
+            field: "category",
+            message: `No category named "${row.categoryName}" in this household. Create it, or unmap the category column to use the defaults.`,
+          });
+        } else if (match.archivedAt !== null) {
+          errors.push({
+            field: "category",
+            message: `Category "${match.name}" is archived. Restore it first.`,
+          });
+        } else if (match.type === row.type) {
+          categoryId = match.id;
+        } else {
+          errors.push({
+            field: "category",
+            message: `"${match.name}" is an ${match.type} category, but this row is money ${row.type === "income" ? "in" : "out"}.`,
+          });
+        }
+      }
+
+      if (
+        row.transactionDate &&
+        current.openingBalanceMode === "reject" &&
+        row.transactionDate < account.openingBalanceDate
+      ) {
+        errors.push({
+          field: "date",
+          message: openingDateMessage(account.openingBalanceDate),
+        });
+      }
+
+      let fingerprint: string | null = null;
+      if (row.transactionDate && row.amount && row.type) {
+        const base = [
+          account.id,
+          row.transactionDate,
+          row.type,
+          scaledAmount(row.amount).toString(),
+          normalizeDescription(row.description),
+        ].join("|");
+        const occurrence = (occurrences.get(base) ?? 0) + 1;
+        occurrences.set(base, occurrence);
+        fingerprint = sha256(`${base}|${occurrence}`);
+      }
+
+      return {
+        amount: row.amount,
+        categoryId,
+        description: row.description,
+        errors,
+        fingerprint,
+        notes: row.notes,
+        raw: record.cells,
+        rowNumber: record.rowNumber,
+        status: errors.length > 0 ? "invalid" : "valid",
+        transactionDate: row.transactionDate,
+        type: row.type,
+      };
+    });
+
+    const committed = await existingFingerprints(
+      tx,
+      account.id,
+      classified.flatMap((row) =>
+        row.status === "valid" && row.fingerprint ? [row.fingerprint] : []
+      )
+    );
+    for (const row of classified) {
+      if (
+        row.status === "valid" &&
+        row.fingerprint &&
+        committed.has(row.fingerprint)
+      ) {
+        row.status = "duplicate";
+      }
+    }
+
+    await tx
+      .delete(transactionImportRow)
+      .where(eq(transactionImportRow.importId, importId));
+    for (const batch of chunks(classified)) {
+      await tx.insert(transactionImportRow).values(
+        batch.map((row) => ({
+          ...row,
+          importId,
+          organizationId: current.organizationId,
+        }))
+      );
+    }
+
+    await tx
+      .update(transactionImport)
+      .set({
+        ...(await rowCounts(tx, importId)),
+        checksum,
+        error: null,
+        failedStatus: null,
+        headers,
+        status: "ready",
+        validatedAt: new Date(),
+      })
+      .where(eq(transactionImport.id, importId));
+  });
+};
+
+const setRowStatus = async (
+  db: Database,
+  rowIds: string[],
+  status: TransactionImportRowStatus,
+  errors?: TransactionImportRowError[]
+): Promise<void> => {
+  for (const batch of chunks(rowIds)) {
+    await db
+      .update(transactionImportRow)
+      .set(errors ? { errors, status } : { status })
+      .where(inArray(transactionImportRow.id, batch));
+  }
+};
+
+const extendOpeningDate = async (
+  db: Database,
+  accountId: string,
+  mode: OpeningBalanceMode,
+  earliest: string
+): Promise<void> => {
+  const balanceBefore = await getAccountBalance(db, accountId);
+  await db
+    .update(financialAccount)
+    .set({ openingBalanceDate: earliest })
+    .where(eq(financialAccount.id, accountId));
+  if (mode !== "rebase") {
+    return;
+  }
+  // Moving the date back pulls the earlier rows into the balance; offset them
+  // so only rows on or after the old opening date move today's balance.
+  const balanceAfter = await getAccountBalance(db, accountId);
+  await db
+    .update(financialAccount)
+    .set({
+      openingBalance: sql`${financialAccount.openingBalance} + (${balanceBefore}::numeric - ${balanceAfter}::numeric)`,
+    })
+    .where(eq(financialAccount.id, accountId));
+};
+
+const commitImport = async (db: Database, importId: string): Promise<void> => {
+  await db.transaction(async (tx) => {
+    const current = await lockImport(tx, importId);
+    if (current?.status !== "committing") {
+      return;
+    }
+    const account = await loadAccount(
+      tx,
+      current.organizationId,
+      current.accountId
+    );
+    const rows = await tx
+      .select()
+      .from(transactionImportRow)
+      .where(
+        and(
+          eq(transactionImportRow.importId, importId),
+          eq(transactionImportRow.status, "valid")
+        )
+      )
+      .orderBy(asc(transactionImportRow.rowNumber));
+
+    const categoryIds = [
+      ...new Set(
+        rows.flatMap((row) => (row.categoryId ? [row.categoryId] : []))
+      ),
+    ];
+    const categoryRows =
+      categoryIds.length === 0
+        ? []
+        : await tx
+            .select({ archivedAt: category.archivedAt, id: category.id })
+            .from(category)
+            .where(
+              and(
+                eq(category.organizationId, current.organizationId),
+                inArray(category.id, categoryIds)
+              )
+            );
+    const activeCategories = new Set(
+      categoryRows
+        .filter(({ archivedAt }) => archivedAt === null)
+        .map(({ id }) => id)
+    );
+
+    const staleCategory: string[] = [];
+    const beforeOpening: string[] = [];
+    const ready = rows.filter((row) => {
+      if (!row.categoryId || !activeCategories.has(row.categoryId)) {
+        staleCategory.push(row.id);
+        return false;
+      }
+      if (
+        current.openingBalanceMode === "reject" &&
+        row.transactionDate &&
+        row.transactionDate < account.openingBalanceDate
+      ) {
+        beforeOpening.push(row.id);
+        return false;
+      }
+      return true;
+    });
+    await setRowStatus(tx, staleCategory, "invalid", [
+      {
+        field: "category",
+        message:
+          "The category was archived after the preview. Restore it and import again.",
+      },
+    ]);
+    await setRowStatus(tx, beforeOpening, "invalid", [
+      {
+        field: "date",
+        message: openingDateMessage(account.openingBalanceDate),
+      },
+    ]);
+
+    const duplicates: string[] = [];
+    let earliest: string | null = null;
+    for (const batch of chunks(ready)) {
+      const inserted = await tx
+        .insert(financialTransaction)
+        .values(
+          batch.map((row) =>
+            transactionInsertValues(current.organizationId, account, {
+              amount: row.amount ?? "0",
+              categoryId: row.categoryId ?? "",
+              importFingerprint: row.fingerprint,
+              notes: row.notes,
+              paidStatus: "paid",
+              transactionDate: row.transactionDate ?? "",
+            })
+          )
+        )
+        // A fingerprint already on this account means the row was imported
+        // before; skip it rather than fail the batch.
+        .onConflictDoNothing()
+        .returning({
+          fingerprint: financialTransaction.importFingerprint,
+          id: financialTransaction.id,
+        });
+
+      const byFingerprint = new Map(
+        inserted.map(({ fingerprint, id }) => [fingerprint, id])
+      );
+      const links: { rowId: string; transactionId: string }[] = [];
+      for (const row of batch) {
+        const transactionId = byFingerprint.get(row.fingerprint);
+        if (!transactionId) {
+          duplicates.push(row.id);
+          continue;
+        }
+        links.push({ rowId: row.id, transactionId });
+        if (
+          row.transactionDate &&
+          (!earliest || row.transactionDate < earliest)
+        ) {
+          earliest = row.transactionDate;
+        }
+      }
+      if (links.length > 0) {
+        const values = sql.join(
+          links.map(
+            ({ rowId, transactionId }) =>
+              sql`(${rowId}::uuid, ${transactionId}::uuid)`
+          ),
+          sql`, `
+        );
+        await tx.execute(sql`
+          UPDATE ${transactionImportRow}
+          SET status = 'imported', transaction_id = link.transaction_id
+          FROM (VALUES ${values}) AS link(row_id, transaction_id)
+          WHERE ${transactionImportRow.id} = link.row_id
+        `);
+      }
+    }
+    await setRowStatus(tx, duplicates, "duplicate");
+
+    if (
+      current.openingBalanceMode !== "reject" &&
+      earliest &&
+      earliest < account.openingBalanceDate
+    ) {
+      await extendOpeningDate(
+        tx,
+        account.id,
+        current.openingBalanceMode,
+        earliest
+      );
+    }
+
+    await tx
+      .update(transactionImport)
+      .set({
+        ...(await rowCounts(tx, importId)),
+        committedAt: new Date(),
+        error: null,
+        failedStatus: null,
+        status: "completed",
+      })
+      .where(eq(transactionImport.id, importId));
+  });
+};
+
+/**
+ * Failures are recorded on the import rather than thrown: the user retries
+ * from the UI, and a queue retry would find the import already `failed`.
+ */
+export const processImport = async (
+  db: Database,
+  importId: string
+): Promise<void> => {
+  const [current] = await db
+    .select({ status: transactionImport.status })
+    .from(transactionImport)
+    .where(eq(transactionImport.id, importId))
+    .limit(1);
+
+  if (!current) {
+    log.warn({ action: "imports.process.missing", importId });
+    return;
+  }
+  const { status } = current;
+  if (status !== "validating" && status !== "committing") {
+    log.info({ action: "imports.process.skipped", importId, status });
+    return;
+  }
+
+  try {
+    await (status === "validating"
+      ? validateImport(db, importId)
+      : commitImport(db, importId));
+    log.info({ action: "imports.process.completed", importId, status });
+  } catch (error) {
+    log.error({
+      action: "imports.process.failed",
+      importId,
+      ...parseError(error),
+    });
+    await db
+      .update(transactionImport)
+      .set({
+        error:
+          error instanceof ImportFailureError
+            ? error.message
+            : "Something went wrong while processing this import. Try again.",
+        failedStatus: status,
+        status: "failed",
+      })
+      .where(
+        and(
+          eq(transactionImport.id, importId),
+          eq(transactionImport.status, status)
+        )
+      );
+  }
+};
