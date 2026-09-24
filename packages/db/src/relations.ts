@@ -177,6 +177,7 @@ export const relations = defineRelations(schema, (r) => ({
     invitations: r.many.invitation(),
     members: r.many.member(),
     tags: r.many.tag(),
+    transactionRules: r.many.transactionRule(),
     transactions: r.many.financialTransaction(),
     transfers: r.many.financialTransfer(),
   },
@@ -194,6 +195,31 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.organization.id,
     }),
     transactionTags: r.many.financialTransactionTag(),
+  },
+  transactionRule: {
+    category: r.one.category({
+      from: r.transactionRule.setCategoryId,
+      optional: true,
+      to: r.category.id,
+    }),
+    organization: r.one.organization({
+      from: r.transactionRule.organizationId,
+      optional: false,
+      to: r.organization.id,
+    }),
+    tags: r.many.transactionRuleTag(),
+  },
+  transactionRuleTag: {
+    rule: r.one.transactionRule({
+      from: r.transactionRuleTag.ruleId,
+      optional: false,
+      to: r.transactionRule.id,
+    }),
+    tag: r.one.tag({
+      from: r.transactionRuleTag.tagId,
+      optional: false,
+      to: r.tag.id,
+    }),
   },
   user: {
     accounts: r.many.account(),

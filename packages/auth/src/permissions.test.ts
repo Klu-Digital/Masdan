@@ -19,6 +19,11 @@ describe("statement", () => {
   });
 });
 
+const canRule = (
+  role: string,
+  action: "create" | "read" | "update" | "delete"
+): boolean => hasPermission({ permissions: { rule: [action] }, role });
+
 describe("roles", () => {
   it("defines the two names better-auth writes into member.role on its own", () => {
     expect(APP_ROLES).toContain("owner");
@@ -104,6 +109,15 @@ describe("roles", () => {
         role: "viewer",
       })
     ).toBe(false);
+  });
+
+  it("grades categorization rule access across the household roles", () => {
+    expect(canRule("owner", "delete")).toBe(true);
+    expect(canRule("admin", "delete")).toBe(true);
+    expect(canRule("member", "update")).toBe(true);
+    expect(canRule("member", "delete")).toBe(false);
+    expect(canRule("viewer", "read")).toBe(true);
+    expect(canRule("viewer", "create")).toBe(false);
   });
 
   it("grades file access across the ladder", () => {

@@ -6,18 +6,24 @@ import {
   file,
   financialAccount,
   financialTransaction,
+  financialTransactionTag,
+  tag,
   transactionImport,
   transactionImportRow,
 } from "@masdan/db/schema/index";
 import type {
   TransactionImportRowError,
   TransactionImportRowStatus,
+  TransactionRuleApplication,
 } from "@masdan/db/schema/index";
 import { log, parseError } from "@masdan/observability";
 import { storage } from "@masdan/storage";
-import { and, asc, count, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { getAccountBalance } from "../accounts/balances";
+import { applyRuleActions, findMatchingRule } from "../rules/engine";
+import { loadRules, runnableRules } from "../rules/rules.data";
+import type { StoredRule } from "../rules/rules.data";
 import { scaledAmount } from "../transactions/amounts";
 import { transactionInsertValues } from "../transactions/transactions.write";
 import { decodeCsvBytes, parseCsv } from "./csv";
@@ -27,7 +33,11 @@ import {
   normalizeImportRow,
   splitHeader,
 } from "./mapping";
-import type { ImportDirection, OpeningBalanceMode } from "./mapping";
+import type {
+  ImportDirection,
+  NormalizedImportRow,
+  OpeningBalanceMode,
+} from "./mapping";
 
 /** Worker-side import processing. No procedure ladder: apps/workers runs it. */
 
@@ -165,10 +175,43 @@ interface ClassifiedRow {
   notes: string | null;
   raw: string[];
   rowNumber: number;
+  ruleApplication: TransactionRuleApplication | null;
   status: TransactionImportRowStatus;
   transactionDate: string | null;
   type: ImportDirection | null;
 }
+
+/**
+ * Rules run after mapping, on the note the transaction will carry, so a rule
+ * matches an imported row exactly as it would the saved transaction.
+ */
+const applyImportRules = (
+  rules: readonly StoredRule[],
+  accountId: string,
+  row: Pick<NormalizedImportRow, "amount" | "notes" | "type">,
+  categoryId: string | null
+): {
+  categoryId: string | null;
+  ruleApplication: TransactionRuleApplication | null;
+} => {
+  const match =
+    categoryId && row.amount && row.type
+      ? findMatchingRule(rules, {
+          accountId,
+          amount: row.amount,
+          description: row.notes,
+          type: row.type,
+        })
+      : null;
+  if (!match || !categoryId) {
+    return { categoryId, ruleApplication: null };
+  }
+  const outcome = applyRuleActions(match.rule, { categoryId, tagIds: [] });
+  return {
+    categoryId: outcome.categoryId,
+    ruleApplication: outcome.application,
+  };
+};
 
 const existingFingerprints = async (
   db: Database,
@@ -254,6 +297,7 @@ const validateImport = async (
       expense: current.defaultExpenseCategoryId,
       income: current.defaultIncomeCategoryId,
     };
+    const rules = runnableRules(await loadRules(tx, current.organizationId));
 
     const occurrences = new Map<string, number>();
     const classified: ClassifiedRow[] = dataRecords.map((record) => {
@@ -316,15 +360,21 @@ const validateImport = async (
         fingerprint = sha256(`${base}|${occurrence}`);
       }
 
+      const ruled =
+        errors.length === 0
+          ? applyImportRules(rules, account.id, row, categoryId)
+          : { categoryId, ruleApplication: null };
+
       return {
         amount: row.amount,
-        categoryId,
+        categoryId: ruled.categoryId,
         description: row.description,
         errors,
         fingerprint,
         notes: row.notes,
         raw: record.cells,
         rowNumber: record.rowNumber,
+        ruleApplication: ruled.ruleApplication,
         status: errors.length > 0 ? "invalid" : "valid",
         transactionDate: row.transactionDate,
         type: row.type,
@@ -459,12 +509,34 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
         .filter(({ archivedAt }) => archivedAt === null)
         .map(({ id }) => id)
     );
+    const tagIds = [
+      ...new Set(rows.flatMap((row) => row.ruleApplication?.tagIds ?? [])),
+    ];
+    const tagRows =
+      tagIds.length === 0
+        ? []
+        : await tx
+            .select({ id: tag.id })
+            .from(tag)
+            .where(
+              and(
+                eq(tag.organizationId, current.organizationId),
+                inArray(tag.id, tagIds),
+                isNull(tag.archivedAt)
+              )
+            );
+    const activeTags = new Set(tagRows.map(({ id }) => id));
 
     const staleCategory: string[] = [];
+    const staleTag: string[] = [];
     const beforeOpening: string[] = [];
     const ready = rows.filter((row) => {
       if (!row.categoryId || !activeCategories.has(row.categoryId)) {
         staleCategory.push(row.id);
+        return false;
+      }
+      if (row.ruleApplication?.tagIds.some((id) => !activeTags.has(id))) {
+        staleTag.push(row.id);
         return false;
       }
       if (
@@ -482,6 +554,13 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
         field: "category",
         message:
           "The category was archived after the preview. Restore it and import again.",
+      },
+    ]);
+    await setRowStatus(tx, staleTag, "invalid", [
+      {
+        field: "tags",
+        message:
+          "A tag the matching rule adds was archived after the preview. Restore it and import again.",
       },
     ]);
     await setRowStatus(tx, beforeOpening, "invalid", [
@@ -504,6 +583,7 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
               importFingerprint: row.fingerprint,
               notes: row.notes,
               paidStatus: "paid",
+              ruleApplication: row.ruleApplication,
               transactionDate: row.transactionDate ?? "",
             })
           )
@@ -520,6 +600,7 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
         inserted.map(({ fingerprint, id }) => [fingerprint, id])
       );
       const links: { rowId: string; transactionId: string }[] = [];
+      const tagLinks: { tagId: string; transactionId: string }[] = [];
       for (const row of batch) {
         const transactionId = byFingerprint.get(row.fingerprint);
         if (!transactionId) {
@@ -527,6 +608,9 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
           continue;
         }
         links.push({ rowId: row.id, transactionId });
+        for (const tagId of row.ruleApplication?.tagIds ?? []) {
+          tagLinks.push({ tagId, transactionId });
+        }
         if (
           row.transactionDate &&
           (!earliest || row.transactionDate < earliest)
@@ -548,6 +632,9 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
           FROM (VALUES ${values}) AS link(row_id, transaction_id)
           WHERE ${transactionImportRow.id} = link.row_id
         `);
+      }
+      if (tagLinks.length > 0) {
+        await tx.insert(financialTransactionTag).values(tagLinks);
       }
     }
     await setRowStatus(tx, duplicates, "duplicate");

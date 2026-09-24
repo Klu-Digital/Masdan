@@ -28,6 +28,8 @@ import {
 
 import { accountsRouter } from "../accounts/accounts.router";
 import type { Context } from "../context";
+import { rulesRouter } from "../rules/rules.router";
+import { tagsRouter } from "../tags/tags.router";
 import { transactionsRouter } from "../transactions/transactions.router";
 import { processImport } from "./imports.process";
 import { importsRouter } from "./imports.router";
@@ -704,5 +706,239 @@ describe("imports household isolation", () => {
     );
     expect(items[0]?.status).toBe("invalid");
     expect(items[0]?.errors[0]?.field).toBe("category");
+  });
+});
+
+const categoryNamed = async (household: Household, name: string) => {
+  const [row] = await getTestDb()
+    .select({ id: category.id })
+    .from(category)
+    .where(
+      and(
+        eq(category.organizationId, household.organizationId),
+        eq(category.name, name)
+      )
+    );
+  if (!row) {
+    throw new Error(`Missing category ${name}`);
+  }
+  return row.id;
+};
+
+const textRule = (
+  household: Household,
+  name: string,
+  value: string,
+  actions: { categoryId: string | null; tagIds: string[] }
+) =>
+  call(
+    rulesRouter.create,
+    {
+      actions,
+      conditions: {
+        accountId: null,
+        amountMax: null,
+        amountMin: null,
+        text: { operator: "contains", value },
+        type: actions.categoryId ? "expense" : null,
+      },
+      name,
+    },
+    household.context
+  );
+
+const importedRows = (accountId: string) =>
+  getTestDb()
+    .select({
+      categoryId: financialTransaction.categoryId,
+      id: financialTransaction.id,
+      notes: financialTransaction.notes,
+      ruleApplication: financialTransaction.ruleApplication,
+    })
+    .from(financialTransaction)
+    .where(eq(financialTransaction.accountId, accountId))
+    .orderBy(
+      asc(financialTransaction.transactionDate),
+      asc(financialTransaction.id)
+    );
+
+describe("imports with categorization rules", () => {
+  it("applies the first enabled match at preview and commits exactly what was previewed", async () => {
+    const household = await signUpHousehold();
+    const account = await createAccount(household);
+    const pantry = await call(
+      tagsRouter.create,
+      { color: "green", name: "Pantry" },
+      household.context
+    );
+    const commute = await call(
+      tagsRouter.create,
+      { color: "sky", name: "Commute" },
+      household.context
+    );
+    const shopping = await categoryNamed(household, "Shopping");
+    const dining = await categoryNamed(household, "Food & Dining");
+    const transport = await categoryNamed(household, "Transport");
+
+    const disabled = await textRule(
+      household,
+      "Old Puregold rule",
+      "puregold",
+      {
+        categoryId: shopping,
+        tagIds: [],
+      }
+    );
+    await call(
+      rulesRouter.setEnabled,
+      { enabled: false, ruleId: disabled.id },
+      household.context
+    );
+    const puregold = await textRule(household, "Puregold", "puregold", {
+      categoryId: dining,
+      tagIds: [pantry.id],
+    });
+    await textRule(household, "Jeepney", "jeepney", {
+      categoryId: null,
+      tagIds: [commute.id],
+    });
+
+    const source = await uploadCsv(household, CSV);
+    const created = await startImport(household, account.id, source.id);
+    await processImport(getTestDb(), created.id);
+
+    const { items } = await call(
+      importsRouter.rows,
+      { importId: created.id, statuses: ["valid"] },
+      household.context
+    );
+    const byDescription = new Map(items.map((row) => [row.description, row]));
+    expect(byDescription.get("Payroll")?.ruleApplication).toBeNull();
+    expect(byDescription.get("Puregold")).toMatchObject({
+      categoryId: dining,
+      ruleApplication: {
+        categoryId: dining,
+        conditions: { text: { operator: "contains", value: "puregold" } },
+        ruleId: puregold.id,
+        ruleName: "Puregold",
+        tagIds: [pantry.id],
+      },
+    });
+    // A tags-only rule leaves the category the file mapped.
+    expect(byDescription.get("Jeepney")).toMatchObject({
+      categoryId: transport,
+      ruleApplication: { categoryId: null, ruleName: "Jeepney" },
+    });
+
+    // Editing the rule after the preview doesn't change what gets committed.
+    await call(
+      rulesRouter.update,
+      {
+        actions: { categoryId: shopping, tagIds: [] },
+        conditions: {
+          accountId: null,
+          amountMax: null,
+          amountMin: null,
+          text: { operator: "contains", value: "puregold" },
+          type: "expense",
+        },
+        name: "Puregold",
+        ruleId: puregold.id,
+      },
+      household.context
+    );
+    await call(
+      importsRouter.commit,
+      { importId: created.id },
+      household.context
+    );
+    await processImport(getTestDb(), created.id);
+
+    const transactions = await importedRows(account.id);
+    const committed = new Map(
+      transactions.map((row) => [row.notes, row] as const)
+    );
+    expect(committed.get("Payroll")?.ruleApplication).toBeNull();
+    expect(committed.get("Puregold")).toMatchObject({
+      categoryId: dining,
+      ruleApplication: { ruleName: "Puregold", tagIds: [pantry.id] },
+    });
+
+    const tagsOf = async (notes: string) => {
+      const id = transactions.find((row) => row.notes === notes)?.id ?? "";
+      const detail = await call(
+        transactionsRouter.get,
+        { transactionId: id },
+        household.context
+      );
+      return detail.tags.map(({ name }) => name);
+    };
+    expect(await tagsOf("Puregold")).toEqual(["Pantry"]);
+    expect(await tagsOf("Jeepney")).toEqual(["Commute"]);
+    expect(await tagsOf("Payroll")).toEqual([]);
+    expect(transactions.filter((row) => row.notes === "Jeepney")).toHaveLength(
+      2
+    );
+  });
+
+  it("rejects a row at commit when the rule's tag was archived after the preview", async () => {
+    const household = await signUpHousehold();
+    const account = await createAccount(household);
+    const pantry = await call(
+      tagsRouter.create,
+      { color: "green", name: "Pantry" },
+      household.context
+    );
+    await textRule(household, "Puregold", "puregold", {
+      categoryId: null,
+      tagIds: [pantry.id],
+    });
+    const source = await uploadCsv(household, CSV);
+    const created = await startImport(household, account.id, source.id);
+    await processImport(getTestDb(), created.id);
+
+    await call(tagsRouter.archive, { tagId: pantry.id }, household.context);
+    await call(
+      importsRouter.commit,
+      { importId: created.id },
+      household.context
+    );
+    await processImport(getTestDb(), created.id);
+
+    const { items } = await call(
+      importsRouter.rows,
+      { importId: created.id },
+      household.context
+    );
+    const puregold = items.find((row) => row.description === "Puregold");
+    expect(puregold?.status).toBe("invalid");
+    expect(puregold?.errors[0]?.field).toBe("tags");
+    const committed = await importedRows(account.id);
+    expect(committed.map(({ notes }) => notes)).not.toContain("Puregold");
+  });
+
+  it("never applies another household's rules", async () => {
+    const mine = await signUpHousehold();
+    const theirs = await signUpHousehold();
+    const theirTag = await call(
+      tagsRouter.create,
+      { color: "red", name: "Theirs" },
+      theirs.context
+    );
+    await textRule(theirs, "Their Puregold", "puregold", {
+      categoryId: null,
+      tagIds: [theirTag.id],
+    });
+
+    const account = await createAccount(mine);
+    const source = await uploadCsv(mine, CSV);
+    const created = await startImport(mine, account.id, source.id);
+    await processImport(getTestDb(), created.id);
+    const { items } = await call(
+      importsRouter.rows,
+      { importId: created.id },
+      mine.context
+    );
+    expect(items.every((row) => row.ruleApplication === null)).toBe(true);
   });
 });

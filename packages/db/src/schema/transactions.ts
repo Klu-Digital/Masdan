@@ -4,6 +4,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -18,6 +19,7 @@ import { organization } from "./auth";
 import { category } from "./categories";
 import { currency } from "./finance";
 import { financialAccount } from "./financial-accounts";
+import type { TransactionRuleApplication } from "./rules";
 import { file } from "./storage";
 import { tag } from "./tags";
 
@@ -106,6 +108,9 @@ export const financialTransaction = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     paidStatus: paidStatusEnum("paid_status").default("paid").notNull(),
+    /** The rule behind the current category/tags; cleared once they stop holding. */
+    ruleApplication:
+      jsonb("rule_application").$type<TransactionRuleApplication>(),
     transactionDate: date("transaction_date", { mode: "string" }).notNull(),
     transferId: uuid("transfer_id").references(() => financialTransfer.id, {
       onDelete: "cascade",

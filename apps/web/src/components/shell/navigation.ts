@@ -6,6 +6,7 @@ import {
   Folder02Icon,
   Home01Icon,
   Invoice02Icon,
+  MagicWand01Icon,
   Shield01Icon,
   Tag01Icon,
   ToggleOnIcon,
@@ -40,6 +41,7 @@ export const PRIMARY_NAV: NavDestination[] = [
 export const ORGANIZE_NAV: NavDestination[] = [
   { icon: Folder02Icon, label: "Categories", to: "/categories" },
   { icon: Tag01Icon, label: "Tags", to: "/tags" },
+  { icon: MagicWand01Icon, label: "Rules", to: "/rules" },
 ];
 
 export const ADMIN_NAV: NavDestination[] = [

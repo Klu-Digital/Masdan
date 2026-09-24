@@ -38,6 +38,16 @@ export {
   type TransactionImportStatus,
 } from "./imports";
 export {
+  transactionRule,
+  transactionRuleTag,
+  transactionRuleTextOperators,
+  transactionRuleTypes,
+  type TransactionRuleApplication,
+  type TransactionRuleConditions,
+  type TransactionRuleTextOperator,
+  type TransactionRuleType,
+} from "./rules";
+export {
   postMigration,
   postMigrationStatuses,
   type PostMigrationStatus,

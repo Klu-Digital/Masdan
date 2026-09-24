@@ -14,12 +14,20 @@ const rows = vi.hoisted(() => vi.fn());
 const commit = vi.hoisted(() => vi.fn());
 const retry = vi.hoisted(() => vi.fn());
 const discard = vi.hoisted(() => vi.fn());
+const listAccounts = vi.hoisted(() => vi.fn());
+const listCategories = vi.hoisted(() => vi.fn());
+const listTags = vi.hoisted(() => vi.fn());
 
 vi.mock("@/utils/orpc", async (importOriginal) => {
   const actual = await importOriginal<typeof TypeImport___utils_orpc>();
   return {
     ...actual,
-    client: { imports: { commit, discard, get, retry, rows } },
+    client: {
+      accounts: { list: listAccounts },
+      categories: { list: listCategories },
+      imports: { commit, discard, get, retry, rows },
+      tags: { list: listTags },
+    },
   };
 });
 
@@ -99,6 +107,15 @@ beforeEach(() => {
   for (const mock of [get, rows, commit, retry, discard]) {
     mock.mockReset();
   }
+  listAccounts.mockResolvedValue([
+    { archivedAt: null, id: "account-1", name: "BPI Savings" },
+  ]);
+  listCategories.mockResolvedValue([
+    { archivedAt: null, id: "transport", name: "Transport", type: "expense" },
+  ]);
+  listTags.mockResolvedValue([
+    { archivedAt: null, color: "sky", id: "commute", name: "Commute" },
+  ]);
   rows.mockResolvedValue({
     items: rowItems,
     page: 1,
@@ -134,6 +151,48 @@ describe("ImportDetailPage", () => {
     expect(within(table).getByText("Date is empty")).toBeVisible();
     expect(within(table).getByText(/· Broken · abc/u)).toBeVisible();
     expect(within(table).getByText("Payroll")).toBeVisible();
+  });
+
+  it("shows which rule categorized a row and why", async () => {
+    get.mockResolvedValue(baseImport);
+    rows.mockResolvedValue({
+      items: [
+        {
+          ...rowItems[0],
+          amount: "245.000000",
+          categoryId: "transport",
+          description: "GRAB*RIDE",
+          id: "row-4",
+          ruleApplication: {
+            categoryId: "transport",
+            conditions: {
+              accountId: null,
+              amountMax: null,
+              amountMin: null,
+              text: { operator: "contains", value: "grab" },
+              type: "expense",
+            },
+            ruleId: "rule-1",
+            ruleName: "Grab rides",
+            tagIds: ["commute"],
+          },
+          type: "expense",
+        },
+      ],
+      page: 1,
+      pageSize: 200,
+      total: 1,
+      totalPages: 1,
+    });
+    renderPage();
+
+    const table = await screen.findByRole("table", { name: "Import rows" });
+    expect(within(table).getByText("Grab rides")).toBeVisible();
+    expect(
+      await within(table).findByText(
+        /Description contains “grab” · Money out · Sets Transport · Adds Commute/u
+      )
+    ).toBeVisible();
   });
 
   it("filters to rows that need attention", async () => {

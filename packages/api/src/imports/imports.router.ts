@@ -360,6 +360,7 @@ export const importsRouter = {
             notes: transactionImportRow.notes,
             raw: transactionImportRow.raw,
             rowNumber: transactionImportRow.rowNumber,
+            ruleApplication: transactionImportRow.ruleApplication,
             status: transactionImportRow.status,
             transactionDate: transactionImportRow.transactionDate,
             transactionId: transactionImportRow.transactionId,

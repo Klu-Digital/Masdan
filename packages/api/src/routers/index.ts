@@ -13,6 +13,7 @@ import { invitationsRouter } from "../invitations/invitations.router";
 import { jobsRouter } from "../jobs/jobs.router";
 import { protectedProcedure, publicProcedure } from "../procedures";
 import { reportsRouter } from "../reports/reports.router";
+import { rulesRouter } from "../rules/rules.router";
 import { tagsRouter } from "../tags/tags.router";
 import { transactionsRouter } from "../transactions/transactions.router";
 import { transfersRouter } from "../transfers/transfers.router";
@@ -44,6 +45,7 @@ export const appRouter = {
     user: context.session?.user,
   })),
   reports: reportsRouter,
+  rules: rulesRouter,
   tags: tagsRouter,
   transactions: transactionsRouter,
   transfers: transfersRouter,

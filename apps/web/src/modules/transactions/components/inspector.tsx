@@ -25,6 +25,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { formatLongDate } from "@/lib/dates";
+import { TransactionRule } from "@/modules/rules/components/transaction-rule";
 
 import { describeTransaction } from "../presentation";
 import { transactionQueryOptions } from "../queries";
@@ -260,6 +261,13 @@ export const TransactionInspector = ({
             </p>
           </section>
         ) : null}
+
+        {transfer ? null : (
+          <TransactionRule
+            canApply={permissions.canUpdate}
+            transaction={detail}
+          />
+        )}
 
         {transfer ? null : (
           <TransactionAttachments

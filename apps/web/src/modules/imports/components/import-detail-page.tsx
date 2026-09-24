@@ -46,6 +46,8 @@ import {
   invalidateAccounts,
 } from "@/modules/accounts/queries";
 import { categoriesQueryOptions } from "@/modules/categories/queries";
+import { ruleEffects, ruleReasons } from "@/modules/rules/presentation";
+import { tagsQueryOptions } from "@/modules/tags/queries";
 import { invalidateTransactions } from "@/modules/transactions/queries";
 import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
 import { client } from "@/utils/orpc";
@@ -81,11 +83,15 @@ const ROW_STATUS: Record<
   valid: { label: "Ready", variant: "info" },
 };
 
+type RuleApplication = NonNullable<ImportRow["ruleApplication"]>;
+
 const RowsTable = ({
   currency,
+  describeRule,
   rows,
 }: {
   currency: string;
+  describeRule: (application: RuleApplication) => string;
   rows: ImportRow[];
 }) => (
   <Table aria-label="Import rows" variant="card">
@@ -113,6 +119,17 @@ const RowsTable = ({
             </TableCell>
             <TableCell className="max-w-72 align-top">
               <span className="block truncate">{row.description ?? "—"}</span>
+              {row.ruleApplication ? (
+                <span className="text-muted-foreground mt-0.5 block text-xs">
+                  <Badge size="sm" variant="brand">
+                    Rule
+                  </Badge>{" "}
+                  <span className="text-foreground font-medium">
+                    {row.ruleApplication.ruleName}
+                  </span>
+                  {` — ${describeRule(row.ruleApplication)}`}
+                </span>
+              ) : null}
               {row.errors.length > 0 ? (
                 <span className="text-muted-foreground block truncate text-xs">
                   {row.raw.join(" · ")}
@@ -213,14 +230,9 @@ export const ImportDetailPage = ({
     }),
     enabled: current !== undefined && !isImportProcessing(status),
   });
-  const accounts = useQuery({
-    ...accountsQueryOptions(activeOrganizationId),
-    enabled: editing,
-  });
-  const categories = useQuery({
-    ...categoriesQueryOptions(activeOrganizationId),
-    enabled: editing,
-  });
+  const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
+  const categories = useQuery(categoriesQueryOptions(activeOrganizationId));
+  const tags = useQuery(tagsQueryOptions(activeOrganizationId));
 
   const previousStatus = useRef(status);
   useEffect(() => {
@@ -292,6 +304,18 @@ export const ImportDetailPage = ({
   }
 
   const currency = current.currencyCode;
+  const describeRule = (application: RuleApplication): string =>
+    [
+      ...ruleReasons(application.conditions, accounts.data ?? []),
+      ...ruleEffects({
+        categoryName:
+          categories.data?.find(({ id }) => id === application.categoryId)
+            ?.name ?? null,
+        tagNames: (tags.data ?? [])
+          .filter(({ id }) => application.tagIds.includes(id))
+          .map(({ name }) => name),
+      }),
+    ].join(" · ");
 
   return (
     <Page>
@@ -435,7 +459,11 @@ export const ImportDetailPage = ({
             </TabsList>
           </Tabs>
           {rows.data && rows.data.items.length > 0 ? (
-            <RowsTable currency={currency} rows={rows.data.items} />
+            <RowsTable
+              currency={currency}
+              describeRule={describeRule}
+              rows={rows.data.items}
+            />
           ) : (
             <p className="text-muted-foreground text-sm">
               {rows.isPending ? "Loading rows…" : "No rows here."}

@@ -1,4 +1,5 @@
 import type { Database } from "@masdan/db";
+import type { TransactionRuleApplication } from "@masdan/db/schema/index";
 import {
   category,
   financialAccount,
@@ -38,13 +39,16 @@ import {
   getMonthlyCashFlow,
   incomeTotal,
 } from "../reports/reports.queries";
+import { ruleApplicationHolds } from "../rules/engine";
 import { getTransfer } from "../transfers/transfers.router";
 import { positiveAmount, scaledAmount } from "./amounts";
 import { TRANSACTION_PAID_STATUSES } from "./constants";
 import {
   activeAccount,
+  replaceTags,
   transactionInsertValues,
   validCategory,
+  validTags,
 } from "./transactions.write";
 
 const transactionFields = {
@@ -58,6 +62,7 @@ const transactionFields = {
   notes: financialTransaction.notes,
   organizationId: financialTransaction.organizationId,
   paidStatus: financialTransaction.paidStatus,
+  ruleApplication: financialTransaction.ruleApplication,
   transactionDate: financialTransaction.transactionDate,
   transferId: financialTransaction.transferId,
   transferSide: financialTransaction.transferSide,
@@ -171,41 +176,6 @@ interface TransactionRow {
 
 const transactionNotFound = () =>
   new ORPCError("NOT_FOUND", { message: "Transaction not found" });
-
-const validTags = async (
-  db: Database,
-  organizationId: string,
-  tagIds: string[],
-  existingTagIds = new Set<string>()
-): Promise<void> => {
-  if (tagIds.length === 0) {
-    return;
-  }
-
-  const selected = await db
-    .select({ archivedAt: tag.archivedAt, id: tag.id })
-    .from(tag)
-    .where(
-      and(eq(tag.organizationId, organizationId), inArray(tag.id, tagIds))
-    );
-
-  if (selected.length !== tagIds.length) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "Every tag must belong to the active household",
-    });
-  }
-
-  if (
-    selected.some(
-      (selectedTag) =>
-        selectedTag.archivedAt !== null && !existingTagIds.has(selectedTag.id)
-    )
-  ) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "New transactions can only use active tags",
-    });
-  }
-};
 
 const transactionSplits = (db: Database, transactionId: string) =>
   db
@@ -471,22 +441,6 @@ const transactionOrderBy = (input: TransactionListInput) => {
   ];
 };
 
-const replaceTags = async (
-  db: Database,
-  transactionId: string,
-  tagIds: string[]
-): Promise<void> => {
-  await db
-    .delete(financialTransactionTag)
-    .where(eq(financialTransactionTag.transactionId, transactionId));
-
-  if (tagIds.length > 0) {
-    await db
-      .insert(financialTransactionTag)
-      .values(tagIds.map((tagId) => ({ tagId, transactionId })));
-  }
-};
-
 const replaceSplits = async (
   db: Database,
   transactionId: string,
@@ -531,6 +485,141 @@ const validateSplitCategories = async (
       message: "Every split category must match the transaction type",
     });
   }
+};
+
+/** A split transaction's categories come from its splits, never a rule. */
+const keptRuleApplication = (
+  application: TransactionRuleApplication | null,
+  values: { categoryId: string; splits: unknown[]; tagIds: string[] }
+): TransactionRuleApplication | null =>
+  application &&
+  !(values.splits.length > 1 && application.categoryId !== null) &&
+  ruleApplicationHolds(application, values)
+    ? application
+    : null;
+
+const transactionUpdateValues = transactionValues.extend({
+  transactionId: z.uuid(),
+});
+
+export type TransactionUpdateInput = z.output<typeof transactionUpdateValues>;
+
+/**
+ * The one edit path for an income or expense: the update procedure and rule
+ * application both go through it. `ruleApplication` records a rule that just
+ * ran; without one, earlier rule provenance survives only while the category
+ * and tags the rule set are still there.
+ */
+export const updateTransaction = async (
+  db: Database,
+  organizationId: string,
+  input: TransactionUpdateInput,
+  ruleApplication?: TransactionRuleApplication
+) => {
+  const [existing] = await db
+    .select({
+      archivedAt: financialTransaction.archivedAt,
+      categoryId: financialTransaction.categoryId,
+      id: financialTransaction.id,
+      ruleApplication: financialTransaction.ruleApplication,
+      transferId: financialTransaction.transferId,
+    })
+    .from(financialTransaction)
+    .where(
+      and(
+        eq(financialTransaction.id, input.transactionId),
+        eq(financialTransaction.organizationId, organizationId)
+      )
+    )
+    .limit(1);
+
+  if (!existing) {
+    throw transactionNotFound();
+  }
+  if (existing.transferId !== null || existing.categoryId === null) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Use transfer actions to edit a transfer",
+    });
+  }
+  if (existing.archivedAt !== null) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Restore the transaction before editing it",
+    });
+  }
+
+  const [currentTags, currentSplits] = await Promise.all([
+    db
+      .select({ tagId: financialTransactionTag.tagId })
+      .from(financialTransactionTag)
+      .where(eq(financialTransactionTag.transactionId, existing.id)),
+    transactionSplits(db, existing.id),
+  ]);
+  const existingTagIds = new Set(currentTags.map(({ tagId }) => tagId));
+  const existingSplitCategoryIds = new Set(
+    currentSplits.map(({ categoryId }) => categoryId)
+  );
+  const splits = input.splits ?? [];
+  const categoryId =
+    splits.length === 1
+      ? (splits[0]?.categoryId ?? input.categoryId)
+      : input.categoryId;
+
+  const account = await activeAccount(db, organizationId, input.accountId);
+  const parentCategory = await validCategory(
+    db,
+    organizationId,
+    categoryId,
+    categoryId === existing.categoryId ||
+      existingSplitCategoryIds.has(categoryId)
+  );
+  await validateSplitCategories(
+    db,
+    organizationId,
+    parentCategory.type,
+    splits,
+    existingSplitCategoryIds
+  );
+  await validTags(db, organizationId, input.tagIds, existingTagIds);
+
+  const [updated] = await db
+    .update(financialTransaction)
+    .set({
+      accountId: account.id,
+      amount: input.amount,
+      categoryId,
+      currencyCode: account.currencyCode,
+      notes: input.notes ?? null,
+      paidStatus: input.paidStatus,
+      ruleApplication: keptRuleApplication(
+        ruleApplication ?? existing.ruleApplication,
+        { categoryId, splits, tagIds: input.tagIds }
+      ),
+      transactionDate: input.transactionDate,
+    })
+    .where(
+      and(
+        eq(financialTransaction.id, existing.id),
+        eq(financialTransaction.organizationId, organizationId)
+      )
+    )
+    .returning(transactionFields);
+
+  if (!updated) {
+    throw transactionNotFound();
+  }
+
+  await replaceTags(db, updated.id, input.tagIds);
+  await replaceSplits(db, updated.id, splits);
+  const [result] = await transactionQuery(db)
+    .where(
+      and(
+        eq(financialTransaction.id, updated.id),
+        eq(financialTransaction.organizationId, organizationId)
+      )
+    )
+    .limit(1);
+
+  return result ? withDetails(db, result) : withDetails(db, updated);
 };
 
 export const transactionsRouter = {
@@ -757,117 +846,8 @@ export const transactionsRouter = {
 
   update: orgMutationProcedure
     .use(requirePermission({ transaction: ["update"] }))
-    .input(transactionValues.extend({ transactionId: z.uuid() }))
-    .handler(async ({ context, input }) => {
-      const [existing] = await context.db
-        .select({
-          archivedAt: financialTransaction.archivedAt,
-          categoryId: financialTransaction.categoryId,
-          id: financialTransaction.id,
-          transferId: financialTransaction.transferId,
-        })
-        .from(financialTransaction)
-        .where(
-          and(
-            eq(financialTransaction.id, input.transactionId),
-            eq(financialTransaction.organizationId, context.organizationId)
-          )
-        )
-        .limit(1);
-
-      if (!existing) {
-        throw transactionNotFound();
-      }
-      if (existing.transferId !== null || existing.categoryId === null) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "Use transfer actions to edit a transfer",
-        });
-      }
-      if (existing.archivedAt !== null) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "Restore the transaction before editing it",
-        });
-      }
-
-      const [currentTags, currentSplits] = await Promise.all([
-        context.db
-          .select({ tagId: financialTransactionTag.tagId })
-          .from(financialTransactionTag)
-          .where(eq(financialTransactionTag.transactionId, existing.id)),
-        transactionSplits(context.db, existing.id),
-      ]);
-      const existingTagIds = new Set(currentTags.map(({ tagId }) => tagId));
-      const existingSplitCategoryIds = new Set(
-        currentSplits.map(({ categoryId }) => categoryId)
-      );
-      const splits = input.splits ?? [];
-      const categoryId =
-        splits.length === 1
-          ? (splits[0]?.categoryId ?? input.categoryId)
-          : input.categoryId;
-
-      const account = await activeAccount(
-        context.db,
-        context.organizationId,
-        input.accountId
-      );
-      const parentCategory = await validCategory(
-        context.db,
-        context.organizationId,
-        categoryId,
-        categoryId === existing.categoryId ||
-          existingSplitCategoryIds.has(categoryId)
-      );
-      await validateSplitCategories(
-        context.db,
-        context.organizationId,
-        parentCategory.type,
-        splits,
-        existingSplitCategoryIds
-      );
-      await validTags(
-        context.db,
-        context.organizationId,
-        input.tagIds,
-        existingTagIds
-      );
-
-      const [updated] = await context.db
-        .update(financialTransaction)
-        .set({
-          accountId: account.id,
-          amount: input.amount,
-          categoryId,
-          currencyCode: account.currencyCode,
-          notes: input.notes ?? null,
-          paidStatus: input.paidStatus,
-          transactionDate: input.transactionDate,
-        })
-        .where(
-          and(
-            eq(financialTransaction.id, existing.id),
-            eq(financialTransaction.organizationId, context.organizationId)
-          )
-        )
-        .returning(transactionFields);
-
-      if (!updated) {
-        throw transactionNotFound();
-      }
-
-      await replaceTags(context.db, updated.id, input.tagIds);
-      await replaceSplits(context.db, updated.id, splits);
-      const [result] = await transactionQuery(context.db)
-        .where(
-          and(
-            eq(financialTransaction.id, updated.id),
-            eq(financialTransaction.organizationId, context.organizationId)
-          )
-        )
-        .limit(1);
-
-      return result
-        ? withDetails(context.db, result)
-        : withDetails(context.db, updated);
-    }),
+    .input(transactionUpdateValues)
+    .handler(({ context, input }) =>
+      updateTransaction(context.db, context.organizationId, input)
+    ),
 };

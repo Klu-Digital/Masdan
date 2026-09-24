@@ -15,6 +15,7 @@ import {
 import { organization, user } from "./auth";
 import { category } from "./categories";
 import { financialAccount } from "./financial-accounts";
+import type { TransactionRuleApplication } from "./rules";
 import { file } from "./storage";
 import { financialTransaction } from "./transactions";
 
@@ -134,6 +135,9 @@ export const transactionImportRow = pgTable(
     raw: jsonb("raw").$type<string[]>().notNull(),
     /** Spreadsheet row number, header included, so users can find it. */
     rowNumber: integer("row_number").notNull(),
+    /** The rule that set this row's category/tags at preview; commit applies it as-is. */
+    ruleApplication:
+      jsonb("rule_application").$type<TransactionRuleApplication>(),
     status: text("status", { enum: transactionImportRowStatuses }).notNull(),
     transactionDate: date("transaction_date", { mode: "string" }),
     transactionId: uuid("transaction_id").references(

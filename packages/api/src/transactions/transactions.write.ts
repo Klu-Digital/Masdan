@@ -1,8 +1,16 @@
 import type { Database } from "@masdan/db";
-import type { financialTransaction } from "@masdan/db/schema/index";
-import { category, financialAccount } from "@masdan/db/schema/index";
+import type {
+  financialTransaction,
+  TransactionRuleApplication,
+} from "@masdan/db/schema/index";
+import {
+  category,
+  financialAccount,
+  financialTransactionTag,
+  tag,
+} from "@masdan/db/schema/index";
 import { ORPCError } from "@orpc/server";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import type { TransactionPaidStatus } from "./constants";
 
@@ -77,12 +85,65 @@ export const validCategory = async (
   return selected;
 };
 
+/** Archived tags are only allowed where the transaction already carries them. */
+export const validTags = async (
+  db: Database,
+  organizationId: string,
+  tagIds: string[],
+  existingTagIds = new Set<string>()
+): Promise<void> => {
+  if (tagIds.length === 0) {
+    return;
+  }
+
+  const selected = await db
+    .select({ archivedAt: tag.archivedAt, id: tag.id })
+    .from(tag)
+    .where(
+      and(eq(tag.organizationId, organizationId), inArray(tag.id, tagIds))
+    );
+
+  if (selected.length !== tagIds.length) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Every tag must belong to the active household",
+    });
+  }
+
+  if (
+    selected.some(
+      (selectedTag) =>
+        selectedTag.archivedAt !== null && !existingTagIds.has(selectedTag.id)
+    )
+  ) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "New transactions can only use active tags",
+    });
+  }
+};
+
+export const replaceTags = async (
+  db: Database,
+  transactionId: string,
+  tagIds: string[]
+): Promise<void> => {
+  await db
+    .delete(financialTransactionTag)
+    .where(eq(financialTransactionTag.transactionId, transactionId));
+
+  if (tagIds.length > 0) {
+    await db
+      .insert(financialTransactionTag)
+      .values(tagIds.map((tagId) => ({ tagId, transactionId })));
+  }
+};
+
 export interface TransactionWrite {
   amount: string;
   categoryId: string;
   importFingerprint?: string | null;
   notes: string | null;
   paidStatus: TransactionPaidStatus;
+  ruleApplication?: TransactionRuleApplication | null;
   transactionDate: string;
 }
 
@@ -100,5 +161,6 @@ export const transactionInsertValues = (
   notes: values.notes,
   organizationId,
   paidStatus: values.paidStatus,
+  ruleApplication: values.ruleApplication ?? null,
   transactionDate: values.transactionDate,
 });
