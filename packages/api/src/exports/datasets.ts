@@ -12,9 +12,11 @@ import {
   financialTransfer,
   member,
   tag,
+  transactionImport,
+  transactionImportRow,
   user,
 } from "@masdan/db/schema/index";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import { getAccountBalances } from "../accounts/balances";
@@ -63,10 +65,37 @@ const categoryIn = (
 ) =>
   and(eq(category.id, categoryId), eq(category.organizationId, organizationId));
 
+/** At most one import row per transaction, so the join cannot fan out. */
+const importProvenance = (db: Database, organizationId: string) =>
+  db
+    .selectDistinctOn([transactionImportRow.transactionId], {
+      fileName: transactionImport.fileName,
+      importId: transactionImportRow.importId,
+      rowNumber: transactionImportRow.rowNumber,
+      transactionId: transactionImportRow.transactionId,
+    })
+    .from(transactionImportRow)
+    .innerJoin(
+      transactionImport,
+      and(
+        eq(transactionImport.id, transactionImportRow.importId),
+        eq(transactionImport.organizationId, organizationId)
+      )
+    )
+    .where(
+      and(
+        eq(transactionImportRow.organizationId, organizationId),
+        isNotNull(transactionImportRow.transactionId)
+      )
+    )
+    .orderBy(transactionImportRow.transactionId, transactionImportRow.id)
+    .as("import_provenance");
+
 const transactions = async (
   db: Database,
   organizationId: string
 ): Promise<CsvExport> => {
+  const provenance = importProvenance(db, organizationId);
   const rows = await db
     .select({
       accountId: financialTransaction.accountId,
@@ -81,6 +110,10 @@ const transactions = async (
       createdAt: financialTransaction.createdAt,
       currencyCode: financialTransaction.currencyCode,
       id: financialTransaction.id,
+      importFileName: provenance.fileName,
+      importFingerprint: financialTransaction.importFingerprint,
+      importId: provenance.importId,
+      importSourceRow: provenance.rowNumber,
       notes: financialTransaction.notes,
       paidStatus: financialTransaction.paidStatus,
       splitCount: sql<number>`(
@@ -124,6 +157,7 @@ const transactions = async (
         eq(counterpartAccount.organizationId, organizationId)
       )
     )
+    .leftJoin(provenance, eq(provenance.transactionId, financialTransaction.id))
     .where(eq(financialTransaction.organizationId, organizationId))
     .orderBy(
       asc(financialTransaction.transactionDate),
@@ -155,6 +189,14 @@ const transactions = async (
       text: true,
       value: (row) => row.counterpartAccountName,
     },
+    { header: "import_id", value: (row) => row.importId },
+    { header: "import_source_row", value: (row) => row.importSourceRow },
+    {
+      header: "import_file_name",
+      text: true,
+      value: (row) => row.importFileName,
+    },
+    { header: "import_fingerprint", value: (row) => row.importFingerprint },
     { header: "archived_at", value: (row) => row.archivedAt },
     { header: "created_at", value: (row) => row.createdAt },
     { header: "updated_at", value: (row) => row.updatedAt },

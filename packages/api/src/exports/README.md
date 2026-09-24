@@ -10,7 +10,7 @@ Each dataset is an `orgProcedure` under `exports.*` (`packages/api/src/exports/e
 - Dates (`*_date`, `period_*`) are `YYYY-MM-DD`. Timestamps (`*_at`) are ISO 8601 UTC, for example `2026-02-01T08:00:00.000Z`.
 - Amounts are exact `numeric(30,6)` text from Postgres (`-1234.500000`), never floats. Transaction amounts are positive. Direction comes from `category_type` or `transfer_side`.
 - Rows are ordered deterministically (see each dataset), and ties break on the UUID.
-- **Formula injection:** a free-text column (names, notes, institution, import reference) whose value starts with `=`, `+`, `-`, `@`, TAB or CR is prefixed with `'`, so spreadsheets show it as text. Typed columns (amounts, dates, ids, enums) are never touched, so negative amounts stay numeric. A re-importer should drop one leading `'` from a text column when the next character is one of those triggers.
+- **Formula injection:** a free-text column (names, notes, institution, import reference, import file name) whose value starts with `=`, `+`, `-`, `@`, TAB or CR is prefixed with `'`, so spreadsheets show it as text. Typed columns (amounts, dates, ids, enums) are never touched, so negative amounts stay numeric. A re-importer should drop one leading `'` from a text column when the next character is one of those triggers.
 - `; `-joined columns (`tag_names`, `owner_*`) are for reading convenience. The link datasets are the canonical form.
 - Archived records are always included. Filter on `archived_at` rather than expecting them to be missing.
 
@@ -22,9 +22,9 @@ Permission is the existing `read` action on the resource shown. Every app role h
 
 One row per posting, including archived postings and both sides of every transfer.
 
-`id, transaction_date, account_id, account_name, amount, currency_code, category_id, category_name, category_type, split_count, tag_names, paid_status, notes, transfer_id, transfer_side, transfer_counterpart_account_id, transfer_counterpart_account_name, archived_at, created_at, updated_at`
+`id, transaction_date, account_id, account_name, amount, currency_code, category_id, category_name, category_type, split_count, tag_names, paid_status, notes, transfer_id, transfer_side, transfer_counterpart_account_id, transfer_counterpart_account_name, import_id, import_source_row, import_file_name, import_fingerprint, archived_at, created_at, updated_at`
 
-`category_*` is empty for transfer postings. `split_count` is `0` unless the lines are in `transaction_splits.csv`.
+`category_*` is empty for transfer postings. `import_*` is empty for entries typed in by hand. For a CSV-imported entry, it names the `transaction_import` it came from, the spreadsheet row (header row = 1), the uploaded file name and the dedupe fingerprint. `split_count` is `0` unless the lines are in `transaction_splits.csv`.
 
 ### `transaction_splits.csv` — `transaction: read`, by `transaction_date, transaction_id, sort_order, id`
 

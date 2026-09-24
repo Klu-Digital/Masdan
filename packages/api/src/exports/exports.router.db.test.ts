@@ -11,6 +11,8 @@ import {
   member,
   session,
   tag,
+  transactionImport,
+  transactionImportRow,
 } from "@masdan/db/schema/index";
 import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
 import { parseCsvRecords } from "@masdan/testing/csv";
@@ -310,9 +312,56 @@ const seedHousehold = async (
       .returning()
   );
 
+  const csvImport = one(
+    await db
+      .insert(transactionImport)
+      .values({
+        accountId: bank.id,
+        defaultExpenseCategoryId: dining.id,
+        defaultIncomeCategoryId: salary.id,
+        fileName: `=${label} statement.csv`,
+        mapping: {},
+        openingBalanceMode: "reject",
+        organizationId,
+        status: "completed",
+      })
+      .returning()
+  );
+  const imported = one(
+    await db
+      .insert(financialTransaction)
+      .values({
+        ...base,
+        accountId: bank.id,
+        amount: "42.000000",
+        categoryId: dining.id,
+        importFingerprint: `${label}-fingerprint`,
+        transactionDate: "2026-01-25",
+      })
+      .returning()
+  );
+  const importRow = { importId: csvImport.id, organizationId, raw: [] };
+  await db.insert(transactionImportRow).values([
+    {
+      ...importRow,
+      rowNumber: 2,
+      status: "imported",
+      transactionId: imported.id,
+    },
+    { ...importRow, rowNumber: 3, status: "duplicate" },
+    // A second link to one transaction must not duplicate its export row.
+    {
+      ...importRow,
+      rowNumber: 4,
+      status: "imported",
+      transactionId: imported.id,
+    },
+  ]);
+
   return {
     accounts: { bank, card, closed },
     categories: { dining, oldCategory, salary },
+    csvImport,
     organizationId,
     ownerMemberId: owner.id,
     snapshot,
@@ -323,6 +372,7 @@ const seedHousehold = async (
       archived,
       destinationPosting,
       expense,
+      imported,
       income,
       sourcePosting,
       split,
@@ -363,6 +413,7 @@ const seededIds = (seed: Seed): string[] => [
   seed.snapshot.id,
   seed.statement.id,
   seed.transfer.id,
+  seed.csvImport.id,
   ...Object.values(seed.accounts).map((row) => row.id),
   ...Object.values(seed.categories).map((row) => row.id),
   ...Object.values(seed.tags).map((row) => row.id),
@@ -387,7 +438,14 @@ describe("household CSV exports", () => {
         seed.transactions.sourcePosting.id,
         seed.transactions.destinationPosting.id,
       ].toSorted(),
+      seed.transactions.imported.id,
     ]);
+    expect(byId(transactions, seed.transactions.imported.id)).toMatchObject({
+      import_file_name: "'=Casa statement.csv",
+      import_fingerprint: "Casa-fingerprint",
+      import_id: seed.csvImport.id,
+      import_source_row: "2",
+    });
     expect(byId(transactions, seed.transactions.expense.id)).toMatchObject({
       account_name: "Casa Bank",
       amount: "200.250000",
@@ -395,6 +453,10 @@ describe("household CSV exports", () => {
       category_name: 'Casa Dining, "out"',
       category_type: "expense",
       currency_code: "PHP",
+      import_file_name: "",
+      import_fingerprint: "",
+      import_id: "",
+      import_source_row: "",
       notes: 'Line one\nLine "two", =cmd',
       paid_status: "paid",
       split_count: "0",
@@ -452,8 +514,8 @@ describe("household CSV exports", () => {
     expect(byId(accounts, seed.accounts.bank.id)).toMatchObject({
       account_class: "asset",
       account_type: "bank",
-      // 1000.5 opening + 5000 income - 200.25 expense - 150 transfer out.
-      current_balance: "5650.250000",
+      // 1000.5 opening + 5000 income - 200.25 - 42 imported - 150 transfer.
+      current_balance: "5608.250000",
       include_in_net_worth: "true",
       institution: '\'=HYPERLINK("evil")',
       liquidity: "liquid",
@@ -545,6 +607,14 @@ describe("household CSV exports", () => {
       tagId: firstSeed.tags.liveTag.id,
       transactionId: secondSeed.transactions.income.id,
     });
+    await getTestDb().insert(transactionImportRow).values({
+      importId: secondSeed.csvImport.id,
+      organizationId: secondSeed.organizationId,
+      raw: [],
+      rowNumber: 9,
+      status: "imported",
+      transactionId: firstSeed.transactions.expense.id,
+    });
 
     const firstFiles = await exportAll(await contextFor(first.headers));
     const secondFiles = await exportAll(await contextFor(second.headers));
@@ -560,7 +630,13 @@ describe("household CSV exports", () => {
         }
       }
     }
-    expect(recordsOf(firstFiles, "transactions")).toHaveLength(6);
+    expect(recordsOf(firstFiles, "transactions")).toHaveLength(7);
+    expect(
+      byId(
+        recordsOf(firstFiles, "transactions"),
+        firstSeed.transactions.expense.id
+      )
+    ).toMatchObject({ import_file_name: "", import_id: "" });
     expect(
       byId(
         recordsOf(secondFiles, "transactions"),
