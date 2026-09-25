@@ -7,9 +7,10 @@ import { CreditCardVisual } from "@masdan/ui/components/credit-card-visual";
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vite-plus/test";
 
+import type { CardIdentity } from "../card-art";
 import { AccountCard } from "./account-card";
 
-const account = {
+const account: CardIdentity = {
   cardLastFour: "4242",
   cardNetwork: "Mastercard",
   cardProductKey: "bpi-gold-rewards-mastercard",

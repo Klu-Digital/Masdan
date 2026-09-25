@@ -91,13 +91,11 @@ const joinAs = async (
   role: string
 ): Promise<Household> => {
   const user = await signUpTestUser();
-  await getTestDb()
-    .insert(member)
-    .values({
-      organizationId: household.organizationId,
-      role,
-      userId: user.user.id,
-    });
+  await getTestDb().insert(member).values({
+    organizationId: household.organizationId,
+    role,
+    userId: user.user.id,
+  });
   await getTestDb()
     .update(session)
     .set({ activeOrganizationId: household.organizationId })

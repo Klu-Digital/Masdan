@@ -1,11 +1,13 @@
-import { withAlpha, type ResolvedColors } from "@masdan/ui/components/evilcharts/ui/echarts-chart";
+import { withAlpha } from "@masdan/ui/components/evilcharts/ui/echarts-chart";
+import type { ResolvedColors } from "@masdan/ui/components/evilcharts/ui/echarts-chart";
 import type { DataZoomComponentOption } from "echarts/components";
-import type { FC } from "react";
 import * as echarts from "echarts/core";
+import type { FC } from "react";
 
 type EChartsInstance = ReturnType<typeof echarts.init>;
 
-const BRUSH_BORDER_OPACITY = 1; // brush frame, × border alpha (evil-brush uses the full token)
+// brush frame, × border alpha (evil-brush uses the full token)
+const BRUSH_BORDER_OPACITY = 1;
 
 export { BRUSH_BORDER_OPACITY };
 
@@ -17,9 +19,12 @@ export { BRUSH_BORDER_OPACITY };
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface BrushProps {
-  height?: number; // brush preview strip height in px (default 56)
-  formatLabel?: (value: string, index: number) => string; // formats the range-handle labels
-  onChange?: (range: { startIndex: number; endIndex: number }) => void; // fires as the range moves
+  // brush preview strip height in px (default 56)
+  height?: number;
+  // formats the range-handle labels
+  formatLabel?: (value: string, index: number) => string;
+  // fires as the range moves
+  onChange?: (range: { startIndex: number; endIndex: number }) => void;
 }
 
 /** Declares the zoom brush below the chart. Presence renders it; renders nothing itself. */
@@ -34,10 +39,16 @@ export const Brush: FC<BrushProps> = () => null;
 // handle progressively lags the pointer).
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type BrushRange = { start: number; end: number };
-export type BrushGeometry = { bottom: number; height: number };
+export interface BrushRange {
+  start: number;
+  end: number;
+}
+export interface BrushGeometry {
+  bottom: number;
+  height: number;
+}
 
-export type BrushOverlayParams = {
+export interface BrushOverlayParams {
   range: BrushRange;
   geom: BrushGeometry;
   size: { width: number; height: number };
@@ -45,57 +56,69 @@ export type BrushOverlayParams = {
   labels: { start: string; end: string } | null;
   showLabels: boolean;
   hover: { left: boolean; right: boolean };
-};
+}
 
 type ZrRect = InstanceType<typeof echarts.graphic.Rect>;
 type ZrCircle = InstanceType<typeof echarts.graphic.Circle>;
 type ZrText = InstanceType<typeof echarts.graphic.Text>;
 
-export type BrushOverlayElements = {
+export interface BrushOverlayElements {
   dimLeft: ZrRect;
   dimRight: ZrRect;
   frame: ZrRect;
   pillLeft: ZrRect;
   pillRight: ZrRect;
-  grips: ZrCircle[]; // 3 left + 3 right
+  // 3 left + 3 right
+  grips: ZrCircle[];
   labelStart: ZrText;
   labelEnd: ZrText;
-};
+}
 
-export function syncBrushOverlay(
+const overlayRect = (z: number) =>
+  new echarts.graphic.Rect({ shape: {}, silent: true, z });
+
+// Vertical offsets of the three grip dots on each handle pill.
+const GRIP_OFFSETS = [-4, 0, 4];
+
+export const syncBrushOverlay = (
   chart: EChartsInstance,
   store: { brushOverlay: BrushOverlayElements | null },
-  params: BrushOverlayParams | null,
-) {
+  params: BrushOverlayParams | null
+) => {
   const zr = chart.getZr();
-  if (!zr) return;
+  if (!zr) {
+    return;
+  }
 
   if (!params) {
     if (store.brushOverlay) {
       const { grips, ...rest } = store.brushOverlay;
-      [...Object.values(rest), ...grips].forEach((el) => zr.remove(el));
+      for (const el of [...Object.values(rest), ...grips]) {
+        zr.remove(el);
+      }
       store.brushOverlay = null;
     }
     return;
   }
 
   if (!store.brushOverlay) {
-    const rect = (z: number) => new echarts.graphic.Rect({ silent: true, z, shape: {} });
     const els: BrushOverlayElements = {
-      dimLeft: rect(100),
-      dimRight: rect(100),
-      frame: rect(101),
-      pillLeft: rect(102),
-      pillRight: rect(102),
+      dimLeft: overlayRect(100),
+      dimRight: overlayRect(100),
+      frame: overlayRect(101),
       grips: Array.from(
         { length: 6 },
-        () => new echarts.graphic.Circle({ silent: true, z: 103, shape: {} }),
+        () => new echarts.graphic.Circle({ shape: {}, silent: true, z: 103 })
       ),
-      labelStart: new echarts.graphic.Text({ silent: true, z: 104 }),
       labelEnd: new echarts.graphic.Text({ silent: true, z: 104 }),
+      labelStart: new echarts.graphic.Text({ silent: true, z: 104 }),
+      pillLeft: overlayRect(102),
+      pillRight: overlayRect(102),
     };
     const { grips, ...rest } = els;
-    [...Object.values(rest), ...grips].forEach((el) => zr.add(el));
+    for (const el of [...Object.values(rest), ...grips]) {
+      zr.add(el);
+    }
     store.brushOverlay = els;
   }
 
@@ -112,72 +135,81 @@ export function syncBrushOverlay(
 
   const dimFill = withAlpha(tokens.background, 0.7);
   els.dimLeft.setShape({
+    height: geom.height,
+    width: Math.max(selectionLeft - trackLeft, 0),
     x: trackLeft,
     y: top,
-    width: Math.max(selectionLeft - trackLeft, 0),
-    height: geom.height,
   });
   els.dimLeft.setStyle({ fill: dimFill });
   els.dimRight.setShape({
+    height: geom.height,
+    width: Math.max(trackRight - selectionRight, 0),
     x: selectionRight,
     y: top,
-    width: Math.max(trackRight - selectionRight, 0),
-    height: geom.height,
   });
   els.dimRight.setStyle({ fill: dimFill });
 
   els.frame.setShape({
-    x: selectionLeft,
-    y: top,
-    width: Math.max(selectionRight - selectionLeft, 0),
     height: geom.height,
     r: 6,
+    width: Math.max(selectionRight - selectionLeft, 0),
+    x: selectionLeft,
+    y: top,
   });
   els.frame.setStyle({
     fill: "none",
-    stroke: withAlpha(tokens.border, BRUSH_BORDER_OPACITY),
     lineWidth: 1,
+    stroke: withAlpha(tokens.border, BRUSH_BORDER_OPACITY),
   });
 
   // Handle pills: evil-brush's 6×16 grip pill, centered on the selection edge,
   // brightening to foreground on hover/drag.
   const pill = (el: ZrRect, x: number, hovered: boolean) => {
-    el.setShape({ x: x - 3, y: centerY - 8, width: 6, height: 16, r: 3 });
+    el.setShape({ height: 16, r: 3, width: 6, x: x - 3, y: centerY - 8 });
     el.setStyle({ fill: hovered ? tokens.foreground : tokens.mutedForeground });
   };
   pill(els.pillLeft, selectionLeft, hover.left);
   pill(els.pillRight, selectionRight, hover.right);
 
   const gripFill = withAlpha(tokens.background, 0.7);
-  [-4, 0, 4].forEach((offset, i) => {
-    els.grips[i].setShape({ cx: selectionLeft, cy: centerY + offset, r: 1 });
-    els.grips[i].setStyle({ fill: gripFill });
-    els.grips[i + 3].setShape({ cx: selectionRight, cy: centerY + offset, r: 1 });
-    els.grips[i + 3].setStyle({ fill: gripFill });
-  });
+  // The first three grips ride the left handle, the last three the right.
+  for (const [i, grip] of els.grips.entries()) {
+    const offset = GRIP_OFFSETS[i % GRIP_OFFSETS.length] ?? 0;
+    const cx = i < GRIP_OFFSETS.length ? selectionLeft : selectionRight;
+    grip.setShape({ cx, cy: centerY + offset, r: 1 });
+    grip.setStyle({ fill: gripFill });
+  }
 
   // Range label pills straddle the frame's bottom line — an overlay, so they
   // occupy no layout space; half the pill sits above the line, half below. Each
   // pill grows INWARD from its handle with a small inset, like the Recharts
   // labels, instead of hanging past the frame edge.
-  const label = (el: ZrText, text: string, x: number, align: "left" | "right") => {
+  const label = (
+    el: ZrText,
+    text: string,
+    x: number,
+    align: "left" | "right"
+  ) => {
     el.setStyle({
-      text,
-      x: align === "left" ? Math.max(x + 6, trackLeft + 2) : Math.min(x - 6, trackRight - 2),
-      y: top + geom.height,
       align,
-      verticalAlign: "middle",
-      fill: tokens.background,
       backgroundColor: tokens.foreground,
-      padding: [2, 5],
       borderRadius: 4,
+      fill: tokens.background,
       font: "500 9px system-ui, sans-serif",
+      padding: [2, 5],
+      text,
+      verticalAlign: "middle",
+      x:
+        align === "left"
+          ? Math.max(x + 6, trackLeft + 2)
+          : Math.min(x - 6, trackRight - 2),
+      y: top + geom.height,
     });
     el.attr("invisible", !showLabels || !text);
   };
   label(els.labelStart, labels?.start ?? "", selectionLeft, "left");
   label(els.labelEnd, labels?.end ?? "", selectionRight, "right");
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // dataZoom slider — the transparent drag layer laid over the mini chart. Fully
@@ -187,47 +219,51 @@ export function syncBrushOverlay(
 // mini-series (which differ per chart type) are built by the chart, not here.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function buildBrushDataZoom(params: {
+export const buildBrushDataZoom = (params: {
   brushBottom: number;
   brushHeight: number;
   brushRange: BrushRange;
   fillerColor: string;
-}): DataZoomComponentOption[] {
+}): DataZoomComponentOption[] => {
   const { brushBottom, brushHeight, brushRange, fillerColor } = params;
 
   return [
     {
-      type: "slider",
-      show: true,
-      xAxisIndex: [0],
-      left: 8,
-      right: 8,
-      bottom: brushBottom,
-      height: brushHeight,
-      // Carry the live range through every rebuild — a notMerge push
-      // without start/end would reset the zoom to the full extent.
-      start: brushRange.start,
-      end: brushRange.end,
-      brushSelect: false,
-      // Range labels are overlay pills below the frame (see
-      // syncBrushOverlay) — the native detail text renders INSIDE the
-      // track, which is not the evil-brush look.
-      showDetail: false,
       backgroundColor: "transparent",
       // The visible frame is the graphic overlay riding the selection —
       // the component's own static border stays hidden.
       borderColor: "transparent",
+      bottom: brushBottom,
+      brushSelect: false,
+      dataBackground: { areaStyle: { opacity: 0 }, lineStyle: { opacity: 0 } },
+      emphasis: { handleStyle: { opacity: 0 } },
+      end: brushRange.end,
       fillerColor,
-      dataBackground: { lineStyle: { opacity: 0 }, areaStyle: { opacity: 0 } },
-      selectedDataBackground: { lineStyle: { opacity: 0 }, areaStyle: { opacity: 0 } },
       // Interaction only — the visible pills are graphic overlays (see
       // syncBrushOverlay). Kept generous for an easy grab target.
-      handleIcon: "path://M -3 -5 L -3 5 A 3 3 0 0 0 3 5 L 3 -5 A 3 3 0 0 0 -3 -5 Z",
+      handleIcon:
+        "path://M -3 -5 L -3 5 A 3 3 0 0 0 3 5 L 3 -5 A 3 3 0 0 0 -3 -5 Z",
       handleSize: "35%",
       handleStyle: { opacity: 0 },
+      height: brushHeight,
+      left: 8,
       moveHandleSize: 0,
-      emphasis: { handleStyle: { opacity: 0 } },
+      right: 8,
+      selectedDataBackground: {
+        areaStyle: { opacity: 0 },
+        lineStyle: { opacity: 0 },
+      },
+      show: true,
+      // Range labels are overlay pills below the frame (see
+      // syncBrushOverlay) — the native detail text renders INSIDE the
+      // track, which is not the evil-brush look.
+      showDetail: false,
+      // Carry the live range through every rebuild — a notMerge push
+      // without start/end would reset the zoom to the full extent.
+      start: brushRange.start,
+      type: "slider",
+      xAxisIndex: [0],
     },
     { type: "inside", xAxisIndex: [0] },
   ];
-}
+};

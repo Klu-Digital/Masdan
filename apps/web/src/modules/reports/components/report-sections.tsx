@@ -1,6 +1,6 @@
+import { Amount } from "@masdan/ui/components/amount";
 import { EChartsComposedChart } from "@masdan/ui/components/evilcharts/charts/echarts-composed-chart";
 import type { ChartConfig } from "@masdan/ui/components/evilcharts/charts/echarts-composed-chart";
-import { Amount } from "@masdan/ui/components/amount";
 import { IconTile } from "@masdan/ui/components/icon-tile";
 import {
   List,

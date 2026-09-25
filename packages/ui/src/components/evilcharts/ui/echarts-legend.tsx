@@ -1,6 +1,10 @@
 "use client";
 
-import { getColorsCount, indicatorBackground, type ChartConfig } from "@masdan/ui/components/evilcharts/ui/echarts-chart";
+import {
+  getColorsCount,
+  indicatorBackground,
+} from "@masdan/ui/components/evilcharts/ui/echarts-chart";
+import type { ChartConfig } from "@masdan/ui/components/evilcharts/ui/echarts-chart";
 import type { CSSProperties } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -18,24 +22,25 @@ export type LegendVariant =
   | "vertical-bar"
   | "horizontal-bar";
 
-export function legendFillStyle(key: string, colorsCount: number): CSSProperties {
-  if (colorsCount <= 1) return { backgroundColor: `var(--color-${key}-0)` };
-  return { background: indicatorBackground(key, colorsCount) };
-}
+// The fill arrives as `--legend-fill` (a solid var or a multi-stop gradient), so
+// the style object only ever sets a custom property.
+const FILL = "[background:var(--legend-fill)]";
 
 // Punches out the centre with a mask-composite so only the "border" shows —
 // works with gradients and border-radius, unlike plain border-color.
-export function legendOutlineStyle(key: string, colorsCount: number): CSSProperties {
-  const mask: CSSProperties = {
-    WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-    WebkitMaskComposite: "xor",
-    mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-    maskComposite: "exclude",
-  };
-  return { ...legendFillStyle(key, colorsCount), ...mask };
-}
+const OUTLINE = `${FILL} [mask-composite:exclude] [mask:linear-gradient(#fff_0_0)_content-box,linear-gradient(#fff_0_0)]`;
 
-export function LegendIndicator({
+const INDICATOR_CLASS: Record<LegendVariant, string> = {
+  circle: `h-2 w-2 shrink-0 rounded-full ${FILL}`,
+  "circle-outline": `h-2.5 w-2.5 shrink-0 rounded-full p-[1.5px] ${OUTLINE}`,
+  "horizontal-bar": `h-1 w-3 shrink-0 rounded-[2px] ${FILL}`,
+  "rounded-square": `h-2 w-2 shrink-0 rounded-[2px] ${FILL}`,
+  "rounded-square-outline": `h-2.5 w-2.5 shrink-0 rounded-[3px] p-[1.5px] ${OUTLINE}`,
+  square: `h-2 w-2 shrink-0 ${FILL}`,
+  "vertical-bar": `h-3 w-1 shrink-0 rounded-[2px] ${FILL}`,
+};
+
+export const LegendIndicator = ({
   variant,
   dataKey,
   colorsCount,
@@ -43,28 +48,16 @@ export function LegendIndicator({
   variant: LegendVariant;
   dataKey: string;
   colorsCount: number;
-}) {
-  const fill = legendFillStyle(dataKey, colorsCount);
-  const outline = legendOutlineStyle(dataKey, colorsCount);
-
-  switch (variant) {
-    case "square":
-      return <div className="h-2 w-2 shrink-0" style={fill} />;
-    case "circle":
-      return <div className="h-2 w-2 shrink-0 rounded-full" style={fill} />;
-    case "circle-outline":
-      return <div className="h-2.5 w-2.5 shrink-0 rounded-full p-[1.5px]" style={outline} />;
-    case "vertical-bar":
-      return <div className="h-3 w-1 shrink-0 rounded-[2px]" style={fill} />;
-    case "horizontal-bar":
-      return <div className="h-1 w-3 shrink-0 rounded-[2px]" style={fill} />;
-    case "rounded-square-outline":
-      return <div className="h-2.5 w-2.5 shrink-0 rounded-[3px] p-[1.5px]" style={outline} />;
-    case "rounded-square":
-    default:
-      return <div className="h-2 w-2 shrink-0 rounded-[2px]" style={fill} />;
-  }
-}
+}) => (
+  <div
+    className={INDICATOR_CLASS[variant]}
+    style={
+      {
+        "--legend-fill": indicatorBackground(dataKey, colorsCount),
+      } as CSSProperties
+    }
+  />
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LegendOverlay — the positioned HTML legend row. The chart computes the
@@ -74,7 +67,7 @@ export function LegendIndicator({
 // the chart's LegendSlot even though positioning arrives fully via `style`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-type LegendOverlayProps = {
+interface LegendOverlayProps {
   seriesKeys: string[];
   config: ChartConfig;
   variant: LegendVariant;
@@ -84,10 +77,17 @@ type LegendOverlayProps = {
   hoveredKey: string | null;
   isClickable: boolean;
   onToggle: (key: string) => void;
-  style: CSSProperties;
+  className?: string;
+  style?: CSSProperties;
+}
+
+const LEGEND_JUSTIFY: Record<LegendOverlayProps["align"], string> = {
+  center: "justify-center",
+  left: "justify-start",
+  right: "justify-end",
 };
 
-export function LegendOverlay({
+export const LegendOverlay = ({
   seriesKeys,
   config,
   variant,
@@ -96,36 +96,55 @@ export function LegendOverlay({
   hoveredKey,
   isClickable,
   onToggle,
+  className,
   style,
-}: LegendOverlayProps) {
-  const legendJustify =
-    align === "left" ? "justify-start" : align === "center" ? "justify-center" : "justify-end";
+}: LegendOverlayProps) => {
+  const legendJustify = LEGEND_JUSTIFY[align];
 
   return (
-    <div style={style} className={`flex items-center gap-4 select-none ${legendJustify}`}>
+    <div
+      style={style}
+      className={`flex items-center gap-4 select-none ${legendJustify} ${className ?? ""}`}
+    >
       {seriesKeys.map((key) => {
         const item = config[key];
         const colorsCount = item ? getColorsCount(item) : 1;
         const isSelected =
           (selectedKey === null || selectedKey === key) &&
           (hoveredKey === null || hoveredKey === key);
+        const entryClass = `flex items-center gap-1.5 transition-opacity ${
+          isSelected ? "" : "opacity-30"
+        }`;
+        const indicator = (
+          <LegendIndicator
+            variant={variant}
+            dataKey={key}
+            colorsCount={colorsCount}
+          />
+        );
+        // No entrance here — the Recharts legend appears instantly, and a
+        // fade-in reads as disconnected from the canvas draw-in.
+        if (!isClickable) {
+          return (
+            <div key={key} className={entryClass}>
+              {indicator}
+              {item?.label}
+            </div>
+          );
+        }
         return (
-          // No entrance here — the Recharts legend appears instantly, and a
-          // fade-in reads as disconnected from the canvas draw-in.
-          <div
+          <button
             key={key}
-            className={`flex items-center gap-1.5 transition-opacity ${
-              !isSelected ? "opacity-30" : ""
-            } ${isClickable ? "cursor-pointer" : ""}`}
-            onClick={() => {
-              if (isClickable) onToggle(key);
-            }}
+            type="button"
+            aria-pressed={selectedKey === key}
+            className={`${entryClass} cursor-pointer`}
+            onClick={() => onToggle(key)}
           >
-            <LegendIndicator variant={variant} dataKey={key} colorsCount={colorsCount} />
+            {indicator}
             {item?.label}
-          </div>
+          </button>
         );
       })}
     </div>
   );
-}
+};
