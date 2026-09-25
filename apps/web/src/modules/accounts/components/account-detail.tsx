@@ -9,10 +9,10 @@ import {
   PlusSignIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { resolveCardNetwork } from "@masdan/api/card-products/catalog";
 import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
-import { CardFace } from "@masdan/ui/components/card-face";
 import {
   Empty,
   EmptyDescription,
@@ -35,6 +35,7 @@ import {
   MenuTrigger,
 } from "@masdan/ui/components/menu";
 import { Meter, MeterIndicator, MeterTrack } from "@masdan/ui/components/meter";
+import { NetworkMark } from "@masdan/ui/components/network-mark";
 import {
   Page,
   PageActions,
@@ -79,15 +80,17 @@ import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
 import { useLedgerActions } from "@/modules/transactions/use-ledger-actions";
 import { client } from "@/utils/orpc";
 
-import { nextPaymentDue, utilizationTone } from "../credit";
+import { networkMarkOf } from "../card-art";
+import { cardProductLabel, nextPaymentDue, utilizationTone } from "../credit";
 import type { CardStatement } from "../credit";
-import { accountKind, accountTint } from "../kinds";
+import { accountKind } from "../kinds";
 import {
   accountQueryOptions,
   accountSnapshotsQueryOptions,
   accountStatementsQueryOptions,
   invalidateAccounts,
 } from "../queries";
+import { AccountCard } from "./account-card";
 import type { AccountDetail as Account } from "./account-composer";
 import { AccountTile, accountSubtitle } from "./account-row";
 import { StatementComposer } from "./statement-composer";
@@ -98,6 +101,22 @@ const LIQUIDITY_LABELS: Record<string, string> = {
   illiquid: "Illiquid",
   liquid: "Liquid",
   semi_liquid: "Semi-liquid",
+};
+
+const NetworkValue = ({ network }: { network: string | null }) => {
+  const mark = networkMarkOf(resolveCardNetwork(network));
+  if (!mark) {
+    return network ?? "Not set";
+  }
+  return (
+    <span className="inline-flex items-center gap-2">
+      <NetworkMark
+        className={mark === "mastercard" ? "h-4" : "h-3"}
+        network={mark}
+      />
+      {network}
+    </span>
+  );
 };
 
 const DetailRow = ({
@@ -226,7 +245,7 @@ const CreditCardPanel = ({
 
   return (
     <>
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <span className="text-muted-foreground text-xs font-medium">
@@ -289,12 +308,10 @@ const CreditCardPanel = ({
             </Stat>
           </StatGroup>
         </div>
-        <CardFace
-          className="max-lg:hidden"
-          lastFour={account.cardLastFour}
-          name={account.name}
-          network={account.cardNetwork}
-          tint={accountTint(account)}
+        <AccountCard
+          account={account}
+          className="max-lg:order-first max-lg:max-w-sm"
+          interactive
         />
       </div>
 
@@ -762,8 +779,13 @@ export const AccountDetailPage = ({
             </DetailRow>
             {isCard ? (
               <>
+                {data.cardProductKey ? (
+                  <DetailRow label="Card">
+                    {cardProductLabel(data.cardProductKey)}
+                  </DetailRow>
+                ) : null}
                 <DetailRow label="Network">
-                  {data.cardNetwork ?? "Not set"}
+                  <NetworkValue network={data.cardNetwork} />
                 </DetailRow>
                 <DetailRow label="Statement closes">
                   {data.statementClosingDay

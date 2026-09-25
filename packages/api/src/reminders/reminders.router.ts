@@ -27,10 +27,12 @@ export interface CardReminder {
   account: {
     cardLastFour: string | null;
     cardNetwork: string | null;
+    cardProductKey: string | null;
     color: string | null;
     currencyCode: string;
     icon: string | null;
     id: string;
+    institution: string | null;
     name: string;
   };
   /** The card's current amount owed. */
@@ -167,10 +169,12 @@ export const remindersRouter = {
           account: {
             cardLastFour: card.cardLastFour,
             cardNetwork: card.cardNetwork,
+            cardProductKey: card.cardProductKey,
             color: card.color,
             currencyCode: card.currencyCode,
             icon: card.icon,
             id: card.id,
+            institution: card.institution,
             name: card.name,
           },
           balance: card.balance,

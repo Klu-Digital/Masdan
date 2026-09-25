@@ -21,6 +21,7 @@ import { formatRelativeDays, formatShortDate } from "@/lib/dates";
 import { nextPaymentDue, utilizationTone } from "../credit";
 import { accountKind, accountTint } from "../kinds";
 import { accountStatementsQueryOptions } from "../queries";
+import { AccountCard, AccountCardThumb } from "./account-card";
 
 export interface RowAccount {
   accountType: string;
@@ -28,6 +29,8 @@ export interface RowAccount {
   availableCredit: string | null;
   balance: string;
   cardLastFour: string | null;
+  cardNetwork: string | null;
+  cardProductKey: string | null;
   color: string | null;
   currencyCode: string;
   id: string;
@@ -63,7 +66,7 @@ export const accountSubtitle = (
     .join(" · ");
 
 /** Utilization and the next due date — the two things a card row must say. */
-const CardContext = ({
+export const CardContext = ({
   account,
   today,
 }: {
@@ -132,7 +135,11 @@ export const AccountRow = ({
       }
     >
       <ListItemLeading>
-        <AccountTile account={account} />
+        {isCard ? (
+          <AccountCardThumb account={account} />
+        ) : (
+          <AccountTile account={account} />
+        )}
       </ListItemLeading>
       <ListItemContent>
         <ListItemTitle>
@@ -160,3 +167,38 @@ export const AccountRow = ({
     </ListItem>
   );
 };
+
+/**
+ * A credit card listed as the card itself, with what is owed and when it is
+ * due beneath it.
+ */
+export const CardTile = ({
+  account,
+  today,
+}: {
+  account: RowAccount;
+  today: string;
+}) => (
+  <Link
+    className="group/tile focus-visible:ring-ring/50 flex min-w-0 flex-col gap-2.5 rounded-xl outline-none focus-visible:ring-3"
+    params={{ accountId: account.id }}
+    to="/accounts/$accountId"
+  >
+    <span className="block transition-transform duration-300 ease-out group-hover/tile:-translate-y-0.5 group-active/tile:scale-[0.98] motion-reduce:transition-none motion-reduce:group-hover/tile:translate-y-0">
+      <AccountCard account={account} size="compact" />
+    </span>
+    <span className="flex min-w-0 flex-col gap-1 px-0.5">
+      <span className="flex items-baseline justify-between gap-2">
+        <span className="truncate text-sm font-medium">{account.name}</span>
+        <Amount
+          currency={account.currencyCode}
+          value={account.balance}
+          weight="medium"
+        />
+      </span>
+      <span className="text-muted-foreground text-xs">
+        <CardContext account={account} today={today} />
+      </span>
+    </span>
+  </Link>
+);

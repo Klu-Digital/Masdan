@@ -9,10 +9,12 @@ const reminder = (values: Partial<Reminder> = {}): Reminder => ({
   account: {
     cardLastFour: "4242",
     cardNetwork: "Visa",
+    cardProductKey: null,
     color: null,
     currencyCode: "PHP",
     icon: null,
     id: "00000000-0000-4000-8000-000000000001",
+    institution: "BPI",
     name: "BPI Visa",
   },
   balance: "12000.000000",

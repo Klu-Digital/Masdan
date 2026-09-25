@@ -13,6 +13,10 @@ import { ORPCError } from "@orpc/server";
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
+import {
+  CARD_PRODUCT_KEY_PATTERN,
+  cardProductIssue,
+} from "../card-products/catalog";
 import { TAILWIND_COLORS } from "../colors";
 import {
   orgMutationProcedure,
@@ -36,6 +40,7 @@ const accountFields = {
   archivedAt: financialAccount.archivedAt,
   cardLastFour: financialAccount.cardLastFour,
   cardNetwork: financialAccount.cardNetwork,
+  cardProductKey: financialAccount.cardProductKey,
   color: financialAccount.color,
   createdAt: financialAccount.createdAt,
   creditLimit: financialAccount.creditLimit,
@@ -113,6 +118,13 @@ const accountValues = z
       .nullable()
       .optional(),
     cardNetwork: z.string().trim().max(40).nullable().optional(),
+    cardProductKey: z
+      .string()
+      .trim()
+      .max(80)
+      .regex(CARD_PRODUCT_KEY_PATTERN, "Choose a card from the list")
+      .nullable()
+      .optional(),
     color: z.enum(TAILWIND_COLORS).nullable().optional(),
     creditLimit: z
       .string()
@@ -183,6 +195,7 @@ const accountValues = z
     const cardFields = [
       value.cardLastFour,
       value.cardNetwork,
+      value.cardProductKey,
       value.creditLimit,
       value.paymentDueDay,
       value.statementClosingDay,
@@ -201,11 +214,20 @@ const accountValues = z
 
 type AccountValues = z.output<typeof accountValues>;
 
-const cardMetadata = (values: AccountValues) =>
+// An omitted product key keeps the saved one, so a client that predates the
+// field can still edit a card without wiping its product.
+const cardMetadata = (
+  values: AccountValues,
+  savedProductKey: string | null = null
+) =>
   values.accountType === "credit_card"
     ? {
         cardLastFour: values.cardLastFour ?? null,
         cardNetwork: values.cardNetwork ?? null,
+        cardProductKey:
+          values.cardProductKey === undefined
+            ? savedProductKey
+            : values.cardProductKey,
         creditLimit: values.creditLimit ?? null,
         paymentDueDay: values.paymentDueDay ?? null,
         statementClosingDay: values.statementClosingDay ?? null,
@@ -213,10 +235,22 @@ const cardMetadata = (values: AccountValues) =>
     : {
         cardLastFour: null,
         cardNetwork: null,
+        cardProductKey: null,
         creditLimit: null,
         paymentDueDay: null,
         statementClosingDay: null,
       };
+
+const assertCardProduct = (
+  metadata: ReturnType<typeof cardMetadata>,
+  institution: string | null | undefined,
+  savedProductKey: string | null
+): void => {
+  const issue = cardProductIssue({ ...metadata, institution }, savedProductKey);
+  if (issue) {
+    throw new ORPCError("BAD_REQUEST", { message: issue });
+  }
+};
 
 const statementValues = z
   .object({
@@ -376,12 +410,15 @@ export const accountsRouter = {
         });
       }
 
+      const card = cardMetadata(input);
+      assertCardProduct(card, input.institution, null);
+
       const { ownerMemberIds, currencyCode: _, ...values } = input;
       const [created] = await context.db
         .insert(financialAccount)
         .values({
           ...values,
-          ...cardMetadata(input),
+          ...card,
           currencyCode: selectedCurrency.code,
           organizationId: context.organizationId,
         })
@@ -662,6 +699,7 @@ export const accountsRouter = {
         .select({
           accountClass: financialAccount.accountClass,
           accountType: financialAccount.accountType,
+          cardProductKey: financialAccount.cardProductKey,
           currencyCode: financialAccount.currencyCode,
         })
         .from(financialAccount)
@@ -675,6 +713,8 @@ export const accountsRouter = {
       if (!existing) {
         throw accountNotFound();
       }
+      const card = cardMetadata(input, existing.cardProductKey);
+      assertCardProduct(card, input.institution, existing.cardProductKey);
 
       const currencyCode = requestedCurrency ?? existing.currencyCode;
       const [selectedCurrency] = await context.db
@@ -729,7 +769,7 @@ export const accountsRouter = {
         .update(financialAccount)
         .set({
           ...values,
-          ...cardMetadata(input),
+          ...card,
           currencyCode: selectedCurrency.code,
         })
         .where(

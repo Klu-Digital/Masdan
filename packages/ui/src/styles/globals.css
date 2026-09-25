@@ -325,6 +325,14 @@
   --color-material: var(--material);
   /* Fixed in both themes: ink on saturated tints (card faces). */
   --color-on-tint: #ffffff;
+  --color-on-pale-tint: #1d1d1f;
+  --color-chip-gold: #e7c878;
+  --color-chip-gold-deep: #a9832f;
+  --color-chip-silver: #e6e8eb;
+  --color-chip-silver-deep: #9ea4ab;
+  --color-mastercard-red: #eb001b;
+  --color-mastercard-yellow: #f79e1b;
+  --color-mastercard-orange: #ff5f00;
   --color-sheen: rgb(255 255 255 / 24%);
   --color-shade: rgb(0 0 0 / 22%);
   --color-scrim: var(--scrim);

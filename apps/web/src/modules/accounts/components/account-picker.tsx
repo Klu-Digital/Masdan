@@ -9,23 +9,42 @@ import {
 } from "@masdan/ui/components/select";
 
 import { accountKind, accountTint } from "../kinds";
+import { AccountCardThumb } from "./account-card";
 
 export interface PickerAccount {
   accountType: string;
+  cardLastFour?: string | null;
+  cardNetwork?: string | null;
+  cardProductKey?: string | null;
   color: string | null;
   currencyCode: string;
   id: string;
+  institution?: string | null;
   name: string;
 }
 
 const AccountOption = ({ account }: { account: PickerAccount }) => (
   <span className="flex min-w-0 items-center gap-2.5">
-    <IconTile tint={accountTint(account)} size="xs">
-      <HugeiconsIcon
-        icon={accountKind(account.accountType).icon}
-        strokeWidth={2}
+    {account.accountType === "credit_card" ? (
+      <AccountCardThumb
+        account={{
+          cardLastFour: account.cardLastFour ?? null,
+          cardNetwork: account.cardNetwork ?? null,
+          cardProductKey: account.cardProductKey ?? null,
+          color: account.color,
+          institution: account.institution ?? null,
+          name: account.name,
+        }}
+        size="xs"
       />
-    </IconTile>
+    ) : (
+      <IconTile tint={accountTint(account)} size="xs">
+        <HugeiconsIcon
+          icon={accountKind(account.accountType).icon}
+          strokeWidth={2}
+        />
+      </IconTile>
+    )}
     <span className="truncate">{account.name}</span>
     <span className="text-muted-foreground text-xs">
       {account.currencyCode}

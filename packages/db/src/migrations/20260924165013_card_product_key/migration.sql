@@ -1,0 +1,1 @@
+ALTER TABLE "financial_account" ADD COLUMN "card_product_key" text;

@@ -25,10 +25,12 @@ import type { ReminderCard, ReminderStatement } from "./reminder-rules";
 export interface HouseholdCard extends ReminderCard {
   cardLastFour: string | null;
   cardNetwork: string | null;
+  cardProductKey: string | null;
   color: string | null;
   currencyCode: string;
   icon: string | null;
   id: string;
+  institution: string | null;
   name: string;
 }
 
@@ -50,10 +52,12 @@ export const loadHouseholdCards = async (
       archivedAt: financialAccount.archivedAt,
       cardLastFour: financialAccount.cardLastFour,
       cardNetwork: financialAccount.cardNetwork,
+      cardProductKey: financialAccount.cardProductKey,
       color: financialAccount.color,
       currencyCode: financialAccount.currencyCode,
       icon: financialAccount.icon,
       id: financialAccount.id,
+      institution: financialAccount.institution,
       name: financialAccount.name,
       paymentDueDay: financialAccount.paymentDueDay,
       statementClosingDay: financialAccount.statementClosingDay,

@@ -26,6 +26,8 @@ export const financialAccount = pgTable(
     archivedAt: timestamp("archived_at"),
     cardLastFour: text("card_last_four"),
     cardNetwork: text("card_network"),
+    // A catalog key, not a foreign key: catalog edits never need a migration.
+    cardProductKey: text("card_product_key"),
     color: text("color"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     creditLimit: money("credit_limit"),

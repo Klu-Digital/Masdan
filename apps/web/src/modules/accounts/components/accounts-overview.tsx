@@ -41,7 +41,7 @@ import type { NetWorthReport } from "@/modules/reports/queries";
 import { ACCOUNT_GROUPS, ACCOUNT_KINDS } from "../kinds";
 import { groupOf, groupTotal } from "../net-worth";
 import { accountsQueryOptions } from "../queries";
-import { AccountRow } from "./account-row";
+import { AccountRow, CardTile } from "./account-row";
 
 const QUICK_START: AccountType[] = ["bank", "cash", "e_wallet", "credit_card"];
 
@@ -227,15 +227,27 @@ export const AccountsOverview = ({
                       </span>
                     ) : null}
                   </ListSectionHeader>
-                  <List>
-                    {members.map((account) => (
-                      <AccountRow
-                        account={account}
-                        key={account.id}
-                        today={today}
-                      />
-                    ))}
-                  </List>
+                  {group.key === "credit" ? (
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-5 pt-1">
+                      {members.map((account) => (
+                        <CardTile
+                          account={account}
+                          key={account.id}
+                          today={today}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <List>
+                      {members.map((account) => (
+                        <AccountRow
+                          account={account}
+                          key={account.id}
+                          today={today}
+                        />
+                      ))}
+                    </List>
+                  )}
                 </ListSection>
               );
             })}

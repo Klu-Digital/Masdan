@@ -59,6 +59,7 @@ import {
 } from "@/lib/dates";
 import { householdToday } from "@/lib/household-date";
 import { userInvitationsQueryOptions } from "@/lib/organization";
+import { AccountCardThumb } from "@/modules/accounts/components/account-card";
 import { AccountTile } from "@/modules/accounts/components/account-row";
 import { nextPaymentDue } from "@/modules/accounts/credit";
 import { ACCOUNT_GROUPS } from "@/modules/accounts/kinds";
@@ -490,7 +491,7 @@ const CardDueRow = ({
       }
     >
       <ListItemLeading>
-        <AccountTile account={account} />
+        <AccountCardThumb account={account} />
       </ListItemLeading>
       <ListItemContent>
         <ListItemTitle>{account.name}</ListItemTitle>

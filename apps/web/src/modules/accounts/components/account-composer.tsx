@@ -6,10 +6,23 @@ import {
   LIQUIDITY_TYPES,
 } from "@masdan/api/accounts/constants";
 import type { AccountType } from "@masdan/api/accounts/constants";
+import {
+  cardNetworkLabel,
+  cardProductIssue,
+  findCardIssuer,
+  findCardProduct,
+  resolveCardIssuer,
+  resolveCardNetwork,
+} from "@masdan/api/card-products/catalog";
 import { Button } from "@masdan/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
 import { IconTile } from "@masdan/ui/components/icon-tile";
 import { Input } from "@masdan/ui/components/input";
+import {
+  NetworkMark,
+  networkMarkLabel,
+} from "@masdan/ui/components/network-mark";
+import type { NetworkMarkKind } from "@masdan/ui/components/network-mark";
 import { ResponsiveSheet } from "@masdan/ui/components/responsive-sheet";
 import {
   Select,
@@ -41,6 +54,8 @@ import { client } from "@/utils/orpc";
 
 import { ACCOUNT_GROUPS, ACCOUNT_KINDS, accountKind } from "../kinds";
 import { accountQueryOptions, invalidateAccounts } from "../queries";
+import { CardProductPicker } from "./card-product-picker";
+import { IssuerField } from "./issuer-field";
 
 export type AccountDetail = Awaited<ReturnType<typeof client.accounts.get>>;
 
@@ -58,13 +73,13 @@ export interface AccountDefaults {
 
 const nonNegativeDecimal = /^\d+(?<fraction>\.\d{1,6})?$/u;
 const DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
-const CARD_NETWORKS = [
-  "Visa",
-  "Mastercard",
-  "American Express",
-  "JCB",
-  "UnionPay",
-  "Discover",
+const CARD_NETWORKS: NetworkMarkKind[] = [
+  "visa",
+  "mastercard",
+  "amex",
+  "jcb",
+  "unionpay",
+  "discover",
 ];
 
 const LIQUIDITY_LABELS: Record<(typeof LIQUIDITY_TYPES)[number], string> = {
@@ -83,6 +98,7 @@ const accountSchema = z
       .regex(/^\d{4}$/u, "Use the last four digits")
       .nullable(),
     cardNetwork: z.string().trim().max(40).nullable(),
+    cardProductKey: z.string().nullable(),
     color: z.string().nullable(),
     creditLimit: z
       .string()
@@ -186,12 +202,14 @@ const AccountForm = ({
   const currencies = useQuery(currenciesQueryOptions());
   const editing = account !== undefined;
   const kind = accountKind(accountType);
+  const savedProductKey = account?.cardProductKey ?? null;
 
   const defaultValues: AccountFormValues = {
     accountClass: kind.accountClass,
     accountType,
     cardLastFour: account?.cardLastFour ?? null,
     cardNetwork: account?.cardNetwork ?? null,
+    cardProductKey: account?.cardProductKey ?? null,
     color: account?.color ?? null,
     creditLimit: account?.creditLimit ? trimDecimal(account.creditLimit) : null,
     currencyCode: account?.currencyCode ?? household.currency ?? "",
@@ -220,6 +238,7 @@ const AccountForm = ({
         ...value,
         cardLastFour: isCard ? value.cardLastFour : null,
         cardNetwork: isCard ? value.cardNetwork : null,
+        cardProductKey: isCard ? value.cardProductKey : null,
         color: (value.color ?? null) as Parameters<
           typeof client.accounts.create
         >[0]["color"],
@@ -321,14 +340,24 @@ const AccountForm = ({
         <form.Field name="institution">
           {(field) => (
             <Field name={field.name}>
-              <FieldLabel htmlFor={field.name}>Institution</FieldLabel>
-              <Input
-                id={field.name}
-                onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.target.value)}
-                placeholder="Optional"
-                value={field.state.value}
-              />
+              <FieldLabel htmlFor={isCard ? undefined : field.name}>
+                Institution
+              </FieldLabel>
+              {isCard ? (
+                <IssuerField
+                  onBlur={field.handleBlur}
+                  onChange={field.handleChange}
+                  value={field.state.value}
+                />
+              ) : (
+                <Input
+                  id={field.name}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  placeholder="Optional"
+                  value={field.state.value}
+                />
+              )}
             </Field>
           )}
         </form.Field>
@@ -402,6 +431,67 @@ const AccountForm = ({
       {isCard ? (
         <section className="bg-card dark:ring-hairline flex flex-col gap-5 rounded-2xl p-4 dark:ring-1">
           <h3 className="text-base font-semibold">Card details</h3>
+          <form.Field
+            name="cardProductKey"
+            validators={{
+              // Not in the form schema: a submit-time error there stays stuck
+              // after the bank, network or card is fixed, disabling Save.
+              onChange: ({ fieldApi, value }) =>
+                cardProductIssue(
+                  {
+                    cardNetwork: fieldApi.form.getFieldValue("cardNetwork"),
+                    cardProductKey: value,
+                    institution: fieldApi.form.getFieldValue("institution"),
+                  },
+                  savedProductKey
+                ) ?? undefined,
+              onChangeListenTo: ["cardNetwork", "institution"],
+            }}
+          >
+            {(productField) => (
+              <form.Subscribe
+                selector={(state) => ({
+                  cardLastFour: state.values.cardLastFour,
+                  cardNetwork: state.values.cardNetwork,
+                  color: state.values.color ?? kind.color,
+                  institution: state.values.institution,
+                  name: state.values.name,
+                })}
+              >
+                {(identity) => (
+                  <CardProductPicker
+                    identity={identity}
+                    onSelect={(product) => {
+                      productField.handleChange(product?.key ?? null);
+                      if (!product) {
+                        return;
+                      }
+                      // Picking a card deliberately picks its bank and network.
+                      if (
+                        resolveCardIssuer(identity.institution)?.key !==
+                        product.issuerKey
+                      ) {
+                        form.setFieldValue(
+                          "institution",
+                          findCardIssuer(product.issuerKey)?.name ?? ""
+                        );
+                      }
+                      const network = cardNetworkLabel(product.network);
+                      if (
+                        network &&
+                        resolveCardNetwork(identity.cardNetwork) !==
+                          product.network
+                      ) {
+                        form.setFieldValue("cardNetwork", network);
+                      }
+                    }}
+                    savedKey={savedProductKey}
+                    value={productField.state.value}
+                  />
+                )}
+              </form.Subscribe>
+            )}
+          </form.Field>
           <div className="grid gap-5 sm:grid-cols-2">
             <form.Field name="creditLimit">
               {(field) => (
@@ -501,31 +591,56 @@ const AccountForm = ({
               )}
             </form.Field>
           </div>
-          <form.Field name="cardNetwork">
-            {(field) => (
-              <Field name={field.name}>
-                <FieldLabel>Network</FieldLabel>
-                <div className="flex flex-wrap gap-1.5">
-                  {CARD_NETWORKS.map((network) => {
-                    const selected = field.state.value === network;
-                    return (
-                      <button
-                        aria-pressed={selected}
-                        className="bg-secondary hover:bg-accent aria-pressed:bg-brand-soft aria-pressed:text-brand-text focus-visible:ring-ring/50 h-7 rounded-full px-3 text-xs font-medium transition-colors outline-none focus-visible:ring-3"
-                        key={network}
-                        onClick={() =>
-                          field.handleChange(selected ? null : network)
-                        }
-                        type="button"
-                      >
-                        {network}
-                      </button>
-                    );
-                  })}
-                </div>
-              </Field>
-            )}
-          </form.Field>
+          <form.Subscribe
+            selector={(state) => findCardProduct(state.values.cardProductKey)}
+          >
+            {(product) => {
+              // A catalog card fixes its network; only an unlisted card, or one
+              // whose bank doesn't publish it, leaves the choice open.
+              const locked = product !== null && product.network !== "unknown";
+              return (
+                <form.Field name="cardNetwork">
+                  {(field) => (
+                    <Field name={field.name}>
+                      <FieldLabel>Network</FieldLabel>
+                      <div className="flex flex-wrap gap-1.5">
+                        {CARD_NETWORKS.map((network) => {
+                          const label = networkMarkLabel(network);
+                          const selected =
+                            resolveCardNetwork(field.state.value) === network;
+                          return (
+                            <button
+                              aria-pressed={selected}
+                              className="bg-secondary hover:bg-accent aria-pressed:bg-brand-soft aria-pressed:ring-brand focus-visible:ring-ring/50 text-foreground flex h-9 min-w-14 items-center justify-center rounded-xl px-3 transition duration-150 outline-none focus-visible:ring-3 active:scale-[0.96] disabled:pointer-events-none disabled:opacity-40 aria-pressed:ring-2 aria-pressed:disabled:opacity-100 motion-reduce:active:scale-100"
+                              disabled={locked}
+                              key={network}
+                              onClick={() =>
+                                field.handleChange(selected ? null : label)
+                              }
+                              title={label}
+                              type="button"
+                            >
+                              <NetworkMark
+                                className={
+                                  network === "mastercard" ? "h-5" : "h-3.5"
+                                }
+                                network={network}
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {locked ? (
+                        <p className="text-muted-foreground text-xs">
+                          Set by the card you picked.
+                        </p>
+                      ) : null}
+                    </Field>
+                  )}
+                </form.Field>
+              );
+            }}
+          </form.Subscribe>
         </section>
       ) : null}
 
@@ -617,18 +732,31 @@ const AccountForm = ({
           </form.Field>
         ) : null}
 
-        <form.Field name="color">
-          {(field) => (
-            <Field name={field.name}>
-              <FieldLabel>Color</FieldLabel>
-              <ColorSelector
-                legend="Account color"
-                onValueChange={(value: string) => field.handleChange(value)}
-                value={field.state.value ?? kind.color}
-              />
-            </Field>
-          )}
-        </form.Field>
+        <form.Subscribe
+          selector={(state) =>
+            isCard && findCardProduct(state.values.cardProductKey) !== null
+          }
+        >
+          {(hasCardDesign) =>
+            // A catalog card brings its own design, so a colour would be ignored.
+            hasCardDesign ? null : (
+              <form.Field name="color">
+                {(field) => (
+                  <Field name={field.name}>
+                    <FieldLabel>Color</FieldLabel>
+                    <ColorSelector
+                      legend="Account color"
+                      onValueChange={(value: string) =>
+                        field.handleChange(value)
+                      }
+                      value={field.state.value ?? kind.color}
+                    />
+                  </Field>
+                )}
+              </form.Field>
+            )
+          }
+        </form.Subscribe>
 
         <form.Field name="notes">
           {(field) => (

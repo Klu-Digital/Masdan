@@ -14,7 +14,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { AccountTile } from "@/modules/accounts/components/account-row";
+import { AccountCardThumb } from "@/modules/accounts/components/account-card";
 import { client } from "@/utils/orpc";
 
 import { reminderCopy, strongestTone } from "../presentation";
@@ -64,10 +64,9 @@ const ReminderRow = ({
         params={{ accountId: account.id }}
         to="/accounts/$accountId"
       >
-        <AccountTile
-          account={{ accountType: "credit_card", color: account.color }}
-          size="sm"
-        />
+        <span className="mt-1">
+          <AccountCardThumb account={account} size="sm" />
+        </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex items-center gap-2 text-sm font-medium">
             <span className="truncate">{copy.title}</span>

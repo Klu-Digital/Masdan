@@ -16,6 +16,7 @@ import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
 import { householdToday } from "@/lib/household-date";
+import { AccountCardThumb } from "@/modules/accounts/components/account-card";
 import { AccountPicker } from "@/modules/accounts/components/account-picker";
 import { accountKind, accountTint } from "@/modules/accounts/kinds";
 import {
@@ -301,15 +302,32 @@ export const TransferForm = ({
                   <FieldLabel>To</FieldLabel>
                   {lockedDestination ? (
                     <div className="flex h-10 items-center gap-2.5 sm:h-9">
-                      <IconTile tint={accountTint(lockedDestination)} size="xs">
-                        <HugeiconsIcon
-                          icon={accountKind(lockedDestination.accountType).icon}
-                          strokeWidth={2}
+                      {lockedDestination.accountType === "credit_card" ? (
+                        <AccountCardThumb
+                          account={lockedDestination}
+                          size="sm"
                         />
-                      </IconTile>
+                      ) : (
+                        <IconTile
+                          tint={accountTint(lockedDestination)}
+                          size="xs"
+                        >
+                          <HugeiconsIcon
+                            icon={
+                              accountKind(lockedDestination.accountType).icon
+                            }
+                            strokeWidth={2}
+                          />
+                        </IconTile>
+                      )}
                       <span className="text-sm font-medium">
                         {lockedDestination.name}
                       </span>
+                      {lockedDestination.cardLastFour ? (
+                        <span className="text-muted-foreground text-sm tabular-nums">
+                          •••• {lockedDestination.cardLastFour}
+                        </span>
+                      ) : null}
                     </div>
                   ) : (
                     <div className="w-full">
