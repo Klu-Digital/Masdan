@@ -1,9 +1,10 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vite-plus/test";
 
 import type { ActiveHousehold } from "@/components/household-gate";
 import { renderWithProviders } from "@/test/render";
+import { createQueryClient } from "@/utils/orpc";
 import type * as TypeImport___utils_orpc from "@/utils/orpc";
 
 const accountsList = vi.hoisted(() => vi.fn());
@@ -133,4 +134,90 @@ it("shows per-currency group and account shares but none for excluded or archive
   expect(screen.getByRole("link", { name: /Archived/u })).not.toHaveTextContent(
     "% of"
   );
+});
+
+it("places groups in asset and liability sections with separate currency totals", async () => {
+  accountsList.mockResolvedValue([
+    account("Bank", "100"),
+    account("Dollar bank", "5", { currencyCode: "USD" }),
+    account("Card", "30", {
+      accountClass: "liability",
+      accountType: "credit_card",
+    }),
+  ]);
+  listStatements.mockResolvedValue([]);
+  netWorth.mockResolvedValue({
+    byType: [],
+    defaultCurrency: "PHP",
+    positions: [
+      { assets: "100", currencyCode: "PHP", liabilities: "30", netWorth: "70" },
+      { assets: "5", currencyCode: "USD", liabilities: "0", netWorth: "5" },
+    ],
+    today: "2026-09-24",
+  });
+
+  renderWithProviders(<AccountsOverview household={household} />);
+
+  const assets = await screen.findByRole("region", { name: "Assets" });
+  const liabilities = screen.getByRole("region", { name: "Liabilities" });
+  expect(
+    within(assets).getByRole("heading", { level: 2, name: "Assets" })
+  ).toBeVisible();
+  expect(
+    within(liabilities).getByRole("heading", { level: 2, name: "Liabilities" })
+  ).toBeVisible();
+  expect(
+    within(assets).getByRole("region", { name: "Cash & bank" })
+  ).toBeVisible();
+  expect(
+    within(liabilities).getByRole("region", { name: "Credit cards" })
+  ).toBeVisible();
+  await waitFor(() => {
+    expect(assets).toHaveTextContent("₱100.00");
+    expect(assets).toHaveTextContent("$5.00");
+  });
+});
+
+it("opens groups by default and toggles them with Enter and Space", async () => {
+  accountsList.mockResolvedValue([account("Bank", "75")]);
+  netWorth.mockResolvedValue({
+    byType: [],
+    defaultCurrency: "PHP",
+    positions: [],
+    today: "2026-09-24",
+  });
+  const user = userEvent.setup();
+  renderWithProviders(<AccountsOverview household={household} />);
+
+  const trigger = await screen.findByRole("button", { name: /Cash & bank/u });
+  expect(trigger).toHaveAccessibleName(/Cash & bank.*₱75\.00.*100% of assets/u);
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("link", { name: /Bank/u })).toBeVisible();
+  trigger.focus();
+  await user.keyboard("{Enter}");
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("link", { name: /Bank/u })
+    ).not.toBeInTheDocument()
+  );
+  await user.keyboard("{ }");
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+  expect(await screen.findByRole("link", { name: /Bank/u })).toBeVisible();
+});
+
+it("keeps accounts visible and offers a retry when net worth fails", async () => {
+  accountsList.mockResolvedValue([account("Bank", "75")]);
+  netWorth.mockRejectedValue(new Error("offline"));
+  const queryClient = createQueryClient();
+  queryClient.setDefaultOptions({ queries: { retry: false } });
+  renderWithProviders(<AccountsOverview household={household} />, queryClient);
+
+  expect(await screen.findByRole("link", { name: /Bank/u })).toBeVisible();
+  expect(await screen.findByText("Couldn’t load net worth")).toBeVisible();
+  const calls = netWorth.mock.calls.length;
+  await userEvent
+    .setup()
+    .click(screen.getByRole("button", { name: "Try again" }));
+  await waitFor(() => expect(netWorth).toHaveBeenCalledTimes(calls + 1));
 });

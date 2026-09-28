@@ -9,11 +9,7 @@ import {
   EmptyTitle,
 } from "@masdan/ui/components/empty";
 import { IconTile } from "@masdan/ui/components/icon-tile";
-import {
-  List,
-  ListSection,
-  ListSectionHeader,
-} from "@masdan/ui/components/list";
+import { List } from "@masdan/ui/components/list";
 import {
   Page,
   PageActions,
@@ -38,11 +34,11 @@ import { householdToday } from "@/lib/household-date";
 import { netWorthQueryOptions } from "@/modules/reports/queries";
 import type { NetWorthReport } from "@/modules/reports/queries";
 
-import { ACCOUNT_GROUPS, ACCOUNT_KINDS } from "../kinds";
-import { allocations, groupOf, groupTotal } from "../net-worth";
+import { ACCOUNT_KINDS } from "../kinds";
+import { allocations } from "../net-worth";
 import { accountsQueryOptions } from "../queries";
-import { AccountRow, CardTile } from "./account-row";
-import { AllocationMeter } from "./allocation-meter";
+import { AccountRow } from "./account-row";
+import { BalanceSheet } from "./balance-sheet";
 
 const QUICK_START: AccountType[] = ["bank", "cash", "e_wallet", "credit_card"];
 
@@ -80,11 +76,27 @@ const FirstRun = ({ canCreate }: { canCreate: boolean }) => {
 
 const NetWorthHeadline = ({
   currency,
+  isError,
+  refetch,
   report,
 }: {
   currency: string | null;
+  isError: boolean;
+  refetch: () => void;
   report: NetWorthReport | undefined;
 }) => {
+  if (isError) {
+    return (
+      <section aria-label="Net worth" className="flex items-center gap-3">
+        <span className="text-muted-foreground text-sm">
+          Couldn’t load net worth
+        </span>
+        <Button onClick={refetch} size="sm" variant="secondary">
+          Try again
+        </Button>
+      </section>
+    );
+  }
   if (!report) {
     return <Skeleton className="h-36 w-full sm:max-w-xl" radius="2xl" />;
   }
@@ -207,68 +219,19 @@ export const AccountsOverview = ({
         <FirstRun canCreate={canCreate} />
       ) : (
         <>
-          <NetWorthHeadline currency={currency} report={netWorth.data} />
+          <NetWorthHeadline
+            currency={currency}
+            isError={netWorth.isError}
+            refetch={() => netWorth.refetch()}
+            report={netWorth.data}
+          />
 
-          <div className="grid items-start gap-8 lg:grid-cols-2">
-            {ACCOUNT_GROUPS.map((group) => {
-              const members = active.filter(
-                (account) => groupOf(account) === group.key
-              );
-              if (members.length === 0) {
-                return null;
-              }
-              const total = groupTotal(members);
-              const shares = balanceSheet.groupAllocations(group.key);
-              return (
-                <ListSection aria-label={group.label} key={group.key}>
-                  <ListSectionHeader>
-                    <span>{group.label}</span>
-                    <span className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-                      {total ? (
-                        <span className="tabular-nums">
-                          {formatMoney(total.total, total.currencyCode)}
-                          {group.liability ? " owed" : ""}
-                        </span>
-                      ) : null}
-                      {shares.map((share) => (
-                        <AllocationMeter
-                          allocation={share}
-                          key={share.currencyCode}
-                        />
-                      ))}
-                    </span>
-                  </ListSectionHeader>
-                  {group.key === "credit" ? (
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-5 pt-1">
-                      {members.map((account) => (
-                        <CardTile
-                          account={account}
-                          allocation={balanceSheet.accountAllocation(
-                            account.id
-                          )}
-                          key={account.id}
-                          today={today}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <List>
-                      {members.map((account) => (
-                        <AccountRow
-                          account={account}
-                          allocation={balanceSheet.accountAllocation(
-                            account.id
-                          )}
-                          key={account.id}
-                          today={today}
-                        />
-                      ))}
-                    </List>
-                  )}
-                </ListSection>
-              );
-            })}
-          </div>
+          <BalanceSheet
+            accounts={active}
+            balanceSheet={balanceSheet}
+            report={netWorth.isError ? undefined : netWorth.data}
+            today={today}
+          />
         </>
       )}
 
