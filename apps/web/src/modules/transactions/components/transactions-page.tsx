@@ -41,7 +41,7 @@ import {
 } from "@masdan/ui/components/stat";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type React from "react";
 
 import { useAppActions } from "@/components/app-actions";
@@ -59,6 +59,9 @@ import {
 import type { Transaction } from "../queries";
 import type { TransactionSearch } from "../search";
 import { useLedgerActions } from "../use-ledger-actions";
+import { useLedgerSelection } from "../use-ledger-selection";
+import { BulkActionBar } from "./bulk-action-bar";
+import { BulkEditDialog } from "./bulk-edit-dialog";
 import { Ledger } from "./ledger";
 import { LedgerFilters, LedgerSearch } from "./ledger-filters";
 import { QuickEntry } from "./quick-entry";
@@ -180,6 +183,7 @@ export const TransactionsPage = ({
   selectedId?: string;
 }) => {
   const { activeOrganizationId, can, timezone } = household;
+  const canBulkEdit = can({ transaction: ["update"] });
   const navigate = useNavigate();
   const { compose } = useAppActions();
   const ledgerActions = useLedgerActions(activeOrganizationId);
@@ -190,6 +194,9 @@ export const TransactionsPage = ({
     transactionsQueryOptions(activeOrganizationId, search)
   );
   const today = householdToday(timezone);
+  const { clearSelection, selectedIds, toggleAll, toggleSelection } =
+    useLedgerSelection(search);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const accountOptions = useMemo(
     () =>
@@ -284,12 +291,21 @@ export const TransactionsPage = ({
             permissions: {
               canArchive: can({ transaction: ["archive"] }),
               canRestore: can({ transaction: ["restore"] }),
-              canUpdate: can({ transaction: ["update"] }),
+              canUpdate: canBulkEdit,
             },
           }}
           grouped={search.sortBy === "date"}
           onOpen={(transaction) => openTransaction(transaction)}
           scoped={search.accountIds.length > 0}
+          selection={
+            canBulkEdit
+              ? {
+                  onToggle: toggleSelection,
+                  onToggleAll: toggleAll,
+                  selectedIds,
+                }
+              : undefined
+          }
           selectedId={selectedId}
           sort={{
             by: search.sortBy,
@@ -446,7 +462,14 @@ export const TransactionsPage = ({
         search={search}
       />
 
-      <section aria-label="Ledger" className="flex flex-col gap-3">
+      <section
+        aria-label="Ledger"
+        className={
+          canBulkEdit
+            ? "flex flex-col gap-3 pb-24 md:pb-12"
+            : "flex flex-col gap-3"
+        }
+      >
         <LedgerSearch
           onChange={(value) => onSearchChange({ search: value })}
           value={search.search}
@@ -463,6 +486,24 @@ export const TransactionsPage = ({
         />
         {content}
       </section>
+      {canBulkEdit ? (
+        <>
+          <BulkActionBar
+            count={selectedIds.size}
+            onClear={clearSelection}
+            onEdit={() => setBulkOpen(true)}
+          />
+          <BulkEditDialog
+            activeOrganizationId={activeOrganizationId}
+            categories={categories.data ?? []}
+            tags={tags.data ?? []}
+            transactionIds={[...selectedIds]}
+            open={bulkOpen}
+            onOpenChange={setBulkOpen}
+            onSaved={clearSelection}
+          />
+        </>
+      ) : null}
     </Page>
   );
 };

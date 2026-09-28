@@ -1,5 +1,6 @@
 import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
+import { Checkbox } from "@masdan/ui/components/checkbox";
 import { ColorDot } from "@masdan/ui/components/icon-tile";
 import {
   List,
@@ -35,6 +36,59 @@ import type { LedgerPermissions } from "./transaction-menu";
 import { TransactionTile } from "./transaction-tile";
 
 const MAX_INLINE_TAGS = 2;
+const selectable = (transaction: Transaction) =>
+  transaction.transferId === null && transaction.archivedAt === null;
+
+const disabledReason = (transaction: Transaction) => {
+  if (selectable(transaction)) {
+    return;
+  }
+  return transaction.transferId
+    ? "Transfers cannot be bulk edited"
+    : "Archived transactions cannot be bulk edited";
+};
+
+const SelectAllCheckbox = ({
+  transactions,
+  selection,
+}: {
+  transactions: Transaction[];
+  selection: NonNullable<LedgerProps["selection"]>;
+}) => {
+  const ids = transactions.filter(selectable).map(({ id }) => id);
+  const selected = ids.filter((id) => selection.selectedIds.has(id)).length;
+  return (
+    <DataGridColumnHeader>
+      <Checkbox
+        aria-label="Select all transactions on this page"
+        checked={selected > 0 && selected === ids.length}
+        indeterminate={selected > 0 && selected < ids.length}
+        disabled={ids.length === 0}
+        onCheckedChange={() => selection.onToggleAll(ids)}
+      />
+    </DataGridColumnHeader>
+  );
+};
+
+const RowCheckbox = ({
+  transaction,
+  selection,
+  label,
+}: {
+  transaction: Transaction;
+  selection: NonNullable<LedgerProps["selection"]>;
+  label: string;
+}) => (
+  <Checkbox
+    aria-label={`Select ${label}`}
+    checked={selection.selectedIds.has(transaction.id)}
+    disabled={!selectable(transaction)}
+    onCheckedChange={() => selection.onToggle(transaction.id)}
+    onClick={(event) => event.stopPropagation()}
+    onKeyDown={(event) => event.stopPropagation()}
+    title={disabledReason(transaction)}
+  />
+);
 
 export interface LedgerProps {
   actions?: {
@@ -49,6 +103,11 @@ export interface LedgerProps {
   onOpen: (transaction: Transaction) => void;
   /** The list is filtered to accounts, so transfer postings show direction. */
   scoped?: boolean;
+  selection?: {
+    selectedIds: ReadonlySet<string>;
+    onToggle: (id: string) => void;
+    onToggleAll: (ids: string[]) => void;
+  };
   selectedId?: string;
   sort?: {
     by: TransactionSortBy;
@@ -125,21 +184,73 @@ const openOnKey =
     }
   };
 
-const DesktopLedger = ({
+const DesktopHeader = ({
   actions,
   grouped,
   hideAccount,
-  onOpen,
-  scoped,
-  selectedId,
+  selection,
   sort,
-  today,
   transactions,
-}: LedgerProps) => {
+}: LedgerProps) => (
+  <DataGridHeader>
+    <DataGridRow>
+      {selection ? (
+        <SelectAllCheckbox selection={selection} transactions={transactions} />
+      ) : null}
+      {grouped ? null : (
+        <DataGridColumnHeader
+          direction={sort?.by === "date" ? sort.direction : undefined}
+          onSort={sort ? () => sort.onSort("date") : undefined}
+        >
+          Date
+        </DataGridColumnHeader>
+      )}
+      <DataGridColumnHeader
+        direction={grouped && sort?.by === "date" ? sort.direction : undefined}
+        onSort={grouped && sort ? () => sort.onSort("date") : undefined}
+      >
+        {grouped ? "Date" : "Transaction"}
+      </DataGridColumnHeader>
+      {hideAccount ? null : (
+        <DataGridColumnHeader className="hidden lg:table-cell">
+          Account
+        </DataGridColumnHeader>
+      )}
+      <DataGridColumnHeader
+        align="end"
+        direction={sort?.by === "amount" ? sort.direction : undefined}
+        onSort={sort ? () => sort.onSort("amount") : undefined}
+      >
+        Amount
+      </DataGridColumnHeader>
+      {actions ? (
+        <DataGridColumnHeader>
+          <span className="sr-only">Actions</span>
+        </DataGridColumnHeader>
+      ) : null}
+    </DataGridRow>
+  </DataGridHeader>
+);
+
+const DesktopLedger = (props: LedgerProps) => {
+  const {
+    actions,
+    grouped,
+    hideAccount,
+    onOpen,
+    scoped,
+    selection,
+    selectedId,
+    today,
+    transactions,
+  } = props;
   const showDate = !grouped;
   const columnCount =
-    2 + (hideAccount ? 0 : 1) + (showDate ? 1 : 0) + (actions ? 1 : 0);
-
+    2 +
+    (hideAccount ? 0 : 1) +
+    (showDate ? 1 : 0) +
+    (actions ? 1 : 0) +
+    (selection ? 1 : 0);
   const row = (transaction: Transaction) => {
     const view = describeTransaction(transaction, { scoped });
     const open = () => onOpen(transaction);
@@ -152,6 +263,15 @@ const DesktopLedger = ({
         onKeyDown={openOnKey(open)}
         tabIndex={0}
       >
+        {selection ? (
+          <DataGridCell className="w-10">
+            <RowCheckbox
+              transaction={transaction}
+              selection={selection}
+              label={rowLabel(transaction, view.title, today)}
+            />
+          </DataGridCell>
+        ) : null}
         {showDate ? (
           <DataGridCell className="text-muted-foreground w-28 whitespace-nowrap tabular-nums">
             {formatShortDate(transaction.transactionDate, today)}
@@ -208,43 +328,7 @@ const DesktopLedger = ({
 
   return (
     <DataGrid>
-      <DataGridHeader>
-        <DataGridRow>
-          {showDate ? (
-            <DataGridColumnHeader
-              direction={sort?.by === "date" ? sort.direction : undefined}
-              onSort={sort ? () => sort.onSort("date") : undefined}
-            >
-              Date
-            </DataGridColumnHeader>
-          ) : null}
-          <DataGridColumnHeader
-            direction={
-              grouped && sort?.by === "date" ? sort.direction : undefined
-            }
-            onSort={grouped && sort ? () => sort.onSort("date") : undefined}
-          >
-            {grouped ? "Date" : "Transaction"}
-          </DataGridColumnHeader>
-          {hideAccount ? null : (
-            <DataGridColumnHeader className="hidden lg:table-cell">
-              Account
-            </DataGridColumnHeader>
-          )}
-          <DataGridColumnHeader
-            align="end"
-            direction={sort?.by === "amount" ? sort.direction : undefined}
-            onSort={sort ? () => sort.onSort("amount") : undefined}
-          >
-            Amount
-          </DataGridColumnHeader>
-          {actions ? (
-            <DataGridColumnHeader>
-              <span className="sr-only">Actions</span>
-            </DataGridColumnHeader>
-          ) : null}
-        </DataGridRow>
-      </DataGridHeader>
+      <DesktopHeader {...props} />
       <DataGridBody>
         {grouped
           ? groupByDay(transactions).map((group) => (
@@ -265,9 +349,11 @@ const MobileRow = ({
   onOpen,
   scoped,
   showDate,
+  selection,
   today,
   transaction,
 }: {
+  selection?: LedgerProps["selection"];
   onOpen: (transaction: Transaction) => void;
   scoped?: boolean;
   showDate: boolean;
@@ -275,35 +361,44 @@ const MobileRow = ({
   transaction: Transaction;
 }) => {
   const view = describeTransaction(transaction, { scoped });
+  const label = rowLabel(transaction, view.title, today);
   return (
-    <ListItemButton
-      aria-label={rowLabel(transaction, view.title, today)}
-      onClick={() => onOpen(transaction)}
-    >
-      <ListItemLeading>
-        <TransactionTile transaction={transaction} />
-      </ListItemLeading>
-      <ListItemContent>
-        <ListItemTitle>{view.title}</ListItemTitle>
-        <ListItemDescription>
-          {showDate
-            ? `${formatShortDate(transaction.transactionDate, today)} · ${view.subtitle}`
-            : view.subtitle}
-        </ListItemDescription>
-      </ListItemContent>
-      <ListItemTrailing stacked>
-        <Amount
-          weight="medium"
-          currency={transaction.currencyCode}
-          sign={view.sign}
-          tone={amountTone(transaction, view)}
-          value={transaction.amount}
-        />
-        <span className="flex gap-1">
-          <StatusBadges transaction={transaction} />
-        </span>
-      </ListItemTrailing>
-    </ListItemButton>
+    <div className="flex items-center">
+      {selection ? (
+        <div className="pl-2">
+          <RowCheckbox
+            transaction={transaction}
+            selection={selection}
+            label={label}
+          />
+        </div>
+      ) : null}
+      <ListItemButton aria-label={label} onClick={() => onOpen(transaction)}>
+        <ListItemLeading>
+          <TransactionTile transaction={transaction} />
+        </ListItemLeading>
+        <ListItemContent>
+          <ListItemTitle>{view.title}</ListItemTitle>
+          <ListItemDescription>
+            {showDate
+              ? `${formatShortDate(transaction.transactionDate, today)} · ${view.subtitle}`
+              : view.subtitle}
+          </ListItemDescription>
+        </ListItemContent>
+        <ListItemTrailing stacked>
+          <Amount
+            weight="medium"
+            currency={transaction.currencyCode}
+            sign={view.sign}
+            tone={amountTone(transaction, view)}
+            value={transaction.amount}
+          />
+          <span className="flex gap-1">
+            <StatusBadges transaction={transaction} />
+          </span>
+        </ListItemTrailing>
+      </ListItemButton>
+    </div>
   );
 };
 
@@ -311,6 +406,7 @@ const MobileLedger = ({
   grouped,
   onOpen,
   scoped,
+  selection,
   today,
   transactions,
 }: LedgerProps) => {
@@ -322,6 +418,7 @@ const MobileLedger = ({
             key={transaction.id}
             onOpen={onOpen}
             scoped={scoped}
+            selection={selection}
             showDate
             today={today}
             transaction={transaction}
@@ -347,6 +444,7 @@ const MobileLedger = ({
                 key={transaction.id}
                 onOpen={onOpen}
                 scoped={scoped}
+                selection={selection}
                 showDate={false}
                 today={today}
                 transaction={transaction}

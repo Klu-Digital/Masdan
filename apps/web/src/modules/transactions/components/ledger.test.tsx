@@ -1,5 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import {
   afterEach,
   beforeEach,
@@ -12,6 +13,7 @@ import {
 import { renderWithProviders, useWideViewport } from "@/test/render";
 
 import type { Transaction } from "../queries";
+import { BulkActionBar } from "./bulk-action-bar";
 import { Ledger } from "./ledger";
 
 const entry = (overrides: Partial<Transaction>): Transaction =>
@@ -64,6 +66,66 @@ afterEach(() => {
   window.matchMedia = originalMatchMedia;
 });
 
+const SelectableLedger = ({ onEdit }: { onEdit: () => void }) => {
+  const [selectedIds, setSelectedIds] = useState(new Set<string>());
+  return (
+    <>
+      <Ledger
+        onOpen={vi.fn()}
+        selection={{
+          onToggle: (id) =>
+            setSelectedIds((current) => {
+              const next = new Set(current);
+              if (next.has(id)) {
+                next.delete(id);
+              } else {
+                next.add(id);
+              }
+              return next;
+            }),
+          onToggleAll: vi.fn(),
+          selectedIds,
+        }}
+        today="2026-09-24"
+        transactions={rows}
+      />
+      <BulkActionBar
+        count={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        onEdit={onEdit}
+      />
+    </>
+  );
+};
+
+it("floats bulk actions when a row is selected and hides them when cleared", async () => {
+  useWideViewport();
+  const user = userEvent.setup();
+  const onEdit = vi.fn();
+  renderWithProviders(<SelectableLedger onEdit={onEdit} />);
+  const checkbox = await screen.findByRole("checkbox", {
+    name: /Select Weekly market/u,
+  });
+  expect(
+    screen.queryByRole("toolbar", { name: "Bulk actions" })
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Edit…" })
+  ).not.toBeInTheDocument();
+  expect(document.querySelector('[role="toolbar"]')).toHaveAttribute("inert");
+  await user.click(checkbox);
+  const bar = screen.getByRole("toolbar", { name: "Bulk actions" });
+  expect(bar).toHaveClass("fixed", "bottom-32", "md:bottom-6");
+  expect(bar.parentElement).toBe(document.body);
+  expect(within(bar).getByText("1 selected")).toBeInTheDocument();
+  await user.click(within(bar).getByRole("button", { name: "Edit…" }));
+  expect(onEdit).toHaveBeenCalledOnce();
+  await user.click(within(bar).getByRole("button", { name: "Clear" }));
+  expect(
+    screen.queryByRole("toolbar", { name: "Bulk actions" })
+  ).not.toBeInTheDocument();
+});
+
 describe("Ledger (wide)", () => {
   beforeEach(useWideViewport);
 
@@ -81,6 +143,54 @@ describe("Ledger (wide)", () => {
       screen.getByRole("row", { name: /Weekly market, Today/u })
     ).toBeInTheDocument();
     expect(screen.getByText("Unpaid")).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("selects only editable rows without opening them", async () => {
+    const user = userEvent.setup();
+    const onOpen = vi.fn();
+    const onToggle = vi.fn();
+    const onToggleAll = vi.fn();
+    renderWithProviders(
+      <Ledger
+        onOpen={onOpen}
+        selection={{ onToggle, onToggleAll, selectedIds: new Set(["t-1"]) }}
+        today="2026-09-24"
+        transactions={[
+          ...rows,
+          entry({ archivedAt: new Date(), id: "archived" }),
+          entry({ id: "transfer", transferId: "transfer-id" }),
+        ]}
+      />
+    );
+    expect(
+      await screen.findByRole("checkbox", {
+        name: "Select all transactions on this page",
+      })
+    ).toHaveAttribute("data-indeterminate");
+    expect(
+      screen.getByRole("checkbox", { name: /Select Weekly market/u })
+    ).toBeChecked();
+    expect(
+      screen
+        .getAllByRole("checkbox")
+        .filter(
+          (item) =>
+            Object.hasOwn(item.dataset, "disabled") ||
+            item.getAttribute("aria-disabled") === "true"
+        )
+    ).toHaveLength(2);
+    await user.click(
+      screen.getByRole("checkbox", { name: /Select Weekly market/u })
+    );
+    expect(onToggle).toHaveBeenCalledWith("t-1");
+    expect(onOpen).not.toHaveBeenCalled();
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: "Select all transactions on this page",
+      })
+    );
+    expect(onToggleAll).toHaveBeenCalledWith(["t-1", "t-2", "t-3"]);
   });
 
   it("colours income as money in and reads signs aloud", async () => {
@@ -122,6 +232,25 @@ describe("Ledger (wide)", () => {
 });
 
 describe("Ledger (phone)", () => {
+  it("selects from a separate hit target", async () => {
+    const user = userEvent.setup();
+    const onOpen = vi.fn();
+    const onToggle = vi.fn();
+    renderWithProviders(
+      <Ledger
+        onOpen={onOpen}
+        selection={{ onToggle, onToggleAll: vi.fn(), selectedIds: new Set() }}
+        today="2026-09-24"
+        transactions={rows}
+      />
+    );
+    await user.click(
+      await screen.findByRole("checkbox", { name: /Select Weekly market/u })
+    );
+    expect(onToggle).toHaveBeenCalledWith("t-1");
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
   it("renders a touch list with the same rows", async () => {
     const user = userEvent.setup();
     const onOpen = vi.fn();

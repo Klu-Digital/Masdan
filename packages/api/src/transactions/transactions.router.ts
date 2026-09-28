@@ -49,6 +49,7 @@ import { getTransfer } from "../transfers/transfers.router";
 import { TRANSACTION_PAID_STATUSES } from "./constants";
 import { parseQuickEntryText, quickEntryText } from "./quick-entry.parse";
 import { isoDate, transactionValues } from "./schema";
+import { bulkUpdateTransactions, bulkUpdateValues } from "./transactions.bulk";
 import {
   activeAccount,
   createTransaction,
@@ -581,6 +582,18 @@ export const transactionsRouter = {
 
       return withDetails(context.db, archived);
     }),
+
+  bulkUpdate: orgMutationProcedure
+    .use(requirePermission({ transaction: ["update"] }))
+    .input(bulkUpdateValues)
+    .handler(({ context, input }) =>
+      bulkUpdateTransactions(
+        context.db,
+        context.organizationId,
+        input,
+        updateTransaction
+      )
+    ),
 
   create: orgMutationProcedure
     .use(requirePermission({ transaction: ["create"] }))

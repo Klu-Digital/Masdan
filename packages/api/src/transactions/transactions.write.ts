@@ -88,15 +88,13 @@ export const validCategory = async (
   return selected;
 };
 
-/** Archived tags are only allowed where the transaction already carries them. */
-export const validTags = async (
+export const ownedTags = async (
   db: Database,
   organizationId: string,
-  tagIds: string[],
-  existingTagIds = new Set<string>()
-): Promise<void> => {
+  tagIds: string[]
+) => {
   if (tagIds.length === 0) {
-    return;
+    return [];
   }
 
   const selected = await db
@@ -111,7 +109,17 @@ export const validTags = async (
       message: "Every tag must belong to the active household",
     });
   }
+  return selected;
+};
 
+/** Archived tags are only allowed where the transaction already carries them. */
+export const validTags = async (
+  db: Database,
+  organizationId: string,
+  tagIds: string[],
+  existingTagIds = new Set<string>()
+): Promise<void> => {
+  const selected = await ownedTags(db, organizationId, tagIds);
   if (
     selected.some(
       (selectedTag) =>
