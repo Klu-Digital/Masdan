@@ -22,6 +22,14 @@ export interface ConfigEntry {
 /** Setup metadata only. Runtime validation remains in packages/env. */
 export const configManifest = [
   {
+    description:
+      "Upstream AI provider key, when Cloudflare AI Gateway does not store it",
+    kind: "provider-secret",
+    name: "AI_PROVIDER_API_KEY",
+    required: false,
+    targets: ["local-server", "dokploy-server"],
+  },
+  {
     description: "Whether Better Auth rate limiting is enabled",
     kind: "config",
     name: "AUTH_RATE_LIMIT_ENABLED",
@@ -54,6 +62,21 @@ export const configManifest = [
     kind: "config",
     name: "BETTER_AUTH_URL",
     required: true,
+    targets: ["local-server", "dokploy-server"],
+  },
+  {
+    description:
+      "Authenticated Cloudflare AI Gateway token (cf-aig-authorization)",
+    kind: "provider-secret",
+    name: "CLOUDFLARE_AI_GATEWAY_TOKEN",
+    required: false,
+    targets: ["local-server", "dokploy-server"],
+  },
+  {
+    description: "Cloudflare AI Gateway OpenAI-compatible base URL",
+    kind: "config",
+    name: "CLOUDFLARE_AI_GATEWAY_URL",
+    required: false,
     targets: ["local-server", "dokploy-server"],
   },
   {
@@ -227,6 +250,13 @@ export const configManifest = [
       "dokploy-server",
       "dokploy-workers",
     ],
+  },
+  {
+    description: "provider/model used to parse quick transaction entries",
+    kind: "config",
+    name: "QUICK_TRANSACTION_AI_MODEL",
+    required: false,
+    targets: ["local-server", "dokploy-server"],
   },
   {
     description: "Prefix for Redis keys",

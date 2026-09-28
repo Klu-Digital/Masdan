@@ -61,6 +61,7 @@ import type { TransactionSearch } from "../search";
 import { useLedgerActions } from "../use-ledger-actions";
 import { Ledger } from "./ledger";
 import { LedgerFilters, LedgerSearch } from "./ledger-filters";
+import { QuickEntry } from "./quick-entry";
 
 const PAGE_SIZES = [25, 50, 100];
 
@@ -424,6 +425,13 @@ export const TransactionsPage = ({
           />
         </PageActions>
       </PageHeader>
+
+      {can({ transaction: ["create"] }) ? (
+        <QuickEntry
+          activeOrganizationId={activeOrganizationId}
+          canArchive={can({ transaction: ["archive"] })}
+        />
+      ) : null}
 
       <TotalsStrip
         activeOrganizationId={activeOrganizationId}

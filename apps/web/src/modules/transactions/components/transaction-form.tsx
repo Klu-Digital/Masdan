@@ -14,7 +14,7 @@ import { toastManager } from "@masdan/ui/components/toast";
 import { formatMoney, moneyParts } from "@masdan/ui/lib/money";
 import { useForm } from "@tanstack/react-form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { z } from "zod";
 
@@ -113,6 +113,29 @@ type TransactionFormValues = z.infer<typeof transactionSchema>;
 
 export type TransactionKindChoice = "expense" | "income";
 
+export type ReviewField =
+  | "accountId"
+  | "amount"
+  | "categoryId"
+  | "paidStatus"
+  | "transactionDate";
+
+/** Values quick entry resolved, and what it could not, for the form to finish. */
+export interface TransactionPrefill {
+  issues: { field: ReviewField; message: string }[];
+  values: Partial<
+    Pick<
+      TransactionFormValues,
+      | "accountId"
+      | "amount"
+      | "categoryId"
+      | "notes"
+      | "paidStatus"
+      | "transactionDate"
+    >
+  >;
+}
+
 export interface FormActionState {
   canSubmit: boolean;
   isSubmitting: boolean;
@@ -124,6 +147,10 @@ export const FormActions = ({ children }: { children: ReactNode }) => (
     {children}
   </div>
 );
+
+/** Why quick entry left a field for you; gone once you change it. */
+const ReviewHint = ({ message }: { message: string | undefined }) =>
+  message ? <FieldError match>{message}</FieldError> : null;
 
 const FieldErrors = ({
   errors,
@@ -198,6 +225,7 @@ export const TransactionForm = ({
   householdCurrency,
   kind,
   onSaved,
+  prefill,
   timezone,
   transaction,
 }: {
@@ -208,11 +236,25 @@ export const TransactionForm = ({
   householdCurrency: string;
   kind: TransactionKindChoice;
   onSaved: (transactionId: string) => void;
+  prefill?: TransactionPrefill;
   timezone: string;
   transaction?: TransactionDetail;
 }) => {
   const queryClient = useQueryClient();
   const editing = transaction !== undefined;
+  const formRef = useRef<HTMLFormElement>(null);
+  const [review, setReview] = useState(
+    () => new Map(prefill?.issues.map(({ field, message }) => [field, message]))
+  );
+  const reviewed = (field: ReviewField) => () =>
+    setReview((current) => {
+      if (!current.has(field)) {
+        return current;
+      }
+      const next = new Map(current);
+      next.delete(field);
+      return next;
+    });
   const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
   const categories = useQuery(categoriesQueryOptions(activeOrganizationId));
   const tags = useQuery(tagsQueryOptions(activeOrganizationId));
@@ -223,19 +265,27 @@ export const TransactionForm = ({
     defaultAccountId ??
     (activeAccounts.length === 1 ? activeAccounts[0]?.id : undefined);
 
+  const prefilled = prefill?.values ?? {};
   const defaultValues: TransactionFormValues = {
-    accountId: transaction?.accountId ?? firstAccount ?? "",
-    amount: trimDecimal(transaction?.amount),
-    categoryId: transaction?.categoryId ?? "",
-    notes: transaction?.notes ?? "",
-    paidStatus: transaction?.paidStatus ?? "paid",
+    accountId:
+      transaction?.accountId ??
+      prefilled.accountId ??
+      (review.has("accountId") ? undefined : firstAccount) ??
+      "",
+    amount: trimDecimal(transaction?.amount ?? prefilled.amount),
+    categoryId: transaction?.categoryId ?? prefilled.categoryId ?? "",
+    notes: transaction?.notes ?? prefilled.notes ?? "",
+    paidStatus: transaction?.paidStatus ?? prefilled.paidStatus ?? "paid",
     splits:
       transaction?.splits.map(({ amount, categoryId }) => ({
         amount: trimDecimal(amount),
         categoryId,
       })) ?? [],
     tagIds: transaction?.tags.map(({ id }) => id) ?? [],
-    transactionDate: transaction?.transactionDate ?? householdToday(timezone),
+    transactionDate:
+      transaction?.transactionDate ??
+      prefilled.transactionDate ??
+      householdToday(timezone),
   };
 
   const form = useForm({
@@ -295,6 +345,22 @@ export const TransactionForm = ({
     }
   }, [categories.data, form, kind]);
 
+  const loaded = accounts.isSuccess && categories.isSuccess && tags.isSuccess;
+  const focusesAmount = !(editing || (prefill && !review.has("amount")));
+  const focusedReview = useRef(false);
+  // A prefilled form opens on the first thing quick entry could not settle.
+  useEffect(() => {
+    if (!loaded || focusedReview.current) {
+      return;
+    }
+    focusedReview.current = true;
+    if (prefill && !focusesAmount) {
+      formRef.current
+        ?.querySelector<HTMLElement>("[aria-invalid='true']")
+        ?.focus();
+    }
+  }, [focusesAmount, loaded, prefill]);
+
   if (accounts.isPending || categories.isPending || tags.isPending) {
     return (
       <div className="flex flex-col gap-4 py-2">
@@ -325,15 +391,15 @@ export const TransactionForm = ({
       transaction?.tags.some(({ id }) => id === tag.id)
   );
   const opensAdvanced =
-    editing &&
-    (transaction.tags.length > 0 ||
-      transaction.splits.length > 0 ||
-      transaction.paidStatus === "unpaid");
+    review.has("paidStatus") ||
+    defaultValues.paidStatus === "unpaid" ||
+    (editing && (transaction.tags.length > 0 || transaction.splits.length > 0));
 
   return (
     <form
       className="flex flex-col gap-5"
       noValidate
+      ref={formRef}
       onSubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -348,7 +414,10 @@ export const TransactionForm = ({
             transaction?.currencyCode ??
             householdCurrency;
           return (
-            <form.Field name="amount">
+            <form.Field
+              listeners={{ onChange: reviewed("amount") }}
+              name="amount"
+            >
               {(field) => (
                 <Field className="items-stretch" name={field.name}>
                   <FieldLabel className="sr-only" htmlFor={field.name}>
@@ -357,16 +426,19 @@ export const TransactionForm = ({
                   <AmountInput
                     // Opening the composer is a request to type a number.
                     // oxlint-disable-next-line jsx-a11y/no-autofocus
-                    autoFocus={!editing}
+                    autoFocus={focusesAmount}
                     currencySymbol={moneyParts(0, currency).currency}
                     id={field.name}
-                    invalid={field.state.meta.errors.length > 0}
+                    invalid={
+                      field.state.meta.errors.length > 0 || review.has("amount")
+                    }
                     onBlur={field.handleBlur}
                     onValueChange={field.handleChange}
                     value={field.state.value}
                   />
                   <div className="flex justify-center">
                     <FieldErrors errors={field.state.meta.errors} />
+                    <ReviewHint message={review.get("amount")} />
                   </div>
                 </Field>
               )}
@@ -378,19 +450,26 @@ export const TransactionForm = ({
       <form.Subscribe selector={(state) => state.values.splits.length > 0}>
         {(splitMode) =>
           splitMode ? null : (
-            <form.Field name="categoryId">
+            <form.Field
+              listeners={{ onChange: reviewed("categoryId") }}
+              name="categoryId"
+            >
               {(field) => (
                 <Field name={field.name}>
                   <FieldLabel>Category</FieldLabel>
                   <div className="w-full">
                     <CategoryPicker
-                      aria-invalid={field.state.meta.errors.length > 0}
+                      aria-invalid={
+                        field.state.meta.errors.length > 0 ||
+                        review.has("categoryId")
+                      }
                       categories={categoryItems}
                       onValueChange={field.handleChange}
                       value={field.state.value}
                     />
                   </div>
                   <FieldErrors errors={field.state.meta.errors} />
+                  <ReviewHint message={review.get("categoryId")} />
                 </Field>
               )}
             </form.Field>
@@ -399,35 +478,49 @@ export const TransactionForm = ({
       </form.Subscribe>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <form.Field name="accountId">
+        <form.Field
+          listeners={{ onChange: reviewed("accountId") }}
+          name="accountId"
+        >
           {(field) => (
             <Field name={field.name}>
               <FieldLabel>Account</FieldLabel>
               <div className="w-full">
                 <AccountPicker
                   accounts={activeAccounts}
-                  aria-invalid={field.state.meta.errors.length > 0}
+                  aria-invalid={
+                    field.state.meta.errors.length > 0 ||
+                    review.has("accountId")
+                  }
                   onValueChange={field.handleChange}
                   value={field.state.value}
                 />
               </div>
               <FieldErrors errors={field.state.meta.errors} />
+              <ReviewHint message={review.get("accountId")} />
             </Field>
           )}
         </form.Field>
-        <form.Field name="transactionDate">
+        <form.Field
+          listeners={{ onChange: reviewed("transactionDate") }}
+          name="transactionDate"
+        >
           {(field) => (
             <Field name={field.name}>
               <FieldLabel htmlFor={field.name}>Date</FieldLabel>
               <div className="w-full">
                 <DatePicker
-                  aria-invalid={field.state.meta.errors.length > 0}
+                  aria-invalid={
+                    field.state.meta.errors.length > 0 ||
+                    review.has("transactionDate")
+                  }
                   id={field.name}
                   onValueChange={field.handleChange}
                   value={field.state.value}
                 />
               </div>
               <FieldErrors errors={field.state.meta.errors} />
+              <ReviewHint message={review.get("transactionDate")} />
             </Field>
           )}
         </form.Field>
@@ -454,7 +547,10 @@ export const TransactionForm = ({
       ) : null}
 
       <MoreOptions defaultOpen={opensAdvanced}>
-        <form.Field name="paidStatus">
+        <form.Field
+          listeners={{ onChange: reviewed("paidStatus") }}
+          name="paidStatus"
+        >
           {(field) => (
             <label
               className="bg-card flex items-center justify-between gap-4 rounded-xl px-4 py-3"
@@ -465,6 +561,11 @@ export const TransactionForm = ({
                 <span className="text-muted-foreground text-xs">
                   Turn off for a bill you haven’t settled yet.
                 </span>
+                {review.has("paidStatus") ? (
+                  <span className="text-destructive-foreground text-xs">
+                    {review.get("paidStatus")}
+                  </span>
+                ) : null}
               </span>
               <Switch
                 checked={field.state.value === "paid"}

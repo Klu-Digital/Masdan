@@ -81,7 +81,10 @@ const issuerAliases = CARD_ISSUERS.flatMap((issuer) =>
   }))
 ).toSorted((left, right) => right.alias.length - left.alias.length);
 
-const NETWORK_ALIASES = new Map<string, CardNetwork>([
+export const NETWORK_ALIASES: ReadonlyMap<string, CardNetwork> = new Map<
+  string,
+  CardNetwork
+>([
   ["amex", "amex"],
   ["american express", "amex"],
   ["china unionpay", "unionpay"],

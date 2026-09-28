@@ -280,4 +280,85 @@ describe("TransactionForm", () => {
     ).toBeInTheDocument();
     expect(create).not.toHaveBeenCalled();
   });
+
+  it("opens prefilled from quick entry and flags what it could not settle", async () => {
+    const GCASH = "00000000-0000-4000-8000-000000000009";
+    accountsList.mockResolvedValue([
+      {
+        accountClass: "asset",
+        accountType: "bank",
+        archivedAt: null,
+        color: null,
+        currencyCode: "PHP",
+        id: ACCOUNT,
+        name: "BPI Savings",
+      },
+      {
+        accountClass: "asset",
+        accountType: "e_wallet",
+        archivedAt: null,
+        color: null,
+        currencyCode: "PHP",
+        id: GCASH,
+        name: "GCash",
+      },
+    ]);
+    const user = userEvent.setup();
+    render(
+      <TransactionForm
+        actions={() => <button type="submit">Add</button>}
+        activeOrganizationId="household-1"
+        householdCurrency="PHP"
+        kind="expense"
+        onSaved={vi.fn()}
+        prefill={{
+          issues: [
+            {
+              field: "accountId",
+              message: "Could be BPI Savings or GCash — choose one",
+            },
+          ],
+          values: {
+            amount: "400",
+            categoryId: DINING,
+            notes: "dinner at jollibee",
+            paidStatus: "paid",
+            transactionDate: "2026-09-25",
+          },
+        }}
+        timezone="Asia/Manila"
+      />,
+      { wrapper: Wrapper }
+    );
+
+    expect(
+      await screen.findByText("Could be BPI Savings or GCash — choose one")
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Amount")).toHaveValue("400");
+    expect(screen.getByLabelText("Note")).toHaveValue("dinner at jollibee");
+    expect(screen.getByRole("combobox", { name: "Category" })).toHaveValue(
+      "Food & Dining"
+    );
+    const account = screen.getByRole("combobox", { name: "Account" });
+    expect(account).toHaveAttribute("aria-invalid", "true");
+    await waitFor(() => expect(account).toHaveFocus());
+
+    await user.click(account);
+    await user.click(await screen.findByRole("option", { name: /GCash/u }));
+    expect(
+      screen.queryByText("Could be BPI Savings or GCash — choose one")
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: GCASH,
+        amount: "400",
+        categoryId: DINING,
+        notes: "dinner at jollibee",
+        transactionDate: "2026-09-25",
+      })
+    );
+  });
 });

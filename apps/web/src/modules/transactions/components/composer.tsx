@@ -5,7 +5,10 @@ import { useState } from "react";
 
 import type { TransactionDetail } from "../queries";
 import { TransactionForm } from "./transaction-form";
-import type { TransactionKindChoice } from "./transaction-form";
+import type {
+  TransactionKindChoice,
+  TransactionPrefill,
+} from "./transaction-form";
 import { TransferForm } from "./transfer-form";
 import type { AmountSuggestion, Transfer } from "./transfer-form";
 
@@ -15,6 +18,9 @@ export type ComposerRequest =
   | {
       accountId?: string;
       kind?: TransactionKindChoice;
+      onSaved?: (transactionId: string) => void;
+      /** From quick entry: what it resolved, and the text it came from. */
+      prefill?: TransactionPrefill & { source: string };
       transaction?: TransactionDetail;
       type: "transaction";
     }
@@ -35,6 +41,16 @@ const initialKind = (request: ComposerRequest): ComposerKind => {
     return request.transaction.type === "income" ? "income" : "expense";
   }
   return request.kind ?? "expense";
+};
+
+/** Paying a card explains itself; quick entry shows the text it came from. */
+const sheetDescription = (request: ComposerRequest): string | undefined => {
+  if (request.type === "transfer") {
+    return request.payCard
+      ? "Moves money from one of your accounts to the card. It isn’t counted as spending."
+      : undefined;
+  }
+  return request.prefill ? `From “${request.prefill.source}”` : undefined;
 };
 
 const TITLES: Record<ComposerKind, string> = {
@@ -76,6 +92,8 @@ export const Composer = ({
     request.type === "transfer" ? request.transfer : undefined;
   const editing = Boolean(editingTransaction ?? editingTransfer);
   const payCard = request.type === "transfer" ? request.payCard : undefined;
+  const transactionRequest =
+    request.type === "transaction" ? request : undefined;
 
   let title = TITLES[kind];
   if (payCard) {
@@ -118,11 +136,7 @@ export const Composer = ({
 
   return (
     <ResponsiveSheet
-      description={
-        payCard
-          ? "Moves money from one of your accounts to the card. It isn’t counted as spending."
-          : undefined
-      }
+      description={sheetDescription(request)}
       onOpenChange={onOpenChange}
       open={open}
       title={title}
@@ -173,7 +187,11 @@ export const Composer = ({
             }
             householdCurrency={householdCurrency}
             kind={kind}
-            onSaved={close}
+            onSaved={(transactionId) => {
+              close();
+              transactionRequest?.onSaved?.(transactionId);
+            }}
+            prefill={transactionRequest?.prefill}
             timezone={timezone}
             transaction={editingTransaction}
           />
