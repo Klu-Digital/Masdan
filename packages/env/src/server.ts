@@ -10,6 +10,8 @@ export const env = createEnv({
     ...sharedServerVariables,
     /** Upstream provider key; omit when the gateway supplies its own (BYOK). */
     AI_PROVIDER_API_KEY: z.string().min(1).optional(),
+    /** `provider/model` for Ask Masdan. Unset turns the feature's AI off. */
+    ASK_MASDAN_AI_MODEL: z.string().min(1).optional(),
     /** better-auth defaults its rate limiter to production-only. */
     AUTH_RATE_LIMIT_ENABLED: z.stringbool().optional(),
     AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),

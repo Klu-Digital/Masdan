@@ -30,6 +30,13 @@ export const configManifest = [
     targets: ["local-server", "dokploy-server"],
   },
   {
+    description: "provider/model used to answer Ask Masdan questions",
+    kind: "config",
+    name: "ASK_MASDAN_AI_MODEL",
+    required: false,
+    targets: ["local-server", "dokploy-server"],
+  },
+  {
     description: "Whether Better Auth rate limiting is enabled",
     kind: "config",
     name: "AUTH_RATE_LIMIT_ENABLED",

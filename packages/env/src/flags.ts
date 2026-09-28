@@ -14,6 +14,11 @@ export interface FeatureFlagDefinition {
 }
 
 export const featureFlagRegistry = {
+  FF__ASK_MASDAN: {
+    defaultEnabled: false,
+    description:
+      "Ask Masdan: natural-language questions answered from household reports.",
+  },
   /** Placeholder so the types aren't `never`. Delete once a real flag exists. */
   FF__EXAMPLE: {
     defaultEnabled: false,

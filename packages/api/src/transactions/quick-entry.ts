@@ -456,7 +456,7 @@ interface AccountMatch extends Span {
   tier: number;
 }
 
-type AccountResolution =
+export type AccountResolution =
   | { status: "none" }
   | { accountId: string; status: "resolved"; tier: number }
   | { accountIds: string[]; status: "ambiguous" };
@@ -596,7 +596,8 @@ const resolveAccountMatches = (
     : { accountIds, status: "ambiguous" };
 };
 
-const resolveAccountText = (
+/** Ask Masdan resolves the account a question names through this same matcher. */
+export const resolveAccountText = (
   text: string,
   accounts: readonly QuickEntryAccount[]
 ): AccountResolution => {

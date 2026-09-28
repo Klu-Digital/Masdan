@@ -127,7 +127,7 @@ const transactionListValues = z
   })
   .superRefine(dateRangeOrder);
 
-type TransactionFilterInput = z.output<typeof transactionFilterValues>;
+export type TransactionFilterInput = z.output<typeof transactionFilterValues>;
 type TransactionListInput = z.output<typeof transactionListValues>;
 
 const transactionSummaryValues = z
@@ -230,7 +230,8 @@ const transactionQuery = (db: Database) =>
 const splitCategory = alias(category, "split_category");
 const sourcePosting = alias(financialTransaction, "source_posting");
 
-const transactionListConditions = (
+/** The ledger filters; Ask Masdan reuses them so its totals match this screen. */
+export const transactionListConditions = (
   db: Database,
   organizationId: string,
   input: TransactionFilterInput
