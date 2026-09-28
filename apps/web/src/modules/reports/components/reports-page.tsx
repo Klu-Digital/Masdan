@@ -30,6 +30,7 @@ import { formatLongDate } from "@/lib/dates";
 import { DEFAULT_RANGE, chartGranularity } from "../period";
 import type { ReportRange } from "../period";
 import {
+  budgetPerformanceQueryOptions,
   cashFlowQueryOptions,
   netWorthHistoryQueryOptions,
   netWorthQueryOptions,
@@ -37,6 +38,7 @@ import {
 } from "../queries";
 import { PeriodPicker } from "./period-picker";
 import {
+  BudgetPerformanceSection,
   CashFlowSection,
   NetWorthHistoryChart,
   NetWorthSummary,
@@ -53,8 +55,12 @@ const useReports = (activeOrganizationId: string, range: ReportRange) => {
   );
   const cashFlow = useQuery(cashFlowQueryOptions(activeOrganizationId, range));
   const spending = useQuery(spendingQueryOptions(activeOrganizationId, range));
-  const queries = [netWorth, history, cashFlow, spending];
+  const budgetPerformance = useQuery(
+    budgetPerformanceQueryOptions(activeOrganizationId, range)
+  );
+  const queries = [netWorth, history, cashFlow, spending, budgetPerformance];
   return {
+    budgetPerformance: budgetPerformance.data,
     cashFlow: cashFlow.data,
     empty:
       netWorth.data?.positions.length === 0 &&
@@ -79,6 +85,7 @@ const currencyOptions = (
       ...(reports.netWorth?.positions ?? []),
       ...(reports.cashFlow?.totals ?? []),
       ...(reports.spending?.totals ?? []),
+      ...(reports.budgetPerformance?.totals ?? []),
     ].map((item) => item.currencyCode),
   ]),
 ];
@@ -96,7 +103,15 @@ export const ReportsPage = ({
   const [range, setRange] = useState<ReportRange>(DEFAULT_RANGE);
   const [chosenCurrency, setChosenCurrency] = useState<string | null>(null);
   const reports = useReports(activeOrganizationId, range);
-  const { cashFlow, empty, failed, history, netWorth, spending } = reports;
+  const {
+    budgetPerformance,
+    cashFlow,
+    empty,
+    failed,
+    history,
+    netWorth,
+    spending,
+  } = reports;
 
   const householdCurrency =
     householdDefault ?? netWorth?.defaultCurrency ?? "PHP";
@@ -180,6 +195,10 @@ export const ReportsPage = ({
             <CashFlowSection currency={currency} report={cashFlow} />
             <SpendingSection currency={currency} report={spending} />
           </div>
+          <BudgetPerformanceSection
+            currency={currency}
+            report={budgetPerformance}
+          />
         </>
       )}
     </Page>

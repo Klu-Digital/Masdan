@@ -23,6 +23,15 @@ import {
   StatLabel,
   StatValue,
 } from "@masdan/ui/components/stat";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@masdan/ui/components/table";
 import { formatMoney, toNumber } from "@masdan/ui/lib/money";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
@@ -36,6 +45,7 @@ import {
 import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
 
 import type {
+  BudgetPerformanceReport,
   CashFlowReport,
   NetWorthHistory,
   NetWorthReport,
@@ -53,6 +63,9 @@ const Card = ({ children }: { children: ReactNode }) => (
     {children}
   </div>
 );
+
+const formatRate = (rate: number | null): string =>
+  rate === null ? "N/A" : `${rate}%`;
 
 const compactAxis = (currency: string) => (value: number) =>
   formatMoney(value, currency, { compact: true, sign: "none" });
@@ -89,7 +102,11 @@ const ChartTable = <Row extends ChartRow>({
   rows,
 }: {
   caption: string;
-  columns: { key: keyof Row & string; label: string }[];
+  columns: {
+    format?: (value: Row[keyof Row]) => string;
+    key: keyof Row & string;
+    label: string;
+  }[];
   currency: string;
   rows: Row[];
 }) => (
@@ -111,7 +128,9 @@ const ChartTable = <Row extends ChartRow>({
           <th scope="row">{row.period}</th>
           {columns.map((column) => (
             <td key={column.key}>
-              {formatMoney(Number(row[column.key]), currency)}
+              {column.format
+                ? column.format(row[column.key])
+                : formatMoney(Number(row[column.key]), currency)}
             </td>
           ))}
         </tr>
@@ -300,6 +319,7 @@ export const CashFlowSection = ({
       income: toNumber(flow?.income ?? 0),
       label: formatMonth(month),
       period: formatMonthYear(month),
+      savingsRate: flow?.savingsRate ?? null,
     };
   });
   const net = toNumber(total?.net ?? 0);
@@ -330,6 +350,10 @@ export const CashFlowSection = ({
               <StatValue>
                 <Amount currency={currency} value={total.expense} />
               </StatValue>
+            </Stat>
+            <Stat>
+              <StatLabel>Savings rate</StatLabel>
+              <StatValue>{formatRate(total.savingsRate)}</StatValue>
             </Stat>
             <Stat>
               <StatLabel>Net cash flow</StatLabel>
@@ -368,13 +392,188 @@ export const CashFlowSection = ({
               columns={[
                 { key: "income", label: "Money in" },
                 { key: "expense", label: "Money out" },
+                {
+                  format: (value) =>
+                    formatRate(value === null ? null : Number(value)),
+                  key: "savingsRate",
+                  label: "Savings rate",
+                },
               ]}
               currency={currency}
               rows={data}
             />
+            <ul
+              aria-label="Monthly savings rates"
+              className="mt-4 grid gap-2 text-sm sm:grid-cols-2"
+            >
+              {data.map((row) => (
+                <li className="flex justify-between gap-4" key={row.period}>
+                  <span className="text-muted-foreground">{row.period}</span>
+                  <span className="font-medium tabular-nums">
+                    {formatRate(row.savingsRate)}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </Card>
         </>
       ) : null}
+    </Section>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* Budget performance                                                  */
+/* ------------------------------------------------------------------ */
+
+export const BudgetPerformanceSection = ({
+  currency,
+  report,
+}: {
+  currency: string;
+  report: BudgetPerformanceReport | undefined;
+}) => {
+  const periodTotal = report?.totals.find(
+    (item) => item.currencyCode === currency
+  );
+  return (
+    <Section aria-label="Budget performance">
+      <SectionHeader>
+        <SectionTitle>Budget performance</SectionTitle>
+        <SectionDescription>
+          Whole budgeted months, through today
+        </SectionDescription>
+      </SectionHeader>
+      {report === undefined ? (
+        <Skeleton className="h-64 w-full" radius="3xl" />
+      ) : null}
+      {report?.months.length === 0 ? (
+        <EmptyNote>
+          No budgets in this period. <Link to="/budgets">Go to budgets</Link>
+        </EmptyNote>
+      ) : null}
+      {report &&
+      report.months.length > 0 &&
+      !report.months.some((month) =>
+        month.lines.some((line) => line.currencyCode === currency)
+      ) ? (
+        <EmptyNote>No budgets in {currency} for this period.</EmptyNote>
+      ) : null}
+      {periodTotal ? (
+        <StatGroup aria-label="Period budget totals">
+          <Stat>
+            <StatLabel>Budgeted</StatLabel>
+            <StatValue>
+              <Amount currency={currency} value={periodTotal.budgeted} />
+            </StatValue>
+          </Stat>
+          <Stat>
+            <StatLabel>Spent</StatLabel>
+            <StatValue>
+              <Amount currency={currency} value={periodTotal.spent} />
+            </StatValue>
+          </Stat>
+          <Stat>
+            <StatLabel>Variance</StatLabel>
+            <StatValue>
+              <Amount
+                currency={currency}
+                tone={
+                  periodTotal.variance.startsWith("-") ? "negative" : "default"
+                }
+                value={periodTotal.variance}
+              />
+            </StatValue>
+          </Stat>
+        </StatGroup>
+      ) : null}
+      {report?.truncated ? (
+        <p className="text-muted-foreground text-sm">
+          Only the most recent budgeted months are shown.
+        </p>
+      ) : null}
+      {report?.months.map((month) => {
+        const lines = month.lines.filter(
+          (line) => line.currencyCode === currency
+        );
+        const total = month.totals.find(
+          (item) => item.currencyCode === currency
+        );
+        if (lines.length === 0) {
+          return null;
+        }
+        return (
+          <div className="flex flex-col gap-3" key={month.month}>
+            <h3 className="text-base font-semibold">
+              {formatMonthYear(month.month)}
+            </h3>
+            <Table
+              aria-label={`${formatMonthYear(month.month)} budget performance`}
+              variant="card"
+            >
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right">Budgeted</TableHead>
+                  <TableHead className="text-right">Spent</TableHead>
+                  <TableHead className="text-right">Variance</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lines.map((line) => (
+                  <TableRow key={line.categoryId}>
+                    <TableCell>
+                      {line.icon} {line.name}
+                      {line.archived ? " (archived)" : ""}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Amount currency={currency} value={line.budgeted} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Amount currency={currency} value={line.spent} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Amount
+                        currency={currency}
+                        tone={
+                          line.status === "overspent" ? "negative" : "default"
+                        }
+                        value={line.variance}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              {total ? (
+                <TableFooter>
+                  <TableRow>
+                    <TableCell>
+                      <strong>Total</strong>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Amount currency={currency} value={total.budgeted} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Amount currency={currency} value={total.spent} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Amount
+                        currency={currency}
+                        tone={
+                          total.variance.startsWith("-")
+                            ? "negative"
+                            : "default"
+                        }
+                        value={total.variance}
+                      />
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              ) : null}
+            </Table>
+          </div>
+        );
+      })}
     </Section>
   );
 };

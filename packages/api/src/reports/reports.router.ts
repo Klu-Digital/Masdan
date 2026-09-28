@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { orgProcedure, requirePermission } from "../procedures";
+import { getBudgetPerformance } from "./budget-performance";
 import { HISTORY_GRANULARITIES, REPORT_PRESETS } from "./periods";
 import {
   getCashFlow,
@@ -74,6 +75,30 @@ const publicPeriod = (
  * text per currency — there is no FX data, so currencies are never mixed.
  */
 export const reportsRouter = {
+  budgetPerformance: orgProcedure
+    .use(requirePermission({ budget: ["read"], transaction: ["read"] }))
+    .input(periodValues)
+    .handler(async ({ context, input }) => {
+      const period = await resolveReportPeriod(
+        context.db,
+        context.organizationId,
+        input
+      );
+      const report = await getBudgetPerformance(
+        context.db,
+        context.organizationId,
+        {
+          dateFrom: period.dateFrom,
+          dateTo: period.dateTo,
+        }
+      );
+      return {
+        ...report,
+        defaultCurrency: period.defaultCurrency,
+        period: publicPeriod(period),
+      };
+    }),
+
   cashFlow: orgProcedure
     .use(requirePermission({ transaction: ["read"] }))
     .input(ledgerRangeValues)

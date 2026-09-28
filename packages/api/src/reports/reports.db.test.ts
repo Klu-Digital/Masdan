@@ -554,12 +554,14 @@ describe("reports.cashFlow", () => {
         expense: "2520.000000",
         income: "5000.000000",
         net: "2480.000000",
+        savingsRate: 49.6,
       },
       {
         currencyCode: "USD",
         expense: "25.500000",
         income: "0",
         net: "-25.500000",
+        savingsRate: null,
       },
     ]);
     expect(report.monthly).toEqual([
@@ -569,6 +571,7 @@ describe("reports.cashFlow", () => {
         income: "0",
         month: "2025-12",
         net: "-50.000000",
+        savingsRate: null,
       },
       {
         currencyCode: "PHP",
@@ -576,6 +579,7 @@ describe("reports.cashFlow", () => {
         income: "5000.000000",
         month: "2026-01",
         net: "2970.000000",
+        savingsRate: 59.4,
       },
       {
         currencyCode: "PHP",
@@ -583,6 +587,7 @@ describe("reports.cashFlow", () => {
         income: "0",
         month: "2026-02",
         net: "-440.000000",
+        savingsRate: null,
       },
       {
         currencyCode: "USD",
@@ -590,6 +595,7 @@ describe("reports.cashFlow", () => {
         income: "0",
         month: "2026-02",
         net: "-25.500000",
+        savingsRate: null,
       },
     ]);
 
@@ -604,6 +610,7 @@ describe("reports.cashFlow", () => {
         expense: "1200.000000",
         income: "5000.000000",
         net: "3800.000000",
+        savingsRate: 76,
       },
     ]);
 
@@ -618,6 +625,7 @@ describe("reports.cashFlow", () => {
         expense: "1100.000000",
         income: "0",
         net: "-1100.000000",
+        savingsRate: null,
       },
     ]);
 
@@ -639,7 +647,59 @@ describe("reports.cashFlow", () => {
         expense: "0",
         income: "9999.000000",
         net: "9999.000000",
+        savingsRate: 100,
       },
+    ]);
+  });
+});
+
+describe("reports.cashFlow savings rates", () => {
+  it("calculates period and monthly rates independently for each currency", async () => {
+    const home = await household();
+    const php = await home.account({
+      accountClass: "asset",
+      accountType: "bank",
+      name: "Pesos",
+      openingBalance: "0",
+      openingBalanceDate: OPENED,
+    });
+    const usd = await home.account({
+      accountClass: "asset",
+      accountType: "bank",
+      currencyCode: "USD",
+      name: "Dollars",
+      openingBalance: "0",
+      openingBalanceDate: OPENED,
+    });
+    await home.record(php.id, home.categories.salary, "100", "2026-01-15");
+    await home.record(php.id, home.categories.groceries, "25", "2026-01-16");
+    await home.record(php.id, home.categories.groceries, "10", "2026-02-15");
+    await home.record(usd.id, home.categories.salary, "30", "2026-01-15");
+    await home.record(usd.id, home.categories.groceries, "20", "2026-01-16");
+    const report = await call(
+      reportsRouter.cashFlow,
+      custom("2026-01-01", "2026-02-28"),
+      home.context
+    );
+    expect(
+      report.monthly.map(({ month, currencyCode, savingsRate }) => ({
+        currencyCode,
+        month,
+        savingsRate,
+      }))
+    ).toEqual([
+      { currencyCode: "PHP", month: "2026-01", savingsRate: 75 },
+      { currencyCode: "USD", month: "2026-01", savingsRate: 33.3 },
+      { currencyCode: "PHP", month: "2026-02", savingsRate: null },
+    ]);
+    expect(
+      report.totals.map(({ currencyCode, savingsRate }) => ({
+        currencyCode,
+        savingsRate,
+      }))
+    ).toEqual([
+      { currencyCode: "PHP", savingsRate: 65 },
+      { currencyCode: "USD", savingsRate: 33.3 },
     ]);
   });
 });
@@ -782,6 +842,7 @@ describe("report periods", () => {
         expense: "22.000000",
         income: "0",
         net: "-22.000000",
+        savingsRate: null,
       },
     ]);
 

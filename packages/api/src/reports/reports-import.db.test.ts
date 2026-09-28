@@ -185,6 +185,7 @@ describe("reports over imported history", () => {
         expense: "450.000000",
         income: "2000.000000",
         net: "1550.000000",
+        savingsRate: 77.5,
       },
     ]);
     expect(

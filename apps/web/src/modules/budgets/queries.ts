@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 
+import { budgetPerformanceQueryKey } from "@/modules/reports/queries";
 import { client } from "@/utils/orpc";
 
 export type MonthBudgets = Awaited<ReturnType<typeof client.budgets.month>>;
@@ -27,6 +28,12 @@ export const invalidateBudgets = (
   queryClient: QueryClient,
   activeOrganizationId: string | null
 ) =>
-  queryClient.invalidateQueries({
-    queryKey: budgetsQueryKey(activeOrganizationId),
-  });
+  Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: budgetsQueryKey(activeOrganizationId),
+    }),
+    // Budget writes also refresh budget performance.
+    queryClient.invalidateQueries({
+      queryKey: budgetPerformanceQueryKey(activeOrganizationId),
+    }),
+  ]);

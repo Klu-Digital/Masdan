@@ -36,6 +36,7 @@ import {
   presetRange,
 } from "./periods";
 import type { HistoryGranularity, ReportPeriod, ReportPreset } from "./periods";
+import { savingsRate } from "./savings-rate";
 
 export interface PeriodInput {
   dateFrom?: string;
@@ -444,6 +445,7 @@ export interface CashFlowMonth {
   income: string;
   month: string;
   net: string;
+  savingsRate: number | null;
 }
 
 export interface CashFlowTotal {
@@ -451,13 +453,17 @@ export interface CashFlowTotal {
   expense: string;
   income: string;
   net: string;
+  savingsRate: number | null;
 }
+
+type CashFlowSqlMonth = Omit<CashFlowMonth, "savingsRate">;
+type CashFlowSqlTotal = Omit<CashFlowTotal, "savingsRate">;
 
 export const getMonthlyCashFlow = (
   db: Database,
   organizationId: string,
   range: LedgerRange
-): Promise<CashFlowMonth[]> =>
+): Promise<CashFlowSqlMonth[]> =>
   db
     .select({
       currencyCode: financialTransaction.currencyCode,
@@ -476,7 +482,7 @@ export const getCashFlowTotals = (
   db: Database,
   organizationId: string,
   range: LedgerRange
-): Promise<CashFlowTotal[]> =>
+): Promise<CashFlowSqlTotal[]> =>
   db
     .select({
       currencyCode: financialTransaction.currencyCode,
@@ -506,7 +512,17 @@ export const getCashFlow = async (
     getMonthlyCashFlow(db, organizationId, range),
     getCashFlowTotals(db, organizationId, range),
   ]);
-  return { monthly, months: monthsIn(range.dateFrom, range.dateTo), totals };
+  return {
+    monthly: monthly.map((row) => ({
+      ...row,
+      savingsRate: savingsRate(row.income, row.expense),
+    })),
+    months: monthsIn(range.dateFrom, range.dateTo),
+    totals: totals.map((row) => ({
+      ...row,
+      savingsRate: savingsRate(row.income, row.expense),
+    })),
+  };
 };
 
 // A split parent's own category must not also receive the full amount.

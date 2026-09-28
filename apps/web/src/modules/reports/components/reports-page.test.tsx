@@ -12,6 +12,7 @@ vi.mock("@masdan/ui/components/toast", () => ({
 const netWorth = vi.hoisted(() => vi.fn());
 const netWorthHistory = vi.hoisted(() => vi.fn());
 const cashFlow = vi.hoisted(() => vi.fn());
+const budgetPerformance = vi.hoisted(() => vi.fn());
 const spendingByCategory = vi.hoisted(() => vi.fn());
 
 vi.mock("@/utils/orpc", async (importOriginal) => {
@@ -19,7 +20,13 @@ vi.mock("@/utils/orpc", async (importOriginal) => {
   return {
     ...actual,
     client: {
-      reports: { cashFlow, netWorth, netWorthHistory, spendingByCategory },
+      reports: {
+        budgetPerformance,
+        cashFlow,
+        netWorth,
+        netWorthHistory,
+        spendingByCategory,
+      },
     },
   };
 });
@@ -68,6 +75,13 @@ const emptyLedger = () => {
     period,
     totals: [],
   });
+  budgetPerformance.mockResolvedValue({
+    defaultCurrency: "PHP",
+    months: [],
+    period,
+    totals: [],
+    truncated: false,
+  });
   spendingByCategory.mockResolvedValue({
     categories: [],
     defaultCurrency: "PHP",
@@ -86,6 +100,7 @@ beforeEach(() => {
     netWorth,
     netWorthHistory,
     cashFlow,
+    budgetPerformance,
     spendingByCategory,
   ]) {
     mock.mockReset();
@@ -115,6 +130,7 @@ describe("ReportsPage", () => {
       await screen.findByText("No income or expenses in this period.")
     ).toBeInTheDocument();
     expect(screen.getByText("No spending in this period.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Go to budgets" })).toBeVisible();
     expect(
       screen.getByText(/No balance history in this period/u)
     ).toBeInTheDocument();
@@ -138,6 +154,7 @@ describe("ReportsPage", () => {
           income: "5000.000000",
           month: "2026-09",
           net: "3800.000000",
+          savingsRate: 76,
         },
       ],
       months: ["2026-09"],
@@ -148,6 +165,7 @@ describe("ReportsPage", () => {
           expense: "1200.000000",
           income: "5000.000000",
           net: "3800.000000",
+          savingsRate: 76,
         },
       ],
     });
@@ -171,6 +189,11 @@ describe("ReportsPage", () => {
     renderPage();
 
     expect(await screen.findByText("Net cash flow")).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByRole("list", { name: "Monthly savings rates" })
+      ).getByText("76%")
+    ).toBeVisible();
     const flow = screen.getByRole("region", { name: "Cash flow" });
     expect(
       within(flow).getByRole("table", { name: "Money in and out by month" })
@@ -179,6 +202,208 @@ describe("ReportsPage", () => {
       screen.getByRole("meter", { name: "Groceries share of spending" })
     ).toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: "Currency" })).toBeNull();
+  });
+
+  it("shows N/A for a month with no income and filters budget rows by currency", async () => {
+    const user = userEvent.setup();
+    netWorth.mockResolvedValue({
+      byType: [],
+      defaultCurrency: "PHP",
+      positions: [position],
+      today: "2026-09-24",
+    });
+    cashFlow.mockResolvedValue({
+      defaultCurrency: "PHP",
+      monthly: [
+        {
+          currencyCode: "PHP",
+          expense: "20",
+          income: "0",
+          month: "2026-08",
+          net: "-20",
+          savingsRate: null,
+        },
+        {
+          currencyCode: "PHP",
+          expense: "25",
+          income: "100",
+          month: "2026-09",
+          net: "75",
+          savingsRate: 75,
+        },
+      ],
+      months: ["2026-08", "2026-09"],
+      period,
+      totals: [
+        {
+          currencyCode: "PHP",
+          expense: "45",
+          income: "100",
+          net: "55",
+          savingsRate: 55,
+        },
+      ],
+    });
+    budgetPerformance.mockResolvedValue({
+      defaultCurrency: "PHP",
+      months: [
+        {
+          lines: [
+            {
+              archived: false,
+              budgeted: "100",
+              categoryId: "food",
+              color: "green",
+              currencyCode: "PHP",
+              icon: "🍽️",
+              name: "Food & Dining",
+              percentUsed: 20,
+              spent: "20",
+              status: "within",
+              variance: "80",
+            },
+            {
+              archived: false,
+              budgeted: "30",
+              categoryId: "travel",
+              color: "blue",
+              currencyCode: "USD",
+              icon: "✈️",
+              name: "Travel",
+              percentUsed: 133,
+              spent: "40",
+              status: "overspent",
+              variance: "-10",
+            },
+          ],
+          month: "2026-09",
+          totals: [
+            {
+              budgeted: "100",
+              currencyCode: "PHP",
+              spent: "20",
+              variance: "80",
+            },
+            {
+              budgeted: "30",
+              currencyCode: "USD",
+              spent: "40",
+              variance: "-10",
+            },
+          ],
+        },
+      ],
+      period,
+      totals: [
+        { budgeted: "100", currencyCode: "PHP", spent: "20", variance: "80" },
+        { budgeted: "30", currencyCode: "USD", spent: "40", variance: "-10" },
+      ],
+      truncated: false,
+    });
+    renderPage();
+    const flow = await screen.findByRole("region", { name: "Cash flow" });
+    expect(
+      await within(flow).findByRole("table", {
+        name: "Money in and out by month",
+      })
+    ).toHaveTextContent("N/A");
+    const rates = screen.getByRole("list", { name: "Monthly savings rates" });
+    expect(within(rates).getByText("N/A")).toBeVisible();
+    expect(within(rates).getByText("75%")).toBeVisible();
+    const budget = screen.getByRole("region", { name: "Budget performance" });
+    expect(within(budget).getByText(/Food & Dining/u)).toBeInTheDocument();
+    expect(within(budget).getByRole("table")).toHaveTextContent("100");
+    expect(within(budget).getByRole("table")).toHaveTextContent("20");
+    expect(within(budget).getByRole("table")).toHaveTextContent("80");
+    expect(
+      within(budget).getByRole("row", { name: /Total/u })
+    ).toHaveTextContent("100");
+    expect(
+      within(budget).getByRole("row", { name: /Total/u })
+    ).toHaveTextContent("20");
+    expect(
+      within(budget).getByRole("row", { name: /Total/u })
+    ).toHaveTextContent("80");
+    const periodTotals = within(budget).getByLabelText("Period budget totals");
+    expect(periodTotals).toHaveTextContent("100");
+    expect(periodTotals).toHaveTextContent("20");
+    expect(periodTotals).toHaveTextContent("80");
+    expect(within(budget).queryByText(/Travel/u)).toBeNull();
+    await user.click(screen.getByRole("combobox", { name: "Currency" }));
+    await user.click(await screen.findByRole("option", { name: "USD" }));
+    expect(within(budget).getByText(/Travel/u)).toBeInTheDocument();
+    expect(
+      within(budget).getByRole("row", { name: /Total/u })
+    ).toHaveTextContent("minus $10");
+    expect(
+      within(budget).getByLabelText("Period budget totals")
+    ).toHaveTextContent("minus $10");
+    expect(within(budget).queryByText(/Food & Dining/u)).toBeNull();
+  });
+
+  it("explains when budgets exist only in another currency", async () => {
+    netWorth.mockResolvedValue({
+      byType: [],
+      defaultCurrency: "PHP",
+      positions: [position],
+      today: "2026-09-24",
+    });
+    budgetPerformance.mockResolvedValue({
+      defaultCurrency: "PHP",
+      months: [
+        {
+          lines: [
+            {
+              archived: false,
+              budgeted: "30.000000",
+              categoryId: "travel",
+              color: "blue",
+              currencyCode: "USD",
+              icon: "✈️",
+              name: "Travel",
+              percentUsed: 50,
+              spent: "15.000000",
+              status: "within",
+              variance: "15.000000",
+            },
+          ],
+          month: "2026-09",
+          totals: [
+            {
+              budgeted: "30.000000",
+              currencyCode: "USD",
+              spent: "15.000000",
+              variance: "15.000000",
+            },
+          ],
+        },
+      ],
+      period,
+      totals: [
+        {
+          budgeted: "30.000000",
+          currencyCode: "USD",
+          spent: "15.000000",
+          variance: "15.000000",
+        },
+      ],
+      truncated: false,
+    });
+    renderPage();
+    const budget = await screen.findByRole("region", {
+      name: "Budget performance",
+    });
+    expect(
+      await within(budget).findByText("No budgets in PHP for this period.")
+    ).toBeInTheDocument();
+    expect(within(budget).queryByRole("table")).toBeNull();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("combobox", { name: "Currency" }));
+    await user.click(await screen.findByRole("option", { name: "USD" }));
+    expect(within(budget).getByRole("table")).toHaveTextContent("Travel");
+    expect(
+      within(budget).queryByText("No budgets in PHP for this period.")
+    ).toBeNull();
   });
 
   it("requests the chosen preset, and a custom range seeded from it", async () => {
