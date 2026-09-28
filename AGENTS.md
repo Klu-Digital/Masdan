@@ -50,7 +50,7 @@ Run one file: `pnpm exec vitest run --project unit path/to/file.test.ts`.
 
 `@masdan/env/server` freezes its config at import, so `vi.stubEnv` does not work on it. Mock the module instead — `apps/server/src/metrics.test.ts` is the pattern.
 
-Reference tables are held back from the per-test `TRUNCATE` — `REFERENCE_TABLES` in `packages/testing/src/db.ts`. `currency` is seeded by the migration that creates it, because the test template only runs `drizzle-kit migrate`, never post-migration scripts; truncating it would break `organization.default_currency` for every test that signs a user up. A test that mutates a reference row has to put it back.
+Reference tables are held back from the per-test `TRUNCATE` — `REFERENCE_TABLES` in `packages/testing/src/db.ts`. `currency` is seeded by a post-migration script, which the test template runs after `drizzle-kit migrate`; truncating it would break `organization.default_currency` for every test that signs a user up. A test that mutates a reference row has to put it back.
 
 ## Invariants worth knowing before editing
 
@@ -86,7 +86,7 @@ These are the ones that cost real time to rediscover. The README carries the ful
 
 **Comments.** One line, naming the bug the line prevents. [TERSE.md](TERSE.md) has the budget, what earns more than a line, and the directive and template-literal gotchas.
 
-**Migrations and backfills.** `pnpm db:push` is for local iteration only; anything committed gets a migration. Data backfills go in `packages/db/src/post-migration-scripts/`, not migrations.
+**Migrations and backfills.** `pnpm db:push` is for local iteration only; anything committed gets a migration. Migrations stay as `drizzle-kit generate` wrote them — no hand-written SQL. Data backfills and reference rows (like `currency`) go in `packages/db/src/post-migration-scripts/`, so a database that has only been migrated cannot create a household until they run: use `db:deploy`, never `db:migrate` alone.
 
 **Generated files stay untouched:** `apps/web/src/routeTree.gen.ts` and migration `snapshot.json`.
 

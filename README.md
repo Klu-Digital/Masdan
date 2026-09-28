@@ -60,10 +60,10 @@ This project uses PostgreSQL with Drizzle ORM.
 1. Make sure you have a PostgreSQL database set up.
 2. Update your `apps/server/.env` file with your PostgreSQL connection details.
 
-3. Apply migrations to your database:
+3. Apply migrations, the queue schema and post-migration scripts to your database:
 
 ```bash
-pnpm run db:migrate
+pnpm run db:deploy
 ```
 
 Then, run the development server:

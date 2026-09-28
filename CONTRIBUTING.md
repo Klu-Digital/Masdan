@@ -18,7 +18,7 @@ pnpm db:deploy
 pnpm dev
 ```
 
-`pnpm db:deploy` is the composite one — drizzle migrations, then pg-boss's own schema, then any pending post-migration scripts. Running only `pnpm db:migrate` leaves the queue schema absent, and the server will log `queue.start_failed` and serve reads with enqueueing broken.
+`pnpm db:deploy` is the composite one — drizzle migrations, then pg-boss's own schema, then any pending post-migration scripts. Running only `pnpm db:migrate` leaves the queue schema absent, and the server will log `queue.start_failed` and serve reads with enqueueing broken. It also leaves the `currency` table empty, so signing up fails on `organization.default_currency`.
 
 Ports are deliberately not all upstream defaults; see the table in the README.
 
@@ -59,13 +59,13 @@ Reach for a `.db.test.ts` when the thing under test is the SQL, the transaction 
 
 ```bash
 pnpm db:generate                          # migration from a schema edit
-pnpm db:migrate
+pnpm db:deploy
 pnpm db:post-migrate:new "backfill slugs"  # only if data needs moving too
 ```
 
 `pnpm db:push` exists for local iteration only. Anything committed gets a migration, so that every environment applies the same statements in the same order.
 
-Post-migration scripts are for data that a migration cannot express — a backfill for a column the migration just added. They live beside the migrations and run in order, once each; [`packages/db/src/dev-scripts/post-migrate/README.md`](packages/db/src/dev-scripts/post-migrate/README.md) is the authoring guide.
+Post-migration scripts are for data, because migrations hold only what `drizzle-kit generate` wrote — a backfill for a column the migration just added, or reference rows like `currency`. They live beside the migrations and run in order, once each; [`packages/db/src/dev-scripts/post-migrate/README.md`](packages/db/src/dev-scripts/post-migrate/README.md) is the authoring guide.
 
 ## Conventions
 

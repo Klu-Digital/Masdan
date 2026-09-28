@@ -212,20 +212,12 @@ const accountValues = z
 
 type AccountValues = z.output<typeof accountValues>;
 
-// An omitted product key keeps the saved one, so a client that predates the
-// field can still edit a card without wiping its product.
-const cardMetadata = (
-  values: AccountValues,
-  savedProductKey: string | null = null
-) =>
+const cardMetadata = (values: AccountValues) =>
   values.accountType === "credit_card"
     ? {
         cardLastFour: values.cardLastFour ?? null,
         cardNetwork: values.cardNetwork ?? null,
-        cardProductKey:
-          values.cardProductKey === undefined
-            ? savedProductKey
-            : values.cardProductKey,
+        cardProductKey: values.cardProductKey ?? null,
         creditLimit: values.creditLimit ?? null,
         paymentDueDay: values.paymentDueDay ?? null,
         statementClosingDay: values.statementClosingDay ?? null,
@@ -714,7 +706,7 @@ export const accountsRouter = {
       if (!existing) {
         throw accountNotFound();
       }
-      const card = cardMetadata(input, existing.cardProductKey);
+      const card = cardMetadata(input);
       assertCardProduct(card, input.institution, existing.cardProductKey);
 
       const currencyCode = requestedCurrency ?? existing.currencyCode;

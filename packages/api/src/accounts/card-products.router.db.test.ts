@@ -147,7 +147,7 @@ describe("credit card product identity", () => {
     expect(updated).toMatchObject({ cardProductKey: null, name: "Renamed" });
   });
 
-  it("changes, keeps and clears a product across updates", async () => {
+  it("changes and clears a product across updates", async () => {
     const user = await signUpTestUser();
     const context = { context: await contextFor(user.headers) };
     const created = await call(
@@ -165,10 +165,6 @@ describe("credit card product identity", () => {
     await expect(
       update({ cardProductKey: "ph-bpi-platinum-rewards-mastercard" })
     ).resolves.toMatchObject({
-      cardProductKey: "ph-bpi-platinum-rewards-mastercard",
-    });
-    // A client that never sends the field doesn't wipe it.
-    await expect(update({ name: "Still platinum" })).resolves.toMatchObject({
       cardProductKey: "ph-bpi-platinum-rewards-mastercard",
     });
     await expect(update({ cardProductKey: null })).resolves.toMatchObject({
@@ -297,7 +293,12 @@ describe("credit card product identity", () => {
       await codeOf(
         call(
           accountsRouter.update,
-          { ...cardInput, accountId: created.id, institution: "Metrobank" },
+          {
+            ...cardInput,
+            accountId: created.id,
+            cardProductKey: GOLD_REWARDS,
+            institution: "Metrobank",
+          },
           context
         )
       )

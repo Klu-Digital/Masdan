@@ -3,7 +3,7 @@ import { currencies } from "../reference/currencies";
 import { currency } from "../schema";
 
 export default definePostMigration({
-  description: "Reconcile the currency table with src/reference/currencies.ts",
+  description: "Seed the currency table from src/reference/currencies.ts",
   async up({ db, log, sql }) {
     // `enabled` is deliberately not in the update: it is an operator's choice
     // about what the pickers offer, not reference data to overwrite.
@@ -20,6 +20,6 @@ export default definePostMigration({
         target: currency.code,
       });
 
-    log.info("currency reference synced", { count: currencies.length });
+    log.info("currency reference seeded", { count: currencies.length });
   },
 });

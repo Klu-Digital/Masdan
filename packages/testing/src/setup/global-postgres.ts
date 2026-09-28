@@ -15,6 +15,32 @@ const queuePackageDir = fileURLToPath(
   new URL("../../../queue", import.meta.url)
 );
 
+/** Runs a pnpm command against the template, surfacing its output on failure. */
+const runInto = async (
+  what: string,
+  args: string[],
+  cwd: string,
+  env: Record<string, string>
+): Promise<void> => {
+  try {
+    await execFileAsync("pnpm", args, { cwd, env: { ...process.env, ...env } });
+  } catch (error) {
+    const stdout =
+      error && typeof error === "object" && "stdout" in error
+        ? error.stdout
+        : "";
+    const stderr =
+      error && typeof error === "object" && "stderr" in error
+        ? error.stderr
+        : "";
+    throw new Error(
+      `Failed to ${what} (cwd: ${cwd}).\n` +
+        `--- stdout ---\n${String(stdout)}\n--- stderr ---\n${String(stderr)}`,
+      { cause: error }
+    );
+  }
+};
+
 declare module "vite-plus/test" {
   interface ProvidedContext {
     postgresUri: string;
@@ -41,53 +67,33 @@ export default async function setup(
 
   // drizzle-kit rather than drizzle-orm's programmatic `migrate()`: the migrations
   // use v1's folder-per-migration layout, with no `meta/_journal.json` to read.
-  try {
-    await execFileAsync("pnpm", ["exec", "drizzle-kit", "migrate"], {
-      cwd: dbPackageDir,
-      env: { ...process.env, DATABASE_URL: uri },
-    });
-  } catch (error) {
-    const stdout =
-      error && typeof error === "object" && "stdout" in error
-        ? error.stdout
-        : "";
-    const stderr =
-      error && typeof error === "object" && "stderr" in error
-        ? error.stderr
-        : "";
-    throw new Error(
-      `Failed to migrate the postgres test template database via drizzle-kit (cwd: ${dbPackageDir}).\n` +
-        `--- stdout ---\n${String(stdout)}\n--- stderr ---\n${String(stderr)}`,
-      { cause: error }
-    );
-  }
+  await runInto(
+    "migrate the postgres test template database via drizzle-kit",
+    ["exec", "drizzle-kit", "migrate"],
+    dbPackageDir,
+    { DATABASE_URL: uri }
+  );
 
   // Into the template, so every clone has it. On demand via `queue.start()` would
   // race N workers to install the same schema, and production issues no DDL either.
-  try {
-    await execFileAsync("pnpm", ["exec", "pg-boss", "migrate"], {
-      cwd: queuePackageDir,
-      env: {
-        ...process.env,
-        PGBOSS_DATABASE_URL: uri,
-        PGBOSS_SCHEMA: process.env.PGBOSS_SCHEMA ?? "pgboss",
-      },
-    });
-  } catch (error) {
-    const stdout =
-      error && typeof error === "object" && "stdout" in error
-        ? error.stdout
-        : "";
-    const stderr =
-      error && typeof error === "object" && "stderr" in error
-        ? error.stderr
-        : "";
-    throw new Error(
-      `Failed to install the pg-boss schema into the postgres test template database (cwd: ${queuePackageDir}).\n` +
-        `--- stdout ---\n${String(stdout)}\n--- stderr ---\n${String(stderr)}`,
-      { cause: error }
-    );
-  }
+  await runInto(
+    "install the pg-boss schema into the postgres test template database",
+    ["exec", "pg-boss", "migrate"],
+    queuePackageDir,
+    {
+      PGBOSS_DATABASE_URL: uri,
+      PGBOSS_SCHEMA: process.env.PGBOSS_SCHEMA ?? "pgboss",
+    }
+  );
+
+  // Seeds the `currency` rows `organization.default_currency` points at, which no
+  // migration inserts; without them every sign-up fails its foreign key.
+  await runInto(
+    "run post-migration scripts against the postgres test template database",
+    ["run", "post-migrate:run"],
+    dbPackageDir,
+    { DATABASE_URL: uri }
+  );
 
   project.provide("postgresUri", uri);
 

@@ -31,7 +31,7 @@ export const getTestDb = (): Database => {
 };
 
 /**
- * Seeded by a migration and shared by every test, the same way pg-boss's
+ * Seeded into the template and shared by every test, the same way pg-boss's
  * `queue` and `schedule` are: reference rows are schema, not fixtures, and
  * truncating them breaks the `organization.default_currency` foreign key for
  * every test that signs a user up.

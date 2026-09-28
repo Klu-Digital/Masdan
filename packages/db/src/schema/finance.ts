@@ -8,9 +8,9 @@ import { boolean, pgTable, smallint, text } from "drizzle-orm/pg-core";
  * `minorUnits` is the one every ledger path needs (JPY 0, PHP 2, KWD 3) and is
  * wrong often enough in hand-copied currency lists to be worth storing once.
  *
- * Seeded by the migration that creates it, so a migrate-only environment (the
- * test template) is complete; `packages/db/src/reference/currencies.ts` is the
- * maintained source and a post-migration script reconciles the table with it.
+ * Seeded from `packages/db/src/reference/currencies.ts` by a post-migration
+ * script, not the migration, so a migrate-only database has no rows and every
+ * household insert fails its `default_currency` foreign key.
  */
 export const currency = pgTable("currency", {
   code: text("code").primaryKey(),
