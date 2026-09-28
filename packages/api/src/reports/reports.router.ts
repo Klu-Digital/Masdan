@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { getConsolidatedNetWorth } from "../exchange-rates/consolidated";
 import { orgProcedure, requirePermission } from "../procedures";
 import { getBudgetPerformance } from "./budget-performance";
 import { HISTORY_GRANULARITIES, REPORT_PRESETS } from "./periods";
@@ -72,7 +73,7 @@ const publicPeriod = (
 
 /**
  * Household reports over the canonical ledger. Every amount is exact numeric
- * text per currency — there is no FX data, so currencies are never mixed.
+ * text per currency; only consolidatedNetWorth converts currencies.
  */
 export const reportsRouter = {
   budgetPerformance: orgProcedure
@@ -119,6 +120,12 @@ export const reportsRouter = {
         period: publicPeriod(period),
       };
     }),
+
+  consolidatedNetWorth: orgProcedure
+    .use(requirePermission({ financialAccount: ["read"] }))
+    .handler(({ context }) =>
+      getConsolidatedNetWorth(context.db, context.organizationId)
+    ),
 
   netWorth: orgProcedure
     .use(requirePermission({ financialAccount: ["read"] }))

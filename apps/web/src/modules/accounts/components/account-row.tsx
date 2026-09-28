@@ -11,6 +11,7 @@ import {
   ListItemTrailing,
 } from "@masdan/ui/components/list";
 import { Meter, MeterIndicator, MeterTrack } from "@masdan/ui/components/meter";
+import { Sensitive } from "@masdan/ui/components/sensitive";
 import { toNumber } from "@masdan/ui/lib/money";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -134,13 +135,31 @@ const AllocationLabel = ({
     </>
   ) : null;
 
+const ConvertedAmount = ({
+  converted,
+  originalCurrency,
+}: {
+  converted?: { balance: string; currencyCode: string };
+  originalCurrency: string;
+}) =>
+  converted && converted.currencyCode !== originalCurrency ? (
+    <span className="text-muted-foreground text-xs">
+      <Sensitive>
+        <Amount currency={converted.currencyCode} value={converted.balance} />
+      </Sensitive>{" "}
+      converted
+    </span>
+  ) : null;
+
 export const AccountRow = ({
   account,
   allocation,
+  converted,
   today,
 }: {
   account: RowAccount;
   allocation?: LabelledAllocation | null;
+  converted?: { balance: string; currencyCode: string };
   today: string;
 }) => {
   const isCard = account.accountType === "credit_card";
@@ -180,6 +199,10 @@ export const AccountRow = ({
             tone={account.archivedAt ? "muted" : "default"}
             value={account.balance}
           />
+          <ConvertedAmount
+            converted={converted}
+            originalCurrency={account.currencyCode}
+          />
           <AllocationLabel allocation={allocation} />
         </span>
       </ListItemTrailing>
@@ -194,10 +217,12 @@ export const AccountRow = ({
 export const CardTile = ({
   account,
   allocation,
+  converted,
   today,
 }: {
   account: RowAccount;
   allocation?: LabelledAllocation | null;
+  converted?: { balance: string; currencyCode: string };
   today: string;
 }) => (
   <Link
@@ -216,6 +241,10 @@ export const CardTile = ({
             currency={account.currencyCode}
             value={account.balance}
             weight="medium"
+          />
+          <ConvertedAmount
+            converted={converted}
+            originalCurrency={account.currencyCode}
           />
           <AllocationLabel allocation={allocation} />
         </span>

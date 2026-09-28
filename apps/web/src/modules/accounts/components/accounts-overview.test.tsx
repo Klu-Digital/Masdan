@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, it, vi } from "vite-plus/test";
+import { beforeEach, expect, it, vi } from "vite-plus/test";
 
 import type { ActiveHousehold } from "@/components/household-gate";
 import { renderWithProviders } from "@/test/render";
@@ -10,6 +10,9 @@ import type * as TypeImport___utils_orpc from "@/utils/orpc";
 const accountsList = vi.hoisted(() => vi.fn());
 const listStatements = vi.hoisted(() => vi.fn());
 const netWorth = vi.hoisted(() => vi.fn());
+const consolidatedNetWorth = vi.hoisted(() => vi.fn());
+const currenciesList = vi.hoisted(() => vi.fn());
+const exchangeRatesList = vi.hoisted(() => vi.fn());
 
 vi.mock("@/utils/orpc", async (importOriginal) => {
   const actual = await importOriginal<typeof TypeImport___utils_orpc>();
@@ -17,7 +20,9 @@ vi.mock("@/utils/orpc", async (importOriginal) => {
     ...actual,
     client: {
       accounts: { list: accountsList, listStatements },
-      reports: { netWorth },
+      currencies: { list: currenciesList },
+      exchangeRates: { list: exchangeRatesList },
+      reports: { consolidatedNetWorth, netWorth },
     },
   };
 });
@@ -26,6 +31,11 @@ vi.mock("@/components/app-actions", () => ({
 }));
 
 const { AccountsOverview } = await import("./accounts-overview");
+const { ExchangeRatesDialog } = await import("./exchange-rates-dialog");
+
+beforeEach(() => {
+  consolidatedNetWorth.mockRejectedValue(new Error("offline"));
+});
 
 const household: ActiveHousehold = {
   activeOrganizationId: "home",
@@ -176,6 +186,155 @@ it("places groups in asset and liability sections with separate currency totals"
     expect(assets).toHaveTextContent("₱100.00");
     expect(assets).toHaveTextContent("$5.00");
   });
+});
+
+it("shows consolidated net worth, dated sources, and one converted allocation for mixed currencies", async () => {
+  accountsList.mockResolvedValue([
+    account("Bank", "100"),
+    account("Dollar bank", "5", { currencyCode: "USD" }),
+    account("Card", "30", {
+      accountClass: "liability",
+      accountType: "credit_card",
+    }),
+  ]);
+  listStatements.mockResolvedValue([]);
+  netWorth.mockResolvedValue({
+    byType: [],
+    defaultCurrency: "PHP",
+    positions: [
+      { assets: "100", currencyCode: "PHP", liabilities: "30", netWorth: "70" },
+      { assets: "5", currencyCode: "USD", liabilities: "0", netWorth: "5" },
+    ],
+    today: "2026-09-24",
+  });
+  consolidatedNetWorth.mockResolvedValue({
+    accounts: [
+      { accountId: "Bank", convertedBalance: "100.00" },
+      { accountId: "Dollar bank", convertedBalance: "250.00" },
+      { accountId: "Card", convertedBalance: "30.00" },
+    ],
+    assets: "350.00",
+    defaultCurrency: "PHP",
+    liabilities: "30.00",
+    netWorth: "320.00",
+    rates: [
+      {
+        currencyCode: "PHP",
+        rate: "1",
+        rateDate: "2026-09-24",
+        source: "identity",
+        status: "ok",
+      },
+      {
+        currencyCode: "USD",
+        rate: "50",
+        rateDate: "2026-09-23",
+        source: "ecb",
+        status: "ok",
+      },
+    ],
+    status: "complete",
+    today: "2026-09-24",
+    unconverted: [],
+  });
+  renderWithProviders(<AccountsOverview household={household} />);
+  expect(
+    await screen.findByRole("region", { name: "Consolidated net worth" })
+  ).toHaveTextContent("₱320.00");
+  const assetHeading = screen.getByRole("heading", {
+    level: 2,
+    name: "Assets",
+  });
+  const liabilityHeading = screen.getByRole("heading", {
+    level: 2,
+    name: "Liabilities",
+  });
+  expect(assetHeading.parentElement).toHaveTextContent(/Converted ₱350\.00/u);
+  expect(liabilityHeading.parentElement).toHaveTextContent(
+    /Converted ₱30\.00/u
+  );
+  const group = screen.getByRole("region", { name: "Cash & bank" });
+  expect(
+    within(group).getByRole("button", { name: /Cash & bank/u })
+  ).toHaveTextContent("₱350.00");
+  expect(within(group).getAllByText("29% of assets")).toHaveLength(1);
+  expect(within(group).getAllByText("71% of assets")).toHaveLength(1);
+  await userEvent.setup().click(screen.getByText("View exchange rates"));
+  expect(screen.getByText(/USD: 50 · 2026-09-23 · ecb · ok/u)).toBeVisible();
+});
+
+it("warns about missing rates and excludes those accounts from converted allocations", async () => {
+  accountsList.mockResolvedValue([
+    account("Bank", "100"),
+    account("Yen", "5", { currencyCode: "JPY" }),
+  ]);
+  netWorth.mockResolvedValue({
+    byType: [],
+    defaultCurrency: "PHP",
+    positions: [],
+    today: "2026-09-24",
+  });
+  consolidatedNetWorth.mockResolvedValue({
+    accounts: [
+      { accountId: "Bank", convertedBalance: "100.00" },
+      { accountId: "Yen", convertedBalance: null },
+    ],
+    assets: "100.00",
+    defaultCurrency: "PHP",
+    liabilities: "0.00",
+    netWorth: "100.00",
+    rates: [
+      {
+        currencyCode: "JPY",
+        rate: null,
+        rateDate: null,
+        source: null,
+        status: "missing",
+      },
+    ],
+    status: "partial",
+    today: "2026-09-24",
+    unconverted: [
+      { accountCount: 1, assets: "5", currencyCode: "JPY", liabilities: "0" },
+    ],
+  });
+  renderWithProviders(<AccountsOverview household={household} />);
+  expect(
+    await screen.findByText("Excludes JPY: no exchange rate")
+  ).toBeVisible();
+  expect(
+    screen.getByText(/Accounts without exchange rates remain/u)
+  ).toBeVisible();
+  expect(screen.getByRole("link", { name: /Yen/u })).not.toHaveTextContent(
+    "% of assets"
+  );
+  const assets = screen.getByRole("region", { name: "Assets" });
+  expect(
+    within(assets).getByRole("heading", { name: "Assets" }).parentElement
+  ).toHaveTextContent(/Converted ₱100\.00.*partial/u);
+  expect(
+    within(assets).getByRole("button", { name: /Cash & bank/u })
+  ).toHaveTextContent(/₱100\.00.*excl\. JPY/u);
+});
+
+it("defaults the manual rate destination to the household currency using the shared select", async () => {
+  currenciesList.mockResolvedValue([{ code: "PHP" }, { code: "USD" }]);
+  exchangeRatesList.mockResolvedValue([]);
+  const user = userEvent.setup();
+  renderWithProviders(
+    <ExchangeRatesDialog
+      organizationId="home"
+      defaultCurrency="PHP"
+      today="2026-09-24"
+    />
+  );
+  await user.click(
+    await screen.findByRole("button", { name: "Exchange rates" })
+  );
+  expect(await screen.findByText("To currency: PHP")).toBeVisible();
+  await user.click(screen.getByText("Choose currency"));
+  await user.click(await screen.findByRole("option", { name: "USD" }));
+  expect(screen.getByRole("button", { name: "Save rate" })).toBeEnabled();
 });
 
 it("opens groups by default and toggles them with Enter and Space", async () => {

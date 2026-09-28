@@ -80,6 +80,21 @@ export const jobs = defineJobs({
     schema: z.object({ source: z.enum(["cron", "manual"]) }),
   },
   /**
+   * Fetches ECB rates via Frankfurter after the weekday publication window
+   * (16:00 UTC). Retries and duplicate ticks are safe: rows upsert on
+   * (source, base, quote, date).
+   */
+  "fx.refresh": {
+    cron: { data: {}, expression: "0 16 * * 1-5", tz: "UTC" },
+    queue: {
+      policy: "singleton",
+      retryBackoff: true,
+      retryDelay: 60,
+      retryLimit: 3,
+    },
+    schema: z.object({}).strict(),
+  },
+  /**
    * Validates or commits a CSV import, whichever its status asks for, so a
    * duplicate or retried job is a no-op once the import has moved on.
    */

@@ -13,6 +13,12 @@ export const accountsQueryOptions = (activeOrganizationId: string | null) =>
     queryKey: accountsQueryKey(activeOrganizationId),
   });
 
+export const exchangeRatesQueryOptions = (activeOrganizationId: string) =>
+  queryOptions({
+    queryFn: () => client.exchangeRates.list(),
+    queryKey: ["exchange-rates", activeOrganizationId] as const,
+  });
+
 export const accountQueryOptions = (accountId: string) =>
   queryOptions({
     queryFn: () => client.accounts.get({ accountId }),

@@ -32,16 +32,95 @@ import { useState } from "react";
 import { useAppActions } from "@/components/app-actions";
 import type { ActiveHousehold } from "@/components/household-gate";
 import { householdToday } from "@/lib/household-date";
-import { netWorthQueryOptions } from "@/modules/reports/queries";
-import type { NetWorthReport } from "@/modules/reports/queries";
+import {
+  consolidatedNetWorthQueryOptions,
+  netWorthQueryOptions,
+} from "@/modules/reports/queries";
+import type {
+  ConsolidatedNetWorthReport,
+  NetWorthReport,
+} from "@/modules/reports/queries";
 
 import { ACCOUNT_KINDS } from "../kinds";
 import { allocations } from "../net-worth";
 import { accountsQueryOptions } from "../queries";
 import { AccountRow } from "./account-row";
 import { BalanceSheet } from "./balance-sheet";
+import { ExchangeRatesDialog } from "./exchange-rates-dialog";
 
 const QUICK_START: AccountType[] = ["bank", "cash", "e_wallet", "credit_card"];
+
+const ConsolidatedHeadline = ({
+  report,
+  organizationId,
+  canUpdate,
+}: {
+  report: ConsolidatedNetWorthReport;
+  organizationId: string;
+  canUpdate: boolean;
+}) => {
+  const missing = report.unconverted.map((row) => row.currencyCode);
+  const stale = report.rates
+    .filter((rate) => rate.status === "stale")
+    .map((rate) => rate.currencyCode);
+  return (
+    <section
+      aria-label="Consolidated net worth"
+      className="flex flex-col gap-2"
+    >
+      <span className="text-muted-foreground text-xs font-medium">
+        Consolidated net worth (in {report.defaultCurrency})
+      </span>
+      <Sensitive>
+        <Amount
+          currency={report.defaultCurrency}
+          size="display"
+          value={report.netWorth}
+        />
+      </Sensitive>
+      <span className="text-muted-foreground text-xs">
+        Converted at rates as of {report.today} ·{" "}
+        {report.rates
+          .map((rate) => rate.source)
+          .filter((source) => source && source !== "identity")
+          .filter((source, index, sources) => sources.indexOf(source) === index)
+          .join(", ") || "identity"}
+      </span>
+      {missing.length ? (
+        <output className="text-destructive-foreground text-sm">
+          Excludes {missing.join(", ")}: no exchange rate
+        </output>
+      ) : null}
+      {stale.length ? (
+        <output className="text-muted-foreground text-sm">
+          Stale exchange rates: {stale.join(", ")}
+        </output>
+      ) : null}
+      <details className="text-muted-foreground text-xs">
+        <summary className="cursor-pointer">View exchange rates</summary>
+        <ul className="mt-2 grid gap-1">
+          {report.rates.map((rate) => (
+            <li key={rate.currencyCode}>
+              {rate.currencyCode}: {rate.rate ?? "missing"} ·{" "}
+              {rate.rateDate ?? "no date"} · {rate.source ?? "no source"} ·{" "}
+              {rate.status}
+            </li>
+          ))}
+        </ul>
+      </details>
+      {canUpdate ? (
+        <div>
+          <ExchangeRatesDialog
+            defaultCurrency={report.defaultCurrency}
+            key={`${organizationId}:${report.defaultCurrency}`}
+            organizationId={organizationId}
+            today={report.today}
+          />
+        </div>
+      ) : null}
+    </section>
+  );
+};
 
 const FirstRun = ({ canCreate }: { canCreate: boolean }) => {
   const { composeAccount } = useAppActions();
@@ -158,6 +237,48 @@ const NetWorthHeadline = ({
   );
 };
 
+const ConsolidatedStatus = ({
+  multiCurrency,
+  pending,
+  error,
+  report,
+  refetch,
+  organizationId,
+  canUpdate,
+}: {
+  multiCurrency: boolean;
+  pending: boolean;
+  error: boolean;
+  report: ConsolidatedNetWorthReport | undefined;
+  refetch: () => void;
+  organizationId: string;
+  canUpdate: boolean;
+}) => {
+  if (!multiCurrency) {
+    return null;
+  }
+  if (pending) {
+    return <Skeleton className="h-24 w-full sm:max-w-xl" />;
+  }
+  if (error) {
+    return (
+      <div role="alert" className="text-muted-foreground text-sm">
+        Couldn’t load consolidated net worth{" "}
+        <Button onClick={refetch} size="sm" variant="secondary">
+          Try again
+        </Button>
+      </div>
+    );
+  }
+  return report ? (
+    <ConsolidatedHeadline
+      report={report}
+      organizationId={organizationId}
+      canUpdate={canUpdate}
+    />
+  ) : null;
+};
+
 export const AccountsOverview = ({
   household,
 }: {
@@ -167,6 +288,18 @@ export const AccountsOverview = ({
   const { composeAccount } = useAppActions();
   const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
   const netWorth = useQuery(netWorthQueryOptions(activeOrganizationId));
+  const multiCurrency =
+    new Set(
+      accounts.data
+        ?.filter(
+          (account) => account.archivedAt === null && account.includeInNetWorth
+        )
+        .map((account) => account.currencyCode)
+    ).size > 1;
+  const consolidated = useQuery({
+    ...consolidatedNetWorthQueryOptions(activeOrganizationId),
+    enabled: activeOrganizationId !== null && multiCurrency,
+  });
   const [showArchived, setShowArchived] = useState(false);
   const today = householdToday(timezone);
   const canCreate = can({ financialAccount: ["create"] });
@@ -200,7 +333,11 @@ export const AccountsOverview = ({
   const archived = accounts.data.filter(
     (account) => account.archivedAt !== null
   );
-  const balanceSheet = allocations(accounts.data);
+  const converted = consolidated.isError ? undefined : consolidated.data;
+  const balanceSheet = allocations(
+    accounts.data,
+    multiCurrency ? converted : undefined
+  );
 
   return (
     <Page>
@@ -229,8 +366,18 @@ export const AccountsOverview = ({
             report={netWorth.data}
           />
 
+          <ConsolidatedStatus
+            multiCurrency={multiCurrency}
+            pending={consolidated.isPending}
+            error={consolidated.isError}
+            report={converted}
+            refetch={() => consolidated.refetch()}
+            organizationId={activeOrganizationId}
+            canUpdate={can({ financialAccount: ["update"] })}
+          />
           <BalanceSheet
             accounts={active}
+            consolidated={multiCurrency ? converted : undefined}
             balanceSheet={balanceSheet}
             report={netWorth.isError ? undefined : netWorth.data}
             today={today}

@@ -15,7 +15,7 @@ describe("account groups", () => {
       groupTotal([account({ balance: "1" }), account({ balance: "2" })])
     ).toEqual({
       currencyCode: "PHP",
-      total: 3,
+      total: "3",
     });
     expect(
       groupTotal([account({}), account({ currencyCode: "USD" })])

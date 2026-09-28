@@ -24,6 +24,7 @@ export {
   type CardReminderStatus,
 } from "./reminders";
 export { currency } from "./finance";
+export { exchangeRate, householdExchangeRate } from "./exchange-rates";
 export {
   creditCardStatement,
   financialAccount,

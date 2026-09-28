@@ -11,6 +11,9 @@ export const env = createEnv({
   server: {
     ...sharedServerVariables,
     ...integrationVariables,
+    FX_RATES_URL: z
+      .url()
+      .default("https://api.frankfurter.dev/v1/latest?base=EUR"),
     WORKERS_PORT: z.coerce.number().int().positive().default(1901),
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

@@ -1,6 +1,6 @@
 # Household reports
 
-`reports.*` (`reports.router.ts`) are `orgProcedure`s over the canonical ledger for the **active household only**. The query logic lives in plain `(db, organizationId, …)` functions in `reports.queries.ts`; `transactions.summary` and `transactions.totals` reuse them, so there is one cash-flow and one category implementation. There is no FX data: every amount is exact `numeric(30,6)` text from Postgres, **per currency**, never converted or mixed. The household default currency is the headline and comes first where order matters.
+`reports.*` (`reports.router.ts`) are `orgProcedure`s over the canonical ledger for the **active household only**. The query logic lives in plain `(db, organizationId, …)` functions in `reports.queries.ts`; `transactions.summary` and `transactions.totals` reuse them, so there is one cash-flow and one category implementation. The original reports return exact `numeric(30,6)` text from Postgres, **per currency**, never converted or mixed. The household default currency is the headline and comes first where order matters.
 
 ## Procedures
 
@@ -8,6 +8,7 @@
 | --- | --- | --- | --- |
 | `period` | `transaction: read` | `{ preset, dateFrom?, dateTo? }` | `{ preset, dateFrom, dateTo, today, timezone, defaultCurrency }` |
 | `netWorth` | `financialAccount: read` | none | `{ defaultCurrency, today, positions[], byType[] }` |
+| `consolidatedNetWorth` | `financialAccount: read` | none | `{ defaultCurrency, today, status, assets, liabilities, netWorth, rates[], accounts[], unconverted[] }` |
 | `netWorthHistory` | `financialAccount: read`, `transaction: read` | period + `granularity?: "day" \| "week" \| "month"` | `{ period, defaultCurrency, granularity, dateFrom, dateTo, points: [{ date, positions[] }] }` |
 | `cashFlow` | `transaction: read` | period + `accountIds?` | `{ period, defaultCurrency, months[], monthly[], totals[] }` |
 | `budgetPerformance` | `budget: read`, `transaction: read` | period | `{ period, defaultCurrency, months[], totals[], truncated }` |
@@ -17,6 +18,15 @@
 - `byType`: `currencyCode, accountClass, accountType, total, accountCount`.
 - `monthly`: `month (YYYY-MM), currencyCode, income, expense, net, savingsRate`. `months` lists every month in the range, including empty ones. `totals`: `currencyCode, income, expense, net, savingsRate`. Savings rate is `(income - expense) / income` as a percentage rounded to one decimal; it is `null` without positive income. Period rates use period totals, not monthly averages.
 - `categories`: `categoryId, name, icon, color, type, currencyCode, total, count`, largest first.
+
+## Consolidation and exchange rates
+
+- **As-of:** `consolidatedNetWorth` uses the household's local today and the same included active accounts as `netWorth`.
+- **Selection:** For each account currency, use the latest rate dated no later than today: a household manual direct or inverse rate to/from the default currency, or an ECB cross from same-day EUR feed legs (`EUR→default / EUR→account currency`; an EUR leg is 1). Manual wins date ties. Feed rates are shared reference data; manual rates belong to one household and must include its default currency.
+- **Stale:** Rates more than seven calendar days old still convert but are flagged.
+- **Missing:** Accounts without a rate stay in their original currency under `unconverted`, are excluded from consolidated totals and percentages, and make the report partial. Partial balance-sheet totals are labeled as such.
+- **Rounding:** Convert balances at full precision, round half away from zero to the default currency's minor units **per account**, then sum; assets minus liabilities equals net worth.
+- **Original reports:** Account balances, `netWorth` and history stay per currency and never mix currencies. FX-adjusted history is a follow-up.
 
 ## Periods
 

@@ -8,6 +8,7 @@ import { budgetsRouter } from "../budgets/budgets.router";
 import { categoriesRouter } from "../categories/categories.router";
 import { chatRouter } from "../chat/chat.router";
 import { currenciesRouter } from "../currencies/currencies.router";
+import { exchangeRatesRouter } from "../exchange-rates/exchange-rates.router";
 import { exportsRouter } from "../exports/exports.router";
 import { featureFlagsRouter } from "../feature-flags/feature-flags.router";
 import { filesRouter } from "../files/files.router";
@@ -44,6 +45,7 @@ export const appRouter = {
   categories: categoriesRouter,
   chat: chatRouter,
   currencies: currenciesRouter,
+  exchangeRates: exchangeRatesRouter,
   exports: exportsRouter,
   featureFlags: featureFlagsRouter,
   files: filesRouter,

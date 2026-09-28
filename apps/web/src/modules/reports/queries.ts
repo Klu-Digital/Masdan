@@ -2,6 +2,9 @@ import { queryOptions } from "@tanstack/react-query";
 
 import { client } from "@/utils/orpc";
 
+export type ConsolidatedNetWorthReport = Awaited<
+  ReturnType<typeof client.reports.consolidatedNetWorth>
+>;
 export type NetWorthReport = Awaited<
   ReturnType<typeof client.reports.netWorth>
 >;
@@ -32,6 +35,20 @@ export const netWorthQueryOptions = (activeOrganizationId: string | null) =>
     meta: { suppressErrorToast: true },
     queryFn: () => client.reports.netWorth(),
     queryKey: ["accounts", activeOrganizationId, "net-worth"] as const,
+  });
+
+export const consolidatedNetWorthQueryOptions = (
+  activeOrganizationId: string | null
+) =>
+  queryOptions({
+    enabled: activeOrganizationId !== null,
+    meta: { suppressErrorToast: true },
+    queryFn: () => client.reports.consolidatedNetWorth(),
+    queryKey: [
+      "accounts",
+      activeOrganizationId,
+      "consolidated-net-worth",
+    ] as const,
   });
 
 export const netWorthHistoryQueryOptions = (
