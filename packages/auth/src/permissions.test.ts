@@ -40,6 +40,9 @@ const canGoal = (
   action: "create" | "read" | "update" | "archive" | "restore"
 ): boolean => hasPermission({ permissions: { savingsGoal: [action] }, role });
 
+const canBill = (role: string, action: "read" | "confirm"): boolean =>
+  hasPermission({ permissions: { bill: [action] }, role });
+
 const canRemind = (role: string, action: "read" | "dismiss"): boolean =>
   hasPermission({ permissions: { reminder: [action] }, role });
 
@@ -172,6 +175,14 @@ describe("roles", () => {
     }
     expect(canRemind("viewer", "read")).toBe(true);
     expect(canRemind("viewer", "dismiss")).toBe(false);
+  });
+
+  it("lets every household role read bills but only contributors confirm payments", () => {
+    for (const role of ["owner", "admin", "member"]) {
+      expect(canBill(role, "confirm")).toBe(true);
+    }
+    expect(canBill("viewer", "read")).toBe(true);
+    expect(canBill("viewer", "confirm")).toBe(false);
   });
 
   it("grades file access across the ladder", () => {

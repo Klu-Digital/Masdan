@@ -8,6 +8,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 
 import { mountChatWebhooks } from "./chat";
+import { mountFeeds } from "./feeds";
 import { mountMetrics } from "./metrics";
 import { mountOrpc } from "./orpc";
 import { mountSecurityHeaders } from "./security-headers";
@@ -20,7 +21,8 @@ const identifyUser = createAuthMiddleware(auth as BetterAuthInstance, {
 export const createApp = () => {
   const app = new Hono<EvlogVariables>();
 
-  app.use(honoLogger());
+  // A feed URL's path is its credential, so it never reaches a log line.
+  app.use(honoLogger({ exclude: ["/feeds/**"] }));
 
   // Before CORS and before every route: a response that short-circuits ahead of
   // this middleware is a response that ships with no security headers at all.
@@ -29,6 +31,8 @@ export const createApp = () => {
   mountMetrics(app);
 
   mountChatWebhooks(app);
+
+  mountFeeds(app);
 
   app.use(
     "*",

@@ -54,11 +54,11 @@ server {
     # Dockerfile's `ENV CSP_CONNECT_SRC=""` is what keeps that from happening.
     add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ${CSP_CONNECT_SRC}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" always;
 
-    # The API, reached on the SPA's own origin. Two prefixes rather than one
-    # because the server mounts them as siblings at its root — /api/auth/* from
-    # better-auth, /rpc and /rpc/* from oRPC — so there is no single prefix that
-    # covers both, and nothing here rewrites the path: the server sees exactly
-    # what it mounts.
+    # The API, reached on the SPA's own origin. Separate prefixes rather than
+    # one because the server mounts them as siblings at its root — /api/auth/*
+    # from better-auth, /rpc and /rpc/* from oRPC, /feeds/* for calendar
+    # subscriptions — so there is no single prefix that covers them all, and
+    # nothing here rewrites the path: the server sees exactly what it mounts.
     #
     # Deliberately narrow. /api-reference (the Scalar docs) and the Prometheus
     # metrics path are mounted on the same server and are NOT listed here, so
@@ -101,6 +101,21 @@ server {
         # come through here — presigned PUTs go straight to the bucket — but the
         # default 1m is low enough to bite an ordinary large mutation.
         client_max_body_size 32m;
+
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    # Calendar subscriptions (the bill feed). Calendar apps fetch it with no
+    # cookie; the token in the path is the credential, so this location keeps
+    # it out of the access log.
+    location /feeds/ {
+        set $feeds_upstream "${SERVER_UPSTREAM}";
+        proxy_pass $feeds_upstream$request_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        access_log off;
 
         add_header X-Content-Type-Options "nosniff" always;
     }

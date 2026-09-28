@@ -13,6 +13,9 @@ import {
  */
 export const statement = {
   ...defaultStatements,
+  // The bill calendar. `confirm` covers marking an occurrence paid and undoing
+  // it; subscribing to the feed only needs `read`.
+  bill: ["read", "confirm"],
   // Monthly category budgets. `update` sets an amount; removing one is
   // permanent, so it is graded like archive.
   budget: ["read", "update", "delete"],
@@ -47,6 +50,7 @@ export const ac = createAccessControl(statement);
 export const roles = {
   admin: ac.newRole({
     ...adminAc.statements,
+    bill: ["read", "confirm"],
     budget: ["read", "update", "delete"],
     category: ["create", "read", "update", "archive", "restore"],
     file: ["create", "read", "delete", "delete:any"],
@@ -60,6 +64,7 @@ export const roles = {
   }),
   member: ac.newRole({
     ...memberAc.statements,
+    bill: ["read", "confirm"],
     budget: ["read", "update"],
     category: ["create", "read", "update"],
     file: ["create", "read", "delete"],
@@ -73,6 +78,7 @@ export const roles = {
   }),
   owner: ac.newRole({
     ...ownerAc.statements,
+    bill: ["read", "confirm"],
     budget: ["read", "update", "delete"],
     category: ["create", "read", "update", "archive", "restore"],
     file: ["create", "read", "delete", "delete:any"],
@@ -86,6 +92,7 @@ export const roles = {
   }),
   viewer: ac.newRole({
     ...memberAc.statements,
+    bill: ["read"],
     budget: ["read"],
     category: ["read"],
     file: ["read"],

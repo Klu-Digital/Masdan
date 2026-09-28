@@ -1,6 +1,7 @@
 import {
   Analytics01Icon,
   Building01Icon,
+  Calendar03Icon,
   Clock01Icon,
   File01Icon,
   Folder02Icon,
@@ -42,6 +43,7 @@ export const PRIMARY_NAV: NavDestination[] = [
   { icon: PieChart01Icon, label: "Budgets", to: "/budgets" },
   { icon: Target02Icon, label: "Goals", to: "/goals" },
   { icon: RepeatIcon, label: "Recurring", to: "/recurring" },
+  { icon: Calendar03Icon, label: "Bills", to: "/bills" },
 ];
 
 export const ORGANIZE_NAV: NavDestination[] = [

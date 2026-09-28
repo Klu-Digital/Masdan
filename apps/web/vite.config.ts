@@ -31,6 +31,7 @@ export default defineConfig({
     // until staging to show up.
     proxy: {
       "/api/auth": { target: apiTarget },
+      "/feeds": { target: apiTarget },
       "/rpc": { target: apiTarget },
     },
   },

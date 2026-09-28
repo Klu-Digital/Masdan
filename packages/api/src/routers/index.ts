@@ -3,6 +3,7 @@ import type { RouterClient } from "@orpc/server";
 import { accountsRouter } from "../accounts/accounts.router";
 import { askRouter } from "../ask/ask.router";
 import { attachmentsRouter } from "../attachments/attachments.router";
+import { billsRouter } from "../bills/bills.router";
 import { budgetsRouter } from "../budgets/budgets.router";
 import { categoriesRouter } from "../categories/categories.router";
 import { chatRouter } from "../chat/chat.router";
@@ -38,6 +39,7 @@ export const appRouter = {
   admin: adminRouter,
   ask: askRouter,
   attachments: attachmentsRouter,
+  bills: billsRouter,
   budgets: budgetsRouter,
   categories: categoriesRouter,
   chat: chatRouter,

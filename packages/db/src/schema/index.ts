@@ -85,3 +85,9 @@ export {
   chatLinkCode,
   type ChatChannel,
 } from "./chat";
+export {
+  billCalendarFeed,
+  billKinds,
+  billPayment,
+  type BillKind,
+} from "./bills";
