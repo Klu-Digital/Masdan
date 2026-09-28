@@ -39,9 +39,10 @@ import { netWorthQueryOptions } from "@/modules/reports/queries";
 import type { NetWorthReport } from "@/modules/reports/queries";
 
 import { ACCOUNT_GROUPS, ACCOUNT_KINDS } from "../kinds";
-import { groupOf, groupTotal } from "../net-worth";
+import { allocations, groupOf, groupTotal } from "../net-worth";
 import { accountsQueryOptions } from "../queries";
 import { AccountRow, CardTile } from "./account-row";
+import { AllocationMeter } from "./allocation-meter";
 
 const QUICK_START: AccountType[] = ["bank", "cash", "e_wallet", "credit_card"];
 
@@ -184,6 +185,7 @@ export const AccountsOverview = ({
   const archived = accounts.data.filter(
     (account) => account.archivedAt !== null
   );
+  const balanceSheet = allocations(accounts.data);
 
   return (
     <Page>
@@ -216,22 +218,34 @@ export const AccountsOverview = ({
                 return null;
               }
               const total = groupTotal(members);
+              const shares = balanceSheet.groupAllocations(group.key);
               return (
                 <ListSection aria-label={group.label} key={group.key}>
                   <ListSectionHeader>
                     <span>{group.label}</span>
-                    {total ? (
-                      <span className="tabular-nums">
-                        {formatMoney(total.total, total.currencyCode)}
-                        {group.liability ? " owed" : ""}
-                      </span>
-                    ) : null}
+                    <span className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                      {total ? (
+                        <span className="tabular-nums">
+                          {formatMoney(total.total, total.currencyCode)}
+                          {group.liability ? " owed" : ""}
+                        </span>
+                      ) : null}
+                      {shares.map((share) => (
+                        <AllocationMeter
+                          allocation={share}
+                          key={share.currencyCode}
+                        />
+                      ))}
+                    </span>
                   </ListSectionHeader>
                   {group.key === "credit" ? (
                     <div className="grid grid-cols-2 gap-x-4 gap-y-5 pt-1">
                       {members.map((account) => (
                         <CardTile
                           account={account}
+                          allocation={balanceSheet.accountAllocation(
+                            account.id
+                          )}
                           key={account.id}
                           today={today}
                         />
@@ -242,6 +256,9 @@ export const AccountsOverview = ({
                       {members.map((account) => (
                         <AccountRow
                           account={account}
+                          allocation={balanceSheet.accountAllocation(
+                            account.id
+                          )}
                           key={account.id}
                           today={today}
                         />

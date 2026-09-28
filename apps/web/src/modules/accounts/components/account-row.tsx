@@ -20,8 +20,10 @@ import { formatRelativeDays, formatShortDate } from "@/lib/dates";
 
 import { nextPaymentDue, utilizationTone } from "../credit";
 import { accountKind, accountTint } from "../kinds";
+import type { LabelledAllocation } from "../net-worth";
 import { accountStatementsQueryOptions } from "../queries";
 import { AccountCard, AccountCardThumb } from "./account-card";
+import { AllocationMeter } from "./allocation-meter";
 
 export interface RowAccount {
   accountType: string;
@@ -120,11 +122,25 @@ export const CardContext = ({
   );
 };
 
+const AllocationLabel = ({
+  allocation,
+}: {
+  allocation?: LabelledAllocation | null;
+}) =>
+  allocation ? (
+    <>
+      <span className="sr-only"> · </span>
+      <AllocationMeter allocation={allocation} />
+    </>
+  ) : null;
+
 export const AccountRow = ({
   account,
+  allocation,
   today,
 }: {
   account: RowAccount;
+  allocation?: LabelledAllocation | null;
   today: string;
 }) => {
   const isCard = account.accountType === "credit_card";
@@ -157,12 +173,15 @@ export const AccountRow = ({
         </ListItemDescription>
       </ListItemContent>
       <ListItemTrailing chevron>
-        <Amount
-          weight="medium"
-          currency={account.currencyCode}
-          tone={account.archivedAt ? "muted" : "default"}
-          value={account.balance}
-        />
+        <span className="flex flex-col items-end gap-1">
+          <Amount
+            weight="medium"
+            currency={account.currencyCode}
+            tone={account.archivedAt ? "muted" : "default"}
+            value={account.balance}
+          />
+          <AllocationLabel allocation={allocation} />
+        </span>
       </ListItemTrailing>
     </ListItem>
   );
@@ -174,9 +193,11 @@ export const AccountRow = ({
  */
 export const CardTile = ({
   account,
+  allocation,
   today,
 }: {
   account: RowAccount;
+  allocation?: LabelledAllocation | null;
   today: string;
 }) => (
   <Link
@@ -190,11 +211,14 @@ export const CardTile = ({
     <span className="flex min-w-0 flex-col gap-1 px-0.5">
       <span className="flex items-baseline justify-between gap-2">
         <span className="truncate text-sm font-medium">{account.name}</span>
-        <Amount
-          currency={account.currencyCode}
-          value={account.balance}
-          weight="medium"
-        />
+        <span className="flex flex-col items-end gap-1">
+          <Amount
+            currency={account.currencyCode}
+            value={account.balance}
+            weight="medium"
+          />
+          <AllocationLabel allocation={allocation} />
+        </span>
       </span>
       <span className="text-muted-foreground text-xs">
         <CardContext account={account} today={today} />
