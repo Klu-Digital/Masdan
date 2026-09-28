@@ -4,6 +4,7 @@ import {
   member,
   session,
 } from "@masdan/db/schema/index";
+import { log } from "@masdan/observability";
 import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
 import { call, ORPCError } from "@orpc/server";
 import { and, count, eq } from "drizzle-orm";
@@ -14,6 +15,7 @@ import type * as GatewayModule from "../ai/gateway";
 import { categoriesRouter } from "../categories/categories.router";
 import type { Context } from "../context";
 import { ai } from "./quick-entry.golden";
+import { parseQuickEntryText } from "./quick-entry.parse";
 import { transactionsRouter } from "./transactions.router";
 
 const completeJson = vi.hoisted(() => vi.fn());
@@ -310,6 +312,89 @@ describe("transactions.parseQuickEntry", () => {
           call(transactionsRouter.parseQuickEntry, { text }, home.context)
         )
       ).toBe("BAD_REQUEST");
+    }
+    expect(completeJson).not.toHaveBeenCalled();
+  });
+});
+
+describe("parseQuickEntryText", () => {
+  it("returns what the procedure returns for the same household", async () => {
+    const home = await household();
+    completeJson.mockResolvedValue(
+      ai({ account: "metrobank mc", amount: "400", kind: "expense" })
+    );
+
+    expect(
+      await parseQuickEntryText(getTestDb(), home.organizationId, EXAMPLE)
+    ).toEqual(
+      await call(
+        transactionsRouter.parseQuickEntry,
+        { text: EXAMPLE },
+        home.context
+      )
+    );
+  });
+
+  it("never matches another household's accounts", async () => {
+    const home = await household();
+    const other = await household();
+    completeJson.mockResolvedValue(
+      ai({ account: "metrobank mc", amount: "400", kind: "expense" })
+    );
+
+    const parsed = await parseQuickEntryText(
+      getTestDb(),
+      home.organizationId,
+      EXAMPLE
+    );
+
+    expect(parsed.prefill.accountId).toBe(home.card.id);
+    expect(parsed.prefill.accountId).not.toBe(other.card.id);
+  });
+
+  it("prefills without a model call when the feature's model is unset", async () => {
+    const home = await household();
+    isAiConfigured.mockReturnValue(false);
+
+    const parsed = await parseQuickEntryText(
+      getTestDb(),
+      home.organizationId,
+      EXAMPLE
+    );
+
+    expect(parsed.ai).toBe("unavailable");
+    expect(parsed.input).toBeNull();
+    expect(parsed.prefill.accountId).toBe(home.card.id);
+    expect(completeJson).not.toHaveBeenCalled();
+  });
+
+  it("falls back on a model failure without logging the text", async () => {
+    const home = await household();
+    const warn = vi.spyOn(log, "warn");
+    completeJson.mockRejectedValue(new Error("503"));
+
+    const parsed = await parseQuickEntryText(
+      getTestDb(),
+      home.organizationId,
+      EXAMPLE
+    );
+
+    expect(parsed.ai).toBe("failed");
+    expect(parsed.input).toBeNull();
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "quickentry.ai.failed" })
+    );
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("jollibee");
+    warn.mockRestore();
+  });
+
+  it("rejects empty and overlong text before any model call", async () => {
+    const home = await household();
+
+    for (const text of ["   ", "x".repeat(301)]) {
+      await expect(
+        parseQuickEntryText(getTestDb(), home.organizationId, text)
+      ).rejects.toThrow();
     }
     expect(completeJson).not.toHaveBeenCalled();
   });

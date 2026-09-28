@@ -9,11 +9,9 @@ import {
   financialTransaction,
   financialTransactionSplit,
   financialTransactionTag,
-  organization,
   recurringSchedule,
   tag,
 } from "@masdan/db/schema/index";
-import { log, parseError } from "@masdan/observability";
 import { ORPCError } from "@orpc/server";
 import {
   and,
@@ -33,7 +31,6 @@ import {
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
-import { completeJson, isAiConfigured } from "../ai/gateway";
 import { CATEGORY_TYPES } from "../categories/constants";
 import {
   orgMutationProcedure,
@@ -41,7 +38,6 @@ import {
   rateLimit,
   requirePermission,
 } from "../procedures";
-import { householdToday } from "../reports/periods";
 import {
   expenseTotal,
   getCategoryTotals,
@@ -51,13 +47,7 @@ import {
 import { ruleApplicationHolds } from "../rules/engine";
 import { getTransfer } from "../transfers/transfers.router";
 import { TRANSACTION_PAID_STATUSES } from "./constants";
-import {
-  QUICK_ENTRY_MAX_LENGTH,
-  quickEntryExtraction,
-  quickEntryMessages,
-  resolveQuickEntry,
-} from "./quick-entry";
-import type { QuickEntryExtraction, QuickEntryHousehold } from "./quick-entry";
+import { parseQuickEntryText, quickEntryText } from "./quick-entry.parse";
 import { isoDate, transactionValues } from "./schema";
 import {
   activeAccount,
@@ -568,62 +558,6 @@ export const updateTransaction = async (
   return result ? withDetails(db, result) : withDetails(db, updated);
 };
 
-/** Long enough for a slow model, short enough that typing it by hand isn't faster. */
-const QUICK_ENTRY_AI_TIMEOUT_MS = 8000;
-
-/** Only this household's active accounts and categories can ever be matched. */
-const quickEntryHousehold = async (
-  db: Database,
-  organizationId: string
-): Promise<QuickEntryHousehold> => {
-  const [accounts, categories, [household]] = await Promise.all([
-    db
-      .select({
-        accountType: financialAccount.accountType,
-        cardLastFour: financialAccount.cardLastFour,
-        cardNetwork: financialAccount.cardNetwork,
-        cardProductKey: financialAccount.cardProductKey,
-        currencyCode: financialAccount.currencyCode,
-        id: financialAccount.id,
-        institution: financialAccount.institution,
-        name: financialAccount.name,
-      })
-      .from(financialAccount)
-      .where(
-        and(
-          eq(financialAccount.organizationId, organizationId),
-          isNull(financialAccount.archivedAt)
-        )
-      )
-      .orderBy(asc(financialAccount.name)),
-    db
-      .select({ id: category.id, name: category.name, type: category.type })
-      .from(category)
-      .where(
-        and(
-          eq(category.organizationId, organizationId),
-          isNull(category.archivedAt)
-        )
-      )
-      .orderBy(asc(category.sortOrder), asc(category.name)),
-    db
-      .select({ timezone: organization.timezone })
-      .from(organization)
-      .where(eq(organization.id, organizationId))
-      .limit(1),
-  ]);
-
-  return {
-    accounts,
-    categories: categories.flatMap((row) =>
-      row.type === "expense" || row.type === "income"
-        ? [{ ...row, type: row.type }]
-        : []
-    ),
-    today: householdToday(household?.timezone ?? "Asia/Manila", new Date()),
-  };
-};
-
 export const transactionsRouter = {
   archive: orgMutationProcedure
     .use(requirePermission({ transaction: ["archive"] }))
@@ -750,35 +684,10 @@ export const transactionsRouter = {
   parseQuickEntry: orgProcedure
     .use(requirePermission({ transaction: ["create"] }))
     .use(rateLimit({ limit: 30, window: 60 }))
-    .input(
-      z.object({ text: z.string().trim().min(1).max(QUICK_ENTRY_MAX_LENGTH) })
-    )
-    .handler(async ({ context, input }) => {
-      const household = await quickEntryHousehold(
-        context.db,
-        context.organizationId
-      );
-      let ai: "failed" | "ok" | "unavailable" = "unavailable";
-      let extraction: QuickEntryExtraction | null = null;
-      if (isAiConfigured("quickTransaction")) {
-        try {
-          extraction = await completeJson({
-            feature: "quickTransaction",
-            messages: quickEntryMessages(input.text, household),
-            name: "quick_transaction",
-            schema: quickEntryExtraction,
-            timeoutMs: QUICK_ENTRY_AI_TIMEOUT_MS,
-          });
-          ai = "ok";
-        } catch (error) {
-          // The text is financial and never logged; the failure kind is enough.
-          ai = "failed";
-          log.warn({ action: "quickentry.ai.failed", ...parseError(error) });
-        }
-      }
-
-      return { ai, ...resolveQuickEntry(input.text, household, extraction) };
-    }),
+    .input(z.object({ text: quickEntryText }))
+    .handler(({ context, input }) =>
+      parseQuickEntryText(context.db, context.organizationId, input.text)
+    ),
 
   restore: orgMutationProcedure
     .use(requirePermission({ transaction: ["restore"] }))
