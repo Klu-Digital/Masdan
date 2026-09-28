@@ -1,5 +1,8 @@
 import type { Database } from "@masdan/db";
-import type { TransactionRuleApplication } from "@masdan/db/schema/index";
+import type {
+  TransactionRuleApplication,
+  TransactionSuggestionApplication,
+} from "@masdan/db/schema/index";
 import {
   category,
   financialAccount,
@@ -80,6 +83,7 @@ const transactionFields = {
   recurringOccurrenceDate: financialTransaction.recurringOccurrenceDate,
   recurringScheduleId: financialTransaction.recurringScheduleId,
   ruleApplication: financialTransaction.ruleApplication,
+  suggestionApplication: financialTransaction.suggestionApplication,
   transactionDate: financialTransaction.transactionDate,
   transferId: financialTransaction.transferId,
   transferSide: financialTransaction.transferSide,
@@ -418,11 +422,13 @@ const transactionOrderBy = (input: TransactionListInput) => {
   ];
 };
 
-/** A split transaction's categories come from its splits, never a rule. */
-const keptRuleApplication = (
-  application: TransactionRuleApplication | null,
+/** A split's categories come from its splits, never a rule or suggestion. */
+const keptApplication = <
+  A extends Pick<TransactionRuleApplication, "categoryId" | "tagIds">,
+>(
+  application: A | null,
   values: { categoryId: string; splits: unknown[]; tagIds: string[] }
-): TransactionRuleApplication | null =>
+): A | null =>
   application &&
   !(values.splits.length > 1 && application.categoryId !== null) &&
   ruleApplicationHolds(application, values)
@@ -436,16 +442,20 @@ const transactionUpdateValues = transactionValues.extend({
 export type TransactionUpdateInput = z.output<typeof transactionUpdateValues>;
 
 /**
- * The one edit path for an income or expense: the update procedure and rule
- * application both go through it. `ruleApplication` records a rule that just
- * ran; without one, earlier rule provenance survives only while the category
- * and tags the rule set are still there.
+ * The one edit path for an income or expense: the update procedure, rule
+ * application and accepted suggestions all go through it. `provenance`
+ * records a rule that just ran or a suggestion just accepted; without one,
+ * earlier provenance survives only while the category and tags it set are
+ * still there.
  */
 export const updateTransaction = async (
   db: Database,
   organizationId: string,
   input: TransactionUpdateInput,
-  ruleApplication?: TransactionRuleApplication
+  provenance: {
+    ruleApplication?: TransactionRuleApplication;
+    suggestionApplication?: TransactionSuggestionApplication;
+  } = {}
 ) => {
   const [existing] = await db
     .select({
@@ -453,6 +463,7 @@ export const updateTransaction = async (
       categoryId: financialTransaction.categoryId,
       id: financialTransaction.id,
       ruleApplication: financialTransaction.ruleApplication,
+      suggestionApplication: financialTransaction.suggestionApplication,
       transferId: financialTransaction.transferId,
     })
     .from(financialTransaction)
@@ -521,8 +532,12 @@ export const updateTransaction = async (
       currencyCode: account.currencyCode,
       notes: input.notes ?? null,
       paidStatus: input.paidStatus,
-      ruleApplication: keptRuleApplication(
-        ruleApplication ?? existing.ruleApplication,
+      ruleApplication: keptApplication(
+        provenance.ruleApplication ?? existing.ruleApplication,
+        { categoryId, splits, tagIds: input.tagIds }
+      ),
+      suggestionApplication: keptApplication(
+        provenance.suggestionApplication ?? existing.suggestionApplication,
         { categoryId, splits, tagIds: input.tagIds }
       ),
       transactionDate: input.transactionDate,

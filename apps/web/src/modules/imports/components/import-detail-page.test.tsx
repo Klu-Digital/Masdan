@@ -17,6 +17,15 @@ const discard = vi.hoisted(() => vi.fn());
 const listAccounts = vi.hoisted(() => vi.fn());
 const listCategories = vi.hoisted(() => vi.fn());
 const listTags = vi.hoisted(() => vi.fn());
+const suggestionsEnabled = vi.hoisted(() => vi.fn(() => false));
+const importSummary = vi.hoisted(() => vi.fn());
+const forImport = vi.hoisted(() => vi.fn());
+const resolveImportRows = vi.hoisted(() => vi.fn());
+const acceptAllForImport = vi.hoisted(() => vi.fn());
+
+vi.mock("@/hooks/use-feature-flag", () => ({
+  useFeatureFlag: suggestionsEnabled,
+}));
 
 vi.mock("@/utils/orpc", async (importOriginal) => {
   const actual = await importOriginal<typeof TypeImport___utils_orpc>();
@@ -26,6 +35,12 @@ vi.mock("@/utils/orpc", async (importOriginal) => {
       accounts: { list: listAccounts },
       categories: { list: listCategories },
       imports: { commit, discard, get, retry, rows },
+      suggestions: {
+        acceptAllForImport,
+        forImport,
+        importSummary,
+        resolveImportRows,
+      },
       tags: { list: listTags },
     },
   };
@@ -104,14 +119,27 @@ const renderPage = (canImport = true) =>
   );
 
 beforeEach(() => {
-  for (const mock of [get, rows, commit, retry, discard]) {
+  for (const mock of [
+    get,
+    rows,
+    commit,
+    retry,
+    discard,
+    importSummary,
+    forImport,
+    resolveImportRows,
+    acceptAllForImport,
+  ]) {
     mock.mockReset();
   }
+  suggestionsEnabled.mockReturnValue(false);
   listAccounts.mockResolvedValue([
     { archivedAt: null, id: "account-1", name: "BPI Savings" },
   ]);
   listCategories.mockResolvedValue([
     { archivedAt: null, id: "transport", name: "Transport", type: "expense" },
+    { archivedAt: null, id: "groceries", name: "Groceries", type: "expense" },
+    { archivedAt: null, id: "salary", name: "Salary", type: "income" },
   ]);
   listTags.mockResolvedValue([
     { archivedAt: null, color: "sky", id: "commute", name: "Commute" },
@@ -208,6 +236,7 @@ describe("ImportDetailPage", () => {
         importId: "import-1",
         pageSize: 200,
         statuses: ["invalid"],
+        suggestionPending: false,
       })
     );
   });
@@ -284,6 +313,127 @@ describe("ImportDetailPage", () => {
     await user.click(screen.getByRole("button", { name: "Try again" }));
     await waitFor(() =>
       expect(retry).toHaveBeenCalledWith({ importId: "import-1" })
+    );
+  });
+
+  it("offers no suggestions while the flag is off", async () => {
+    get.mockResolvedValue(baseImport);
+    renderPage();
+
+    await screen.findByRole("table", { name: "Import rows" });
+    expect(screen.queryByRole("tab", { name: "Suggestions" })).toBeNull();
+    expect(screen.queryByLabelText("Suggestions")).toBeNull();
+    expect(importSummary).not.toHaveBeenCalled();
+  });
+
+  it("asks for suggestions on rows still on the default category", async () => {
+    suggestionsEnabled.mockReturnValue(true);
+    get.mockResolvedValue(baseImport);
+    importSummary.mockResolvedValue({ pending: 0, unsuggested: 2 });
+    forImport.mockResolvedValue({
+      pending: 1,
+      status: "suggested",
+      unsuggested: 0,
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Suggest categories" })
+    );
+    await waitFor(() =>
+      expect(forImport).toHaveBeenCalledWith({ importId: "import-1" })
+    );
+  });
+
+  it("accepts, edits or rejects a row's suggestion", async () => {
+    suggestionsEnabled.mockReturnValue(true);
+    get.mockResolvedValue(baseImport);
+    importSummary.mockResolvedValue({ pending: 1, unsuggested: 0 });
+    resolveImportRows.mockResolvedValue({
+      accepted: 1,
+      pending: 0,
+      rejected: 0,
+      unsuggested: 0,
+    });
+    rows.mockResolvedValue({
+      items: [
+        {
+          ...rowItems[0],
+          amount: "245.000000",
+          categoryId: "groceries",
+          description: "GRAB RIDE",
+          id: "row-4",
+          ruleApplication: null,
+          suggestion: {
+            status: "pending",
+            suggested: { categoryId: "transport", tagIds: ["commute"] },
+            suggestedAt: "2026-09-28T00:00:00.000Z",
+          },
+          suggestionApplication: null,
+          type: "expense",
+        },
+      ],
+      page: 1,
+      pageSize: 200,
+      total: 1,
+      totalPages: 1,
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    const table = await screen.findByRole("table", { name: "Import rows" });
+    expect(
+      await within(table).findByText("Transport · #Commute")
+    ).toBeVisible();
+    // Annotated only: the row still shows the category it would import as.
+    expect(within(table).getByText("Groceries")).toBeVisible();
+    expect(screen.getByText(/1 suggestion awaits your review/u)).toBeVisible();
+
+    await user.click(within(table).getByRole("button", { name: "Edit" }));
+    await user.click(within(table).getByRole("button", { name: "Commute" }));
+    await user.click(within(table).getByRole("button", { name: "Accept" }));
+    await waitFor(() =>
+      expect(resolveImportRows).toHaveBeenCalledWith({
+        decisions: [
+          {
+            action: "accept",
+            categoryId: "transport",
+            rowId: "row-4",
+            tagIds: [],
+          },
+        ],
+        importId: "import-1",
+      })
+    );
+
+    await user.click(within(table).getByRole("button", { name: "Reject" }));
+    await waitFor(() =>
+      expect(resolveImportRows).toHaveBeenLastCalledWith({
+        decisions: [{ action: "reject", rowId: "row-4" }],
+        importId: "import-1",
+      })
+    );
+  });
+
+  it("accepts every pending suggestion at once", async () => {
+    suggestionsEnabled.mockReturnValue(true);
+    get.mockResolvedValue(baseImport);
+    importSummary.mockResolvedValue({ pending: 3, unsuggested: 0 });
+    acceptAllForImport.mockResolvedValue({
+      accepted: 3,
+      pending: 0,
+      rejected: 0,
+      unsuggested: 0,
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Accept all 3" })
+    );
+    await waitFor(() =>
+      expect(acceptAllForImport).toHaveBeenCalledWith({ importId: "import-1" })
     );
   });
 });

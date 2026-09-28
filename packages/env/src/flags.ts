@@ -14,6 +14,11 @@ export interface FeatureFlagDefinition {
 }
 
 export const featureFlagRegistry = {
+  FF__AI_CATEGORIZATION: {
+    defaultEnabled: false,
+    description:
+      "AI category and tag suggestions for transactions and import review.",
+  },
   FF__ASK_MASDAN: {
     defaultEnabled: false,
     description:

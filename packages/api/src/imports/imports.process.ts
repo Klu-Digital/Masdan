@@ -15,6 +15,7 @@ import type {
   TransactionImportRowError,
   TransactionImportRowStatus,
   TransactionRuleApplication,
+  TransactionSuggestionApplication,
 } from "@masdan/db/schema/index";
 import { log, parseError } from "@masdan/observability";
 import { storage } from "@masdan/storage";
@@ -212,6 +213,17 @@ const applyImportRules = (
     ruleApplication: outcome.application,
   };
 };
+
+/** A row carries a rule's tags or an accepted suggestion's, never both. */
+const rowTagIds = (row: {
+  ruleApplication: TransactionRuleApplication | null;
+  suggestionApplication: TransactionSuggestionApplication | null;
+}): string[] => [
+  ...new Set([
+    ...(row.ruleApplication?.tagIds ?? []),
+    ...(row.suggestionApplication?.tagIds ?? []),
+  ]),
+];
 
 const existingFingerprints = async (
   db: Database,
@@ -509,9 +521,7 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
         .filter(({ archivedAt }) => archivedAt === null)
         .map(({ id }) => id)
     );
-    const tagIds = [
-      ...new Set(rows.flatMap((row) => row.ruleApplication?.tagIds ?? [])),
-    ];
+    const tagIds = [...new Set(rows.flatMap(rowTagIds))];
     const tagRows =
       tagIds.length === 0
         ? []
@@ -535,7 +545,7 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
         staleCategory.push(row.id);
         return false;
       }
-      if (row.ruleApplication?.tagIds.some((id) => !activeTags.has(id))) {
+      if (rowTagIds(row).some((id) => !activeTags.has(id))) {
         staleTag.push(row.id);
         return false;
       }
@@ -560,7 +570,7 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
       {
         field: "tags",
         message:
-          "A tag the matching rule adds was archived after the preview. Restore it and import again.",
+          "A tag this row adds was archived after the preview. Restore it and import again.",
       },
     ]);
     await setRowStatus(tx, beforeOpening, "invalid", [
@@ -584,6 +594,7 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
               notes: row.notes,
               paidStatus: "paid",
               ruleApplication: row.ruleApplication,
+              suggestionApplication: row.suggestionApplication,
               transactionDate: row.transactionDate ?? "",
             })
           )
@@ -608,7 +619,7 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
           continue;
         }
         links.push({ rowId: row.id, transactionId });
-        for (const tagId of row.ruleApplication?.tagIds ?? []) {
+        for (const tagId of rowTagIds(row)) {
           tagLinks.push({ tagId, transactionId });
         }
         if (

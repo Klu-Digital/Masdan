@@ -1,5 +1,8 @@
 import type { Database } from "@masdan/db";
-import type { TransactionRuleApplication } from "@masdan/db/schema/index";
+import type {
+  TransactionRuleApplication,
+  TransactionSuggestionApplication,
+} from "@masdan/db/schema/index";
 import {
   category,
   financialAccount,
@@ -197,6 +200,7 @@ export interface TransactionWrite {
   paidStatus: TransactionPaidStatus;
   recurrence?: RecurringOccurrence | null;
   ruleApplication?: TransactionRuleApplication | null;
+  suggestionApplication?: TransactionSuggestionApplication | null;
   transactionDate: string;
 }
 
@@ -217,6 +221,7 @@ export const transactionInsertValues = (
   recurringOccurrenceDate: values.recurrence?.occurrenceDate ?? null,
   recurringScheduleId: values.recurrence?.scheduleId ?? null,
   ruleApplication: values.ruleApplication ?? null,
+  suggestionApplication: values.suggestionApplication ?? null,
   transactionDate: values.transactionDate,
 });
 

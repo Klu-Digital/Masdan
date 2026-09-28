@@ -37,6 +37,13 @@ export const configManifest = [
     targets: ["local-server", "dokploy-server"],
   },
   {
+    description: "provider/model used to suggest transaction categories",
+    kind: "config",
+    name: "CATEGORIZE_AI_MODEL",
+    required: false,
+    targets: ["local-server", "dokploy-server"],
+  },
+  {
     description: "Whether Better Auth rate limiting is enabled",
     kind: "config",
     name: "AUTH_RATE_LIMIT_ENABLED",

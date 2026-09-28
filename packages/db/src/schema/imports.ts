@@ -17,6 +17,10 @@ import { category } from "./categories";
 import { financialAccount } from "./financial-accounts";
 import type { TransactionRuleApplication } from "./rules";
 import { file } from "./storage";
+import type {
+  TransactionImportRowSuggestion,
+  TransactionSuggestionApplication,
+} from "./suggestions";
 import { financialTransaction } from "./transactions";
 
 export const transactionImportStatuses = [
@@ -139,6 +143,12 @@ export const transactionImportRow = pgTable(
     ruleApplication:
       jsonb("rule_application").$type<TransactionRuleApplication>(),
     status: text("status", { enum: transactionImportRowStatuses }).notNull(),
+    /** An AI suggestion under review; the category moves only on accept. */
+    suggestion: jsonb("suggestion").$type<TransactionImportRowSuggestion>(),
+    /** The accepted suggestion; commit copies it onto the transaction. */
+    suggestionApplication: jsonb(
+      "suggestion_application"
+    ).$type<TransactionSuggestionApplication>(),
     transactionDate: date("transaction_date", { mode: "string" }),
     transactionId: uuid("transaction_id").references(
       () => financialTransaction.id,

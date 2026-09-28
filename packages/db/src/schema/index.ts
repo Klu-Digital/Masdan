@@ -66,6 +66,13 @@ export {
   type TransactionRuleType,
 } from "./rules";
 export {
+  transactionImportRowSuggestionStatuses,
+  type CategorizationProposal,
+  type TransactionImportRowSuggestion,
+  type TransactionImportRowSuggestionStatus,
+  type TransactionSuggestionApplication,
+} from "./suggestions";
+export {
   postMigration,
   postMigrationStatuses,
   type PostMigrationStatus,

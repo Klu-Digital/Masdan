@@ -22,6 +22,7 @@ import { currency } from "./finance";
 import { financialAccount } from "./financial-accounts";
 import type { TransactionRuleApplication } from "./rules";
 import { file } from "./storage";
+import type { TransactionSuggestionApplication } from "./suggestions";
 import { tag } from "./tags";
 
 const money = (name: string) => numeric(name, { precision: 30, scale: 6 });
@@ -215,6 +216,10 @@ export const financialTransaction = pgTable(
     /** The rule behind the current category/tags; cleared once they stop holding. */
     ruleApplication:
       jsonb("rule_application").$type<TransactionRuleApplication>(),
+    /** The accepted AI suggestion behind the category/tags, while it holds. */
+    suggestionApplication: jsonb(
+      "suggestion_application"
+    ).$type<TransactionSuggestionApplication>(),
     transactionDate: date("transaction_date", { mode: "string" }).notNull(),
     transferId: uuid("transfer_id").references(() => financialTransfer.id, {
       onDelete: "cascade",

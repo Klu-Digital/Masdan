@@ -211,9 +211,12 @@ export const applyRuleActions = (
   };
 };
 
-/** Whether a transaction still carries what the rule set, after a manual edit. */
+/**
+ * Whether a transaction still carries what a rule — or an accepted
+ * suggestion — set, after a manual edit.
+ */
 export const ruleApplicationHolds = (
-  application: RuleApplication,
+  application: Pick<RuleApplication, "categoryId" | "tagIds">,
   values: { categoryId: string; tagIds: readonly string[] }
 ): boolean =>
   (application.categoryId === null ||

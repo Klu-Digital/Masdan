@@ -345,7 +345,7 @@ export const rulesRouter = {
           transactionDate: target.transaction.transactionDate,
           transactionId: target.transaction.id,
         },
-        match.outcome.application
+        { ruleApplication: match.outcome.application }
       );
     }),
 

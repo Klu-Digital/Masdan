@@ -19,6 +19,7 @@ import { recurringRouter } from "../recurring/recurring.router";
 import { remindersRouter } from "../reminders/reminders.router";
 import { reportsRouter } from "../reports/reports.router";
 import { rulesRouter } from "../rules/rules.router";
+import { suggestionsRouter } from "../suggestions/suggestions.router";
 import { tagsRouter } from "../tags/tags.router";
 import { transactionsRouter } from "../transactions/transactions.router";
 import { transfersRouter } from "../transfers/transfers.router";
@@ -56,6 +57,7 @@ export const appRouter = {
   reminders: remindersRouter,
   reports: reportsRouter,
   rules: rulesRouter,
+  suggestions: suggestionsRouter,
   tags: tagsRouter,
   transactions: transactionsRouter,
   transfers: transfersRouter,

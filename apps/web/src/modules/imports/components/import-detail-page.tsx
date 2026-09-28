@@ -41,12 +41,17 @@ import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { PageSkeleton } from "@/components/household-gate";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import {
   accountsQueryOptions,
   invalidateAccounts,
 } from "@/modules/accounts/queries";
 import { categoriesQueryOptions } from "@/modules/categories/queries";
 import { ruleEffects, ruleReasons } from "@/modules/rules/presentation";
+import {
+  ImportRowSuggestion,
+  ImportSuggestionsBar,
+} from "@/modules/suggestions/components/import-suggestions";
 import { tagsQueryOptions } from "@/modules/tags/queries";
 import { invalidateTransactions } from "@/modules/transactions/queries";
 import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
@@ -63,7 +68,13 @@ import { ImportStatusBadge } from "./import-status";
 import { MappingForm, toFormValues } from "./mapping-form";
 import type { ImportConfig } from "./mapping-form";
 
-type RowFilter = "all" | "invalid" | "valid" | "duplicate" | "imported";
+type RowFilter =
+  | "all"
+  | "invalid"
+  | "valid"
+  | "duplicate"
+  | "imported"
+  | "suggested";
 
 const ROW_FILTERS: { label: string; value: RowFilter }[] = [
   { label: "All rows", value: "all" },
@@ -72,6 +83,11 @@ const ROW_FILTERS: { label: string; value: RowFilter }[] = [
   { label: "Duplicates", value: "duplicate" },
   { label: "Imported", value: "imported" },
 ];
+
+const SUGGESTED_FILTER: { label: string; value: RowFilter } = {
+  label: "Suggestions",
+  value: "suggested",
+};
 
 const ROW_STATUS: Record<
   string,
@@ -84,15 +100,31 @@ const ROW_STATUS: Record<
 };
 
 type RuleApplication = NonNullable<ImportRow["ruleApplication"]>;
+type Categories = NonNullable<ReturnType<typeof useCategories>["data"]>;
+type Tags = NonNullable<ReturnType<typeof useTags>["data"]>;
+
+const useCategories = (activeOrganizationId: string) =>
+  useQuery(categoriesQueryOptions(activeOrganizationId));
+const useTags = (activeOrganizationId: string) =>
+  useQuery(tagsQueryOptions(activeOrganizationId));
 
 const RowsTable = ({
+  categories,
   currency,
   describeRule,
+  importId,
+  review,
   rows,
+  tags,
 }: {
+  categories: Categories;
   currency: string;
   describeRule: (application: RuleApplication) => string;
+  importId: string;
+  /** Present while suggestions are on; `canReview` gates the actions. */
+  review: { canReview: boolean } | null;
   rows: ImportRow[];
+  tags: Tags;
 }) => (
   <Table aria-label="Import rows" variant="card">
     <TableHeader>
@@ -100,6 +132,7 @@ const RowsTable = ({
         <TableHead>Row</TableHead>
         <TableHead>Date</TableHead>
         <TableHead>Description</TableHead>
+        <TableHead>Category</TableHead>
         <TableHead className="text-right">Amount</TableHead>
         <TableHead>Status</TableHead>
       </TableRow>
@@ -135,6 +168,21 @@ const RowsTable = ({
                   {row.raw.join(" · ")}
                 </span>
               ) : null}
+              {review || row.suggestionApplication ? (
+                <ImportRowSuggestion
+                  canReview={review?.canReview ?? false}
+                  categories={categories}
+                  importId={importId}
+                  row={row}
+                  tags={tags}
+                />
+              ) : null}
+            </TableCell>
+            <TableCell className="align-top">
+              <span className="block truncate">
+                {categories.find(({ id }) => id === row.categoryId)?.name ??
+                  "—"}
+              </span>
             </TableCell>
             <TableCell className="text-right align-top">
               {row.amount ? (
@@ -219,6 +267,7 @@ export const ImportDetailPage = ({
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<RowFilter>("all");
   const [editing, setEditing] = useState(false);
+  const suggestionsEnabled = useFeatureFlag("FF__AI_CATEGORIZATION");
   const imported = useQuery(importQueryOptions(importId));
   const current = imported.data;
   const status = current?.status;
@@ -226,13 +275,14 @@ export const ImportDetailPage = ({
     ...importRowsQueryOptions({
       importId,
       pageSize: 200,
-      statuses: filter === "all" ? [] : [filter],
+      statuses: filter === "all" || filter === "suggested" ? [] : [filter],
+      suggestionPending: filter === "suggested",
     }),
     enabled: current !== undefined && !isImportProcessing(status),
   });
   const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
-  const categories = useQuery(categoriesQueryOptions(activeOrganizationId));
-  const tags = useQuery(tagsQueryOptions(activeOrganizationId));
+  const categories = useCategories(activeOrganizationId);
+  const tags = useTags(activeOrganizationId);
 
   const previousStatus = useRef(status);
   useEffect(() => {
@@ -304,6 +354,7 @@ export const ImportDetailPage = ({
   }
 
   const currency = current.currencyCode;
+  const reviewing = suggestionsEnabled && status === "ready";
   const describeRule = (application: RuleApplication): string =>
     [
       ...ruleReasons(application.conditions, accounts.data ?? []),
@@ -431,6 +482,10 @@ export const ImportDetailPage = ({
 
       {isImportProcessing(status) ? null : <Counts current={current} />}
 
+      {suggestionsEnabled && canImport && status === "ready" && !editing ? (
+        <ImportSuggestionsBar importId={importId} />
+      ) : null}
+
       {editing && accounts.data && categories.data ? (
         <MappingForm
           accounts={accounts.data}
@@ -451,7 +506,10 @@ export const ImportDetailPage = ({
             value={filter}
           >
             <TabsList aria-label="Filter rows">
-              {ROW_FILTERS.map((option) => (
+              {(reviewing
+                ? [...ROW_FILTERS, SUGGESTED_FILTER]
+                : ROW_FILTERS
+              ).map((option) => (
                 <TabsTab key={option.value} value={option.value}>
                   {option.label}
                 </TabsTab>
@@ -460,9 +518,13 @@ export const ImportDetailPage = ({
           </Tabs>
           {rows.data && rows.data.items.length > 0 ? (
             <RowsTable
+              categories={categories.data ?? []}
               currency={currency}
               describeRule={describeRule}
+              importId={importId}
+              review={reviewing ? { canReview: canImport } : null}
               rows={rows.data.items}
+              tags={tags.data ?? []}
             />
           ) : (
             <p className="text-muted-foreground text-sm">

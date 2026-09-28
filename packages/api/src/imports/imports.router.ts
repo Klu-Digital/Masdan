@@ -8,7 +8,7 @@ import {
 import type { TransactionImportStatus } from "@masdan/db/schema/index";
 import { queue } from "@masdan/queue";
 import { ORPCError } from "@orpc/server";
-import { and, asc, count, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Context } from "../context";
@@ -72,7 +72,11 @@ type Db = Context["db"];
 const importNotFound = () =>
   new ORPCError("NOT_FOUND", { message: "Import not found" });
 
-const findImport = async (db: Db, organizationId: string, importId: string) => {
+export const findImport = async (
+  db: Db,
+  organizationId: string,
+  importId: string
+) => {
   const [row] = await db
     .select(importFields)
     .from(transactionImport)
@@ -338,6 +342,8 @@ export const importsRouter = {
           .array(z.enum(transactionImportRowStatuses))
           .max(4)
           .default([]),
+        /** Only rows whose AI suggestion awaits review. */
+        suggestionPending: z.boolean().default(false),
       })
     )
     .handler(async ({ context, input }) => {
@@ -347,6 +353,9 @@ export const importsRouter = {
         eq(transactionImportRow.organizationId, context.organizationId),
         input.statuses.length > 0
           ? inArray(transactionImportRow.status, input.statuses)
+          : undefined,
+        input.suggestionPending
+          ? sql`${transactionImportRow.suggestion}->>'status' = 'pending'`
           : undefined
       );
       const [items, totals] = await Promise.all([
@@ -362,6 +371,8 @@ export const importsRouter = {
             rowNumber: transactionImportRow.rowNumber,
             ruleApplication: transactionImportRow.ruleApplication,
             status: transactionImportRow.status,
+            suggestion: transactionImportRow.suggestion,
+            suggestionApplication: transactionImportRow.suggestionApplication,
             transactionDate: transactionImportRow.transactionDate,
             transactionId: transactionImportRow.transactionId,
             type: transactionImportRow.type,

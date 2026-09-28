@@ -11,6 +11,7 @@ import { z } from "zod";
  */
 const FEATURE_MODELS = {
   askMasdan: () => env.ASK_MASDAN_AI_MODEL,
+  categorize: () => env.CATEGORIZE_AI_MODEL,
   quickTransaction: () => env.QUICK_TRANSACTION_AI_MODEL,
 } satisfies Record<string, () => string | undefined>;
 

@@ -18,6 +18,8 @@ export const env = createEnv({
     AUTH_RATE_LIMIT_WINDOW: z.coerce.number().int().positive().default(10),
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
+    /** `provider/model` for category suggestions. Unset turns their AI off. */
+    CATEGORIZE_AI_MODEL: z.string().min(1).optional(),
     /** Sent as `cf-aig-authorization`; required by an authenticated gateway. */
     CLOUDFLARE_AI_GATEWAY_TOKEN: z.string().min(1).optional(),
     /** Cloudflare AI Gateway's OpenAI-compatible base URL, ending in `/compat`. */
