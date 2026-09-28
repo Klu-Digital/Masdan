@@ -1,12 +1,10 @@
+import { H, PALETTE_SLOTS, W } from "@masdan/ui/components/card-art/canvas";
+import type { CardArt } from "@masdan/ui/components/card-art/canvas";
 import {
   CardMotif,
   CardPattern,
-  H,
-  PALETTE_SLOTS,
   Rings,
-  W,
 } from "@masdan/ui/components/credit-card-art";
-import type { CardArt } from "@masdan/ui/components/credit-card-art";
 import { NetworkMark } from "@masdan/ui/components/network-mark";
 import type { NetworkMarkKind } from "@masdan/ui/components/network-mark";
 import { paletteOf } from "@masdan/ui/lib/palette";

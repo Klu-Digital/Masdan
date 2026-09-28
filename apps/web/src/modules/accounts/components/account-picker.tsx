@@ -32,6 +32,7 @@ const AccountOption = ({ account }: { account: PickerAccount }) => (
           cardNetwork: account.cardNetwork ?? null,
           cardProductKey: account.cardProductKey ?? null,
           color: account.color,
+          currencyCode: account.currencyCode,
           institution: account.institution ?? null,
           name: account.name,
         }}

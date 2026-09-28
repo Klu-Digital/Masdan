@@ -1,0 +1,16 @@
+{
+  "name": "@masdan/card-catalog",
+  "type": "module",
+  "exports": {
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@masdan/config": "workspace:*",
+    "typescript": "^6.0.3"
+  }
+}

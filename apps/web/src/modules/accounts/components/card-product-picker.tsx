@@ -1,16 +1,11 @@
 import {
   cardNetworkLabel,
-  cardProductIssue,
-  cardProductName,
-  cardProductsFor,
-  findCardIssuer,
-  findCardProduct,
   normalizeCardText,
-  resolveCardIssuer,
   resolveCardNetwork,
-  suggestCardProducts,
-} from "@masdan/api/card-products/catalog";
-import type { CardProduct } from "@masdan/api/card-products/vocabulary";
+} from "@masdan/card-catalog/catalog";
+import type { CardCatalog } from "@masdan/card-catalog/catalog";
+import type { CardCountryCode } from "@masdan/card-catalog/countries";
+import type { CardProduct } from "@masdan/card-catalog/vocabulary";
 import { Button } from "@masdan/ui/components/button";
 import {
   Combobox,
@@ -23,6 +18,7 @@ import {
 } from "@masdan/ui/components/combobox";
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
 
+import { cardCountriesOf, useCardCatalog } from "../card-catalog";
 import { AccountCard } from "./account-card";
 
 /** What the picker reads from the rest of the card form. */
@@ -30,6 +26,7 @@ export interface CardProductIdentity {
   cardLastFour: string | null;
   cardNetwork: string | null;
   color: string | null;
+  currencyCode: string;
   institution: string;
   name: string;
 }
@@ -50,11 +47,14 @@ const OTHER: ProductOption = {
   search: "other not listed",
 };
 
-const optionFor = (product: CardProduct): ProductOption => {
-  const issuer = findCardIssuer(product.issuerKey);
+const optionFor = (
+  catalog: CardCatalog,
+  product: CardProduct
+): ProductOption => {
+  const issuer = catalog.findIssuer(product.issuerKey);
   return {
     key: product.key,
-    label: cardProductName(product),
+    label: catalog.productName(product),
     product,
     search: normalizeCardText(
       [
@@ -70,15 +70,19 @@ const optionFor = (product: CardProduct): ProductOption => {
 
 // Every card of the bank, never hidden by network: the chosen network only
 // orders the list, since a filtered-out card looks like a missing one.
-const bankProducts = (identity: CardProductIdentity): CardProduct[] => {
+const bankProducts = (
+  catalog: CardCatalog,
+  countries: readonly CardCountryCode[],
+  identity: CardProductIdentity
+): CardProduct[] => {
   const network = resolveCardNetwork(identity.cardNetwork);
   const fits = (product: CardProduct) =>
     network === null ||
     product.network === "unknown" ||
     product.network === network;
-  return cardProductsFor({ institution: identity.institution }).toSorted(
-    (left, right) => Number(fits(right)) - Number(fits(left))
-  );
+  return catalog
+    .productsFor({ institution: identity.institution }, countries)
+    .toSorted((left, right) => Number(fits(right)) - Number(fits(left)));
 };
 
 // Any word order: "gold bpi" finds "BPI Gold Rewards".
@@ -98,23 +102,35 @@ export const CardProductPicker = ({
   savedKey: string | null;
   value: string | null;
 }) => {
-  const product = findCardProduct(value);
+  const catalog = useCardCatalog(
+    cardCountriesOf({
+      cardProductKey: value,
+      currencyCode: identity.currencyCode,
+    })
+  );
+  const countries = catalog.scope([identity.currencyCode]);
+  const product = catalog.findProduct(value);
   // A bank typed under "Others" has no catalog products to offer.
   const customBank =
     identity.institution.trim() !== "" &&
-    !resolveCardIssuer(identity.institution);
+    !catalog.resolveIssuer(identity.institution, countries);
   const options = customBank
     ? [OTHER]
-    : [OTHER, ...bankProducts(identity).map(optionFor)];
-  const selected = product ? optionFor(product) : null;
-  const issue = cardProductIssue(
+    : [
+        OTHER,
+        ...bankProducts(catalog, countries, identity).map((option) =>
+          optionFor(catalog, option)
+        ),
+      ];
+  const selected = product ? optionFor(catalog, product) : null;
+  const issue = catalog.productIssue(
     { ...identity, cardProductKey: value },
     savedKey
   );
   const retired = value !== null && product === null;
   const suggestions = value
     ? []
-    : suggestCardProducts(identity).slice(0, MAX_SUGGESTIONS);
+    : catalog.suggest(identity, countries).slice(0, MAX_SUGGESTIONS);
 
   return (
     <div className="flex flex-col gap-4">
@@ -213,7 +229,7 @@ export const CardProductPicker = ({
                   onClick={() => onSelect(suggestion)}
                   type="button"
                 >
-                  {cardProductName(suggestion)}
+                  {catalog.productName(suggestion)}
                 </button>
               ))}
             </div>

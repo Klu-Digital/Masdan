@@ -1,4 +1,5 @@
 import { isPlatformAdmin } from "@masdan/auth/permissions";
+import { cardCountriesFor } from "@masdan/card-catalog/countries";
 import { Button } from "@masdan/ui/components/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -8,11 +9,14 @@ import {
   redirect,
   useRouter,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import { AppActionsProvider } from "@/components/app-actions";
 import { AppShell } from "@/components/shell/app-shell";
+import { useHousehold } from "@/hooks/use-household";
 import { authClient } from "@/lib/auth-client";
 import { invalidateSession } from "@/lib/session";
+import { loadCardCountries } from "@/modules/accounts/card-catalog";
 
 const routeApi = getRouteApi("/_auth");
 
@@ -52,6 +56,12 @@ const ImpersonationBanner = () => {
 const AuthLayout = () => {
   const { activeOrganizationId, session } = routeApi.useRouteContext();
   const impersonating = Boolean(session.session.impersonatedBy);
+  const { currency } = useHousehold();
+  // The home country's cards load with the shell, not when the first card
+  // mounts, so a household's own cards never flash generic.
+  useEffect(() => {
+    void loadCardCountries(cardCountriesFor([currency]));
+  }, [currency]);
 
   return (
     <AppActionsProvider>

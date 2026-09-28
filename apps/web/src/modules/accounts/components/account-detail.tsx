@@ -9,7 +9,7 @@ import {
   PlusSignIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { resolveCardNetwork } from "@masdan/api/card-products/catalog";
+import { resolveCardNetwork } from "@masdan/card-catalog/catalog";
 import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
@@ -81,6 +81,7 @@ import { useLedgerActions } from "@/modules/transactions/use-ledger-actions";
 import { client } from "@/utils/orpc";
 
 import { networkMarkOf } from "../card-art";
+import { cardCountriesOf, useCardCatalog } from "../card-catalog";
 import { cardProductLabel, nextPaymentDue, utilizationTone } from "../credit";
 import type { CardStatement } from "../credit";
 import { accountKind } from "../kinds";
@@ -486,6 +487,7 @@ export const AccountDetailPage = ({
   const ledgerActions = useLedgerActions(activeOrganizationId);
   const account = useQuery(accountQueryOptions(accountId));
   const snapshots = useQuery(accountSnapshotsQueryOptions(accountId));
+  const catalog = useCardCatalog(cardCountriesOf(account.data ?? {}));
   const activitySearch = {
     ...DEFAULT_TRANSACTION_SEARCH,
     accountIds: [accountId],
@@ -781,7 +783,7 @@ export const AccountDetailPage = ({
               <>
                 {data.cardProductKey ? (
                   <DetailRow label="Card">
-                    {cardProductLabel(data.cardProductKey)}
+                    {cardProductLabel(catalog, data.cardProductKey)}
                   </DetailRow>
                 ) : null}
                 <DetailRow label="Network">

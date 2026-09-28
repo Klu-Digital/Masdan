@@ -66,7 +66,7 @@ export const GOLDEN_HOUSEHOLD: QuickEntryHousehold = {
     account(GOLDEN_IDS.metrobankTitanium, "Metrobank Titanium", "credit_card", {
       cardLastFour: "4821",
       cardNetwork: "Mastercard",
-      cardProductKey: "metrobank-titanium-mastercard",
+      cardProductKey: "ph-metrobank-titanium-mastercard",
       institution: "Metrobank",
     }),
     account(GOLDEN_IDS.metrobankPayroll, "Metrobank Payroll", "bank", {

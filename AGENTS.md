@@ -10,6 +10,7 @@ apps/native    Expo app
 apps/server    Hono HTTP server — mounts auth, oRPC, metrics. Queue PRODUCER only
 apps/workers   pg-boss consumer — runs jobs, cron, queue maintenance
 packages/api   oRPC procedure ladder, middleware, routers. The business logic
+packages/card-catalog  Real credit-card looks as data, one folder per country. Adding cards: its CONTRIBUTING.md
 packages/auth  better-auth config, RBAC role definitions
 packages/db    Drizzle schema, migrations, post-migration scripts, dev scripts
 packages/env   Validated env schemas (server/web/native) + the feature-flag registry

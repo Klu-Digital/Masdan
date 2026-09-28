@@ -77,6 +77,8 @@ Post-migration scripts are for data that a migration cannot express — a backfi
 
 **Never edit generated files.** `apps/web/src/routeTree.gen.ts` and `packages/db/src/migrations/*/snapshot.json` are outputs.
 
+**Adding credit cards, banks or countries** is data-only work with its own guide and agent prompt: [packages/card-catalog/CONTRIBUTING.md](packages/card-catalog/CONTRIBUTING.md).
+
 ## Pull requests
 
 Keep the branch focused, make sure `pnpm check`, `pnpm check-types` and `pnpm test` all pass, and say in the description what you verified by hand — particularly for anything touching auth, migrations, or the Docker setup, where the tests cannot see the whole picture.

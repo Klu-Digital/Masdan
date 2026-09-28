@@ -1,8 +1,4 @@
-import {
-  findCardIssuer,
-  resolveCardIssuer,
-} from "@masdan/api/card-products/catalog";
-import { CARD_ISSUERS } from "@masdan/api/card-products/issuers";
+import { cardCountriesFor } from "@masdan/card-catalog/countries";
 import { Input } from "@masdan/ui/components/input";
 import {
   Select,
@@ -13,31 +9,36 @@ import {
 } from "@masdan/ui/components/select";
 import { useState } from "react";
 
+import { useCardCatalog } from "../card-catalog";
+
 const OTHERS = "others";
-
-const ISSUERS = CARD_ISSUERS.toSorted((left, right) =>
-  left.shortName.localeCompare(right.shortName)
-);
-
-const ITEMS = [
-  ...ISSUERS.map((issuer) => ({ label: issuer.shortName, value: issuer.key })),
-  { label: "Others", value: OTHERS },
-];
 
 /**
  * The card's issuing bank: one of the banks the card catalog knows, or
- * "Others" with the name typed in. Stores the bank's name, as before.
+ * "Others" with the name typed in. Stores the bank's name, as before. Offers
+ * the banks of the currency's country, else of every country loaded.
  */
 export const IssuerField = ({
+  currencyCode,
   onBlur,
   onChange,
   value,
 }: {
+  currencyCode: string;
   onBlur?: () => void;
   onChange: (institution: string) => void;
   value: string;
 }) => {
-  const resolved = resolveCardIssuer(value);
+  const catalog = useCardCatalog(cardCountriesFor([currencyCode]));
+  const countries = catalog.scope([currencyCode]);
+  const items = [
+    ...catalog
+      .issuersIn(countries)
+      .toSorted((left, right) => left.shortName.localeCompare(right.shortName))
+      .map((issuer) => ({ label: issuer.shortName, value: issuer.key })),
+    { label: "Others", value: OTHERS },
+  ];
+  const resolved = catalog.resolveIssuer(value, countries);
   const [other, setOther] = useState(() => value.trim() !== "" && !resolved);
   let selected: string | null = null;
   if (resolved) {
@@ -49,7 +50,7 @@ export const IssuerField = ({
   return (
     <div className="flex flex-col gap-2">
       <Select
-        items={ITEMS}
+        items={items}
         onValueChange={(next) => {
           if (next === OTHERS) {
             setOther(true);
@@ -58,7 +59,9 @@ export const IssuerField = ({
           }
           setOther(false);
           onChange(
-            typeof next === "string" ? (findCardIssuer(next)?.name ?? "") : ""
+            typeof next === "string"
+              ? (catalog.findIssuer(next)?.name ?? "")
+              : ""
           );
         }}
         value={selected}
@@ -67,7 +70,7 @@ export const IssuerField = ({
           <SelectValue placeholder="Choose a bank" />
         </SelectTrigger>
         <SelectPopup>
-          {ITEMS.map((item) => (
+          {items.map((item) => (
             <SelectItem key={item.value} value={item.value}>
               {item.label}
             </SelectItem>

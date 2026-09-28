@@ -2,6 +2,7 @@ import { CreditCardVisual } from "@masdan/ui/components/credit-card-visual";
 
 import { cardPresentation } from "../card-art";
 import type { CardIdentity } from "../card-art";
+import { cardCountriesOf, useCardCatalog } from "../card-catalog";
 
 /** A credit-card account drawn as its card, at any of the renderer's sizes. */
 export const AccountCard = ({
@@ -15,7 +16,8 @@ export const AccountCard = ({
   interactive?: boolean;
   size?: "compact" | "full" | "thumb";
 }) => {
-  const shown = cardPresentation(account);
+  const catalog = useCardCatalog(cardCountriesOf(account));
+  const shown = cardPresentation(catalog, account);
   return (
     <CreditCardVisual
       art={shown.art}

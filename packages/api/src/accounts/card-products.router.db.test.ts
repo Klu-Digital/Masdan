@@ -73,7 +73,7 @@ const cardInput = {
   statementClosingDay: 25,
 };
 
-const GOLD_REWARDS = "bpi-gold-rewards-mastercard";
+const GOLD_REWARDS = "ph-bpi-gold-rewards-mastercard";
 
 const finance = (account: {
   accountClass: string;
@@ -163,13 +163,13 @@ describe("credit card product identity", () => {
       );
 
     await expect(
-      update({ cardProductKey: "bpi-platinum-rewards-mastercard" })
+      update({ cardProductKey: "ph-bpi-platinum-rewards-mastercard" })
     ).resolves.toMatchObject({
-      cardProductKey: "bpi-platinum-rewards-mastercard",
+      cardProductKey: "ph-bpi-platinum-rewards-mastercard",
     });
     // A client that never sends the field doesn't wipe it.
     await expect(update({ name: "Still platinum" })).resolves.toMatchObject({
-      cardProductKey: "bpi-platinum-rewards-mastercard",
+      cardProductKey: "ph-bpi-platinum-rewards-mastercard",
     });
     await expect(update({ cardProductKey: null })).resolves.toMatchObject({
       cardProductKey: null,
@@ -251,7 +251,7 @@ describe("credit card product identity", () => {
       await failureOf(
         call(
           accountsRouter.create,
-          { ...cardInput, cardProductKey: "bpi-not-a-real-card" },
+          { ...cardInput, cardProductKey: "ph-bpi-not-a-real-card" },
           context
         )
       )
@@ -308,13 +308,13 @@ describe("credit card product identity", () => {
         {
           ...cardInput,
           accountId: created.id,
-          cardProductKey: "metrobank-titanium-mastercard",
+          cardProductKey: "ph-metrobank-titanium-mastercard",
           institution: "Metrobank",
         },
         context
       )
     ).resolves.toMatchObject({
-      cardProductKey: "metrobank-titanium-mastercard",
+      cardProductKey: "ph-metrobank-titanium-mastercard",
       institution: "Metrobank",
     });
   });
@@ -325,14 +325,14 @@ describe("credit card product identity", () => {
     const created = await call(accountsRouter.create, cardInput, context);
     await getTestDb()
       .update(financialAccount)
-      .set({ cardProductKey: "bpi-retired-in-2030" })
+      .set({ cardProductKey: "ph-bpi-retired-in-2030" })
       .where(eq(financialAccount.id, created.id));
 
     await expect(
       call(accountsRouter.get, { accountId: created.id }, context)
     ).resolves.toMatchObject({
       balance: "25000.000000",
-      cardProductKey: "bpi-retired-in-2030",
+      cardProductKey: "ph-bpi-retired-in-2030",
     });
     await expect(
       call(
@@ -340,13 +340,13 @@ describe("credit card product identity", () => {
         {
           ...cardInput,
           accountId: created.id,
-          cardProductKey: "bpi-retired-in-2030",
+          cardProductKey: "ph-bpi-retired-in-2030",
           name: "Old BPI card",
         },
         context
       )
     ).resolves.toMatchObject({
-      cardProductKey: "bpi-retired-in-2030",
+      cardProductKey: "ph-bpi-retired-in-2030",
       name: "Old BPI card",
     });
     expect(
@@ -356,7 +356,7 @@ describe("credit card product identity", () => {
           {
             ...cardInput,
             accountId: created.id,
-            cardProductKey: "bpi-also-retired",
+            cardProductKey: "ph-bpi-also-retired",
           },
           context
         )
@@ -422,7 +422,7 @@ describe("credit card product authorization", () => {
           {
             ...cardInput,
             accountId: created.id,
-            cardProductKey: "bpi-platinum-rewards-mastercard",
+            cardProductKey: "ph-bpi-platinum-rewards-mastercard",
           },
           secondContext
         )

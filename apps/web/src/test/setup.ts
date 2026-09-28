@@ -1,8 +1,15 @@
 import "@testing-library/jest-dom/vitest";
+import { CARD_COUNTRIES } from "@masdan/card-catalog/countries";
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vite-plus/test";
 
+import { loadCardCountries } from "@/modules/accounts/card-catalog";
+
 afterEach(cleanup);
+
+// The app loads card countries on demand; tests start with every one loaded,
+// as a household's own country is by the time its cards draw.
+await loadCardCountries(CARD_COUNTRIES.map(({ code }) => code));
 
 // jsdom does not implement `matchMedia`, which next-themes requires.
 Object.defineProperty(window, "matchMedia", {

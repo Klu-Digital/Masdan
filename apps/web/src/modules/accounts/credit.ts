@@ -1,7 +1,4 @@
-import {
-  cardProductName,
-  findCardProduct,
-} from "@masdan/api/card-products/catalog";
+import type { CardCatalog } from "@masdan/card-catalog/catalog";
 import { toNumber } from "@masdan/ui/lib/money";
 
 import { daysBetween, nextDayOfMonth } from "@/lib/dates";
@@ -67,10 +64,13 @@ export const nextPaymentDue = (
 };
 
 /** A key the catalog no longer knows still reads as something. */
-export const cardProductLabel = (key: string | null): string | null => {
+export const cardProductLabel = (
+  catalog: CardCatalog,
+  key: string | null
+): string | null => {
   if (!key) {
     return null;
   }
-  const product = findCardProduct(key);
-  return product ? cardProductName(product) : "No longer in the catalog";
+  const product = catalog.findProduct(key);
+  return product ? catalog.productName(product) : "No longer in the catalog";
 };

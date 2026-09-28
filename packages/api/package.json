@@ -12,6 +12,7 @@
   "scripts": {},
   "dependencies": {
     "@masdan/auth": "workspace:*",
+    "@masdan/card-catalog": "workspace:*",
     "@masdan/db": "workspace:*",
     "@masdan/env": "workspace:*",
     "@masdan/observability": "workspace:*",

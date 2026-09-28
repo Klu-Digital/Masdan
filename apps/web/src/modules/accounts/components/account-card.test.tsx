@@ -1,8 +1,5 @@
-import { findCardProduct } from "@masdan/api/card-products/catalog";
-import {
-  CARD_MOTIFS,
-  CARD_PATTERNS,
-} from "@masdan/api/card-products/vocabulary";
+import { cardCatalog } from "@masdan/card-catalog/all";
+import { CARD_MOTIFS, CARD_PATTERNS } from "@masdan/card-catalog/vocabulary";
 import { CreditCardVisual } from "@masdan/ui/components/credit-card-visual";
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vite-plus/test";
@@ -13,7 +10,7 @@ import { AccountCard } from "./account-card";
 const account: CardIdentity = {
   cardLastFour: "4242",
   cardNetwork: "Mastercard",
-  cardProductKey: "bpi-gold-rewards-mastercard",
+  cardProductKey: "ph-bpi-gold-rewards-mastercard",
   color: null,
   institution: "BPI",
   name: "Groceries card",
@@ -26,7 +23,7 @@ const artLayer = (container: HTMLElement) =>
   face(container)?.querySelector("svg");
 
 const cardFor = (key: string) => {
-  const product = findCardProduct(key);
+  const product = cardCatalog.findProduct(key);
   if (!product) {
     throw new Error(`${key} is not in the catalog`);
   }
@@ -36,7 +33,7 @@ const cardFor = (key: string) => {
         ...account,
         cardNetwork: product.network,
         cardProductKey: key,
-        institution: product.issuerKey,
+        institution: cardCatalog.findIssuer(product.issuerKey)?.name ?? null,
       }}
     />
   );
@@ -166,16 +163,22 @@ describe("AccountCard sizes", () => {
 
 describe("catalog cards", () => {
   it.each([
-    ["bpi-gold-rewards-mastercard", { motif: "radial-dots" }],
-    ["metrobank-titanium-mastercard", { ink: "light", pattern: "dot-matrix" }],
-    ["unionbank-u-platinum-visa", { ink: "light", motif: "oversized-letter" }],
-    ["rcbc-flex-visa", { motif: "skyline" }],
+    ["ph-bpi-gold-rewards-mastercard", { motif: "radial-dots" }],
     [
-      "securitybank-wave-mastercard",
+      "ph-metrobank-titanium-mastercard",
+      { ink: "light", pattern: "dot-matrix" },
+    ],
+    [
+      "ph-unionbank-u-platinum-visa",
+      { ink: "light", motif: "oversized-letter" },
+    ],
+    ["ph-rcbc-flex-visa", { motif: "skyline" }],
+    [
+      "ph-securitybank-wave-mastercard",
       { motif: "sweep", pattern: "topographic" },
     ],
-    ["eastwest-visa-platinum", { pattern: "angular-panels" }],
-    ["pnb-ze-lo-mastercard", { ink: "dark", motif: "sweep" }],
+    ["ph-eastwest-visa-platinum", { pattern: "angular-panels" }],
+    ["ph-pnb-ze-lo-mastercard", { ink: "dark", motif: "sweep" }],
   ])("draws %s from its catalog look", (key, look) => {
     const card = cardFor(key);
     expect(card.dataset).toMatchObject({ identity: "product", ...look });
@@ -184,26 +187,26 @@ describe("catalog cards", () => {
 
   it("keeps the reference cards visibly distinct from one another", () => {
     const looks = [
-      "bpi-gold-rewards-mastercard",
-      "metrobank-titanium-mastercard",
-      "unionbank-u-platinum-visa",
-      "rcbc-flex-visa",
-      "securitybank-wave-mastercard",
-      "eastwest-visa-platinum",
-      "pnb-ze-lo-mastercard",
+      "ph-bpi-gold-rewards-mastercard",
+      "ph-metrobank-titanium-mastercard",
+      "ph-unionbank-u-platinum-visa",
+      "ph-rcbc-flex-visa",
+      "ph-securitybank-wave-mastercard",
+      "ph-eastwest-visa-platinum",
+      "ph-pnb-ze-lo-mastercard",
     ].map((key) => lookOf(cardFor(key)));
     expect(new Set(looks).size).toBe(looks.length);
   });
 
   it("runs Ze-Lo's ribbon from red to blue", () => {
-    const stops = cardFor("pnb-ze-lo-mastercard").querySelectorAll(
+    const stops = cardFor("ph-pnb-ze-lo-mastercard").querySelectorAll(
       "linearGradient stop"
     );
     expect(stops).toHaveLength(3);
   });
 
   it("puts U Platinum's letter on a near-black card", () => {
-    const card = cardFor("unionbank-u-platinum-visa");
+    const card = cardFor("ph-unionbank-u-platinum-visa");
     expect(card.querySelector("text")).toHaveTextContent("U");
     expect(card.style.getPropertyValue("--card-face-field")).toMatch(
       /#1[0-9a-f]{5}/u

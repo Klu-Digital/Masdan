@@ -1,0 +1,7 @@
+{
+  "extends": "@masdan/config/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": []
+  }
+}

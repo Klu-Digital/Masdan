@@ -212,7 +212,7 @@ describe("AccountComposer", () => {
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         cardNetwork: "Mastercard",
-        cardProductKey: "bpi-gold-rewards-mastercard",
+        cardProductKey: "ph-bpi-gold-rewards-mastercard",
         institution: "Bank of the Philippine Islands",
       })
     );
@@ -244,7 +244,7 @@ describe("AccountComposer", () => {
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         cardNetwork: "Mastercard",
-        cardProductKey: "bdo-shopmore-mastercard-orange",
+        cardProductKey: "ph-bdo-shopmore-mastercard-orange",
         institution: "BDO Unibank",
       })
     );
@@ -327,7 +327,7 @@ describe("AccountComposer", () => {
     await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
     expect(update).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        cardProductKey: "bpi-gold-rewards-mastercard",
+        cardProductKey: "ph-bpi-gold-rewards-mastercard",
       })
     );
   });
@@ -335,7 +335,7 @@ describe("AccountComposer", () => {
   it("keeps editing a card whose saved product left the catalog", async () => {
     const user = userEvent.setup();
     renderComposer({
-      account: savedCard({ cardProductKey: "bpi-retired-in-2030" }),
+      account: savedCard({ cardProductKey: "ph-bpi-retired-in-2030" }),
     });
 
     expect(
@@ -346,7 +346,7 @@ describe("AccountComposer", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(update).toHaveBeenCalled());
     expect(update).toHaveBeenCalledWith(
-      expect.objectContaining({ cardProductKey: "bpi-retired-in-2030" })
+      expect.objectContaining({ cardProductKey: "ph-bpi-retired-in-2030" })
     );
   });
 

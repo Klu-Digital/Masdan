@@ -1,13 +1,11 @@
-import { z } from "zod";
-
+import { cardCatalog } from "@masdan/card-catalog/all";
 import {
   NETWORK_ALIASES,
-  cardProductName,
-  findCardProduct,
   normalizeCardText,
-  resolveCardIssuer,
   resolveCardNetwork,
-} from "../card-products/catalog";
+} from "@masdan/card-catalog/catalog";
+import { z } from "zod";
+
 import { addDays } from "../recurring/recurrence";
 import { daysBetween } from "../reports/periods";
 import { formatScaledAmount, positiveAmount, scaledAmount } from "./amounts";
@@ -492,7 +490,10 @@ const accountAliases = (
     }
   }
 
-  const issuer = resolveCardIssuer(account.institution);
+  const issuer = cardCatalog.resolveIssuer(
+    account.institution,
+    cardCatalog.scope([account.currencyCode])
+  );
   const issuerNames = issuer
     ? unique([issuer.name, issuer.shortName, ...issuer.aliases])
     : [account.institution ?? ""].filter(Boolean);
@@ -509,9 +510,9 @@ const accountAliases = (
         }
       }
     }
-    const product = findCardProduct(account.cardProductKey);
+    const product = cardCatalog.findProduct(account.cardProductKey);
     if (product) {
-      add(cardProductName(product), 2);
+      add(cardCatalog.productName(product), 2);
       for (const alias of product.aliases ?? []) {
         add(alias, 2);
       }

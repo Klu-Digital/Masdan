@@ -1,6 +1,10 @@
+import { cardCatalog } from "@masdan/card-catalog/all";
 import { describe, expect, it } from "vite-plus/test";
 
-import { cardPresentation } from "./card-art";
+import { cardPresentation as present } from "./card-art";
+import type { CardIdentity } from "./card-art";
+
+const cardPresentation = (card: CardIdentity) => present(cardCatalog, card);
 
 const card = {
   cardLastFour: "4242",
@@ -15,7 +19,7 @@ describe("cardPresentation", () => {
   it("draws a catalog product with its own art and network mark", () => {
     const shown = cardPresentation({
       ...card,
-      cardProductKey: "bpi-gold-rewards-mastercard",
+      cardProductKey: "ph-bpi-gold-rewards-mastercard",
     });
     expect(shown).toMatchObject({
       issuer: "BPI",
@@ -36,7 +40,7 @@ describe("cardPresentation", () => {
 
   it("treats a retired product key like no product", () => {
     expect(
-      cardPresentation({ ...card, cardProductKey: "bpi-retired-in-2030" })
+      cardPresentation({ ...card, cardProductKey: "ph-bpi-retired-in-2030" })
     ).toEqual(cardPresentation(card));
   });
 

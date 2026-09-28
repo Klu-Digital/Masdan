@@ -8,12 +8,8 @@ import {
 import type { AccountType } from "@masdan/api/accounts/constants";
 import {
   cardNetworkLabel,
-  cardProductIssue,
-  findCardIssuer,
-  findCardProduct,
-  resolveCardIssuer,
   resolveCardNetwork,
-} from "@masdan/api/card-products/catalog";
+} from "@masdan/card-catalog/catalog";
 import { Button } from "@masdan/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
 import { IconTile } from "@masdan/ui/components/icon-tile";
@@ -52,6 +48,7 @@ import {
 } from "@/modules/transactions/components/transaction-form";
 import { client } from "@/utils/orpc";
 
+import { cardCountriesOf, useCardCatalog } from "../card-catalog";
 import { ACCOUNT_GROUPS, ACCOUNT_KINDS, accountKind } from "../kinds";
 import { accountQueryOptions, invalidateAccounts } from "../queries";
 import { CardProductPicker } from "./card-product-picker";
@@ -203,6 +200,12 @@ const AccountForm = ({
   const editing = account !== undefined;
   const kind = accountKind(accountType);
   const savedProductKey = account?.cardProductKey ?? null;
+  const catalog = useCardCatalog(
+    cardCountriesOf({
+      cardProductKey: savedProductKey,
+      currencyCode: household.currency,
+    })
+  );
 
   const defaultValues: AccountFormValues = {
     accountClass: kind.accountClass,
@@ -344,11 +347,16 @@ const AccountForm = ({
                 Institution
               </FieldLabel>
               {isCard ? (
-                <IssuerField
-                  onBlur={field.handleBlur}
-                  onChange={field.handleChange}
-                  value={field.state.value}
-                />
+                <form.Subscribe selector={(state) => state.values.currencyCode}>
+                  {(currencyCode) => (
+                    <IssuerField
+                      currencyCode={currencyCode}
+                      onBlur={field.handleBlur}
+                      onChange={field.handleChange}
+                      value={field.state.value}
+                    />
+                  )}
+                </form.Subscribe>
               ) : (
                 <Input
                   id={field.name}
@@ -437,7 +445,7 @@ const AccountForm = ({
               // Not in the form schema: a submit-time error there stays stuck
               // after the bank, network or card is fixed, disabling Save.
               onChange: ({ fieldApi, value }) =>
-                cardProductIssue(
+                catalog.productIssue(
                   {
                     cardNetwork: fieldApi.form.getFieldValue("cardNetwork"),
                     cardProductKey: value,
@@ -454,6 +462,7 @@ const AccountForm = ({
                   cardLastFour: state.values.cardLastFour,
                   cardNetwork: state.values.cardNetwork,
                   color: state.values.color ?? kind.color,
+                  currencyCode: state.values.currencyCode,
                   institution: state.values.institution,
                   name: state.values.name,
                 })}
@@ -467,14 +476,14 @@ const AccountForm = ({
                         return;
                       }
                       // Picking a card deliberately picks its bank and network.
+                      const issuer = catalog.findIssuer(product.issuerKey);
                       if (
-                        resolveCardIssuer(identity.institution)?.key !==
-                        product.issuerKey
+                        issuer &&
+                        catalog.resolveIssuer(identity.institution, [
+                          issuer.country,
+                        ])?.key !== issuer.key
                       ) {
-                        form.setFieldValue(
-                          "institution",
-                          findCardIssuer(product.issuerKey)?.name ?? ""
-                        );
+                        form.setFieldValue("institution", issuer.name);
                       }
                       const network = cardNetworkLabel(product.network);
                       if (
@@ -592,7 +601,9 @@ const AccountForm = ({
             </form.Field>
           </div>
           <form.Subscribe
-            selector={(state) => findCardProduct(state.values.cardProductKey)}
+            selector={(state) =>
+              catalog.findProduct(state.values.cardProductKey)
+            }
           >
             {(product) => {
               // A catalog card fixes its network; only an unlisted card, or one
@@ -734,7 +745,7 @@ const AccountForm = ({
 
         <form.Subscribe
           selector={(state) =>
-            isCard && findCardProduct(state.values.cardProductKey) !== null
+            isCard && catalog.findProduct(state.values.cardProductKey) !== null
           }
         >
           {(hasCardDesign) =>

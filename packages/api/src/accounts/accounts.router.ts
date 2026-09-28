@@ -1,3 +1,5 @@
+import { cardCatalog } from "@masdan/card-catalog/all";
+import { CARD_PRODUCT_KEY_PATTERN } from "@masdan/card-catalog/catalog";
 import type { Database } from "@masdan/db";
 import {
   creditCardStatement,
@@ -13,10 +15,6 @@ import { ORPCError } from "@orpc/server";
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import {
-  CARD_PRODUCT_KEY_PATTERN,
-  cardProductIssue,
-} from "../card-products/catalog";
 import { TAILWIND_COLORS } from "../colors";
 import {
   orgMutationProcedure,
@@ -246,7 +244,10 @@ const assertCardProduct = (
   institution: string | null | undefined,
   savedProductKey: string | null
 ): void => {
-  const issue = cardProductIssue({ ...metadata, institution }, savedProductKey);
+  const issue = cardCatalog.productIssue(
+    { ...metadata, institution },
+    savedProductKey
+  );
   if (issue) {
     throw new ORPCError("BAD_REQUEST", { message: issue });
   }

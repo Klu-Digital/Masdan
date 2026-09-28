@@ -1,15 +1,13 @@
 import {
-  findCardIssuer,
-  findCardProduct,
   issuerCardVisual,
-  resolveCardIssuer,
   resolveCardNetwork,
-} from "@masdan/api/card-products/catalog";
+} from "@masdan/card-catalog/catalog";
+import type { CardCatalog } from "@masdan/card-catalog/catalog";
 import type {
   CardNetwork,
   CardProductVisual,
-} from "@masdan/api/card-products/vocabulary";
-import type { CardArt } from "@masdan/ui/components/credit-card-art";
+} from "@masdan/card-catalog/vocabulary";
+import type { CardArt } from "@masdan/ui/components/card-art/canvas";
 import type { NetworkMarkKind } from "@masdan/ui/components/network-mark";
 
 import { accountKind } from "./kinds";
@@ -19,6 +17,8 @@ export interface CardIdentity {
   cardNetwork: string | null;
   cardProductKey: string | null;
   color: string | null;
+  /** Which country's banks the institution is read against. */
+  currencyCode?: string | null;
   institution: string | null;
   name: string;
 }
@@ -56,11 +56,17 @@ export const networkMarkOf = (
  * else the account's own tint. An unknown or retired product key falls
  * through to the bank, never to a broken card.
  */
-export const cardPresentation = (card: CardIdentity): CardPresentation => {
-  const product = findCardProduct(card.cardProductKey);
+export const cardPresentation = (
+  catalog: CardCatalog,
+  card: CardIdentity
+): CardPresentation => {
+  const product = catalog.findProduct(card.cardProductKey);
   const issuer = product
-    ? findCardIssuer(product.issuerKey)
-    : resolveCardIssuer(card.institution);
+    ? catalog.findIssuer(product.issuerKey)
+    : catalog.resolveIssuer(
+        card.institution,
+        catalog.scope([card.currencyCode])
+      );
   const network =
     product && product.network !== "unknown"
       ? product.network

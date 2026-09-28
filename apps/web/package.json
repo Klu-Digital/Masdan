@@ -15,6 +15,7 @@
     "@hugeicons/react": "catalog:",
     "@masdan/api": "workspace:*",
     "@masdan/auth": "workspace:*",
+    "@masdan/card-catalog": "workspace:*",
     "@masdan/env": "workspace:*",
     "@masdan/storage": "workspace:*",
     "@masdan/ui": "workspace:*",
