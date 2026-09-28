@@ -1,25 +1,37 @@
 import { hasPermission } from "@masdan/auth/permissions";
+import type { PermissionRequest } from "@masdan/auth/permissions";
 import type { Database } from "@masdan/db";
 import {
   chatInboundMessage,
   chatLink,
   chatLinkCode,
+  file,
+  financialTransactionAttachment,
   financialAccount,
   member,
   organization,
 } from "@masdan/db/schema/index";
 import type { ChatChannel } from "@masdan/db/schema/index";
+import { env } from "@masdan/env/integrations";
 import { log, parseError } from "@masdan/observability";
 import type { JobPayload } from "@masdan/queue";
+import { buildObjectKey, sanitizeFileName, storage } from "@masdan/storage";
 import { ORPCError } from "@orpc/server";
 import { and, eq, gt, isNull, ne } from "drizzle-orm";
 
+import { isAiConfigured } from "../ai/gateway";
 import { isFeatureEnabled } from "../feature-flags/feature-flags.cache";
+import { QUICK_ENTRY_MAX_LENGTH } from "../transactions/quick-entry";
 import {
   parseQuickEntryText,
   quickEntryText,
 } from "../transactions/quick-entry.parse";
+import {
+  parseReceiptEntry,
+  sniffReceiptContentType,
+} from "../transactions/receipt-entry.parse";
 import { createTransaction } from "../transactions/transactions.write";
+import type { ChatChannelAdapter } from "./chat.channel";
 import { hashLinkCode } from "./chat.link";
 import { chatReplies, quickEntryLink } from "./chat.replies";
 
@@ -71,10 +83,13 @@ const claimMessage = async (
  * Membership and `transaction:create`, read now rather than at linking, so a
  * member removed or demoted since stops posting into the household.
  */
+const TRANSACTION_CREATE: PermissionRequest = { transaction: ["create"] };
+
 const householdAccess = async (
   db: Pick<Database, "select">,
   userId: string,
-  organizationId: string
+  organizationId: string,
+  permissions: PermissionRequest = TRANSACTION_CREATE
 ): Promise<{ householdName: string } | null> => {
   const [row] = await db
     .select({ householdName: organization.name, role: member.role })
@@ -84,10 +99,7 @@ const householdAccess = async (
       and(eq(member.userId, userId), eq(member.organizationId, organizationId))
     )
     .limit(1);
-  if (
-    !row ||
-    !hasPermission({ permissions: { transaction: ["create"] }, role: row.role })
-  ) {
+  if (!row || !hasPermission({ permissions, role: row.role })) {
     return null;
   }
   return { householdName: row.householdName };
@@ -265,6 +277,189 @@ const addEntry = async (
   }
 };
 
+export type ChatJobDownload = NonNullable<ChatChannelAdapter["download"]>;
+
+// oxlint-disable-next-line complexity -- Every failure is claimed before the object can be persisted.
+const addReceipt = async (
+  db: Database,
+  job: ChatJob & { command: Extract<ChatJob["command"], { type: "receipt" }> },
+  appUrl: string | null,
+  download: ChatJobDownload | null
+): Promise<string> => {
+  const [link] = await db
+    .select({
+      organizationId: chatLink.organizationId,
+      userId: chatLink.userId,
+    })
+    .from(chatLink)
+    .where(
+      and(
+        eq(chatLink.channel, job.channel),
+        eq(chatLink.externalUserId, job.sender.id)
+      )
+    )
+    .limit(1);
+  if (!link) {
+    await claimMessage(db, job);
+    return chatReplies.unlinked;
+  }
+  if (
+    !(await householdAccess(db, link.userId, link.organizationId, {
+      file: ["create"],
+      transaction: ["create"],
+    }))
+  ) {
+    await claimMessage(db, job);
+    log.info({
+      action: "chat.access.denied",
+      channel: job.channel,
+      userId: link.userId,
+    });
+    return chatReplies.noAccess;
+  }
+  const { caption, file: source } = job.command;
+  if ((caption?.length ?? 0) > QUICK_ENTRY_MAX_LENGTH) {
+    await claimMessage(db, job);
+    return chatReplies.tooLong;
+  }
+  if (!download || !storage.isConfigured() || !isAiConfigured("receipt")) {
+    await claimMessage(db, job);
+    return chatReplies.receiptUnavailable;
+  }
+  let bytes: Uint8Array;
+  try {
+    bytes = await download(source.ref, env.STORAGE_MAX_UPLOAD_BYTES);
+  } catch {
+    await claimMessage(db, job);
+    log.warn({ action: "chat.receipt.download_failed" });
+    return chatReplies.receiptDownloadFailed;
+  }
+  if (bytes.byteLength > env.STORAGE_MAX_UPLOAD_BYTES) {
+    await claimMessage(db, job);
+    return chatReplies.receiptTooLarge;
+  }
+  const contentType = sniffReceiptContentType(bytes);
+  if (!contentType) {
+    await claimMessage(db, job);
+    return chatReplies.receiptUnsupported;
+  }
+  const parsed = await parseReceiptEntry(
+    db,
+    link.organizationId,
+    { bytes, contentType },
+    caption
+  );
+  if (parsed.ai !== "ok" || !parsed.result) {
+    await claimMessage(db, job);
+    return parsed.ai === "unavailable"
+      ? chatReplies.receiptUnavailable
+      : chatReplies.receiptAiFailed;
+  }
+  const { input, issues, kind, summary } = parsed.result;
+  if (!input) {
+    await claimMessage(db, job);
+    return chatReplies.receiptNeedsReview(summary, issues, appUrl);
+  }
+  const extension = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+  }[contentType];
+  const name = sanitizeFileName(source.name ?? `receipt.${extension}`);
+  const key = buildObjectKey({
+    name,
+    objectId: crypto.randomUUID(),
+    organizationId: link.organizationId,
+  });
+  const cleanup = async () => {
+    try {
+      await storage.deleteObject({ key });
+    } catch {
+      log.warn({ action: "chat.receipt.cleanup_failed" });
+    }
+  };
+  try {
+    await storage.putObject({ body: bytes, contentType, key });
+  } catch {
+    await cleanup();
+    await claimMessage(db, job);
+    log.warn({ action: "chat.receipt.attach_failed" });
+    return chatReplies.receiptAttachFailed;
+  }
+  try {
+    const result = await db.transaction(async (tx) => {
+      const created = await createTransaction(tx, link.organizationId, {
+        ...input,
+        notes: input.notes ?? null,
+        splits: input.splits ?? [],
+      });
+      if (!created) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR", {
+          message: "Could not create transaction",
+        });
+      }
+      const [uploaded] = await tx
+        .insert(file)
+        .values({
+          bucket: storage.bucket,
+          contentType,
+          key,
+          name,
+          organizationId: link.organizationId,
+          size: bytes.byteLength,
+          status: "ready",
+          userId: link.userId,
+        })
+        .returning({ id: file.id });
+      if (!uploaded) {
+        throw new Error("Could not create receipt file");
+      }
+      await tx
+        .insert(financialTransactionAttachment)
+        .values({ fileId: uploaded.id, transactionId: created.id });
+      await claimMessage(tx, job, created.id);
+      const [account] = await tx
+        .select({
+          currencyCode: financialAccount.currencyCode,
+          name: financialAccount.name,
+        })
+        .from(financialAccount)
+        .where(eq(financialAccount.id, input.accountId))
+        .limit(1);
+      return { account, fileId: uploaded.id, transactionId: created.id };
+    });
+    log.info({
+      action: "chat.receipt.created",
+      fileId: result.fileId,
+      organizationId: link.organizationId,
+      transactionId: result.transactionId,
+    });
+    return chatReplies.receiptCreated({
+      accountName: result.account?.name ?? "",
+      amount: input.amount,
+      currencyCode: result.account?.currencyCode ?? "PHP",
+      kind,
+      notes: input.notes ?? null,
+    });
+  } catch (error) {
+    await cleanup();
+    if (!(error instanceof ORPCError)) {
+      throw error;
+    }
+    await claimMessage(db, job);
+    log.warn({
+      action: "chat.create.rejected",
+      channel: job.channel,
+      ...parseError(error),
+    });
+    return chatReplies.receiptNeedsReview(
+      summary,
+      [{ field: "amount", message: error.message, reason: "invalid" }],
+      appUrl
+    );
+  }
+};
+
 /**
  * Returns the reply to send, or `null` when there is nothing to say: chat entry
  * is off, or a repeat delivery already handled this message. Side effects are
@@ -273,7 +468,8 @@ const addEntry = async (
 export const processChatMessage = async (
   db: Database,
   job: ChatJob,
-  appUrl: string | null
+  appUrl: string | null,
+  download: ChatJobDownload | null = null
 ): Promise<string | null> => {
   if (!(await isFeatureEnabled(db, "FF__CHAT_ENTRY"))) {
     return null;
@@ -293,9 +489,18 @@ export const processChatMessage = async (
   }
 
   try {
-    return job.command.type === "link"
-      ? await linkAccount(db, job, job.command.code)
-      : await addEntry(db, job, appUrl, job.command.text);
+    if (job.command.type === "link") {
+      return await linkAccount(db, job, job.command.code);
+    }
+    if (job.command.type === "receipt") {
+      return await addReceipt(
+        db,
+        { ...job, command: job.command },
+        appUrl,
+        download
+      );
+    }
+    return await addEntry(db, job, appUrl, job.command.text);
   } catch (error) {
     if (error instanceof AlreadyProcessedError) {
       return null;

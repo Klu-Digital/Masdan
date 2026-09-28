@@ -70,6 +70,70 @@ describe("readTelegramUpdate", () => {
     });
   });
 
+  it("reads a photo's largest size and trimmed caption", () => {
+    const read = readTelegramUpdate(
+      update({
+        ...privateMessage(""),
+        caption: " metrobank mc ",
+        photo: [
+          { file_id: "small", file_size: 10, height: 20, width: 20 },
+          { file_id: "large", file_size: 100, height: 200, width: 200 },
+        ],
+        text: undefined,
+      })
+    );
+    expect(read).toMatchObject({
+      kind: "message",
+      message: {
+        attachment: { contentType: "image/jpeg", ref: "large", size: 100 },
+        text: "metrobank mc",
+      },
+    });
+  });
+
+  it("accepts an image document", () => {
+    expect(
+      readTelegramUpdate(
+        update({
+          ...privateMessage(""),
+          document: {
+            file_id: "doc",
+            file_name: "receipt.png",
+            file_size: 50,
+            mime_type: "image/png",
+          },
+          text: undefined,
+        })
+      )
+    ).toMatchObject({
+      kind: "message",
+      message: {
+        attachment: {
+          contentType: "image/png",
+          name: "receipt.png",
+          ref: "doc",
+          size: 50,
+        },
+        text: "",
+      },
+    });
+  });
+
+  it("accepts a photo without a caption", () => {
+    expect(
+      readTelegramUpdate(
+        update({
+          ...privateMessage(""),
+          photo: [{ file_id: "p", height: 1, width: 1 }],
+          text: undefined,
+        })
+      )
+    ).toMatchObject({
+      kind: "message",
+      message: { attachment: { ref: "p" }, text: "" },
+    });
+  });
+
   it("names a sender with no username by first name", () => {
     const read = readTelegramUpdate(
       update(privateMessage("dinner 400", { username: undefined }))
@@ -192,6 +256,59 @@ describe("telegramChannel.handleWebhook", () => {
     expect([group.status, garbage.status]).toEqual([200, 200]);
     expect(receive).not.toHaveBeenCalled();
   });
+});
+
+describe("telegramChannel.download", () => {
+  it("downloads bytes after getFile", async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        Response.json({
+          ok: true,
+          result: { file_path: "photos/p.jpg", file_size: 3 },
+        })
+      )
+      .mockResolvedValueOnce(new Response(new Uint8Array([255, 216, 255])));
+    expect(await telegramChannel.download?.("ref", 10)).toEqual(
+      new Uint8Array([255, 216, 255])
+    );
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      file_id: "ref",
+    });
+  });
+
+  it("rejects non-OK downloads without leaking credentials", async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        Response.json({ ok: true, result: { file_path: "p" } })
+      )
+      .mockResolvedValueOnce(new Response("No", { status: 404 }));
+    const failure = telegramChannel.download?.("ref", 10);
+    await expect(failure).rejects.toThrow(/download failed/u);
+    await expect(failure).rejects.not.toThrow(TOKEN);
+  });
+
+  it.each(["declared", "header", "body"])(
+    "rejects %s oversize without leaking credentials",
+    async (which) => {
+      fetchMock.mockResolvedValueOnce(
+        Response.json({
+          ok: true,
+          result: { file_path: "p", file_size: which === "declared" ? 100 : 3 },
+        })
+      );
+      if (which === "header") {
+        fetchMock.mockResolvedValueOnce(
+          new Response("abc", { headers: { "content-length": "100" } })
+        );
+      }
+      if (which === "body") {
+        fetchMock.mockResolvedValueOnce(new Response("a".repeat(100)));
+      }
+      const failure = telegramChannel.download?.("ref", 10);
+      await expect(failure).rejects.toThrow();
+      await expect(failure).rejects.not.toThrow(TOKEN);
+    }
+  );
 });
 
 describe("telegramChannel.send", () => {

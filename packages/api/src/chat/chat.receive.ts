@@ -1,11 +1,13 @@
 import type { Database } from "@masdan/db";
 import { chatInboundMessage } from "@masdan/db/schema/index";
 import type { ChatChannel } from "@masdan/db/schema/index";
+import { env } from "@masdan/env/integrations";
 import { log, parseError } from "@masdan/observability";
 import { queue } from "@masdan/queue";
 import { incrementWithTtl, redis } from "@masdan/redis";
 
 import { isFeatureEnabled } from "../feature-flags/feature-flags.cache";
+import { RECEIPT_CONTENT_TYPES } from "../transactions/receipt-entry";
 import type { ChatReceipt, InboundChatMessage } from "./chat.channel";
 import { readChatCommand } from "./chat.commands";
 import { chatReplies } from "./chat.replies";
@@ -56,7 +58,27 @@ export const receiveChatMessage = async (
   if (!(await isFeatureEnabled(db, "FF__CHAT_ENTRY"))) {
     return { kind: "ignored" };
   }
-  const command = readChatCommand(message.text);
+  const { attachment } = message;
+  if (
+    attachment?.contentType &&
+    !RECEIPT_CONTENT_TYPES.some((type) => type === attachment.contentType)
+  ) {
+    return { kind: "reply", text: chatReplies.receiptUnsupported };
+  }
+  if (
+    attachment?.size !== null &&
+    attachment?.size !== undefined &&
+    attachment.size > env.STORAGE_MAX_UPLOAD_BYTES
+  ) {
+    return { kind: "reply", text: chatReplies.receiptTooLarge };
+  }
+  const command = attachment
+    ? {
+        caption: message.text || null,
+        file: attachment,
+        type: "receipt" as const,
+      }
+    : readChatCommand(message.text);
   if (command.type === "help") {
     return { kind: "reply", text: chatReplies.help };
   }

@@ -1,5 +1,6 @@
 import type { QuickEntryKind } from "../transactions/quick-entry";
 import { QUICK_ENTRY_MAX_LENGTH } from "../transactions/quick-entry";
+import type { ReceiptEntryResult } from "../transactions/receipt-entry";
 
 /**
  * Every message chat entry sends, on any channel, as plain text: nothing a
@@ -58,7 +59,7 @@ export const chatReplies = {
     ]
       .filter(Boolean)
       .join("\n"),
-  help: `Send a transaction like ${EXAMPLE} and I’ll add it to your household.\n\nNot linked yet? ${WHERE_TO_LINK}`,
+  help: `Send a transaction like ${EXAMPLE}, or send a receipt photo with an optional account caption.\n\nNot linked yet? ${WHERE_TO_LINK}`,
   linkFailed:
     "That code didn’t work. Codes work once and expire after 10 minutes — make a new one in Masdan under Settings → Household → Chat apps.",
   linked: (householdName: string) =>
@@ -73,6 +74,63 @@ export const chatReplies = {
   queueUnavailable:
     "Masdan didn’t get that — it’s busy right now. Send it again in a moment.",
   rateLimited: "That’s a lot at once. Wait a minute, then send it again.",
+  receiptAiFailed:
+    "I couldn’t read that receipt right now. Nothing was added; try again.",
+  receiptAttachFailed:
+    "I couldn’t attach the receipt. Nothing was added; try again.",
+  receiptCreated: (input: {
+    amount: string;
+    currencyCode: string;
+    kind: QuickEntryKind;
+    notes: string | null;
+    accountName: string;
+  }) => `${chatReplies.created(input)}\nReceipt attached`,
+  receiptDownloadFailed: "I couldn’t download that receipt. Send it again.",
+  receiptNeedsReview: (
+    summary: ReceiptEntryResult["summary"],
+    issues: ReceiptEntryResult["issues"],
+    appUrl: string | null
+  ) => {
+    const found = [
+      summary.merchant,
+      summary.amount &&
+        formatAmount(summary.amount, summary.currencyCode ?? "PHP"),
+      summary.transactionDate &&
+        new Date(`${summary.transactionDate}T00:00:00Z`).toLocaleDateString(
+          "en-US",
+          { day: "numeric", month: "short", timeZone: "UTC" }
+        ),
+    ].filter(Boolean);
+    const labels: Record<string, string> = {
+      accountId: "payment account",
+      amount: "total",
+      categoryId: "category",
+      transactionDate: "date",
+    };
+    const missing = unique(
+      issues
+        .filter((issue) => issue.reason === "missing")
+        .map((issue) => labels[issue.field] ?? issue.field)
+    );
+    return [
+      found.length ? `I found:\n${found.join(" · ")}` : null,
+      missing.length ? `Missing: ${missing.join(", ")}` : null,
+      ...unique(
+        issues
+          .filter((issue) => issue.reason !== "missing")
+          .map((issue) => `• ${issue.message}`)
+      ),
+      "Send the receipt again with a caption like “metrobank mc”.",
+      appUrl ? `Add it in Masdan: ${new URL("/transactions", appUrl)}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  },
+  receiptTooLarge: "That receipt is too large. Send a smaller image.",
+  receiptUnavailable:
+    "Receipt entry isn’t available right now. Nothing was added.",
+  receiptUnsupported:
+    "Send a receipt photo or JPEG, PNG or WebP image. PDFs aren’t supported yet.",
   tooLong: `Keep it to ${QUICK_ENTRY_MAX_LENGTH} characters, so nothing was added.`,
   unlinked: `This account isn’t linked to Masdan yet. ${WHERE_TO_LINK}`,
 };

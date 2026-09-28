@@ -43,7 +43,7 @@ export const jobs = defineJobs({
    * through the same channel. Safe to deliver twice:
    * `chat_inbound_message.processed_at` is claimed in the same transaction as
    * the write, so a repeat finds it set and does nothing. Carries the message
-   * text, which is why it is never logged.
+   * text or receipt caption, which is why the payload is never logged.
    */
   "chat.process": {
     queue: { retryBackoff: true, retryDelay: 5, retryLimit: 2 },
@@ -55,6 +55,16 @@ export const jobs = defineJobs({
         z.object({
           text: z.string().min(1).max(4096),
           type: z.literal("entry"),
+        }),
+        z.object({
+          caption: z.string().max(1024).nullable(),
+          file: z.object({
+            contentType: z.string().max(128).nullable(),
+            name: z.string().max(256).nullable(),
+            ref: z.string().min(1).max(512),
+            size: z.number().int().nonnegative().nullable(),
+          }),
+          type: z.literal("receipt"),
         }),
       ]),
       /** Where the channel sends the reply: a chat, a phone number, a DM channel. */

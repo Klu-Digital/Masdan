@@ -6,8 +6,16 @@
  * so a new channel is one adapter plus a line in `./chat.channels`.
  */
 
-/** One text message from a person in a private conversation. */
+export interface InboundChatAttachment {
+  ref: string;
+  contentType: string | null;
+  name: string | null;
+  size: number | null;
+}
+
+/** One message from a person in a private conversation. */
 export interface InboundChatMessage {
+  attachment?: InboundChatAttachment;
   /** Where to reply: a chat id, a phone number, a DM channel id. */
   conversationId: string;
   /** The channel's id for this delivery; retries repeat it. */
@@ -34,6 +42,7 @@ export type ReceiveChatMessage = (
 ) => Promise<ChatReceipt>;
 
 export interface ChatChannelAdapter {
+  download?: (ref: string, maxBytes: number) => Promise<Uint8Array>;
   /** Shown in Masdan, e.g. "Telegram". */
   label: string;
   /** Without its credentials a channel is off: no webhook, not offered in settings. */

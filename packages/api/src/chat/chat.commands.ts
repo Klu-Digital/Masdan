@@ -2,9 +2,12 @@
  * What a chat message asks for. Channel-neutral: `/link CODE` is typed text on
  * WhatsApp and a menu command on Telegram, and reads the same either way.
  */
+import type { InboundChatAttachment } from "./chat.channel";
+
 export type ChatCommand =
   | { type: "entry"; text: string }
   | { type: "help" }
+  | { type: "receipt"; caption: string | null; file: InboundChatAttachment }
   | { code: string; type: "link" };
 
 // `/link@MasdanBot CODE` is how Telegram sends a command tapped from its menu.

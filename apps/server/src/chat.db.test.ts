@@ -95,6 +95,50 @@ describe("/chat/:channel/webhook", () => {
     });
   });
 
+  it("enqueues a photo with its caption as a receipt job", async () => {
+    const update = messageUpdate("");
+    update.message.text = "";
+    const body = {
+      ...update,
+      message: {
+        ...update.message,
+        caption: "metrobank mc",
+        photo: [
+          { file_id: "small", file_size: 10, height: 10, width: 10 },
+          { file_id: "large", file_size: 30, height: 30, width: 30 },
+        ],
+      },
+    };
+    const response = await post(body);
+    expect(response.status).toBe(200);
+    const [job] = await jobsFor(update.update_id);
+    expect(job?.data.command).toEqual({
+      caption: "metrobank mc",
+      file: { contentType: "image/jpeg", name: null, ref: "large", size: 30 },
+      type: "receipt",
+    });
+  });
+
+  it("replies immediately to an unsupported document without enqueueing", async () => {
+    const update = messageUpdate("");
+    const body = {
+      ...update,
+      message: {
+        ...update.message,
+        document: {
+          file_id: "pdf",
+          file_size: 200,
+          mime_type: "application/pdf",
+        },
+      },
+    };
+    const response = await post(body);
+    expect(await response.json()).toMatchObject({
+      text: expect.stringMatching(/PDFs aren’t supported/u),
+    });
+    expect(await jobsFor(update.update_id)).toHaveLength(0);
+  });
+
   it("enqueues a retried delivery of the same message only once", async () => {
     const update = messageUpdate("dinner 400");
 

@@ -640,7 +640,7 @@ interface AmountMention {
 const AMOUNT =
   /^(?<sign>[+-])?(?<prefix>₱|php|p|\$|usd)?(?<number>\d{1,3}(?:,\d{3})+|\d+)(?<fraction>\.\d+)?(?<thousands>k)?(?<suffix>php|pesos?|usd)?$/iu;
 
-const parseAmount = (text: string): AmountMention | null => {
+export const parseAmount = (text: string): AmountMention | null => {
   const groups = AMOUNT.exec(
     stripEdges(text.trim()).replaceAll(" ", "")
   )?.groups;
@@ -763,7 +763,7 @@ const notesOf = (
 
 // --- Resolution -------------------------------------------------------------
 
-const DATE_WINDOW_DAYS = 366;
+export const DATE_WINDOW_DAYS = 366;
 
 const SCHEMA_FIELDS: readonly QuickEntryField[] = [
   "accountId",
@@ -778,7 +778,7 @@ const listNames = (names: readonly string[]): string =>
     ? names.join(" or ")
     : `${names.slice(0, -1).join(", ")} or ${names.at(-1)}`;
 
-const validIso = (value: string | null): value is string =>
+export const validIso = (value: string | null): value is string =>
   value !== null &&
   ISO_DATE.test(value) &&
   calendarDate(

@@ -421,6 +421,8 @@ chat app -> public ingress (/chat/<channel>/webhook only)
          -> apps/workers: processChatMessage (link | parse + create) -> adapter.send(reply)
 ```
 
+Telegram also accepts receipt photos and JPEG/PNG/WebP image documents. Set a vision-capable `RECEIPT_AI_MODEL` and configure storage on the workers; the optional caption supplies the payment account (e.g. `metrobank mc`). PDFs are not supported. Nothing is created or stored unless the receipt resolves completely and unambiguously.
+
 Everything in `packages/api/src/chat/` is channel-neutral: commands, link codes, replies, the receive half, the processor and the settings router. A channel is an adapter (`chat.channel.ts`) that owns only what differs: verifying its webhook, reading its payload into an `InboundChatMessage`, answering in its format, and sending a reply.
 
 Setup:

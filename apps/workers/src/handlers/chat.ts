@@ -34,7 +34,8 @@ export const handleChatProcess = async (
   const reply = await processChatMessage(
     db,
     { ...job.data, channel },
-    env.CHAT_APP_URL ?? null
+    env.CHAT_APP_URL ?? null,
+    adapter.download ?? null
   );
   if (!reply) {
     return;

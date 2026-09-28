@@ -38,7 +38,7 @@ export interface QuickEntryParse extends QuickEntryResult {
 }
 
 /** Only this household's active accounts and categories can ever be matched. */
-const quickEntryHousehold = async (
+export const quickEntryHousehold = async (
   db: Database,
   organizationId: string
 ): Promise<QuickEntryHousehold> => {

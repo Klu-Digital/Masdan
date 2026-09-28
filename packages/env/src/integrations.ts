@@ -25,6 +25,8 @@ export const integrationVariables = {
   CLOUDFLARE_AI_GATEWAY_URL: z.url().optional(),
   /** `provider/model` for quick transaction entry. Unset turns the AI parse off. */
   QUICK_TRANSACTION_AI_MODEL: z.string().min(1).optional(),
+  /** Vision-capable `provider/model` for receipts. Unset disables receipt AI. */
+  RECEIPT_AI_MODEL: z.string().min(1).optional(),
   /** From @BotFather. Unset, with or without the secret, disables the bot. */
   TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
   /** Telegram's `secret_token` alphabet and length, or `setWebhook` refuses it. */

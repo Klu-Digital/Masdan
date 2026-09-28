@@ -138,6 +138,13 @@ export const configManifest = [
     targets: ["local-server", "dokploy-server"],
   },
   {
+    description: "Optional exchange-rate endpoint for workers",
+    kind: "config",
+    name: "FX_RATES_URL",
+    required: false,
+    targets: ["local-workers", "dokploy-workers"],
+  },
+  {
     description: "PostgreSQL connection string",
     kind: "provider-secret",
     name: "DATABASE_URL",
@@ -306,6 +313,18 @@ export const configManifest = [
     description: "provider/model used to parse quick transaction entries",
     kind: "config",
     name: "QUICK_TRANSACTION_AI_MODEL",
+    required: false,
+    targets: [
+      "local-server",
+      "local-workers",
+      "dokploy-server",
+      "dokploy-workers",
+    ],
+  },
+  {
+    description: "provider/model (vision-capable) used to read receipts",
+    kind: "config",
+    name: "RECEIPT_AI_MODEL",
     required: false,
     targets: [
       "local-server",

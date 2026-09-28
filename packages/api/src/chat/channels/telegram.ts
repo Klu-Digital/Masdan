@@ -13,7 +13,16 @@ const TELEGRAM_TIMEOUT_MS = 10_000;
 const telegramUpdate = z.object({
   message: z
     .object({
+      caption: z.string().optional(),
       chat: z.object({ id: z.number().int(), type: z.string() }),
+      document: z
+        .object({
+          file_id: z.string(),
+          file_name: z.string().optional(),
+          file_size: z.number().int().nonnegative().optional(),
+          mime_type: z.string().optional(),
+        })
+        .optional(),
       from: z
         .object({
           first_name: z.string().max(128).optional(),
@@ -21,6 +30,16 @@ const telegramUpdate = z.object({
           is_bot: z.boolean(),
           username: z.string().max(64).optional(),
         })
+        .optional(),
+      photo: z
+        .array(
+          z.object({
+            file_id: z.string(),
+            file_size: z.number().int().nonnegative().optional(),
+            height: z.number(),
+            width: z.number(),
+          })
+        )
         .optional(),
       text: z.string().optional(),
     })
@@ -33,20 +52,41 @@ export type TelegramUpdateRead =
   | { kind: "ignored" }
   | { kind: "message"; message: InboundChatMessage };
 
-/**
- * Telegram input is untrusted: anything that isn't a text message from a
- * person in a private chat is ignored.
- */
+const readAttachment = (
+  message: NonNullable<z.infer<typeof telegramUpdate>["message"]>
+) => {
+  const photo = message.photo?.at(-1);
+  if (photo) {
+    return {
+      contentType: "image/jpeg",
+      name: null,
+      ref: photo.file_id,
+      size: photo.file_size ?? null,
+    };
+  }
+  const { document } = message;
+  return document
+    ? {
+        contentType: document.mime_type ?? null,
+        name: document.file_name ?? null,
+        ref: document.file_id,
+        size: document.file_size ?? null,
+      }
+    : null;
+};
+
+/** Telegram input is untrusted; only private messages from people are accepted. */
 export const readTelegramUpdate = (body: unknown): TelegramUpdateRead => {
   const parsed = telegramUpdate.safeParse(body);
   if (!parsed.success) {
     return { kind: "malformed" };
   }
   const { message, update_id: updateId } = parsed.data;
-  const text = message?.text?.trim();
+  const attachment = message ? readAttachment(message) : null;
+  const text = (attachment ? message?.caption : message?.text)?.trim() ?? "";
   // Edited messages arrive as `edited_message`, so `message` is absent.
   if (
-    !(message?.from && text) ||
+    !(message?.from && (text || attachment)) ||
     message.chat.type !== "private" ||
     message.from.is_bot
   ) {
@@ -57,6 +97,7 @@ export const readTelegramUpdate = (body: unknown): TelegramUpdateRead => {
   return {
     kind: "message",
     message: {
+      ...(attachment ? { attachment } : {}),
       conversationId: String(message.chat.id),
       messageId: String(updateId),
       sender: {
@@ -119,6 +160,62 @@ export const callTelegram = async (
  * a Bot API call Telegram performs, so the server needs no outbound request.
  */
 export const telegramChannel: ChatChannelAdapter = {
+  download: async (ref, maxBytes) => {
+    const token = env.TELEGRAM_BOT_TOKEN;
+    if (!token) {
+      throw new Error("Telegram download unavailable");
+    }
+    try {
+      const result = (await callTelegram(token, "getFile", {
+        file_id: ref,
+      })) as { file_path?: string; file_size?: number };
+      if (!result.file_path || (result.file_size ?? 0) > maxBytes) {
+        throw new Error("Telegram file unavailable or too large");
+      }
+      const response = await fetch(
+        `https://api.telegram.org/file/bot${token}/${result.file_path}`,
+        {
+          signal: AbortSignal.timeout(20_000),
+        }
+      );
+      if (
+        !response.ok ||
+        Number(response.headers.get("content-length") ?? 0) > maxBytes ||
+        !response.body
+      ) {
+        await response.body?.cancel();
+        throw new Error("Telegram file unavailable or too large");
+      }
+      const reader = response.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let length = 0;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            break;
+          }
+          length += value.byteLength;
+          if (length > maxBytes) {
+            throw new Error("Telegram file too large");
+          }
+          chunks.push(value);
+        }
+      } finally {
+        await reader.cancel();
+      }
+      const bytes = new Uint8Array(length);
+      let offset = 0;
+      for (const chunk of chunks) {
+        bytes.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      return bytes;
+    } catch {
+      // Fetch and Bot API errors can include credential-bearing URLs.
+      throw new Error("Telegram receipt download failed or file too large");
+    }
+  },
   handleWebhook: async (request, receive) => {
     const config = credentials();
     if (!config) {
