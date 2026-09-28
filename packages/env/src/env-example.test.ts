@@ -17,7 +17,12 @@ const EXAMPLES = ["apps/server/.env.example", "apps/workers/.env.example"];
  * proxy throws on an unset optional.
  */
 const declaredServerVars = (): string[] => {
-  const sources = ["shared-server.ts", "server.ts", "workers.ts"].map((file) =>
+  const sources = [
+    "shared-server.ts",
+    "integrations.ts",
+    "server.ts",
+    "workers.ts",
+  ].map((file) =>
     readFileSync(path.join(repoRoot, "packages/env/src", file), "utf-8")
   );
   const names = sources.flatMap((source) => [

@@ -1,0 +1,42 @@
+import { createEnv } from "@t3-oss/env-core";
+import { z } from "zod";
+
+import { sharedServerVariables } from "./shared-server";
+
+/**
+ * Optional third-party integrations read by both the API process and the
+ * workers: chat entry parses and replies from a worker, so AI and chat-app
+ * settings cannot live in `./server`, whose Better Auth variables a worker
+ * does not have. Every variable is optional; a missing one turns its feature
+ * off rather than failing boot.
+ */
+export const integrationVariables = {
+  /** Upstream provider key; omit when the gateway supplies its own (BYOK). */
+  AI_PROVIDER_API_KEY: z.string().min(1).optional(),
+  /** `provider/model` for Ask Masdan. Unset turns the feature's AI off. */
+  ASK_MASDAN_AI_MODEL: z.string().min(1).optional(),
+  /** `provider/model` for category suggestions. Unset turns their AI off. */
+  CATEGORIZE_AI_MODEL: z.string().min(1).optional(),
+  /** Web app origin for chat replies' "finish it in Masdan" links. Unset drops the link. */
+  CHAT_APP_URL: z.url().optional(),
+  /** Sent as `cf-aig-authorization`; required by an authenticated gateway. */
+  CLOUDFLARE_AI_GATEWAY_TOKEN: z.string().min(1).optional(),
+  /** Cloudflare AI Gateway's OpenAI-compatible base URL, ending in `/compat`. */
+  CLOUDFLARE_AI_GATEWAY_URL: z.url().optional(),
+  /** `provider/model` for quick transaction entry. Unset turns the AI parse off. */
+  QUICK_TRANSACTION_AI_MODEL: z.string().min(1).optional(),
+  /** From @BotFather. Unset, with or without the secret, disables the bot. */
+  TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
+  /** Telegram's `secret_token` alphabet and length, or `setWebhook` refuses it. */
+  TELEGRAM_WEBHOOK_SECRET: z
+    .string()
+    .regex(/^[\w-]{16,256}$/u)
+    .optional(),
+};
+
+export const env = createEnv({
+  emptyStringAsUndefined: true,
+  runtimeEnv: process.env,
+  server: { ...sharedServerVariables, ...integrationVariables },
+  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+});

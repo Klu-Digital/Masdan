@@ -15,7 +15,7 @@ const mockEnv = vi.hoisted(() => ({
   QUICK_TRANSACTION_AI_MODEL: undefined as string | undefined,
 }));
 
-vi.mock("@masdan/env/server", () => ({ env: mockEnv }));
+vi.mock("@masdan/env/integrations", () => ({ env: mockEnv }));
 
 const { AiError, completeJson, isAiConfigured } = await import("./gateway");
 

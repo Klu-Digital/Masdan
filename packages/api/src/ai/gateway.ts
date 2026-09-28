@@ -1,4 +1,4 @@
-import { env } from "@masdan/env/server";
+import { env } from "@masdan/env/integrations";
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { z } from "zod";

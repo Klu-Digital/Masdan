@@ -278,6 +278,29 @@ describe("QuickEntry", () => {
     expect(create).not.toHaveBeenCalled();
   });
 
+  it("reads text from a link into the form without ever creating", async () => {
+    parseQuickEntry.mockResolvedValue(complete);
+    const onLinkedTextRead = vi.fn();
+    render(
+      <QuickEntry
+        activeOrganizationId="household-1"
+        canArchive
+        linkedText={TEXT}
+        onLinkedTextRead={onLinkedTextRead}
+      />,
+      { wrapper: Wrapper }
+    );
+
+    // Complete as it is, it still opens for review: a link is not a create intent.
+    await waitFor(() => expect(compose).toHaveBeenCalledTimes(1));
+    expect(parseQuickEntry).toHaveBeenCalledWith({ text: TEXT });
+    expect(create).not.toHaveBeenCalled();
+    expect(onLinkedTextRead).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("textbox", { name: "Quick entry" })).toHaveValue(
+      TEXT
+    );
+  });
+
   it("submits on Enter", async () => {
     parseQuickEntry.mockResolvedValue(complete);
     const user = userEvent.setup();

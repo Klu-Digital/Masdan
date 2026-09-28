@@ -7,6 +7,7 @@ import type { BetterAuthInstance } from "evlog/better-auth";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
+import { mountChatWebhooks } from "./chat";
 import { mountMetrics } from "./metrics";
 import { mountOrpc } from "./orpc";
 import { mountSecurityHeaders } from "./security-headers";
@@ -26,6 +27,8 @@ export const createApp = () => {
   mountSecurityHeaders(app);
 
   mountMetrics(app);
+
+  mountChatWebhooks(app);
 
   app.use(
     "*",

@@ -24,6 +24,11 @@ export const featureFlagRegistry = {
     description:
       "Ask Masdan: natural-language questions answered from household reports.",
   },
+  FF__CHAT_ENTRY: {
+    defaultEnabled: false,
+    description:
+      "Chat entry: link a chat app (Telegram, …) and add transactions by message.",
+  },
   /** Placeholder so the types aren't `never`. Delete once a real flag exists. */
   FF__EXAMPLE: {
     defaultEnabled: false,

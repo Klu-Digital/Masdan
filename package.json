@@ -18,6 +18,7 @@
     "rename": "node scripts/rename-project.ts",
     "secrets:setup": "pnpm --filter server exec tsx ../../scripts/secrets/setup.ts",
     "secrets:check": "pnpm --filter server exec tsx ../../scripts/secrets/check.ts",
+    "telegram:webhook": "pnpm --filter server exec tsx ../../scripts/telegram/webhook.ts",
     "staged": "vp staged",
     "dev:infra": "docker compose up -d --wait postgres redis minio && docker compose run --rm minio-init",
     "dev:native": "vp run --filter native dev",

@@ -38,6 +38,34 @@ export const DEFAULT_QUEUE_OPTIONS = { notify: true } satisfies Omit<
  * lie.
  */
 export const jobs = defineJobs({
+  /**
+   * Links, or parses and creates, from one chat-app message, then replies
+   * through the same channel. Safe to deliver twice:
+   * `chat_inbound_message.processed_at` is claimed in the same transaction as
+   * the write, so a repeat finds it set and does nothing. Carries the message
+   * text, which is why it is never logged.
+   */
+  "chat.process": {
+    queue: { retryBackoff: true, retryDelay: 5, retryLimit: 2 },
+    schema: z.object({
+      /** A registered channel name; the worker rejects anything else. */
+      channel: z.string().min(1).max(32),
+      command: z.discriminatedUnion("type", [
+        z.object({ code: z.string().min(1).max(64), type: z.literal("link") }),
+        z.object({
+          text: z.string().min(1).max(4096),
+          type: z.literal("entry"),
+        }),
+      ]),
+      /** Where the channel sends the reply: a chat, a phone number, a DM channel. */
+      conversationId: z.string().min(1).max(128),
+      messageId: z.string().min(1).max(128),
+      sender: z.object({
+        id: z.string().min(1).max(128),
+        name: z.string().max(128).nullable(),
+      }),
+    }),
+  },
   /** Reference job. Delete once real jobs exist — nothing depends on it. */
   "example.echo": {
     queue: { retryBackoff: true, retryDelay: 1, retryLimit: 3 },

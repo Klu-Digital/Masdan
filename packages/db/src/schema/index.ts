@@ -78,3 +78,10 @@ export {
   type PostMigrationStatus,
 } from "./post-migration";
 export { file, fileStatuses, type FileStatus } from "./storage";
+export {
+  chatChannels,
+  chatInboundMessage,
+  chatLink,
+  chatLinkCode,
+  type ChatChannel,
+} from "./chat";

@@ -61,6 +61,7 @@ import {
   invalidateOrganizations,
 } from "@/lib/organization";
 import { invalidateSession } from "@/lib/session";
+import { ChatAppsSection } from "@/modules/chat/components/chat-apps-section";
 import { currenciesQueryOptions } from "@/modules/currency/queries";
 import { DataExportSection } from "@/modules/exports/components/data-export-section";
 import { HouseholdFinanceCard } from "@/modules/household/components/household-finance-card";
@@ -558,6 +559,13 @@ const HouseholdSettings = () => {
           Only owners and admins can invite people to this household.
         </p>
       )}
+      <ChatAppsSection
+        activeOrganizationId={organization.data.id}
+        canLink={hasPermission({
+          permissions: { transaction: ["create"] },
+          role: viewerRole,
+        })}
+      />
       <DataExportSection
         householdName={organization.data.name}
         timeZone={

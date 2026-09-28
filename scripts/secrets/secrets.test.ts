@@ -165,6 +165,7 @@ describe("manifest", () => {
   it("covers variables declared by the environment schemas", () => {
     const schemaFiles = [
       "shared-server.ts",
+      "integrations.ts",
       "server.ts",
       "workers.ts",
       "web.ts",
@@ -177,7 +178,7 @@ describe("manifest", () => {
         "utf-8"
       );
       for (const match of source.matchAll(
-        /^\s{4}(?<name>[A-Z][A-Z0-9_]*):/gmu
+        /^(?: {2}| {4})(?<name>[A-Z][A-Z0-9_]*):/gmu
       )) {
         declared.add(match.groups?.name ?? "");
       }

@@ -12,7 +12,7 @@ import { toastManager } from "@masdan/ui/components/toast";
 import { formatMoney } from "@masdan/ui/lib/money";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useAppActions } from "@/components/app-actions";
 import { invalidateAccounts } from "@/modules/accounts/queries";
@@ -46,14 +46,19 @@ const summaryOf = (transaction: TransactionDetail): string =>
  * One line of text in, one transaction out. Submitting is the create intent:
  * a complete, unambiguous line is created at once with Undo and View; anything
  * else opens the normal form prefilled. The text stays until a transaction
- * exists, so a line that needs review is never lost.
+ * exists, so a line that needs review is never lost. `linkedText`, from a
+ * link, is only ever read into the form: following a link never creates.
  */
 export const QuickEntry = ({
   activeOrganizationId,
   canArchive,
+  linkedText,
+  onLinkedTextRead,
 }: {
   activeOrganizationId: string;
   canArchive: boolean;
+  linkedText?: string;
+  onLinkedTextRead?: () => void;
 }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -95,11 +100,17 @@ export const QuickEntry = ({
     });
 
   const submit = useMutation({
-    mutationFn: async (source: string) => {
+    mutationFn: async ({
+      review,
+      source,
+    }: {
+      review: boolean;
+      source: string;
+    }) => {
       const parsed = await client.transactions.parseQuickEntry({
         text: source,
       });
-      if (!parsed.input) {
+      if (review || !parsed.input) {
         return { parsed, transaction: null };
       }
       try {
@@ -123,7 +134,7 @@ export const QuickEntry = ({
         type: "error",
       });
     },
-    onSuccess: async ({ parsed, transaction }, source) => {
+    onSuccess: async ({ parsed, transaction }, { source }) => {
       if (!transaction) {
         openForm(parsed, source);
         return;
@@ -149,6 +160,20 @@ export const QuickEntry = ({
     },
   });
 
+  const { mutate } = submit;
+  // Read once per link, not once per render or per remount of the effect.
+  const readLinkedText = useRef<string | null>(null);
+  useEffect(() => {
+    const linked = linkedText?.trim().slice(0, MAX_LENGTH);
+    if (!linked || readLinkedText.current === linkedText) {
+      return;
+    }
+    readLinkedText.current = linkedText ?? null;
+    setText(linked);
+    mutate({ review: true, source: linked });
+    onLinkedTextRead?.();
+  }, [linkedText, mutate, onLinkedTextRead]);
+
   const source = text.trim();
 
   return (
@@ -159,7 +184,7 @@ export const QuickEntry = ({
           event.preventDefault();
           if (source && !submit.isPending) {
             setCreated(null);
-            submit.mutate(source);
+            submit.mutate({ review: false, source });
           }
         }}
       >

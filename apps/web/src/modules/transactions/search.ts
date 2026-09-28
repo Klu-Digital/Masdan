@@ -12,6 +12,8 @@ export interface TransactionSearch extends Record<string, unknown> {
   page: number;
   pageSize: number;
   paidStatuses: ("paid" | "unpaid")[];
+  /** Text to rerun through quick entry, from a chat reply's "finish it in Masdan" link. */
+  quickEntry?: string;
   search: string;
   sortBy: TransactionSortBy;
   sortDirection: TransactionSortDirection;
@@ -75,6 +77,7 @@ export const transactionSearch = (
     page: asPositiveInteger(search.page, 1),
     pageSize: Math.min(asPositiveInteger(search.pageSize, 25), 100),
     paidStatuses,
+    quickEntry: asString(search.quickEntry)?.slice(0, 300),
     search: asString(search.search)?.slice(0, 120) ?? "",
     sortBy: sortBy === "amount" ? "amount" : "date",
     sortDirection: sortDirection === "asc" ? "asc" : "desc",

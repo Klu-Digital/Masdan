@@ -41,7 +41,7 @@ import {
 } from "@masdan/ui/components/stat";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type React from "react";
 
 import { useAppActions } from "@/components/app-actions";
@@ -227,6 +227,11 @@ export const TransactionsPage = ({
     search.search.length > 0 ||
     search.tagIds.length > 0 ||
     search.types.length > 0;
+
+  const clearLinkedText = useCallback(
+    () => onSearchChange({ quickEntry: undefined }, false),
+    [onSearchChange]
+  );
 
   const openTransaction = (transaction: Transaction) =>
     navigate({
@@ -430,6 +435,8 @@ export const TransactionsPage = ({
         <QuickEntry
           activeOrganizationId={activeOrganizationId}
           canArchive={can({ transaction: ["archive"] })}
+          linkedText={search.quickEntry}
+          onLinkedTextRead={clearLinkedText}
         />
       ) : null}
 

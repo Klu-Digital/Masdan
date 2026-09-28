@@ -411,6 +411,42 @@ Things to know:
 
 Column reference, ordering and format rules: [`packages/api/src/exports/README.md`](packages/api/src/exports/README.md).
 
+## Chat entry
+
+A linked user can add a transaction by messaging Masdan from a chat app, e.g. `dinner at jollibee 400 metrobank mc`. Telegram is the first channel. Chat entry does no parsing of its own: it runs the same quick-entry pipeline as the web (`parseQuickEntryText`) and creates through `createTransaction`, so validation, entity resolution and household scoping are shared.
+
+```text
+chat app -> public ingress (/chat/<channel>/webhook only)
+         -> apps/server: adapter verifies + reads -> receiveChatMessage: rate-limit, record, enqueue
+         -> apps/workers: processChatMessage (link | parse + create) -> adapter.send(reply)
+```
+
+Everything in `packages/api/src/chat/` is channel-neutral: commands, link codes, replies, the receive half, the processor and the settings router. A channel is an adapter (`chat.channel.ts`) that owns only what differs: verifying its webhook, reading its payload into an `InboundChatMessage`, answering in its format, and sending a reply.
+
+Setup:
+
+1. Configure a channel. For Telegram, create a bot with @BotFather and set `TELEGRAM_BOT_TOKEN` in both `apps/server/.env` and `apps/workers/.env`. Set `TELEGRAM_WEBHOOK_SECRET` in the server's (`pnpm secrets:setup` generates it). Set `CHAT_APP_URL` in the workers'. The workers also need the AI gateway variables.
+2. Expose **only** `/chat/<channel>/webhook` publicly, through a reverse proxy scoped to that path: a Cloudflare Tunnel ingress rule with `path: ^/chat/[a-z]+/webhook$` and a catch-all `http_status:404`, a Tailscale Funnel on that path, or a dedicated nginx `server` block. Everything else stays on the tailnet.
+3. Register the webhook with the channel. For Telegram, `pnpm telegram:webhook set https://<public-origin>` sets it with its secret token and `allowed_updates: ["message"]`, and `pnpm telegram:webhook info` shows its state.
+4. Turn on `FF__CHAT_ENTRY` at `/admin/flags`. Users link from **Settings → Household → Chat apps**. One single-use code, valid for 10 minutes, works on whichever configured channel it is sent from as `/link <code>`.
+
+Adding a channel (WhatsApp, Discord, …):
+
+1. Add its name to `chatChannels` in `packages/db/src/schema/chat.ts`. The columns are plain text, so no migration is needed.
+2. Write `packages/api/src/chat/channels/<name>.ts` implementing `ChatChannelAdapter`, and register it in `chat.channels.ts`. The registry's mapped type makes a missing adapter a compile error.
+3. Add its credentials to `packages/env/src/integrations.ts`, both `.env.example` files and the secrets manifest. `isConfigured()` reads them. Until they are set, the channel answers 404 and is not offered in settings.
+
+Things that bite:
+
+- **Adapters get the raw `Request`**, not parsed JSON. WhatsApp verifies with a GET handshake and an HMAC over the exact body, and Discord with an Ed25519 signature over it. The route accepts every method for the same reason.
+- **Answer success for anything that isn't a rejection.** Channels redeliver on other statuses, Telegram indefinitely. Flag-off and ignored messages still get 200.
+- **Replies that need no worker come back as a `reply` receipt**: help, rate limits, "try again". Telegram returns them in the webhook response body. A channel without that facility must send them itself.
+- **A link binds one chat account to one user in one household**, whichever household was active when the code was made, per channel. Membership and `transaction:create` are re-checked on every message, so a removed or demoted member stops posting at once.
+- **External ids are text.** Discord snowflakes overflow a JS number.
+- **Chat entry only creates when the AI parse succeeded and the result is complete.** Anything missing or ambiguous, or any AI failure, gets the issues back plus a `/transactions?quickEntry=…` link. That link reruns quick entry and always opens the prefilled form, so following a link never creates.
+- **`chat_inbound_message` makes delivery idempotent twice over.** Its `(channel, message_id)` key drops a channel's retries. `processed_at`, claimed in the same transaction as the write, makes a retried job a no-op. That is also why the reply is best-effort: a failed send is logged (`chat.reply.failed`), not retried.
+- Message text is never logged. It is stored only in the queued job's payload.
+
 ## Project Structure
 
 ```
@@ -461,6 +497,7 @@ masdan/
 - `pnpm run docker:logs`: Tail logs from the Docker Compose stack
 - `pnpm run docker:down`: Stop the Docker Compose stack
 - `pnpm run secrets:setup`: Create local env files and generate safe local secrets; `--environment staging|production` runs the deployment wizard
+- `pnpm run telegram:webhook set <https-origin>`: Register the Telegram webhook for chat entry (see [Chat entry](#chat-entry)); `info` shows its current state
 - `pnpm run secrets:check`: Report local configuration, or verify a deployment environment against GitHub and Dokploy
 - `pnpm run rename <new-name>`: Rename the template for a new project (see [Getting Started](#starting-a-new-project-from-this-template))
 

@@ -2,6 +2,7 @@ import { log } from "@masdan/observability";
 import { queue } from "@masdan/queue";
 import type { JobName, JobOf } from "@masdan/queue";
 
+import { handleChatProcess } from "./handlers/chat";
 import { handleEcho, handleHeartbeat } from "./handlers/example";
 import { handleImportProcess } from "./handlers/imports";
 import {
@@ -22,6 +23,7 @@ type Handlers = {
  * compile error.
  */
 const handlers: Handlers = {
+  "chat.process": handleChatProcess,
   "example.echo": handleEcho,
   "example.heartbeat": handleHeartbeat,
   "imports.process": handleImportProcess,

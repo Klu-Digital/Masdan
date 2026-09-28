@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./flags": "./src/flags.ts",
+    "./integrations": "./src/integrations.ts",
     "./server": "./src/server.ts",
     "./shared-server": "./src/shared-server.ts",
     "./workers": "./src/workers.ts",
