@@ -8,6 +8,7 @@ import {
   toNumber,
 } from "@masdan/ui/lib/money";
 import type { MoneySign } from "@masdan/ui/lib/money";
+import { PRIVACY_MASK, usePrivacyMode } from "@masdan/ui/lib/privacy-mode";
 import { cn } from "@masdan/ui/lib/utils";
 import { cva } from "class-variance-authority";
 import type { VariantProps } from "class-variance-authority";
@@ -40,6 +41,13 @@ const amountVariants = cva(
 );
 
 type AmountTone = NonNullable<VariantProps<typeof amountVariants>["tone"]>;
+
+const amountTone = (tone: AmountTone | "auto", sign: MoneySign): AmountTone => {
+  if (tone === "auto") {
+    return sign === "in" ? "positive" : "default";
+  }
+  return tone;
+};
 
 export interface AmountProps extends Omit<
   React.ComponentProps<"span">,
@@ -77,14 +85,12 @@ export const Amount = ({
   weight = "inherit",
   ...props
 }: AmountProps): React.ReactElement => {
+  const [privacyOn] = usePrivacyMode();
   const target = toNumber(value);
   const shown = useSpringNumber(target, animate);
   const parts = moneyParts(animate ? shown : target, currency, { compact });
   const prefix = signPrefix(sign, parts.negative);
-  let resolvedTone: AmountTone = tone === "auto" ? "default" : tone;
-  if (tone === "auto" && sign === "in") {
-    resolvedTone = "positive";
-  }
+  const resolvedTone = amountTone(tone, sign);
   const stepped = size === "display" || size === "title";
 
   return (
@@ -96,7 +102,9 @@ export const Amount = ({
       data-slot="amount"
       {...props}
     >
-      <span className="sr-only">{speakMoney(value, currency, sign)}</span>
+      <span className="sr-only">
+        {privacyOn ? "Amount hidden" : speakMoney(value, currency, sign)}
+      </span>
       <span aria-hidden="true" className="contents">
         {prefix ? (
           <span className={cn(stepped && "me-0.5 font-normal")}>{prefix}</span>
@@ -111,8 +119,8 @@ export const Amount = ({
             {parts.currency}
           </span>
         )}
-        <span>{parts.integer}</span>
-        {parts.fraction ? (
+        <span>{privacyOn ? PRIVACY_MASK : parts.integer}</span>
+        {parts.fraction && !privacyOn ? (
           <span
             className={cn(
               stepped && "text-muted-foreground text-[0.62em] font-medium"

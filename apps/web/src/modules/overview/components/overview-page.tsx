@@ -40,6 +40,7 @@ import {
   SectionHeader,
   SectionTitle,
 } from "@masdan/ui/components/page";
+import { Sensitive } from "@masdan/ui/components/sensitive";
 import { Skeleton } from "@masdan/ui/components/skeleton";
 import { formatMoney, toNumber } from "@masdan/ui/lib/money";
 import { cn } from "@masdan/ui/lib/utils";
@@ -210,9 +211,11 @@ const NetWorthCard = ({
           {others.length > 0 ? (
             <span className="text-muted-foreground text-xs">
               Plus{" "}
-              {others
-                .map((item) => formatMoney(item.netWorth, item.currencyCode))
-                .join(" · ")}
+              <Sensitive>
+                {others
+                  .map((item) => formatMoney(item.netWorth, item.currencyCode))
+                  .join(" · ")}
+              </Sensitive>
             </span>
           ) : null}
         </div>

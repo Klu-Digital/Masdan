@@ -10,6 +10,7 @@ import {
 } from "@masdan/ui/components/popover";
 import { Skeleton } from "@masdan/ui/components/skeleton";
 import { toastManager } from "@masdan/ui/components/toast";
+import { PRIVACY_MASK, usePrivacyMode } from "@masdan/ui/lib/privacy-mode";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -21,6 +22,8 @@ import { reminderCopy, strongestTone } from "../presentation";
 import type { ReminderTone } from "../presentation";
 import { invalidateReminders, remindersQueryOptions } from "../queries";
 import type { Reminder } from "../queries";
+
+const maskMoney = (): string => PRIVACY_MASK;
 
 const detailClassName = (tone: ReminderTone): string => {
   if (tone === "danger") {
@@ -54,7 +57,8 @@ const ReminderRow = ({
   reminder: Reminder;
   today: string;
 }) => {
-  const copy = reminderCopy(reminder, today);
+  const [privacyOn] = usePrivacyMode();
+  const copy = reminderCopy(reminder, today, privacyOn ? maskMoney : undefined);
   const { account } = reminder;
   return (
     <li className="flex items-start gap-1">

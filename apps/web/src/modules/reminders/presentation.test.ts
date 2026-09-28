@@ -71,6 +71,15 @@ describe("reminderCopy", () => {
     expect(copy.detail).toMatch(/11,400.*left of.*12,000/u);
   });
 
+  it("swaps only the figures when privacy mode masks them", () => {
+    const copy = reminderCopy(
+      reminder({ minimumPaid: true, paidAmount: "600.000000" }),
+      TODAY,
+      () => "****"
+    );
+    expect(copy.detail).toBe("**** left of **** · due Mar 10 · in 5 days");
+  });
+
   it("says a projected payment is an estimate from the due day", () => {
     const copy = reminderCopy(
       reminder({

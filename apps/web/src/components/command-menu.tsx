@@ -13,6 +13,8 @@ import {
   Sun03Icon,
   Tag01Icon,
   UserGroupIcon,
+  ViewIcon,
+  ViewOffSlashIcon,
   Wallet01Icon,
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
@@ -32,6 +34,7 @@ import {
   CommandPanel,
 } from "@masdan/ui/components/command";
 import { Kbd } from "@masdan/ui/components/kbd";
+import { usePrivacyMode } from "@masdan/ui/lib/privacy-mode";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
@@ -73,6 +76,7 @@ export const CommandMenu = ({
 }) => {
   const navigate = useNavigate();
   const { setTheme } = useTheme();
+  const [privacyOn, setPrivacyOn] = usePrivacyMode();
   const { activeOrganizationId, can } = useHousehold();
   const accounts = useQuery({
     ...accountsQueryOptions(activeOrganizationId),
@@ -250,6 +254,13 @@ export const CommandMenu = ({
           keywords: "appearance auto",
           label: "Match system appearance",
         },
+        {
+          handleSelect: done(() => setPrivacyOn(!privacyOn)),
+          icon: privacyOn ? ViewOffSlashIcon : ViewIcon,
+          id: "privacy-mode",
+          keywords: "privacy mode mask blur",
+          label: privacyOn ? "Show amounts" : "Hide amounts",
+        },
       ],
       label: "Appearance",
     });
@@ -261,6 +272,8 @@ export const CommandMenu = ({
     composeAccount,
     navigate,
     onOpenChange,
+    privacyOn,
+    setPrivacyOn,
     setTheme,
   ]);
 

@@ -51,6 +51,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { useAppActions } from "@/components/app-actions";
 import AppBreadcrumbs from "@/components/app-breadcrumbs";
+import { PrivacyToggle } from "@/components/privacy-toggle";
 import { useTheme } from "@/components/theme-provider";
 import { useHousehold } from "@/hooks/use-household";
 import { userInvitationsQueryOptions } from "@/lib/organization";
@@ -204,6 +205,7 @@ const TopBar = () => {
       >
         <HugeiconsIcon icon={Search01Icon} strokeWidth={1.8} />
       </Button>
+      <PrivacyToggle />
       <HouseholdReminders />
     </AppTopBar>
   );

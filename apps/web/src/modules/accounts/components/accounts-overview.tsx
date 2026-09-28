@@ -17,6 +17,7 @@ import {
   PageHeading,
   PageTitle,
 } from "@masdan/ui/components/page";
+import { Sensitive } from "@masdan/ui/components/sensitive";
 import { Skeleton } from "@masdan/ui/components/skeleton";
 import {
   Stat,
@@ -142,11 +143,13 @@ const NetWorthHeadline = ({
           <Stat className="col-span-2">
             <StatLabel>Other currencies</StatLabel>
             <StatValue>
-              {others
-                .map((position) =>
-                  formatMoney(position.netWorth, position.currencyCode)
-                )
-                .join(" · ")}
+              <Sensitive>
+                {others
+                  .map((position) =>
+                    formatMoney(position.netWorth, position.currencyCode)
+                  )
+                  .join(" · ")}
+              </Sensitive>
             </StatValue>
           </Stat>
         ) : null}

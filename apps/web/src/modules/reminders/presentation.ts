@@ -43,22 +43,28 @@ const statementCopy = (reminder: Reminder, today: string): ReminderCopy => {
   };
 };
 
-const paymentAmount = (reminder: Reminder): string => {
+type MoneyText = (value: string, currency: string) => string;
+
+const paymentAmount = (reminder: Reminder, money: MoneyText): string => {
   const currency = reminder.account.currencyCode;
   if (reminder.statementBalance === null) {
-    return `About ${formatMoney(reminder.balance, currency)} owed · from the card’s due day`;
+    return `About ${money(reminder.balance, currency)} owed · from the card’s due day`;
   }
   const paid = signedScaledAmount(reminder.paidAmount ?? "0");
   if (paid <= 0n) {
-    return `${formatMoney(reminder.statementBalance, currency)} statement balance`;
+    return `${money(reminder.statementBalance, currency)} statement balance`;
   }
   const left = signedScaledAmount(reminder.statementBalance) - paid;
-  return `${formatMoney(fixedAmountText(left), currency)} left of ${formatMoney(reminder.statementBalance, currency)}`;
+  return `${money(fixedAmountText(left), currency)} left of ${money(reminder.statementBalance, currency)}`;
 };
 
-const paymentCopy = (reminder: Reminder, today: string): ReminderCopy => {
+const paymentCopy = (
+  reminder: Reminder,
+  today: string,
+  money: MoneyText
+): ReminderCopy => {
   const minimumBadge = reminder.minimumPaid ? "Minimum paid" : null;
-  const detail = `${paymentAmount(reminder)} · due ${whenText(reminder, today)}`;
+  const detail = `${paymentAmount(reminder, money)} · due ${whenText(reminder, today)}`;
   if (reminder.daysLeft < 0) {
     return {
       badge: minimumBadge ?? "Overdue",
@@ -75,13 +81,15 @@ const paymentCopy = (reminder: Reminder, today: string): ReminderCopy => {
   };
 };
 
+/** `money` lets privacy mode swap the figures without losing the words. */
 export const reminderCopy = (
   reminder: Reminder,
-  today: string
+  today: string,
+  money: MoneyText = formatMoney
 ): ReminderCopy =>
   reminder.kind === "statement"
     ? statementCopy(reminder, today)
-    : paymentCopy(reminder, today);
+    : paymentCopy(reminder, today, money);
 
 /** Overdue first, then the most urgent tone, for the trigger's dot. */
 export const strongestTone = (

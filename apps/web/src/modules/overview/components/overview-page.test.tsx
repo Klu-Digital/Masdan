@@ -280,7 +280,7 @@ describe("OverviewPage", () => {
     expect(await within(worth).findByText("₱12,500.00")).toBeInTheDocument();
     expect(within(worth).getByText("₱15,000.00")).toBeInTheDocument();
     expect(within(worth).getByText("₱2,500.00")).toBeInTheDocument();
-    expect(within(worth).getByText(/Plus \$300\.00/u)).toBeInTheDocument();
+    expect(within(worth).getByText(/Plus/u)).toHaveTextContent("Plus $300.00");
     expect(
       within(worth).getByRole("link", { name: "Accounts" })
     ).toHaveAttribute("href", "/accounts");

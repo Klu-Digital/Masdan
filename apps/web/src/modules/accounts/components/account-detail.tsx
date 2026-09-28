@@ -47,6 +47,7 @@ import {
   SectionHeader,
   SectionTitle,
 } from "@masdan/ui/components/page";
+import { Sensitive } from "@masdan/ui/components/sensitive";
 import { Skeleton } from "@masdan/ui/components/skeleton";
 import {
   Stat,
@@ -349,10 +350,12 @@ const CreditCardPanel = ({
                   {due.statement?.minimumAmountDue ? (
                     <span className="text-muted-foreground text-xs">
                       Minimum{" "}
-                      {formatMoney(
-                        due.statement.minimumAmountDue,
-                        account.currencyCode
-                      )}
+                      <Sensitive>
+                        {formatMoney(
+                          due.statement.minimumAmountDue,
+                          account.currencyCode
+                        )}
+                      </Sensitive>
                     </span>
                   ) : null}
                   {due.source === "schedule" ? (
@@ -448,10 +451,12 @@ const CreditCardPanel = ({
                   {statement.minimumAmountDue ? (
                     <span className="text-muted-foreground text-xs">
                       Min{" "}
-                      {formatMoney(
-                        statement.minimumAmountDue,
-                        account.currencyCode
-                      )}
+                      <Sensitive>
+                        {formatMoney(
+                          statement.minimumAmountDue,
+                          account.currencyCode
+                        )}
+                      </Sensitive>
                     </span>
                   ) : null}
                 </ListItemTrailing>

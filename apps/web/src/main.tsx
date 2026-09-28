@@ -1,3 +1,4 @@
+import { applyStoredPrivacyMode } from "@masdan/ui/lib/privacy-mode";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
@@ -22,6 +23,8 @@ declare module "@tanstack/react-router" {
     router: typeof router;
   }
 }
+
+applyStoredPrivacyMode();
 
 const rootElement = document.querySelector("#app");
 

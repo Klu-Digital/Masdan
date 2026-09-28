@@ -42,6 +42,7 @@ import {
   SectionTitle,
 } from "@masdan/ui/components/page";
 import { ResponsiveSheet } from "@masdan/ui/components/responsive-sheet";
+import { Sensitive } from "@masdan/ui/components/sensitive";
 import { Skeleton } from "@masdan/ui/components/skeleton";
 import {
   Stat,
@@ -149,7 +150,13 @@ const BudgetEditor = ({
 
   return (
     <ResponsiveSheet
-      description={`${formatMonthYear(month)} · ${formatMoney(line.spent, line.currencyCode)} spent`}
+      description={
+        <>
+          {formatMonthYear(month)} ·{" "}
+          <Sensitive>{formatMoney(line.spent, line.currencyCode)}</Sensitive>{" "}
+          spent
+        </>
+      }
       onOpenChange={onOpenChange}
       open={open}
       title={`${category.name} budget`}
@@ -228,9 +235,13 @@ const BudgetEditor = ({
 const OtherCurrencies = ({ line }: { line: BudgetLine }) =>
   line.otherCurrencies.length > 0 ? (
     <ListItemDescription>
-      {`Also ${line.otherCurrencies
-        .map((other) => formatMoney(other.total, other.currencyCode))
-        .join(", ")} in other currencies, not counted`}
+      Also{" "}
+      <Sensitive>
+        {line.otherCurrencies
+          .map((other) => formatMoney(other.total, other.currencyCode))
+          .join(", ")}
+      </Sensitive>{" "}
+      in other currencies, not counted
     </ListItemDescription>
   ) : null;
 

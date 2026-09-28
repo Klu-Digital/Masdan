@@ -7,6 +7,7 @@ import {
   CollapsibleTrigger,
 } from "@masdan/ui/components/collapsible";
 import { List, ListSection } from "@masdan/ui/components/list";
+import { Sensitive } from "@masdan/ui/components/sensitive";
 import { formatMoney, toNumber } from "@masdan/ui/lib/money";
 import type { ComponentProps } from "react";
 
@@ -98,7 +99,9 @@ export const BalanceSheet = ({
                     <span className="flex-1">{group.label}</span>
                     {total ? (
                       <span className="tabular-nums">
-                        {formatMoney(total.total, total.currencyCode)}
+                        <Sensitive>
+                          {formatMoney(total.total, total.currencyCode)}
+                        </Sensitive>
                         {group.liability ? " owed" : ""}
                       </span>
                     ) : null}
