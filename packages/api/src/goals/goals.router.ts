@@ -9,7 +9,10 @@ import {
   orgProcedure,
   requirePermission,
 } from "../procedures";
-import { positiveAmount } from "../transactions/amounts";
+import { isoDate } from "../shared/dates";
+import { notFound } from "../shared/errors";
+import { positiveAmount } from "../shared/money";
+import { lockOwned } from "../shared/ownership";
 import { loadGoals } from "./goals.queries";
 import type { Goal } from "./goals.queries";
 import { goalStatus } from "./progress";
@@ -20,14 +23,11 @@ const goalValues = z
     accountId: z.uuid(),
     name: z.string().trim().min(1, "Name is required").max(80),
     targetAmount: positiveAmount,
-    targetDate: z.iso.date().nullable(),
+    targetDate: isoDate.nullable(),
   })
   .strict();
 
 const goalIdInput = z.object({ goalId: z.uuid() }).strict();
-
-const goalNotFound = () =>
-  new ORPCError("NOT_FOUND", { message: "Savings goal not found" });
 
 const findGoal = async (
   db: Database,
@@ -36,7 +36,7 @@ const findGoal = async (
 ): Promise<Goal> => {
   const [goal] = await loadGoals(db, organizationId, goalId);
   if (!goal) {
-    throw goalNotFound();
+    throw notFound("Savings goal");
   }
   return goal;
 };
@@ -47,24 +47,12 @@ const lockGoal = async (
   organizationId: string,
   goalId: string
 ) => {
-  const [locked] = await db
-    .select({
-      accountId: savingsGoal.accountId,
-      archivedAt: savingsGoal.archivedAt,
-      completedAt: savingsGoal.completedAt,
-    })
-    .from(savingsGoal)
-    .where(
-      and(
-        eq(savingsGoal.id, goalId),
-        eq(savingsGoal.organizationId, organizationId)
-      )
-    )
-    .for("update")
-    .limit(1);
-  if (!locked) {
-    throw goalNotFound();
-  }
+  const locked = await lockOwned(
+    db,
+    savingsGoal,
+    { id: goalId, organizationId },
+    "Savings goal"
+  );
   return { ...locked, status: goalStatus(locked) };
 };
 
@@ -102,9 +90,7 @@ const assertTrackingAccount = async (
     )
     .limit(1);
   if (!account) {
-    throw new ORPCError("NOT_FOUND", {
-      message: "Financial account not found",
-    });
+    throw notFound("Financial account");
   }
   if (account.accountClass !== "asset") {
     throw new ORPCError("BAD_REQUEST", {

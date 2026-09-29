@@ -11,7 +11,6 @@ import { z } from "zod";
 
 import {
   deleteHouseholdFile,
-  fileNotFound,
   presignFileDownload,
 } from "../files/files.operations";
 import {
@@ -19,6 +18,7 @@ import {
   orgProcedure,
   requirePermission,
 } from "../procedures";
+import { notFound } from "../shared/errors";
 
 export const MAX_ATTACHMENTS_PER_TRANSACTION = 20;
 
@@ -35,12 +35,6 @@ const attachmentFields = {
   transactionId: financialTransactionAttachment.transactionId,
   userId: file.userId,
 };
-
-const transactionNotFound = () =>
-  new ORPCError("NOT_FOUND", { message: "Transaction not found" });
-
-const attachmentNotFound = () =>
-  new ORPCError("NOT_FOUND", { message: "Attachment not found" });
 
 /**
  * Locked when changing attachments, so an attach cannot race an archive or
@@ -69,7 +63,7 @@ const householdTransaction = async (
   const [row] = await (lock ? query.for("update") : query);
 
   if (!row) {
-    throw transactionNotFound();
+    throw notFound("Transaction");
   }
   return row;
 };
@@ -116,7 +110,7 @@ const findAttachment = async (
     .limit(1);
 
   if (!row) {
-    throw attachmentNotFound();
+    throw notFound("Attachment");
   }
   return row;
 };
@@ -150,7 +144,7 @@ export const attachmentsRouter = {
         )
         .limit(1);
       if (!source) {
-        throw fileNotFound();
+        throw notFound("File");
       }
       if (source.status !== "ready") {
         throw new ORPCError("CONFLICT", {

@@ -36,7 +36,10 @@ import {
 import { addDays } from "../recurring/recurrence";
 import { dayInMonth } from "../reminders/reminder-rules";
 import { householdToday, monthEnd } from "../reports/periods";
-import { householdSettings } from "../reports/reports.queries";
+import { isoDate } from "../shared/dates";
+import { notFound } from "../shared/errors";
+import { householdSettings } from "../shared/household";
+import { findOwned } from "../shared/ownership";
 import { billTotals, isScheduleOccurrence } from "./bill-rules";
 import { feedPath, generateFeedToken, hashFeedToken } from "./bills.feed";
 import { loadBills } from "./bills.queries";
@@ -45,7 +48,7 @@ const month = z.string().regex(BUDGET_MONTH_PATTERN, "Use a YYYY-MM month");
 
 const occurrenceInput = z
   .object({
-    dueDate: z.iso.date(),
+    dueDate: isoDate,
     kind: z.enum(billKinds),
     sourceId: z.uuid(),
   })
@@ -56,9 +59,6 @@ type Occurrence = z.output<typeof occurrenceInput>;
 /** How far either side of a due date a payment is looked for. */
 const CANDIDATE_WINDOW_DAYS = 31;
 const MAX_CANDIDATES = 20;
-
-const billNotFound = () =>
-  new ORPCError("NOT_FOUND", { message: "Bill not found" });
 
 /**
  * The occurrence must be one this household actually owes: a day the
@@ -88,7 +88,7 @@ const assertOccurrence = async (
       )
       .limit(1);
     if (!schedule) {
-      throw billNotFound();
+      throw notFound("Bill");
     }
     if (isScheduleOccurrence(schedule, occurrence.dueDate)) {
       return;
@@ -106,7 +106,7 @@ const assertOccurrence = async (
       )
       .limit(1);
     if (!posted) {
-      throw billNotFound();
+      throw notFound("Bill");
     }
     return;
   }
@@ -123,7 +123,7 @@ const assertOccurrence = async (
     )
     .limit(1);
   if (!card) {
-    throw billNotFound();
+    throw notFound("Bill");
   }
   if (
     card.paymentDueDay !== null &&
@@ -143,7 +143,7 @@ const assertOccurrence = async (
     )
     .limit(1);
   if (!statement) {
-    throw billNotFound();
+    throw notFound("Bill");
   }
 };
 
@@ -176,22 +176,12 @@ const candidateConditions = async (
       isNotNull(financialTransaction.transferId),
     ];
   }
-  const [schedule] = await db
-    .select({
-      accountId: recurringSchedule.accountId,
-      categoryId: recurringSchedule.categoryId,
-    })
-    .from(recurringSchedule)
-    .where(
-      and(
-        eq(recurringSchedule.id, occurrence.sourceId),
-        eq(recurringSchedule.organizationId, organizationId)
-      )
-    )
-    .limit(1);
-  if (!schedule) {
-    throw billNotFound();
-  }
+  const schedule = await findOwned(
+    db,
+    recurringSchedule,
+    { id: occurrence.sourceId, organizationId },
+    "Bill"
+  );
   return [
     ...base,
     isNull(financialTransaction.transferId),
@@ -442,7 +432,7 @@ export const billsRouter = {
         )
         .returning({ id: billPayment.id });
       if (!removed) {
-        throw new ORPCError("NOT_FOUND", { message: "Payment not found" });
+        throw notFound("Payment");
       }
       return removed;
     }),

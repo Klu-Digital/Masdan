@@ -1,14 +1,14 @@
 import { z } from "zod";
 
-import { positiveAmount, scaledAmount } from "./amounts";
+import { CATEGORY_TYPES } from "../categories/constants";
+import { isoDate } from "../shared/dates";
+import { positiveAmount, scaledAmount } from "../shared/money";
 import { TRANSACTION_PAID_STATUSES } from "./constants";
 
 /**
- * The create procedure's input schema. Quick entry runs a parsed payload
- * through this same schema before it may skip the form.
+ * The transaction procedures' input schemas. Quick entry runs a parsed
+ * payload through `transactionValues` before it may skip the form.
  */
-
-export const isoDate = z.iso.date();
 
 const splitTotal = (splits: { amount: string }[]): bigint => {
   let total = 0n;
@@ -55,3 +55,59 @@ export const transactionValues = z
   });
 
 export type TransactionCreateInput = z.output<typeof transactionValues>;
+
+export const transactionUpdateValues = transactionValues.extend({
+  transactionId: z.uuid(),
+});
+
+export type TransactionUpdateInput = z.output<typeof transactionUpdateValues>;
+
+const dateRangeOrder = (
+  value: { dateFrom?: string; dateTo?: string },
+  context: z.RefinementCtx
+): void => {
+  if (value.dateFrom && value.dateTo && value.dateFrom > value.dateTo) {
+    context.addIssue({
+      code: "custom",
+      message: "The start date must be before the end date",
+      path: ["dateFrom"],
+    });
+  }
+};
+
+const transactionFilterFields = {
+  accountIds: z.array(z.uuid()).max(50).default([]),
+  categoryIds: z.array(z.uuid()).max(50).default([]),
+  dateFrom: isoDate.optional(),
+  dateTo: isoDate.optional(),
+  includeArchived: z.boolean().default(false),
+  paidStatuses: z.array(z.enum(TRANSACTION_PAID_STATUSES)).max(2).default([]),
+  search: z.string().trim().max(120).default(""),
+  tagIds: z.array(z.uuid()).max(50).default([]),
+  types: z.array(z.enum(CATEGORY_TYPES)).max(2).default([]),
+};
+
+export const transactionFilterValues = z
+  .object(transactionFilterFields)
+  .superRefine(dateRangeOrder);
+
+export const transactionListValues = z
+  .object({
+    ...transactionFilterFields,
+    page: z.number().int().min(1).default(1),
+    pageSize: z.number().int().min(1).max(100).default(25),
+    sortBy: z.enum(["date", "amount"]).default("date"),
+    sortDirection: z.enum(["asc", "desc"]).default("desc"),
+  })
+  .superRefine(dateRangeOrder);
+
+export type TransactionFilterInput = z.output<typeof transactionFilterValues>;
+export type TransactionListInput = z.output<typeof transactionListValues>;
+
+export const transactionSummaryValues = z
+  .object({
+    accountIds: z.array(z.uuid()).max(50).default([]),
+    dateFrom: isoDate,
+    dateTo: isoDate,
+  })
+  .superRefine(dateRangeOrder);

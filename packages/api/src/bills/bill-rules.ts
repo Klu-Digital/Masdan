@@ -11,7 +11,7 @@ import {
   dayInMonth,
 } from "../reminders/reminder-rules";
 import { daysBetween, monthStart } from "../reports/periods";
-import { fixedAmountText, signedScaledAmount } from "../transactions/amounts";
+import { fixedAmountText, signedScaledAmount } from "../shared/money";
 
 /**
  * Leaf module: which bills fall in a date range and whether each is paid.

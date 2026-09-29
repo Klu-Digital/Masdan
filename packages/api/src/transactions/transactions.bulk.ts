@@ -8,7 +8,7 @@ import { ORPCError } from "@orpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
-import type { updateTransaction as UpdateTransaction } from "./transactions.router";
+import { updateTransaction } from "./transactions.commands";
 import { ownedTags, validCategory, validTags } from "./transactions.write";
 
 const uniqueIds = (ids: string[]) => new Set(ids).size === ids.length;
@@ -48,8 +48,7 @@ interface BulkSkip {
 export const bulkUpdateTransactions = async (
   db: Database,
   organizationId: string,
-  input: BulkUpdateInput,
-  updateTransaction: typeof UpdateTransaction
+  input: BulkUpdateInput
 ): Promise<{
   categoryKept: string[];
   updated: string[];

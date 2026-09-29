@@ -4,7 +4,6 @@ import {
   financialAccount,
   financialTransaction,
   financialTransactionSplit,
-  organization,
 } from "@masdan/db/schema/index";
 import { ORPCError } from "@orpc/server";
 import {
@@ -28,6 +27,8 @@ import {
   balancePostings,
 } from "../accounts/balances";
 import type { CategoryType } from "../categories/constants";
+import { householdSettings } from "../shared/household";
+import type { HouseholdSettings } from "../shared/household";
 import {
   autoGranularity,
   historyPointCount,
@@ -43,29 +44,6 @@ export interface PeriodInput {
   dateTo?: string;
   preset: ReportPreset;
 }
-
-export interface HouseholdSettings {
-  defaultCurrency: string;
-  timezone: string;
-}
-
-export const householdSettings = async (
-  db: Database,
-  organizationId: string
-): Promise<HouseholdSettings> => {
-  const [household] = await db
-    .select({
-      defaultCurrency: organization.defaultCurrency,
-      timezone: organization.timezone,
-    })
-    .from(organization)
-    .where(eq(organization.id, organizationId))
-    .limit(1);
-  if (!household) {
-    throw new ORPCError("NOT_FOUND", { message: "Household not found" });
-  }
-  return household;
-};
 
 /** The first calendar day the household's ledger says anything about. */
 export const earliestLedgerDate = async (

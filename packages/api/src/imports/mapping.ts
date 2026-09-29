@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { formatScaledAmount, scaledAmount } from "../transactions/amounts";
+import { formatScaledAmount, scaledAmount } from "../shared/money";
 import { CSV_DELIMITERS } from "./csv";
 import type { CsvRecord } from "./csv";
 

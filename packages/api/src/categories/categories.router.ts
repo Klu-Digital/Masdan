@@ -13,6 +13,7 @@ import {
   orgProcedure,
   requirePermission,
 } from "../procedures";
+import { notFound } from "../shared/errors";
 import { CATEGORY_COLORS, CATEGORY_TYPES } from "./constants";
 
 const emojiPattern = /\p{Extended_Pictographic}/u;
@@ -63,9 +64,6 @@ const isUniqueViolation = (error: unknown): boolean => {
   return false;
 };
 
-const categoryNotFound = () =>
-  new ORPCError("NOT_FOUND", { message: "Category not found" });
-
 const categoryConflict = () =>
   new ORPCError("CONFLICT", {
     message: "A category with this name already exists",
@@ -88,7 +86,7 @@ export const categoriesRouter = {
         .returning(categoryFields);
 
       if (!archived) {
-        throw categoryNotFound();
+        throw notFound("Category");
       }
       return archived;
     }),
@@ -149,7 +147,7 @@ export const categoriesRouter = {
         .returning(categoryFields);
 
       if (!restored) {
-        throw categoryNotFound();
+        throw notFound("Category");
       }
       return restored;
     }),
@@ -171,7 +169,7 @@ export const categoriesRouter = {
           )
           .limit(1);
         if (!existing) {
-          throw categoryNotFound();
+          throw notFound("Category");
         }
         if (existing.type !== values.type) {
           const transactions = await context.db
@@ -214,7 +212,7 @@ export const categoriesRouter = {
           .returning(categoryFields);
 
         if (!updated) {
-          throw categoryNotFound();
+          throw notFound("Category");
         }
         return updated;
       } catch (error) {

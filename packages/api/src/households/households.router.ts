@@ -8,6 +8,7 @@ import {
   orgProcedure,
   requirePermission,
 } from "../procedures";
+import { notFound } from "../shared/errors";
 
 /**
  * Shape only — a code that passes this still has to exist in `currency`, which
@@ -53,7 +54,7 @@ export const householdsRouter = {
       .limit(1);
 
     if (!household) {
-      throw new ORPCError("NOT_FOUND", { message: "Household not found" });
+      throw notFound("Household");
     }
 
     return household;
@@ -92,7 +93,7 @@ export const householdsRouter = {
         .returning({ timezone: organization.timezone });
 
       if (!household) {
-        throw new ORPCError("NOT_FOUND", { message: "Household not found" });
+        throw notFound("Household");
       }
 
       return { defaultCurrency: selected, timezone: household.timezone };

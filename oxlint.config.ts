@@ -18,6 +18,30 @@ export default defineConfig({
   jsPlugins: ["@shadcn/lint"],
   overrides: [
     {
+      // Routers are transport: shared logic lives in `*.queries.ts` and
+      // `*.commands.ts`, so a router importing a router is how cycles start.
+      files: ["packages/api/src/**/*.ts"],
+      rules: {
+        "no-restricted-imports": [
+          "error",
+          {
+            patterns: [
+              {
+                message:
+                  "Only routers/index.ts and routers/admin.ts mount routers. Import the feature's *.queries or *.commands module instead.",
+                regex: String.raw`\.router$`,
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      // The mount points, and tests, which call procedures through a router.
+      files: ["packages/api/src/routers/*.ts", "packages/api/src/**/*.test.ts"],
+      rules: { "no-restricted-imports": "off" },
+    },
+    {
       // packages/ui *is* the design system, so its own source may style itself and
       // reach for structural one-offs like `px-[calc(--spacing(3)-1px)]` that no
       // token can express. src/** rather than src/components/**, because

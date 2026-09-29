@@ -9,7 +9,9 @@ import {
   requirePermission,
 } from "../procedures";
 import { householdToday } from "../reports/periods";
-import { householdSettings } from "../reports/reports.queries";
+import { isoDate } from "../shared/dates";
+import { notFound } from "../shared/errors";
+import { householdSettings } from "../shared/household";
 
 const setInput = z
   .object({
@@ -18,7 +20,7 @@ const setInput = z
       .string()
       .regex(/^(?:0|[1-9]\d{0,17})(?:\.\d{1,12})?$/u)
       .refine((value) => /[1-9]/u.test(value), "Rate must be positive"),
-    rateDate: z.iso.date(),
+    rateDate: isoDate,
     toCurrency: z.string().min(1),
   })
   .refine((value) => value.fromCurrency !== value.toCurrency, {
@@ -53,9 +55,7 @@ export const exchangeRatesRouter = {
         )
         .returning({ id: householdExchangeRate.id });
       if (!removed) {
-        throw new ORPCError("NOT_FOUND", {
-          message: "Exchange rate not found",
-        });
+        throw notFound("Exchange rate");
       }
       return removed;
     }),

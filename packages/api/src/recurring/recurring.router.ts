@@ -4,7 +4,6 @@ import {
   category,
   financialAccount,
   financialTransaction,
-  organization,
   recurringSchedule,
   recurringScheduleTag,
   tag,
@@ -20,14 +19,13 @@ import {
   orgProcedure,
   requirePermission,
 } from "../procedures";
-import { householdToday } from "../reports/periods";
-import { positiveAmount } from "../transactions/amounts";
+import { isoDate } from "../shared/dates";
+import { notFound } from "../shared/errors";
+import { householdDate } from "../shared/household";
+import { positiveAmount } from "../shared/money";
+import { lockOwned } from "../shared/ownership";
 import { TRANSACTION_PAID_STATUSES } from "../transactions/constants";
-import {
-  activeAccount,
-  validCategory,
-  validTags,
-} from "../transactions/transactions.write";
+import { assertReferences } from "../transactions/transactions.write";
 import {
   RECURRING_FREQUENCIES,
   initialNextOccurrence,
@@ -45,7 +43,7 @@ const scheduleValues = z
     name: z.string().trim().min(1, "Name is required").max(80),
     notes: z.string().trim().max(2000).nullable(),
     paidStatus: z.enum(TRANSACTION_PAID_STATUSES),
-    startDate: z.iso.date(),
+    startDate: isoDate,
     tagIds: z
       .array(z.uuid())
       .max(50)
@@ -56,9 +54,6 @@ const scheduleValues = z
 type ScheduleValues = z.output<typeof scheduleValues>;
 
 const scheduleIdInput = z.object({ scheduleId: z.uuid() });
-
-const scheduleNotFound = () =>
-  new ORPCError("NOT_FOUND", { message: "Recurring schedule not found" });
 
 const stoppedSchedule = () =>
   new ORPCError("BAD_REQUEST", {
@@ -177,60 +172,23 @@ const findSchedule = async (
 ) => {
   const [schedule] = await loadSchedules(db, organizationId, scheduleId);
   if (!schedule) {
-    throw scheduleNotFound();
+    throw notFound("Recurring schedule");
   }
   return schedule;
 };
 
 /** Row-locked, so a lifecycle change and a generation run never interleave. */
-const lockSchedule = async (
+const lockSchedule = (
   db: Database,
   organizationId: string,
   scheduleId: string
-) => {
-  const [locked] = await db
-    .select()
-    .from(recurringSchedule)
-    .where(
-      and(
-        eq(recurringSchedule.id, scheduleId),
-        eq(recurringSchedule.organizationId, organizationId)
-      )
-    )
-    .for("update")
-    .limit(1);
-  if (!locked) {
-    throw scheduleNotFound();
-  }
-  return locked;
-};
-
-/**
- * Every id a schedule stores must belong to the caller's household and be
- * usable for a new transaction — the same checks `createTransaction` makes
- * when an occurrence posts, so a schedule cannot save what it cannot post.
- */
-const assertReferences = async (
-  db: Database,
-  organizationId: string,
-  values: Pick<ScheduleValues, "accountId" | "categoryId" | "tagIds">
-): Promise<void> => {
-  await activeAccount(db, organizationId, values.accountId);
-  await validCategory(db, organizationId, values.categoryId, false);
-  await validTags(db, organizationId, values.tagIds);
-};
-
-const todayFor = async (
-  db: Database,
-  organizationId: string
-): Promise<string> => {
-  const [household] = await db
-    .select({ timezone: organization.timezone })
-    .from(organization)
-    .where(eq(organization.id, organizationId))
-    .limit(1);
-  return householdToday(household?.timezone ?? "Asia/Manila", new Date());
-};
+) =>
+  lockOwned(
+    db,
+    recurringSchedule,
+    { id: scheduleId, organizationId },
+    "Recurring schedule"
+  );
 
 const replaceScheduleTags = async (
   db: Database,
@@ -298,7 +256,7 @@ export const recurringRouter = {
     .input(scheduleValues)
     .handler(async ({ context, input }) => {
       await assertReferences(context.db, context.organizationId, input);
-      const today = await todayFor(context.db, context.organizationId);
+      const today = await householdDate(context.db, context.organizationId);
       const nextOccurrenceDate = initialNextOccurrence(input, today);
       const [created] = await context.db
         .insert(recurringSchedule)
@@ -411,7 +369,7 @@ export const recurringRouter = {
           categoryId: current.categoryId,
           tagIds: tagRows.map(({ tagId }) => tagId),
         });
-        const today = await todayFor(context.db, context.organizationId);
+        const today = await householdDate(context.db, context.organizationId);
         const nextOccurrenceDate = resumedNextOccurrence(
           current,
           current.nextOccurrenceDate ?? today,
@@ -482,7 +440,7 @@ export const recurringRouter = {
         throw stoppedSchedule();
       }
       await assertReferences(context.db, context.organizationId, values);
-      const today = await todayFor(context.db, context.organizationId);
+      const today = await householdDate(context.db, context.organizationId);
       const nextOccurrenceDate = sameTiming(current, values)
         ? current.nextOccurrenceDate
         : initialNextOccurrence(values, today);

@@ -9,8 +9,9 @@ import {
   orgProcedure,
   requirePermission,
 } from "../procedures";
-import { householdSettings } from "../reports/reports.queries";
-import { positiveAmount } from "../transactions/amounts";
+import { notFound } from "../shared/errors";
+import { householdSettings } from "../shared/household";
+import { positiveAmount } from "../shared/money";
 import {
   BUDGET_MONTH_PATTERN,
   getMonthBudgets,
@@ -47,7 +48,7 @@ const budgetableCategory = async (
     )
     .limit(1);
   if (!selected) {
-    throw new ORPCError("NOT_FOUND", { message: "Category not found" });
+    throw notFound("Category");
   }
   if (selected.type !== "expense") {
     throw new ORPCError("BAD_REQUEST", {

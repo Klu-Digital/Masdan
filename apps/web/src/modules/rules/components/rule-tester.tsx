@@ -8,7 +8,7 @@ import {
   findMatchingRule,
 } from "@masdan/api/rules/engine";
 import type { RuleSubject } from "@masdan/api/rules/engine";
-import { positiveAmount } from "@masdan/api/transactions/amounts";
+import { positiveAmount } from "@masdan/api/shared/money";
 import { Field, FieldLabel } from "@masdan/ui/components/field";
 import { Input } from "@masdan/ui/components/input";
 import {

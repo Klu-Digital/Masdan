@@ -8,7 +8,11 @@ import { z } from "zod";
 
 import { addDays } from "../recurring/recurrence";
 import { daysBetween } from "../reports/periods";
-import { formatScaledAmount, positiveAmount, scaledAmount } from "./amounts";
+import {
+  formatScaledAmount,
+  positiveAmount,
+  scaledAmount,
+} from "../shared/money";
 import type { TransactionPaidStatus } from "./constants";
 import {
   ACCOUNT_LEAD_WORDS,

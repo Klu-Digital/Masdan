@@ -12,7 +12,7 @@ import {
   balanceExpression,
   balancePostings,
 } from "../accounts/balances";
-import { householdSettings } from "../reports/reports.queries";
+import { householdSettings } from "../shared/household";
 import { goalProgress, goalStatus } from "./progress";
 import type { GoalProgress, GoalStatus } from "./progress";
 

@@ -11,11 +11,8 @@ import {
   orgProcedure,
   requirePermission,
 } from "../procedures";
-import {
-  deleteHouseholdFile,
-  fileNotFound,
-  presignFileDownload,
-} from "./files.operations";
+import { notFound } from "../shared/errors";
+import { deleteHouseholdFile, presignFileDownload } from "./files.operations";
 
 const fileIdInput = z.object({ fileId: z.uuid() });
 
@@ -53,7 +50,7 @@ export const filesRouter = {
         .limit(1);
 
       if (!row) {
-        throw new ORPCError("NOT_FOUND", { message: "File not found" });
+        throw notFound("File");
       }
 
       const metadata = await storage.headObject({ key: row.key });
@@ -154,7 +151,7 @@ export const filesRouter = {
         .limit(1);
 
       if (!row) {
-        throw fileNotFound();
+        throw notFound("File");
       }
 
       return presignFileDownload(row);

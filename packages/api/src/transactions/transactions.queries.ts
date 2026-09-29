@@ -1,0 +1,442 @@
+import type { Database } from "@masdan/db";
+import {
+  category,
+  financialAccount,
+  financialTransaction,
+  financialTransactionSplit,
+  financialTransactionTag,
+  recurringSchedule,
+  tag,
+} from "@masdan/db/schema/index";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  exists,
+  gte,
+  ilike,
+  inArray,
+  isNull,
+  lte,
+  notExists,
+  or,
+} from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
+
+import {
+  expenseTotal,
+  getCategoryTotals,
+  getMonthlyCashFlow,
+  incomeTotal,
+} from "../reports/reports.queries";
+import { notFound } from "../shared/errors";
+import { getTransfer } from "../transfers/transfers.queries";
+import type { TransactionFilterInput, TransactionListInput } from "./schema";
+
+export const transactionFields = {
+  accountId: financialTransaction.accountId,
+  amount: financialTransaction.amount,
+  archivedAt: financialTransaction.archivedAt,
+  categoryId: financialTransaction.categoryId,
+  createdAt: financialTransaction.createdAt,
+  currencyCode: financialTransaction.currencyCode,
+  id: financialTransaction.id,
+  notes: financialTransaction.notes,
+  organizationId: financialTransaction.organizationId,
+  paidStatus: financialTransaction.paidStatus,
+  recurringOccurrenceDate: financialTransaction.recurringOccurrenceDate,
+  recurringScheduleId: financialTransaction.recurringScheduleId,
+  ruleApplication: financialTransaction.ruleApplication,
+  suggestionApplication: financialTransaction.suggestionApplication,
+  transactionDate: financialTransaction.transactionDate,
+  transferId: financialTransaction.transferId,
+  transferSide: financialTransaction.transferSide,
+  updatedAt: financialTransaction.updatedAt,
+};
+
+interface TransactionRow {
+  id: string;
+  organizationId: string;
+  transferId: string | null;
+  [key: string]: unknown;
+}
+
+export const transactionSplits = (db: Database, transactionId: string) =>
+  db
+    .select({
+      amount: financialTransactionSplit.amount,
+      categoryColor: category.color,
+      categoryIcon: category.icon,
+      categoryId: financialTransactionSplit.categoryId,
+      categoryName: category.name,
+      categoryType: category.type,
+      id: financialTransactionSplit.id,
+      sortOrder: financialTransactionSplit.sortOrder,
+    })
+    .from(financialTransactionSplit)
+    .innerJoin(category, eq(category.id, financialTransactionSplit.categoryId))
+    .where(eq(financialTransactionSplit.transactionId, transactionId))
+    .orderBy(
+      asc(financialTransactionSplit.sortOrder),
+      asc(financialTransactionSplit.id)
+    );
+
+export const withDetails = async <T extends TransactionRow>(
+  db: Database,
+  row: T
+): Promise<
+  T & {
+    splits: Awaited<ReturnType<typeof transactionSplits>>;
+    tags: {
+      archivedAt: Date | null;
+      color: string;
+      id: string;
+      name: string;
+    }[];
+    transfer: Awaited<ReturnType<typeof getTransfer>> | null;
+  }
+> => {
+  const [tags, splits, transfer] = await Promise.all([
+    db
+      .select({
+        archivedAt: tag.archivedAt,
+        color: tag.color,
+        id: tag.id,
+        name: tag.name,
+      })
+      .from(financialTransactionTag)
+      .innerJoin(tag, eq(tag.id, financialTransactionTag.tagId))
+      .where(eq(financialTransactionTag.transactionId, row.id))
+      .orderBy(asc(tag.name)),
+    transactionSplits(db, row.id),
+    row.transferId
+      ? getTransfer(db, row.organizationId, row.transferId)
+      : Promise.resolve(null),
+  ]);
+
+  return { ...row, splits, tags, transfer };
+};
+
+export const transactionQuery = (db: Database) =>
+  db
+    .select({
+      ...transactionFields,
+      accountClass: financialAccount.accountClass,
+      accountName: financialAccount.name,
+      categoryColor: category.color,
+      categoryIcon: category.icon,
+      categoryName: category.name,
+      recurringScheduleName: recurringSchedule.name,
+      type: category.type,
+    })
+    .from(financialTransaction)
+    .innerJoin(
+      financialAccount,
+      eq(financialAccount.id, financialTransaction.accountId)
+    )
+    .leftJoin(category, eq(category.id, financialTransaction.categoryId))
+    .leftJoin(
+      recurringSchedule,
+      eq(recurringSchedule.id, financialTransaction.recurringScheduleId)
+    );
+
+const splitCategory = alias(category, "split_category");
+const sourcePosting = alias(financialTransaction, "source_posting");
+
+/** The ledger filters; Ask Masdan reuses them so its totals match this screen. */
+export const transactionListConditions = (
+  db: Database,
+  organizationId: string,
+  input: TransactionFilterInput
+) => {
+  const conditions = [eq(financialTransaction.organizationId, organizationId)];
+
+  // An unfiltered household ledger shows one row per transfer, not both postings.
+  if (input.accountIds.length === 0) {
+    const logicalTransfer = or(
+      isNull(financialTransaction.transferId),
+      eq(financialTransaction.transferSide, "source")
+    );
+    if (logicalTransfer) {
+      conditions.push(logicalTransfer);
+    }
+  }
+  if (!input.includeArchived) {
+    conditions.push(isNull(financialTransaction.archivedAt));
+  }
+  if (input.accountIds.length > 0) {
+    conditions.push(inArray(financialTransaction.accountId, input.accountIds));
+    if (input.accountIds.length > 1) {
+      const logicalTransfer = or(
+        isNull(financialTransaction.transferId),
+        eq(financialTransaction.transferSide, "source"),
+        notExists(
+          db
+            .select({ id: sourcePosting.id })
+            .from(sourcePosting)
+            .where(
+              and(
+                eq(sourcePosting.transferId, financialTransaction.transferId),
+                eq(sourcePosting.transferSide, "source"),
+                inArray(sourcePosting.accountId, input.accountIds)
+              )
+            )
+        )
+      );
+      if (logicalTransfer) {
+        conditions.push(logicalTransfer);
+      }
+    }
+  }
+  if (input.categoryIds.length > 0) {
+    const categoryCondition = or(
+      inArray(financialTransaction.categoryId, input.categoryIds),
+      exists(
+        db
+          .select({ id: financialTransactionSplit.id })
+          .from(financialTransactionSplit)
+          .innerJoin(
+            splitCategory,
+            eq(splitCategory.id, financialTransactionSplit.categoryId)
+          )
+          .where(
+            and(
+              eq(
+                financialTransactionSplit.transactionId,
+                financialTransaction.id
+              ),
+              eq(splitCategory.organizationId, organizationId),
+              inArray(financialTransactionSplit.categoryId, input.categoryIds)
+            )
+          )
+      )
+    );
+    if (categoryCondition) {
+      conditions.push(categoryCondition);
+    }
+  }
+  if (input.dateFrom) {
+    conditions.push(gte(financialTransaction.transactionDate, input.dateFrom));
+  }
+  if (input.dateTo) {
+    conditions.push(lte(financialTransaction.transactionDate, input.dateTo));
+  }
+  if (input.paidStatuses.length > 0) {
+    conditions.push(
+      inArray(financialTransaction.paidStatus, input.paidStatuses)
+    );
+  }
+  if (input.types.length > 0) {
+    conditions.push(inArray(category.type, input.types));
+  }
+  if (input.tagIds.length > 0) {
+    conditions.push(
+      exists(
+        db
+          .select({ transactionId: financialTransactionTag.transactionId })
+          .from(financialTransactionTag)
+          .innerJoin(tag, eq(tag.id, financialTransactionTag.tagId))
+          .where(
+            and(
+              eq(
+                financialTransactionTag.transactionId,
+                financialTransaction.id
+              ),
+              eq(tag.organizationId, organizationId),
+              inArray(financialTransactionTag.tagId, input.tagIds)
+            )
+          )
+      )
+    );
+  }
+  if (input.search) {
+    const pattern = `%${input.search}%`;
+    const searchCondition = or(
+      ilike(financialTransaction.notes, pattern),
+      ilike(financialAccount.name, pattern),
+      ilike(category.name, pattern),
+      exists(
+        db
+          .select({ id: financialTransactionSplit.id })
+          .from(financialTransactionSplit)
+          .innerJoin(
+            splitCategory,
+            eq(splitCategory.id, financialTransactionSplit.categoryId)
+          )
+          .where(
+            and(
+              eq(
+                financialTransactionSplit.transactionId,
+                financialTransaction.id
+              ),
+              eq(splitCategory.organizationId, organizationId),
+              ilike(splitCategory.name, pattern)
+            )
+          )
+      ),
+      exists(
+        db
+          .select({ transactionId: financialTransactionTag.transactionId })
+          .from(financialTransactionTag)
+          .innerJoin(tag, eq(tag.id, financialTransactionTag.tagId))
+          .where(
+            and(
+              eq(
+                financialTransactionTag.transactionId,
+                financialTransaction.id
+              ),
+              eq(tag.organizationId, organizationId),
+              ilike(tag.name, pattern)
+            )
+          )
+      )
+    );
+    if (searchCondition) {
+      conditions.push(searchCondition);
+    }
+  }
+
+  return conditions;
+};
+
+const transactionOrderBy = (input: TransactionListInput) => {
+  if (input.sortBy === "amount") {
+    if (input.sortDirection === "asc") {
+      return [
+        asc(financialTransaction.amount),
+        asc(financialTransaction.transactionDate),
+        asc(financialTransaction.id),
+      ];
+    }
+
+    return [
+      desc(financialTransaction.amount),
+      desc(financialTransaction.transactionDate),
+      desc(financialTransaction.id),
+    ];
+  }
+
+  if (input.sortDirection === "asc") {
+    return [
+      asc(financialTransaction.transactionDate),
+      asc(financialTransaction.createdAt),
+      asc(financialTransaction.id),
+    ];
+  }
+
+  return [
+    desc(financialTransaction.transactionDate),
+    desc(financialTransaction.createdAt),
+    desc(financialTransaction.id),
+  ];
+};
+
+/** One income, expense or transfer posting with its tags, splits and transfer. */
+export const getTransaction = async (
+  db: Database,
+  organizationId: string,
+  transactionId: string
+) => {
+  const [result] = await transactionQuery(db)
+    .where(
+      and(
+        eq(financialTransaction.id, transactionId),
+        eq(financialTransaction.organizationId, organizationId)
+      )
+    )
+    .limit(1);
+
+  if (!result) {
+    throw notFound("Transaction");
+  }
+
+  return withDetails(db, result);
+};
+
+export const listTransactions = async (
+  db: Database,
+  organizationId: string,
+  input: TransactionListInput
+) => {
+  const conditions = transactionListConditions(db, organizationId, input);
+  const orderBy = transactionOrderBy(input);
+
+  const [rows, countRows] = await Promise.all([
+    transactionQuery(db)
+      .where(and(...conditions))
+      .orderBy(...orderBy)
+      .limit(input.pageSize)
+      .offset((input.page - 1) * input.pageSize),
+    db
+      .select({ total: count() })
+      .from(financialTransaction)
+      .innerJoin(
+        financialAccount,
+        eq(financialAccount.id, financialTransaction.accountId)
+      )
+      .leftJoin(category, eq(category.id, financialTransaction.categoryId))
+      .where(and(...conditions)),
+  ]);
+
+  const total = countRows[0]?.total ?? 0;
+
+  return {
+    items: await Promise.all(rows.map((row) => withDetails(db, row))),
+    page: input.page,
+    pageSize: input.pageSize,
+    total,
+    totalPages: Math.ceil(total / input.pageSize),
+  };
+};
+
+export const transactionTotals = async (
+  db: Database,
+  organizationId: string,
+  input: TransactionFilterInput
+) => {
+  const conditions = transactionListConditions(db, organizationId, input);
+
+  const [countRows, currencies] = await Promise.all([
+    db
+      .select({ total: count() })
+      .from(financialTransaction)
+      .innerJoin(
+        financialAccount,
+        eq(financialAccount.id, financialTransaction.accountId)
+      )
+      .leftJoin(category, eq(category.id, financialTransaction.categoryId))
+      .where(and(...conditions)),
+    db
+      .select({
+        currencyCode: financialTransaction.currencyCode,
+        expense: expenseTotal,
+        income: incomeTotal,
+      })
+      .from(financialTransaction)
+      .innerJoin(
+        financialAccount,
+        eq(financialAccount.id, financialTransaction.accountId)
+      )
+      .leftJoin(category, eq(category.id, financialTransaction.categoryId))
+      .where(and(...conditions, isNull(financialTransaction.transferId)))
+      .groupBy(financialTransaction.currencyCode)
+      .orderBy(asc(financialTransaction.currencyCode)),
+  ]);
+
+  return { count: countRows[0]?.total ?? 0, currencies };
+};
+
+export const transactionSummary = async (
+  db: Database,
+  organizationId: string,
+  input: { accountIds: string[]; dateFrom: string; dateTo: string }
+) => {
+  const [cashFlow, categories] = await Promise.all([
+    getMonthlyCashFlow(db, organizationId, input),
+    getCategoryTotals(db, organizationId, input),
+  ]);
+
+  return { cashFlow, categories };
+};

@@ -1,15 +1,11 @@
 import type { Database } from "@masdan/db";
-import {
-  category,
-  financialAccount,
-  organization,
-} from "@masdan/db/schema/index";
+import { category, financialAccount } from "@masdan/db/schema/index";
 import { log, parseError } from "@masdan/observability";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { completeJson, isAiConfigured } from "../ai/gateway";
-import { householdToday } from "../reports/periods";
+import { householdDate } from "../shared/household";
 import {
   QUICK_ENTRY_MAX_LENGTH,
   quickEntryExtraction,
@@ -42,7 +38,7 @@ export const quickEntryHousehold = async (
   db: Database,
   organizationId: string
 ): Promise<QuickEntryHousehold> => {
-  const [accounts, categories, [household]] = await Promise.all([
+  const [accounts, categories, today] = await Promise.all([
     db
       .select({
         accountType: financialAccount.accountType,
@@ -72,11 +68,7 @@ export const quickEntryHousehold = async (
         )
       )
       .orderBy(asc(category.sortOrder), asc(category.name)),
-    db
-      .select({ timezone: organization.timezone })
-      .from(organization)
-      .where(eq(organization.id, organizationId))
-      .limit(1),
+    householdDate(db, organizationId),
   ]);
 
   return {
@@ -86,7 +78,7 @@ export const quickEntryHousehold = async (
         ? [{ ...row, type: row.type }]
         : []
     ),
-    today: householdToday(household?.timezone ?? "Asia/Manila", new Date()),
+    today,
   };
 };
 

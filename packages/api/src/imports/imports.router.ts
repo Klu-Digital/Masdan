@@ -17,10 +17,12 @@ import {
   orgProcedure,
   requirePermission,
 } from "../procedures";
+import { notFound } from "../shared/errors";
 import {
   activeAccount,
   validCategory,
 } from "../transactions/transactions.write";
+import { findImport, importFields } from "./imports.queries";
 import { OPENING_BALANCE_MODES, importMappingSchema } from "./mapping";
 
 const CSV_CONTENT_TYPES = new Set(["text/csv", "text/plain"]);
@@ -39,63 +41,7 @@ type ImportConfig = z.output<typeof importConfigValues>;
 
 const importIdInput = z.object({ importId: z.uuid() });
 
-const importFields = {
-  accountId: transactionImport.accountId,
-  accountName: financialAccount.name,
-  checksum: transactionImport.checksum,
-  committedAt: transactionImport.committedAt,
-  createdAt: transactionImport.createdAt,
-  currencyCode: financialAccount.currencyCode,
-  defaultExpenseCategoryId: transactionImport.defaultExpenseCategoryId,
-  defaultIncomeCategoryId: transactionImport.defaultIncomeCategoryId,
-  duplicateRows: transactionImport.duplicateRows,
-  error: transactionImport.error,
-  failedStatus: transactionImport.failedStatus,
-  fileName: transactionImport.fileName,
-  headers: transactionImport.headers,
-  id: transactionImport.id,
-  importedRows: transactionImport.importedRows,
-  invalidRows: transactionImport.invalidRows,
-  mapping: transactionImport.mapping,
-  openingBalanceDate: financialAccount.openingBalanceDate,
-  openingBalanceMode: transactionImport.openingBalanceMode,
-  sourceFileId: transactionImport.sourceFileId,
-  status: transactionImport.status,
-  totalRows: transactionImport.totalRows,
-  updatedAt: transactionImport.updatedAt,
-  validRows: transactionImport.validRows,
-  validatedAt: transactionImport.validatedAt,
-};
-
 type Db = Context["db"];
-
-const importNotFound = () =>
-  new ORPCError("NOT_FOUND", { message: "Import not found" });
-
-export const findImport = async (
-  db: Db,
-  organizationId: string,
-  importId: string
-) => {
-  const [row] = await db
-    .select(importFields)
-    .from(transactionImport)
-    .innerJoin(
-      financialAccount,
-      eq(financialAccount.id, transactionImport.accountId)
-    )
-    .where(
-      and(
-        eq(transactionImport.id, importId),
-        eq(transactionImport.organizationId, organizationId)
-      )
-    )
-    .limit(1);
-  if (!row) {
-    throw importNotFound();
-  }
-  return { ...row, mapping: importMappingSchema.parse(row.mapping) };
-};
 
 /** Every id must belong to the caller's household; lookups filter on it. */
 const assertConfig = async (
@@ -196,7 +142,7 @@ export const importsRouter = {
         )
         .limit(1);
       if (!source) {
-        throw new ORPCError("NOT_FOUND", { message: "File not found" });
+        throw notFound("File");
       }
       if (source.status !== "ready") {
         throw new ORPCError("CONFLICT", {

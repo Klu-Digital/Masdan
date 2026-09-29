@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { REPORT_PRESETS } from "../reports/periods";
 import type { PeriodInput } from "../reports/reports.queries";
+import { isoDate } from "../shared/dates";
 import { resolveAccountText } from "../transactions/quick-entry";
 import type { QuickEntryAccount } from "../transactions/quick-entry";
 
@@ -116,8 +117,6 @@ export const askMessages = (
     role: "user",
   },
 ];
-
-const isoDate = z.iso.date();
 
 const phraseOf = (value: string): string =>
   normalizeCardText(value).split(" ").filter(Boolean).join(" ");

@@ -4,7 +4,7 @@ import {
   PieChart01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { positiveAmount } from "@masdan/api/transactions/amounts";
+import { positiveAmount } from "@masdan/api/shared/money";
 import { Amount } from "@masdan/ui/components/amount";
 import { AmountInput } from "@masdan/ui/components/amount-input";
 import { Badge } from "@masdan/ui/components/badge";

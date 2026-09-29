@@ -14,6 +14,7 @@ import {
 import { ORPCError } from "@orpc/server";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
+import { notFound } from "../shared/errors";
 import type { TransactionPaidStatus } from "./constants";
 
 /**
@@ -50,9 +51,7 @@ export const activeAccount = async (
     .limit(1);
 
   if (!account) {
-    throw new ORPCError("NOT_FOUND", {
-      message: "Financial account not found",
-    });
+    throw notFound("Financial account");
   }
 
   return account;
@@ -192,6 +191,40 @@ export const validateSplitCategories = async (
       message: "Every split category must match the transaction type",
     });
   }
+};
+
+/**
+ * Every id a stored template (a rule, a schedule) points at must belong to
+ * the household and be usable for a new transaction. Archived references are
+ * tolerated only where `existing` already held them. Returns the category.
+ */
+export const assertReferences = async (
+  db: Database,
+  organizationId: string,
+  values: {
+    accountId: string | null;
+    categoryId: string | null;
+    tagIds: string[];
+  },
+  existing?: {
+    accountId: string | null;
+    categoryId: string | null;
+    tagIds: string[];
+  }
+) => {
+  if (values.accountId && values.accountId !== existing?.accountId) {
+    await activeAccount(db, organizationId, values.accountId);
+  }
+  const selected = values.categoryId
+    ? await validCategory(
+        db,
+        organizationId,
+        values.categoryId,
+        values.categoryId === existing?.categoryId
+      )
+    : null;
+  await validTags(db, organizationId, values.tagIds, new Set(existing?.tagIds));
+  return selected;
 };
 
 /** The schedule occurrence a generated transaction stands for. */

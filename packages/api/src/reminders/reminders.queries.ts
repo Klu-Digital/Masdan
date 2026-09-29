@@ -13,7 +13,7 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { getAccountBalances } from "../accounts/balances";
 import { householdToday } from "../reports/periods";
-import { householdSettings } from "../reports/reports.queries";
+import { householdSettings } from "../shared/household";
 import { reminderResolution } from "./reminder-rules";
 import type { ReminderCard, ReminderStatement } from "./reminder-rules";
 

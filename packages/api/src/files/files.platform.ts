@@ -10,6 +10,7 @@ import { and, desc, eq, lt } from "drizzle-orm";
 import { z } from "zod";
 
 import { adminMutationProcedure, adminProcedure } from "../procedures";
+import { notFound } from "../shared/errors";
 
 const HOURS_TO_MS = 60 * 60 * 1000;
 
@@ -29,7 +30,7 @@ export const filesPlatformRouter = {
         .returning();
 
       if (!row) {
-        throw new ORPCError("NOT_FOUND", { message: "File not found" });
+        throw notFound("File");
       }
 
       context.log?.info("admin.files.delete", {
@@ -56,7 +57,7 @@ export const filesPlatformRouter = {
         .where(eq(file.id, input.fileId));
 
       if (!row) {
-        throw new ORPCError("NOT_FOUND", { message: "File not found" });
+        throw notFound("File");
       }
 
       if (row.status !== "ready") {

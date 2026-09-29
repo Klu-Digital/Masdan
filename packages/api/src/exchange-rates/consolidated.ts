@@ -15,8 +15,8 @@ import {
   balancePostings,
 } from "../accounts/balances";
 import { householdToday } from "../reports/periods";
-import { householdSettings } from "../reports/reports.queries";
-import { AMOUNT_SCALE } from "../transactions/amounts";
+import { householdSettings } from "../shared/household";
+import { AMOUNT_SCALE } from "../shared/money";
 import { convertBalance, selectRate, sumMoney } from "./convert";
 import { FEED_SOURCE } from "./feed";
 

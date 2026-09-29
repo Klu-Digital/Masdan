@@ -1,5 +1,6 @@
 import { ArrowUpDownIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { positiveAmount } from "@masdan/api/shared/money";
 import { AmountInput } from "@masdan/ui/components/amount-input";
 import { Button } from "@masdan/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
@@ -30,12 +31,6 @@ import { FormActions, trimDecimal } from "./transaction-form";
 import type { FormActionState } from "./transaction-form";
 
 export type Transfer = Awaited<ReturnType<typeof client.transfers.get>>;
-
-const positiveAmount = z
-  .string()
-  .trim()
-  .regex(/^\d+(?<fraction>\.\d{1,6})?$/u, "Enter an amount")
-  .refine((value) => /[1-9]/u.test(value), "Amount must be greater than zero");
 
 const transferSchema = z
   .object({

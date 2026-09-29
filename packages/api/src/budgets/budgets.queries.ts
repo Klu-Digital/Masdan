@@ -3,12 +3,10 @@ import { category, categoryBudget } from "@masdan/db/schema/index";
 import { and, asc, eq } from "drizzle-orm";
 
 import { householdToday, monthEnd } from "../reports/periods";
-import {
-  getCategoryTotals,
-  householdSettings,
-} from "../reports/reports.queries";
+import { getCategoryTotals } from "../reports/reports.queries";
 import type { CategoryTotal } from "../reports/reports.queries";
-import { fixedAmountText, signedScaledAmount } from "../transactions/amounts";
+import { householdSettings } from "../shared/household";
+import { fixedAmountText, signedScaledAmount } from "../shared/money";
 import { budgetArithmetic, netRemaining } from "./arithmetic";
 import type { BudgetStatus } from "./arithmetic";
 

@@ -1,5 +1,5 @@
 import { RECURRING_FREQUENCIES } from "@masdan/api/recurring/recurrence";
-import { positiveAmount } from "@masdan/api/transactions/amounts";
+import { positiveAmount } from "@masdan/api/shared/money";
 import { TRANSACTION_PAID_STATUSES } from "@masdan/api/transactions/constants";
 import { AmountInput } from "@masdan/ui/components/amount-input";
 import { Button } from "@masdan/ui/components/button";

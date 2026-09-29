@@ -5,7 +5,7 @@ import type {
 
 import { addDays } from "../recurring/recurrence";
 import { daysBetween } from "../reports/periods";
-import { signedScaledAmount } from "../transactions/amounts";
+import { signedScaledAmount } from "../shared/money";
 
 /**
  * Leaf module: which reminders a card is owed on a given household day, and

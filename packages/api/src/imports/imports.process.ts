@@ -25,7 +25,8 @@ import { getAccountBalance } from "../accounts/balances";
 import { applyRuleActions, findMatchingRule } from "../rules/engine";
 import { loadRules, runnableRules } from "../rules/rules.data";
 import type { StoredRule } from "../rules/rules.data";
-import { scaledAmount } from "../transactions/amounts";
+import { chunks } from "../shared/chunks";
+import { scaledAmount } from "../shared/money";
 import { transactionInsertValues } from "../transactions/transactions.write";
 import { decodeCsvBytes, parseCsv } from "./csv";
 import {
@@ -54,14 +55,6 @@ export class ImportFailureError extends Error {
 
 const sha256 = (value: string | Uint8Array): string =>
   createHash("sha256").update(value).digest("hex");
-
-const chunks = <T>(items: T[], size = CHUNK_SIZE): T[][] => {
-  const result: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    result.push(items.slice(index, index + size));
-  }
-  return result;
-};
 
 const normalizeDescription = (value: string | null): string =>
   (value ?? "").toLowerCase().replaceAll(/\s+/gu, " ").trim();
@@ -413,7 +406,7 @@ const validateImport = async (
     await tx
       .delete(transactionImportRow)
       .where(eq(transactionImportRow.importId, importId));
-    for (const batch of chunks(classified)) {
+    for (const batch of chunks(classified, CHUNK_SIZE)) {
       await tx.insert(transactionImportRow).values(
         batch.map((row) => ({
           ...row,
@@ -444,7 +437,7 @@ const setRowStatus = async (
   status: TransactionImportRowStatus,
   errors?: TransactionImportRowError[]
 ): Promise<void> => {
-  for (const batch of chunks(rowIds)) {
+  for (const batch of chunks(rowIds, CHUNK_SIZE)) {
     await db
       .update(transactionImportRow)
       .set(errors ? { errors, status } : { status })
@@ -582,7 +575,7 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
 
     const duplicates: string[] = [];
     let earliest: string | null = null;
-    for (const batch of chunks(ready)) {
+    for (const batch of chunks(ready, CHUNK_SIZE)) {
       const inserted = await tx
         .insert(financialTransaction)
         .values(

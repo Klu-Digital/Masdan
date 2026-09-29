@@ -4,8 +4,6 @@ import type {
   CardReminderKind,
   CardReminderStatus,
 } from "@masdan/db/schema/index";
-import { queue } from "@masdan/queue";
-import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -15,7 +13,8 @@ import {
   requirePermission,
 } from "../procedures";
 import { daysBetween } from "../reports/periods";
-import { signedScaledAmount } from "../transactions/amounts";
+import { notFound } from "../shared/errors";
+import { signedScaledAmount } from "../shared/money";
 import { REMINDER_LEAD_DAYS } from "./reminder-rules";
 import {
   loadActiveReminders,
@@ -53,30 +52,6 @@ export interface CardReminder {
 }
 
 const reminderIdInput = z.object({ reminderId: z.uuid() });
-
-const reminderNotFound = () =>
-  new ORPCError("NOT_FOUND", { message: "Reminder not found" });
-
-/**
- * Asks the worker to regenerate the household's reminders after a change to
- * its cards or statements, on the mutation's transaction so the job only
- * exists if the change commits. The hourly sweep covers it when the queue is
- * down; the per-household `singletonKey` collapses a burst of edits into one
- * queued refresh.
- */
-export const enqueueReminderRefresh = async (
-  db: Database,
-  organizationId: string
-): Promise<void> => {
-  if (!queue.isStarted()) {
-    return;
-  }
-  await queue.enqueue(
-    "reminders.refresh",
-    { organizationId },
-    { singletonKey: organizationId, tx: db }
-  );
-};
 
 const transition = async (
   db: Database,
@@ -117,7 +92,7 @@ const transition = async (
     )
     .limit(1);
   if (!current) {
-    throw reminderNotFound();
+    throw notFound("Reminder");
   }
   return current;
 };

@@ -1,4 +1,4 @@
-import { signedScaledAmount } from "../transactions/amounts";
+import { signedScaledAmount } from "../shared/money";
 
 /** Income and expense are separate positive ledger totals. */
 export const savingsRate = (income: string, expense: string): number | null => {

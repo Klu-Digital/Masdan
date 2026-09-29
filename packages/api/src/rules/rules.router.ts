@@ -17,13 +17,10 @@ import {
   orgProcedure,
   requirePermission,
 } from "../procedures";
-import { positiveAmount, scaledAmount } from "../transactions/amounts";
-import { updateTransaction } from "../transactions/transactions.router";
-import {
-  activeAccount,
-  validCategory,
-  validTags,
-} from "../transactions/transactions.write";
+import { notFound } from "../shared/errors";
+import { positiveAmount, scaledAmount } from "../shared/money";
+import { updateTransaction } from "../transactions/transactions.commands";
+import { assertReferences } from "../transactions/transactions.write";
 import {
   RULE_TEXT_OPERATORS,
   RULE_TRANSACTION_TYPES,
@@ -110,59 +107,47 @@ type RuleValues = z.output<typeof ruleValues>;
 const ruleIdInput = z.object({ ruleId: z.uuid() });
 const transactionIdInput = z.object({ transactionId: z.uuid() });
 
-const ruleNotFound = () =>
-  new ORPCError("NOT_FOUND", { message: "Rule not found" });
-
 const findRule = async (
   db: Database,
   organizationId: string,
   ruleId: string
 ): Promise<StoredRule> => {
-  const rules = await loadRules(db, organizationId);
-  const rule = rules.find(({ id }) => id === ruleId);
+  const [rule] = await loadRules(db, organizationId, ruleId);
   if (!rule) {
-    throw ruleNotFound();
+    throw notFound("Rule");
   }
   return rule;
 };
 
-/**
- * Every id a rule stores must belong to the caller's household. Archived
- * references are only tolerated when an edit leaves them unchanged.
- */
-const assertReferences = async (
+/** A category is either income or expense, so it must match the rule's direction. */
+const assertRuleReferences = async (
   db: Database,
   organizationId: string,
   values: RuleValues,
   existing?: StoredRule
 ): Promise<void> => {
-  const { accountId } = values.conditions;
-  if (accountId && accountId !== existing?.conditions.accountId) {
-    await activeAccount(db, organizationId, accountId);
-  }
-  const { categoryId } = values.actions;
-  if (categoryId) {
-    const selected = await validCategory(
-      db,
-      organizationId,
-      categoryId,
-      categoryId === existing?.actions.categoryId
-    );
-    if (selected.type !== values.conditions.type) {
-      throw new ORPCError("BAD_REQUEST", {
-        message:
-          selected.type === "income"
-            ? "An income category needs a money in rule"
-            : "An expense category needs a money out rule",
-      });
-    }
-  }
-  await validTags(
+  const selected = await assertReferences(
     db,
     organizationId,
-    values.actions.tagIds,
-    new Set(existing?.actions.tagIds)
+    {
+      accountId: values.conditions.accountId,
+      categoryId: values.actions.categoryId,
+      tagIds: values.actions.tagIds,
+    },
+    existing && {
+      accountId: existing.conditions.accountId,
+      categoryId: existing.actions.categoryId,
+      tagIds: existing.actions.tagIds,
+    }
   );
+  if (selected && selected.type !== values.conditions.type) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        selected.type === "income"
+          ? "An income category needs a money in rule"
+          : "An expense category needs a money out rule",
+    });
+  }
 };
 
 const ruleColumns = (values: RuleValues) => ({
@@ -240,7 +225,7 @@ const ruleTarget = async (
     )
     .limit(1);
   if (!row) {
-    throw new ORPCError("NOT_FOUND", { message: "Transaction not found" });
+    throw notFound("Transaction");
   }
 
   const [tagRows, [splitCount]] = await Promise.all([
@@ -353,7 +338,7 @@ export const rulesRouter = {
     .use(requirePermission({ rule: ["create"] }))
     .input(ruleValues)
     .handler(async ({ context, input }) => {
-      await assertReferences(context.db, context.organizationId, input);
+      await assertRuleReferences(context.db, context.organizationId, input);
       const [last] = await context.db
         .select({ position: max(transactionRule.position) })
         .from(transactionRule)
@@ -389,7 +374,7 @@ export const rulesRouter = {
         )
         .returning({ id: transactionRule.id });
       if (!deleted) {
-        throw ruleNotFound();
+        throw notFound("Rule");
       }
       return { id: deleted.id };
     }),
@@ -476,7 +461,7 @@ export const rulesRouter = {
         )
         .returning({ id: transactionRule.id });
       if (!updated) {
-        throw ruleNotFound();
+        throw notFound("Rule");
       }
       return findRule(context.db, context.organizationId, updated.id);
     }),
@@ -491,7 +476,7 @@ export const rulesRouter = {
         context.organizationId,
         ruleId
       );
-      await assertReferences(
+      await assertRuleReferences(
         context.db,
         context.organizationId,
         values,

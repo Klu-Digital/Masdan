@@ -5,9 +5,7 @@ import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 
 import { assertPermission } from "../procedures";
-
-export const fileNotFound = () =>
-  new ORPCError("NOT_FOUND", { message: "File not found" });
+import { notFound } from "../shared/errors";
 
 /** A `pending` or `failed` row may have no bytes behind it, so only `ready` presigns. */
 export const presignFileDownload = async (row: {
@@ -51,7 +49,7 @@ export const deleteHouseholdFile = async (
     .limit(1);
 
   if (!target) {
-    throw fileNotFound();
+    throw notFound("File");
   }
 
   // The route check established "may delete files at all"; ownership decides
@@ -68,7 +66,7 @@ export const deleteHouseholdFile = async (
     .returning();
 
   if (!row) {
-    throw fileNotFound();
+    throw notFound("File");
   }
 
   // After the row write: the transaction can still roll back, and an orphaned

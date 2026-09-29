@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { getConsolidatedNetWorth } from "../exchange-rates/consolidated";
 import { orgProcedure, requirePermission } from "../procedures";
+import { isoDate } from "../shared/dates";
 import { getBudgetPerformance } from "./budget-performance";
 import { HISTORY_GRANULARITIES, REPORT_PRESETS } from "./periods";
 import {
@@ -11,8 +12,6 @@ import {
   getSpendingByCategory,
   resolveReportPeriod,
 } from "./reports.queries";
-
-const isoDate = z.iso.date();
 
 const periodFields = {
   /** Required for `custom`; ignored by every other preset. */

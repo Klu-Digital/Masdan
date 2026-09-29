@@ -1,16 +1,28 @@
 import { z } from "zod";
 
-/** Leaf module: the web import flow validates amounts with these too. */
+/** Leaf module: the web forms validate amounts with these too. */
 
 export const AMOUNT_SCALE = 6;
-const positiveDecimalPattern = /^\d+(?<fraction>\.\d{1,6})?$/u;
+const decimalPattern = /^-?\d+(?<fraction>\.\d{1,6})?$/u;
+const nonNegativeDecimalPattern = /^\d+(?<fraction>\.\d{1,6})?$/u;
 const SCALE_FACTOR = 1_000_000n;
 
 export const positiveAmount = z
   .string()
   .trim()
-  .regex(positiveDecimalPattern, "Use a positive amount")
+  .regex(nonNegativeDecimalPattern, "Use a positive amount")
   .refine((value) => /[1-9]/u.test(value), "Amount must be greater than zero");
+
+export const nonNegativeAmount = z
+  .string()
+  .trim()
+  .regex(nonNegativeDecimalPattern, "Use a non-negative amount");
+
+/** Balances and opening balances, which may be negative. */
+export const signedAmount = z
+  .string()
+  .trim()
+  .regex(decimalPattern, "Use a valid amount");
 
 export const scaledAmount = (value: string): bigint => {
   const [whole = "0", fraction = ""] = value.split(".");

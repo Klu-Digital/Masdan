@@ -3,7 +3,7 @@ import {
   RULE_TEXT_OPERATOR_LABELS,
 } from "@masdan/api/rules/engine";
 import type { RuleTextOperator } from "@masdan/api/rules/engine";
-import { positiveAmount, scaledAmount } from "@masdan/api/transactions/amounts";
+import { positiveAmount, scaledAmount } from "@masdan/api/shared/money";
 import { Button } from "@masdan/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
 import { ColorDot } from "@masdan/ui/components/icon-tile";

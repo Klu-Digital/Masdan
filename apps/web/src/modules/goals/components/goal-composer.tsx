@@ -1,4 +1,4 @@
-import { positiveAmount } from "@masdan/api/transactions/amounts";
+import { positiveAmount } from "@masdan/api/shared/money";
 import { AmountInput } from "@masdan/ui/components/amount-input";
 import { Button } from "@masdan/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";

@@ -1,5 +1,10 @@
 import { Add01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  AMOUNT_SCALE,
+  positiveAmount,
+  scaledAmount as scaledPositive,
+} from "@masdan/api/shared/money";
 import { TRANSACTION_PAID_STATUSES } from "@masdan/api/transactions/constants";
 import { AmountInput } from "@masdan/ui/components/amount-input";
 import { Button } from "@masdan/ui/components/button";
@@ -35,28 +40,14 @@ import { invalidateTransactions, transactionQueryOptions } from "../queries";
 import type { TransactionDetail } from "../queries";
 import { TransactionAttachments } from "./transaction-attachments";
 
-const positiveAmountPattern = /^(?<whole>\d+)(?<fraction>\.\d{1,6})?$/u;
-const SCALE_FACTOR = 1_000_000n;
-
-const positiveAmount = z
-  .string()
-  .trim()
-  .regex(positiveAmountPattern, "Enter an amount")
-  .refine((value) => /[1-9]/u.test(value), "Amount must be greater than zero");
-
 const splitSchema = z.object({
   amount: positiveAmount,
   categoryId: z.string().uuid("Choose a category"),
 });
 
 /** Exact decimal arithmetic: split totals must match to the sixth place. */
-const scaledAmount = (value: string): bigint | null => {
-  if (!positiveAmountPattern.test(value) || !/[1-9]/u.test(value)) {
-    return null;
-  }
-  const [whole = "0", fraction = ""] = value.split(".");
-  return BigInt(whole) * SCALE_FACTOR + BigInt(fraction.padEnd(6, "0"));
-};
+const scaledAmount = (value: string): bigint | null =>
+  positiveAmount.safeParse(value).success ? scaledPositive(value.trim()) : null;
 
 const splitTotal = (splits: { amount: string }[]): bigint | null => {
   let total = 0n;
@@ -71,7 +62,7 @@ const splitTotal = (splits: { amount: string }[]): bigint | null => {
 };
 
 const scaledToNumber = (value: bigint): number =>
-  Number(value) / Number(SCALE_FACTOR);
+  Number(value) / 10 ** AMOUNT_SCALE;
 
 /** "300.750000" → "300.75" for editing; the API always sends six places. */
 export const trimDecimal = (value: string | undefined): string => {

@@ -8,6 +8,7 @@ import {
   orgProcedure,
   requirePermission,
 } from "../procedures";
+import { notFound } from "../shared/errors";
 import { TAG_COLORS } from "./constants";
 
 const tagFields = {
@@ -46,9 +47,6 @@ const isUniqueViolation = (error: unknown): boolean => {
   return false;
 };
 
-const tagNotFound = () =>
-  new ORPCError("NOT_FOUND", { message: "Tag not found" });
-
 const tagConflict = () =>
   new ORPCError("CONFLICT", {
     message: "A tag with this name already exists",
@@ -71,7 +69,7 @@ export const tagsRouter = {
         .returning(tagFields);
 
       if (!archived) {
-        throw tagNotFound();
+        throw notFound("Tag");
       }
       return archived;
     }),
@@ -132,7 +130,7 @@ export const tagsRouter = {
         .returning(tagFields);
 
       if (!restored) {
-        throw tagNotFound();
+        throw notFound("Tag");
       }
       return restored;
     }),
@@ -155,7 +153,7 @@ export const tagsRouter = {
           .returning(tagFields);
 
         if (!updated) {
-          throw tagNotFound();
+          throw notFound("Tag");
         }
         return updated;
       } catch (error) {

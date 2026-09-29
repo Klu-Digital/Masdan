@@ -3,7 +3,7 @@ import type {
   TransactionRuleConditions,
 } from "@masdan/db/schema/rules";
 
-import { scaledAmount } from "../transactions/amounts";
+import { scaledAmount } from "../shared/money";
 
 /**
  * Leaf module: the rule matcher shared by the API, the import worker and the

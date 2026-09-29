@@ -5,9 +5,9 @@ import {
   transactionRule,
   transactionRuleTag,
 } from "@masdan/db/schema/index";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
-import { formatScaledAmount, scaledAmount } from "../transactions/amounts";
+import { formatScaledAmount, scaledAmount } from "../shared/money";
 import { sortRules } from "./engine";
 import type { EvaluableRule } from "./engine";
 
@@ -50,10 +50,11 @@ const ruleProblem = (rule: Omit<StoredRule, "problem">): string | null => {
   return null;
 };
 
-/** Every rule in the household, in precedence order. */
+/** Every rule in the household, in precedence order; with `onlyRuleId`, just that one. */
 export const loadRules = async (
   db: Database,
-  organizationId: string
+  organizationId: string,
+  onlyRuleId?: string
 ): Promise<StoredRule[]> => {
   const [rows, tagRows] = await Promise.all([
     db
@@ -79,7 +80,12 @@ export const loadRules = async (
       })
       .from(transactionRule)
       .leftJoin(category, eq(category.id, transactionRule.setCategoryId))
-      .where(eq(transactionRule.organizationId, organizationId))
+      .where(
+        and(
+          eq(transactionRule.organizationId, organizationId),
+          onlyRuleId ? eq(transactionRule.id, onlyRuleId) : undefined
+        )
+      )
       .orderBy(asc(transactionRule.position), asc(transactionRule.id)),
     db
       .select({
@@ -95,7 +101,12 @@ export const loadRules = async (
         eq(transactionRule.id, transactionRuleTag.ruleId)
       )
       .innerJoin(tag, eq(tag.id, transactionRuleTag.tagId))
-      .where(eq(transactionRule.organizationId, organizationId))
+      .where(
+        and(
+          eq(transactionRule.organizationId, organizationId),
+          onlyRuleId ? eq(transactionRule.id, onlyRuleId) : undefined
+        )
+      )
       .orderBy(asc(tag.name)),
   ]);
 
