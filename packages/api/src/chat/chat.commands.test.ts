@@ -81,6 +81,27 @@ describe("chatReplies", () => {
     ).toBe("Added ₱1,250.50 income\nBPI Savings");
   });
 
+  it("confirms zero- and three-decimal currencies without float rounding", () => {
+    expect(
+      chatReplies.created({
+        accountName: "Yen account",
+        amount: "1234.000000",
+        currencyCode: "JPY",
+        kind: "expense",
+        notes: null,
+      })
+    ).toBe("Added ¥1,234 expense\nYen account");
+    expect(
+      chatReplies.created({
+        accountName: "Dinar account",
+        amount: "1.234000",
+        currencyCode: "KWD",
+        kind: "income",
+        notes: null,
+      })
+    ).toBe("Added KWD 1.234 income\nDinar account");
+  });
+
   it("lists each issue once, then the link", () => {
     expect(
       chatReplies.needsReview(

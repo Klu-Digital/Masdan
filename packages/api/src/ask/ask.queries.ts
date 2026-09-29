@@ -19,7 +19,11 @@ import {
   resolveReportPeriod,
 } from "../reports/reports.queries";
 import { householdSettings } from "../shared/household";
-import { fixedAmountText, signedScaledAmount } from "../shared/money";
+import {
+  fixedAmountText,
+  formatDisplayMoney,
+  signedScaledAmount,
+} from "../shared/money";
 import { transactionListConditions } from "../transactions/transactions.queries";
 import type { AskHousehold, AskKind, AskQuery } from "./ask.plan";
 
@@ -137,19 +141,8 @@ export const askHousehold = async (
 
 // --- Wording ----------------------------------------------------------------
 
-const formatAmount = ({ amount, currencyCode }: AskAmount): string => {
-  const value = Number(amount);
-  try {
-    return new Intl.NumberFormat("en-US", {
-      currency: currencyCode,
-      currencyDisplay: "narrowSymbol",
-      style: "currency",
-    }).format(value);
-  } catch {
-    // A code Intl does not know still reads unambiguously.
-    return `${currencyCode} ${value.toFixed(2)}`;
-  }
-};
+const formatAmount = ({ amount, currencyCode }: AskAmount): string =>
+  formatDisplayMoney(amount, currencyCode, "en-US");
 
 const formatAmounts = (amounts: readonly AskAmount[]): string =>
   amounts.map(formatAmount).join(" and ");

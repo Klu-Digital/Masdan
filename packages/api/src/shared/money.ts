@@ -56,3 +56,28 @@ export const fixedAmountText = (scaled: bigint): string => {
     .padStart(AMOUNT_SCALE, "0");
   return `${sign}${magnitude / SCALE_FACTOR}.${fraction}`;
 };
+
+/** Display ledger decimals without losing precision to Number. */
+export const formatDisplayMoney = (
+  amount: string,
+  currencyCode: string,
+  locale: string,
+  omitWholeFraction = false
+): string => {
+  const minimumFractionDigits =
+    omitWholeFraction && /^-?\d+(?:\.0+)?$/u.test(amount) ? 0 : undefined;
+  const decimal = amount as `${number}`;
+  try {
+    return new Intl.NumberFormat(locale, {
+      currency: currencyCode,
+      currencyDisplay: "narrowSymbol",
+      minimumFractionDigits,
+      style: "currency",
+    }).format(decimal);
+  } catch {
+    return `${currencyCode} ${new Intl.NumberFormat(locale, {
+      maximumFractionDigits: 2,
+      minimumFractionDigits: minimumFractionDigits ?? 2,
+    }).format(decimal)}`;
+  }
+};

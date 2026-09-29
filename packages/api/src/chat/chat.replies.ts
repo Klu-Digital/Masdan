@@ -1,3 +1,4 @@
+import { formatDisplayMoney } from "../shared/money";
 import type { QuickEntryKind } from "../transactions/quick-entry";
 import { QUICK_ENTRY_MAX_LENGTH } from "../transactions/quick-entry";
 import type { ReceiptEntryResult } from "../transactions/receipt-entry";
@@ -14,22 +15,8 @@ const WHERE_TO_LINK =
 const finishIn = (link: string | null): string =>
   link ? `\n\nFinish it in Masdan: ${link}` : "";
 
-const formatAmount = (amount: string, currencyCode: string): string => {
-  const value = Number(amount);
-  const fractionDigits = Number.isInteger(value) ? 0 : 2;
-  try {
-    return new Intl.NumberFormat("en-PH", {
-      currency: currencyCode,
-      currencyDisplay: "narrowSymbol",
-      maximumFractionDigits: fractionDigits,
-      minimumFractionDigits: fractionDigits,
-      style: "currency",
-    }).format(value);
-  } catch {
-    // An unknown ISO code still has to read as money.
-    return `${currencyCode} ${value.toFixed(fractionDigits)}`;
-  }
-};
+const formatAmount = (amount: string, currencyCode: string): string =>
+  formatDisplayMoney(amount, currencyCode, "en-PH", true);
 
 const unique = (values: readonly string[]): string[] => [...new Set(values)];
 
