@@ -1,6 +1,8 @@
 # AGENTS.md
 
-A fullstack TypeScript template: React/TanStack Router web, Expo native, Hono + oRPC API, background workers, Postgres/Drizzle, better-auth. pnpm workspace, `@masdan/*` package scope. `pnpm rename <new-name>` rewrites the scope, the Compose project, the database and the Expo slug for a new project.
+Masdan is a self-hosted household finance tracker: accounts, an income/expense ledger, budgets, bills, credit-card statements and reports, shared by the members of a household. It sends no email. Stack: React/TanStack Router web, Expo native, Hono + oRPC API, background workers, Postgres/Drizzle, better-auth. pnpm workspace, `@masdan/*` package scope.
+
+Vocabulary is in [CONTEXT.md](CONTEXT.md): a **household** is better-auth's `organization`, and the **ledger** is transactions and transfers, from which balances are derived. Use those words in code and comments. The reasoning behind the decisions that surprise people is in [docs/adr/](docs/adr/).
 
 ## Layout
 
@@ -96,7 +98,7 @@ These are the ones that cost real time to rediscover. The README carries the ful
 
 **Comments.** One line, naming the bug the line prevents. [TERSE.md](TERSE.md) has the budget, what earns more than a line, and the directive and template-literal gotchas.
 
-**Migrations and backfills.** `pnpm db:push` is for local iteration only; anything committed gets a migration. Migrations stay as `drizzle-kit generate` wrote them — no hand-written SQL. Data backfills and reference rows (like `currency`) go in `packages/db/src/post-migration-scripts/`, so a database that has only been migrated cannot create a household until they run: use `db:deploy`, never `db:migrate` alone.
+**Migrations and backfills.** `pnpm db:push` is for local iteration only; anything committed gets a migration. Generate it with `pnpm db:generate --name <snake_case_description>` (`add_budget_month_index`, not drizzle's random `normal_ben_parker`), so the folder name says what the migration does. Start from what `drizzle-kit generate` wrote; hand-edit the SQL only when it cannot express the change safely, e.g. composite foreign keys added `NOT VALID` and then `VALIDATE`d ([ADR 0002](docs/adr/0002-tenant-integrity-in-the-database.md)), or a `USING` cast on a column type. Validate a hand-edited migration on a scratch database, since `db:deploy` fails on the push-built local one. Data backfills and reference rows (like `currency`) go in `packages/db/src/post-migration-scripts/`, so a database that has only been migrated cannot create a household until they run: use `db:deploy`, never `db:migrate` alone.
 
 **Generated files stay untouched:** `apps/web/src/routeTree.gen.ts` and migration `snapshot.json`.
 
@@ -200,7 +202,7 @@ Oxlint catches most of the above automatically. Spend your own attention on:
 
 Each of these has a README section carrying the reasoning the summary above compresses:
 
-- [Feature flags](README.md#feature-flags), [Authorization (RBAC)](README.md#authorization-rbac)
+- [Accounts, recovery and invitations](README.md#accounts-recovery-and-invitations), [Feature flags](README.md#feature-flags), [Authorization (RBAC)](README.md#authorization-rbac)
 - [Redis](README.md#redis) and [Cache](README.md#cache), [Object storage](README.md#object-storage)
 - [Security headers](README.md#security-headers), [The web image is environment-agnostic](README.md#the-web-image-is-environment-agnostic)
 - [Page titles and breadcrumbs](README.md#page-titles-and-breadcrumbs), [UI Customization](README.md#ui-customization)

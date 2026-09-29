@@ -1,23 +1,19 @@
-# masdan
+# Masdan
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Router, Hono, ORPC, and more.
+A self-hosted household finance tracker. Members of a household share accounts, record income, expenses and transfers in one ledger, plan with budgets and savings goals, keep on top of bills and credit-card statements, and read reports, all on infrastructure they run themselves. Masdan sends no email: recovery is admin-driven (see [Accounts, recovery and invitations](#accounts-recovery-and-invitations)).
 
 ## Features
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Router** - File-based routing with full type safety
-- **React Native** - Build mobile apps using React
-- **Expo** - Tools for React Native development
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - [coss ui](https://coss.com/ui) primitives live in `packages/ui`
-- **Hono** - Lightweight, performant server framework
-- **oRPC** - End-to-end type-safe APIs with OpenAPI integration
-- **Node.js** - Runtime environment
-- **Drizzle** - TypeScript-first ORM
-- **PostgreSQL** - Database engine
-- **Authentication** - Better-Auth
-- **Oxlint** - Oxlint + Oxfmt (linting & formatting)
-- **Vite+** - Unified Vite toolchain, workspace task runner, linting, and formatting
+- **Accounts** - Assets and liabilities across currencies, credit cards with real card looks and statements, balance history and a net-worth balance sheet
+- **Ledger** - Income, expenses, transfers, splits, tags, attachments, recurring schedules, CSV import and export
+- **Planning** - Category budgets, savings goals, a bill calendar with a subscribable due-date feed, credit-card reminders
+- **Reports** - Cash flow, category spending, savings-rate trends and budget performance
+- **Assistance** - Quick entry from free text, receipt photos and chat (Telegram), AI categorization suggestions and Ask Masdan, all optional and capped per household
+- **Households** - Roles and permissions, link-based invitations, an admin console and feature flags
+- **Web and native** - React with TanStack Router, and an Expo app, sharing a Hono + oRPC API
+- **Postgres and Drizzle** - The system of record, including sessions and the job queue; Redis and S3-compatible storage are optional
+
+See [CONTEXT.md](CONTEXT.md) for what the product's terms mean (household, ledger, posting, statement) and [docs/adr/](docs/adr/) for why the non-obvious decisions were made.
 
 ## Getting Started
 
@@ -43,15 +39,7 @@ pnpm secrets:setup --environment staging
 pnpm secrets:check --environment staging
 ```
 
-The wizard asks provider by provider, decides for itself which values are GitHub Secrets, GitHub Variables or Dokploy runtime variables, shows you the destinations before it writes anything, then applies and verifies. Deployment secrets are held in memory and written straight to GitHub and Dokploy — never to a local file. Rerunning it resumes: names that already exist remotely are skipped, never rotated. Runtime validation still lives in `packages/env`; see [Secrets and configuration](docs/secrets-and-configuration.md) for what each value is and where it comes from.
-
-### Starting a new project from this template
-
-```bash
-pnpm rename my-app
-```
-
-Renames the npm scope, the workspace packages, the Compose project and container names, the Postgres database, the Expo slug and deep-link scheme, and every mention in prose — reading the current name from the root `package.json`, so it stays re-runnable. Pass `--dry-run` first to see what it would touch. It refuses to run against a dirty working tree unless given `--force`, so that `git checkout .` is always an undo, and it prints any occurrence it could not safely rewrite (the name embedded in a camelCase identifier) rather than leaving it silently behind.
+The wizard asks provider by provider, decides for itself which values are GitHub Secrets, GitHub Variables or Dokploy runtime variables, shows you the destinations before it writes anything, then applies and verifies. Deployment secrets are held in memory and written straight to GitHub and Dokploy — never to a local file. Rerunning it resumes: names that already exist remotely are skipped, never rotated. Runtime validation still lives in `packages/env`, and `pnpm secrets:check` reports what is set and what is missing.
 
 ## Database Setup
 
@@ -474,17 +462,24 @@ Things that bite:
 ```
 masdan/
 ├── apps/
-│   ├── web/         # Frontend application (React + TanStack Router)
-│   ├── native/      # Mobile application (React Native, Expo)
-│   └── server/      # Backend API (Hono, ORPC)
+│   ├── web/         # React SPA (TanStack Router)
+│   ├── native/      # Expo app
+│   ├── server/      # Hono HTTP server: auth, oRPC, metrics; queue producer only
+│   └── workers/     # pg-boss consumer: jobs, cron, queue maintenance
 ├── packages/
-│   ├── ui/          # Shared coss ui components and styles
-│   ├── api/         # API layer / business logic
-│   ├── auth/        # Authentication configuration & logic
-│   ├── db/          # Database schema & queries
-│   ├── storage/     # S3-compatible object storage client
-│   ├── redis/       # Redis client, cache, and rate-limit primitives
-│   └── observability/ # evlog logging + PostHog drain
+│   ├── api/         # oRPC procedures, routers, and the business logic
+│   ├── auth/        # better-auth config and RBAC roles
+│   ├── card-catalog/ # Real credit-card looks as data, per country
+│   ├── db/          # Drizzle schema, migrations, post-migration scripts
+│   ├── env/         # Validated env schemas and the feature-flag registry
+│   ├── observability/ # evlog logging + PostHog drain
+│   ├── queue/       # Typed pg-boss job registry
+│   ├── redis/       # Client, cache, and rate-limit primitives
+│   ├── storage/     # S3-compatible presigned uploads
+│   ├── testing/     # Test harness: db, redis, queue, auth helpers
+│   └── ui/          # Shared coss ui components and styles
+├── docs/adr/        # Architecture decision records
+└── CONTEXT.md       # Glossary of the product's terms
 ```
 
 ## Available Scripts
@@ -497,7 +492,7 @@ masdan/
 - `pnpm run check-types`: Check TypeScript types across all apps
 - `pnpm run dev:native`: Start the React Native/Expo development server
 - `pnpm run db:push`: Push schema changes to database (local iteration; use migrations for anything committed)
-- `pnpm run db:generate`: Generate a new migration from schema changes
+- `pnpm run db:generate --name <snake_case_description>`: Generate a new migration from schema changes; always name it for what it does
 - `pnpm run db:migrate`: Run database migrations
 - `pnpm run db:deploy`: Run migrations, install the pg-boss schema, then any pending post-migration scripts
 - `pnpm run queue:migrate`: Apply pg-boss's own schema migrations (included in `db:deploy`)
@@ -523,7 +518,6 @@ masdan/
 - `pnpm run secrets:setup`: Create local env files and generate safe local secrets; `--environment staging|production` runs the deployment wizard
 - `pnpm run telegram:webhook set <https-origin>`: Register the Telegram webhook for chat entry (see [Chat entry](#chat-entry)); `info` shows its current state
 - `pnpm run secrets:check`: Report local configuration, or verify a deployment environment against GitHub and Dokploy
-- `pnpm run rename <new-name>`: Rename the template for a new project (see [Getting Started](#starting-a-new-project-from-this-template))
 
 ## Contributing
 

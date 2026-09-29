@@ -58,14 +58,14 @@ Reach for a `.db.test.ts` when the thing under test is the SQL, the transaction 
 ## Database changes
 
 ```bash
-pnpm db:generate                          # migration from a schema edit
+pnpm db:generate --name add_goal_notes    # migration from a schema edit, named for what it does
 pnpm db:deploy
 pnpm db:post-migrate:new "backfill slugs"  # only if data needs moving too
 ```
 
-`pnpm db:push` exists for local iteration only. Anything committed gets a migration, so that every environment applies the same statements in the same order.
+`pnpm db:push` exists for local iteration only. Anything committed gets a migration, so that every environment applies the same statements in the same order. Always pass `--name` with a short snake_case description of the change; without it drizzle-kit picks a random name (`normal_ben_parker`) that tells the next reader nothing.
 
-Post-migration scripts are for data, because migrations hold only what `drizzle-kit generate` wrote — a backfill for a column the migration just added, or reference rows like `currency`. They live beside the migrations and run in order, once each; [`packages/db/src/dev-scripts/post-migrate/README.md`](packages/db/src/dev-scripts/post-migrate/README.md) is the authoring guide.
+Post-migration scripts are for data, because a migration holds schema changes only — a backfill for a column the migration just added, or reference rows like `currency`. They live beside the migrations and run in order, once each; [`packages/db/src/dev-scripts/post-migrate/README.md`](packages/db/src/dev-scripts/post-migrate/README.md) is the authoring guide.
 
 ## Conventions
 
