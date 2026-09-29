@@ -301,9 +301,9 @@ describe("messages", () => {
     expect(inbound?.processedAt).not.toBeNull();
     expect(inbound?.transactionId).toBe(created?.id);
     // Names reach the model, never identifiers.
-    expect(JSON.stringify(completeJson.mock.calls[0])).not.toContain(
-      home.card.id
-    );
+    expect(
+      JSON.stringify(completeJson.mock.calls[0]?.[0].messages)
+    ).not.toContain(home.card.id);
   });
 
   it("creates once however often the job is delivered", async () => {

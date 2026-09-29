@@ -1,3 +1,4 @@
+import { aiPlatformRouter } from "../ai/ai.platform";
 import { featureFlagsPlatformRouter } from "../feature-flags/feature-flags.platform";
 import { filesPlatformRouter } from "../files/files.platform";
 import { jobsPlatformRouter } from "../jobs/jobs.platform";
@@ -18,6 +19,7 @@ import { usersPlatformRouter } from "../users/users.platform";
  * asserts every entry below is gated.
  */
 export const adminRouter = {
+  ai: aiPlatformRouter,
   featureFlags: featureFlagsPlatformRouter,
   files: filesPlatformRouter,
   jobs: jobsPlatformRouter,

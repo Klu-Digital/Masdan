@@ -1,3 +1,5 @@
+import { once } from "node:events";
+
 import {
   afterEach,
   beforeEach,
@@ -8,7 +10,10 @@ import {
 } from "vite-plus/test";
 import { z } from "zod";
 
+import type { AiHousehold } from "./usage";
+
 const mockEnv = vi.hoisted(() => ({
+  AI_DAILY_TOKEN_BUDGET: 500_000,
   AI_PROVIDER_API_KEY: undefined as string | undefined,
   CLOUDFLARE_AI_GATEWAY_TOKEN: undefined as string | undefined,
   CLOUDFLARE_AI_GATEWAY_URL: undefined as string | undefined,
@@ -17,16 +22,36 @@ const mockEnv = vi.hoisted(() => ({
 
 vi.mock("@masdan/env/integrations", () => ({ env: mockEnv }));
 
+const usage = vi.hoisted(() => ({
+  hasAiBudget: vi.fn<() => Promise<boolean>>(),
+  recordAiUsage: vi.fn<() => Promise<void>>(),
+}));
+
+vi.mock("./usage", () => usage);
+
+const getAiTokenCaps = vi.hoisted(() => vi.fn());
+
+vi.mock("./token-caps.cache", () => ({ getAiTokenCaps }));
+
 const { AiError, completeJson, isAiConfigured } = await import("./gateway");
+const { DEFAULT_AI_TOKEN_CAPS } = await import("./features");
 
 const GATEWAY = "https://gateway.ai.cloudflare.com/v1/acct/masdan/compat";
 const schema = z.strictObject({ amount: z.string().nullable() });
 
-const completion = (content: string | null) =>
+const HOUSEHOLD = { db: {}, organizationId: "org-1" } as unknown as AiHousehold;
+
+const completion = (
+  content: string | null,
+  {
+    finishReason = "stop",
+    totalTokens,
+  }: { finishReason?: string; totalTokens?: number } = {}
+) =>
   Response.json({
     choices: [
       {
-        finish_reason: "stop",
+        finish_reason: finishReason,
         index: 0,
         message: { content, role: "assistant" },
       },
@@ -35,6 +60,15 @@ const completion = (content: string | null) =>
     id: "chatcmpl-test",
     model: "test",
     object: "chat.completion",
+    ...(totalTokens === undefined
+      ? {}
+      : {
+          usage: {
+            completion_tokens: 0,
+            prompt_tokens: totalTokens,
+            total_tokens: totalTokens,
+          },
+        }),
   });
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -42,6 +76,7 @@ const fetchMock = vi.fn<typeof fetch>();
 const call = () =>
   completeJson({
     feature: "quickTransaction",
+    household: HOUSEHOLD,
     messages: [{ content: "dinner 400", role: "user" }],
     name: "quick_transaction",
     schema,
@@ -53,6 +88,10 @@ beforeEach(() => {
   mockEnv.CLOUDFLARE_AI_GATEWAY_TOKEN = "gateway-token";
   mockEnv.CLOUDFLARE_AI_GATEWAY_URL = GATEWAY;
   mockEnv.QUICK_TRANSACTION_AI_MODEL = "workers-ai/@cf/meta/llama-3.1-8b";
+  mockEnv.AI_DAILY_TOKEN_BUDGET = 500_000;
+  usage.hasAiBudget.mockReset().mockResolvedValue(true);
+  getAiTokenCaps.mockReset().mockResolvedValue(DEFAULT_AI_TOKEN_CAPS);
+  usage.recordAiUsage.mockReset().mockResolvedValue();
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -70,6 +109,12 @@ describe("isAiConfigured", () => {
 
     mockEnv.QUICK_TRANSACTION_AI_MODEL = "openai/gpt-4.1-mini";
     mockEnv.CLOUDFLARE_AI_GATEWAY_URL = undefined;
+    expect(isAiConfigured("quickTransaction")).toBe(false);
+  });
+
+  it("is off with a zero daily budget", () => {
+    mockEnv.AI_DAILY_TOKEN_BUDGET = 0;
+
     expect(isAiConfigured("quickTransaction")).toBe(false);
   });
 });
@@ -96,6 +141,7 @@ describe("completeJson", () => {
     expect(headers.get("authorization")).toBeNull();
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     expect(body).toMatchObject({
+      max_tokens: 500,
       model: "workers-ai/@cf/meta/llama-3.1-8b",
       response_format: {
         json_schema: { name: "quick_transaction", strict: true },
@@ -103,6 +149,68 @@ describe("completeJson", () => {
       },
       temperature: 0,
     });
+  });
+
+  it("refuses without calling out once the household's budget is spent", async () => {
+    usage.hasAiBudget.mockResolvedValue(false);
+
+    await expect(call()).rejects.toMatchObject({ reason: "over_budget" });
+    expect(usage.hasAiBudget).toHaveBeenCalledWith(HOUSEHOLD);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("sends the admin's cap when one is set", async () => {
+    getAiTokenCaps.mockResolvedValue({
+      ...DEFAULT_AI_TOKEN_CAPS,
+      quickTransaction: 1234,
+    });
+    fetchMock.mockResolvedValue(completion('{"amount":"400"}'));
+
+    await call();
+
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    expect(JSON.parse(String(init?.body))).toMatchObject({ max_tokens: 1234 });
+    expect(getAiTokenCaps).toHaveBeenCalledWith(HOUSEHOLD.db);
+  });
+
+  it("charges the household the tokens the provider reports", async () => {
+    fetchMock.mockResolvedValue(
+      completion('{"amount":"400"}', { totalTokens: 321 })
+    );
+
+    await call();
+
+    expect(usage.recordAiUsage).toHaveBeenCalledWith(HOUSEHOLD, 321);
+  });
+
+  it("charges the answer's cap when the provider reports no usage", async () => {
+    fetchMock.mockResolvedValue(completion('{"amount":"400"}'));
+
+    await call();
+
+    expect(usage.recordAiUsage).toHaveBeenCalledWith(HOUSEHOLD, 500);
+  });
+
+  it("charges a malformed answer too", async () => {
+    fetchMock.mockResolvedValue(completion("nope", { totalTokens: 99 }));
+
+    await expect(call()).rejects.toMatchObject({ reason: "malformed" });
+    expect(usage.recordAiUsage).toHaveBeenCalledWith(HOUSEHOLD, 99);
+  });
+
+  it("still answers when charging fails", async () => {
+    usage.recordAiUsage.mockRejectedValue(new Error("db down"));
+    fetchMock.mockResolvedValue(completion('{"amount":"400"}'));
+
+    await expect(call()).resolves.toEqual({ amount: "400" });
+  });
+
+  it("rejects an answer cut off at the token cap as malformed", async () => {
+    fetchMock.mockResolvedValue(
+      completion('{"amount":"400"}', { finishReason: "length" })
+    );
+
+    await expect(call()).rejects.toMatchObject({ reason: "malformed" });
   });
 
   it("follows a model change without any caller change", async () => {

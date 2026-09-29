@@ -9,6 +9,7 @@ export {
   user,
   verification,
 } from "./auth";
+export { aiTokenCap, aiUsage } from "./ai";
 export { categoryBudget } from "./budgets";
 export { category } from "./categories";
 export { tag } from "./tags";

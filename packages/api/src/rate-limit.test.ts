@@ -1,7 +1,7 @@
-import type * as TypeImport__masdan_redis from "@masdan/redis";
+import { resetLocalRateLimits } from "@masdan/redis";
 import { createFakeRedis } from "@masdan/redis/fake";
 import { call, ORPCError, os } from "@orpc/server";
-import { describe, expect, it, vi } from "vite-plus/test";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import type { Context } from "./context";
 import { rateLimit } from "./rate-limit";
@@ -15,17 +15,17 @@ const caught = async (p: Promise<unknown>): Promise<unknown> => {
 };
 
 /**
- * Only `redis.client()` is mocked; `incrementWithTtl` runs for real against
- * `createFakeRedis`.
+ * Only `redis.client()` is mocked, at the module `countHit` imports it from;
+ * `incrementWithTtl` runs for real against `createFakeRedis`.
  */
 const redisMock = vi.hoisted(() => ({ client: vi.fn() }));
 
-vi.mock("@masdan/redis", async (importOriginal) => {
-  const actual = await importOriginal<typeof TypeImport__masdan_redis>();
-  return {
-    ...actual,
-    redis: { ...actual.redis, client: redisMock.client },
-  };
+vi.mock("@masdan/redis/client", () => ({
+  redis: { client: redisMock.client, isConfigured: () => true },
+}));
+
+beforeEach(() => {
+  resetLocalRateLimits();
 });
 
 /** Mirrors the fake context in `routers/feature-flags.test.ts`. */
@@ -51,24 +51,34 @@ const callAt = (
 ) => call(proc, undefined, { context, path });
 
 describe("rateLimit", () => {
-  it("fails open when redis.client() returns null", async () => {
+  it("counts in-process when redis.client() returns null", async () => {
     redisMock.client.mockReturnValue(null);
     const proc = procedure({ limit: 1, window: 60 });
     const context = makeContext({ ip: "203.0.113.7" });
 
-    // Calling well past the limit never throws — there is nothing to count against.
     await expect(callAt(proc, context)).resolves.toBe("reached");
+    const error = await caught(callAt(proc, context));
+    expect(error).toBeInstanceOf(ORPCError);
+  });
+
+  it("lets an unattributable caller through uncounted", async () => {
+    redisMock.client.mockReturnValue(createFakeRedis());
+    const proc = procedure({ limit: 1, window: 60 });
+    const context = makeContext();
+
     await expect(callAt(proc, context)).resolves.toBe("reached");
     await expect(callAt(proc, context)).resolves.toBe("reached");
   });
 
-  it("allows exactly `limit` calls", async () => {
-    redisMock.client.mockReturnValue(createFakeRedis());
+  it("allows exactly `limit` calls, counted in Redis", async () => {
+    const fake = createFakeRedis();
+    redisMock.client.mockReturnValue(fake);
     const proc = procedure({ limit: 2, window: 60 });
     const context = makeContext({ ip: "203.0.113.7" });
 
     await expect(callAt(proc, context)).resolves.toBe("reached");
     await expect(callAt(proc, context)).resolves.toBe("reached");
+    expect(fake.store.get("rl:test.procedure:ip:203.0.113.7")?.value).toBe("2");
   });
 
   it("throws ORPCError TOO_MANY_REQUESTS on the (limit + 1)th call", async () => {
@@ -130,13 +140,15 @@ describe("rateLimit", () => {
     expect(error).toBeInstanceOf(ORPCError);
   });
 
-  it("fails open when the increment itself throws", async () => {
+  it("counts in-process when the increment itself throws", async () => {
     const fake = createFakeRedis();
-    fake.failNext();
+    fake.failNext(2);
     redisMock.client.mockReturnValue(fake);
     const proc = procedure({ limit: 1, window: 60 });
-    const context = makeContext({ ip: "203.0.113.7", log: { warn: vi.fn() } });
+    const context = makeContext({ ip: "203.0.113.7" });
 
     await expect(callAt(proc, context)).resolves.toBe("reached");
+    const error = await caught(callAt(proc, context));
+    expect(error).toBeInstanceOf(ORPCError);
   });
 });

@@ -58,6 +58,30 @@ export const defaultCookieAttributes = (
 };
 
 /**
+ * Origins allowed to call auth with credentials. The Expo dev client and Metro
+ * are development-only: `exp://` trusted in production lets any Expo Go project
+ * post to sign-in with a user's cookies.
+ */
+export const trustedOrigins = (nodeEnv: string, webOrigin: string) => {
+  const deployed = nodeEnv === "production" || nodeEnv === "staging";
+  return deployed
+    ? [webOrigin, "masdan://"]
+    : [webOrigin, "masdan://", "exp://", "http://localhost:8081"];
+};
+
+/**
+ * better-auth's defaults, stated so a version bump cannot move them. No
+ * `cookieCache`: a cached session outlives the revocation an admin-issued
+ * password reset performs.
+ */
+const SESSION = {
+  cookieCache: { enabled: false },
+  expiresIn: 60 * 60 * 24 * 7,
+  freshAge: 60 * 60 * 24,
+  updateAge: 60 * 60 * 24,
+};
+
+/**
  * better-auth's own invitation endpoints match the invitee by email, which is
  * exactly what link-based invitations replace. `invitations.*` in @masdan/api
  * is the only way in.
@@ -228,13 +252,8 @@ export const createAuth = () => {
       window: env.AUTH_RATE_LIMIT_WINDOW,
     },
     secret: env.BETTER_AUTH_SECRET,
-    trustedOrigins: [
-      env.CORS_ORIGIN,
-
-      "masdan://",
-      "exp://",
-      "http://localhost:8081",
-    ],
+    session: SESSION,
+    trustedOrigins: trustedOrigins(env.NODE_ENV, env.CORS_ORIGIN),
   });
 
   const personalOrgSlug = async (user: {

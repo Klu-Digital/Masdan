@@ -108,6 +108,7 @@ export const parseQuickEntryText = async (
     try {
       extraction = await completeJson({
         feature: "quickTransaction",
+        household: { db, organizationId },
         messages: quickEntryMessages(note, household),
         name: "quick_transaction",
         schema: quickEntryExtraction,

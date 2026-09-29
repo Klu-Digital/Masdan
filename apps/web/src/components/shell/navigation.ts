@@ -1,4 +1,5 @@
 import {
+  AiBrain01Icon,
   Analytics01Icon,
   Building01Icon,
   Calendar03Icon,
@@ -60,6 +61,7 @@ export const ADMIN_NAV: NavDestination[] = [
   { icon: File01Icon, label: "Files", to: "/admin/files" },
   { icon: ZapIcon, label: "Jobs", to: "/admin/jobs" },
   { icon: ToggleOnIcon, label: "Feature flags", to: "/admin/flags" },
+  { icon: AiBrain01Icon, label: "AI", to: "/admin/ai" },
   { icon: UserMultiple02Icon, label: "Roles", to: "/admin/roles" },
   { icon: Wrench01Icon, label: "System", to: "/admin/system" },
 ];

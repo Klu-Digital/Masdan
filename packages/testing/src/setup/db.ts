@@ -77,8 +77,8 @@ const { truncateAll, closeTestPool } = await import("../db");
 const { flushTestRedis, closeTestRedis } = await import("../redis");
 
 // Fail loudly if a static `@masdan/*` import creeps back in. Every Redis-backed
-// path fails open, so a frozen `undefined` REDIS_URL throws nothing — the suite
-// just goes green while covering nothing.
+// path degrades quietly, so a frozen `undefined` REDIS_URL throws nothing — the
+// suite just goes green while covering nothing.
 const { env } = await import("@masdan/env/shared-server");
 if (
   env.DATABASE_URL !== process.env.DATABASE_URL ||

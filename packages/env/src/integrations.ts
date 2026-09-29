@@ -11,6 +11,8 @@ import { sharedServerVariables } from "./shared-server";
  * off rather than failing boot.
  */
 export const integrationVariables = {
+  /** Tokens each household may spend on AI per UTC day, all features together. 0 turns AI off. */
+  AI_DAILY_TOKEN_BUDGET: z.coerce.number().int().nonnegative().default(500_000),
   /** Upstream provider key; omit when the gateway supplies its own (BYOK). */
   AI_PROVIDER_API_KEY: z.string().min(1).optional(),
   /** `provider/model` for Ask Masdan. Unset turns the feature's AI off. */

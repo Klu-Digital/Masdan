@@ -1,4 +1,4 @@
-import { incrementWithTtl, redis } from "@masdan/redis";
+import { countHit } from "@masdan/redis";
 import { ORPCError, os } from "@orpc/server";
 
 import type { Context } from "./context";
@@ -18,19 +18,13 @@ export interface RateLimitOptions {
 
 /**
  * Buckets by procedure path, and prefers the session id over `context.ip` — the
- * latter is only as trustworthy as `TRUST_PROXY_HEADERS` allows. Fails open on
- * every path: no Redis, no attributable caller, or a throwing increment all
- * fall through to `next()`. So "no 429s in the logs" is not evidence it works —
- * alert on `redis.error`.
+ * latter is only as trustworthy as `TRUST_PROXY_HEADERS` allows. Every limit
+ * here guards security or AI spend, so with Redis absent or failing it counts
+ * in-process (`countHit`) rather than failing open. Only an unattributable
+ * caller passes uncounted.
  */
 export const rateLimit = ({ limit, window, key }: RateLimitOptions) =>
   o.middleware(async ({ context, next, path }) => {
-    const client = redis.client();
-    if (!client) {
-      // no Redis configured — fail open, nothing to count against
-      return next();
-    }
-
     const identity =
       key?.(context) ??
       (context.session?.user.id
@@ -42,25 +36,7 @@ export const rateLimit = ({ limit, window, key }: RateLimitOptions) =>
       return next();
     }
 
-    const bucket = `rl:${path.join(".")}:${identity}`;
-
-    let count: number;
-    try {
-      count = await incrementWithTtl(client, bucket, window);
-    } catch (error) {
-      // The path is logged, never the bucket: the bucket embeds the caller's
-      // identity, which for an unauthenticated caller is their raw IP.
-      context.log?.warn(
-        error instanceof Error ? error.message : String(error),
-        {
-          action: "ratelimit.failed",
-          path: path.join("."),
-        }
-      );
-      // Redis reachable but the command failed — fail open, same as no Redis
-      return next();
-    }
-
+    const count = await countHit(`rl:${path.join(".")}:${identity}`, window);
     if (count > limit) {
       throw new ORPCError("TOO_MANY_REQUESTS", {
         data: { retryAfter: window },

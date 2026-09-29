@@ -178,9 +178,11 @@ describe("chat receipt worker", () => {
       transactionId: created?.id,
     });
     expect(created?.accountId).toBe(household.card.id);
-    expect(JSON.stringify(completeJson.mock.calls)).not.toContain(
-      household.card.id
-    );
+    expect(
+      JSON.stringify(
+        completeJson.mock.calls.map(([request]) => request.messages)
+      )
+    ).not.toContain(household.card.id);
   });
 
   it("resolves an account named in the caption", async () => {

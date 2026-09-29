@@ -1,7 +1,7 @@
 import { log, parseError } from "@masdan/observability";
 import { z } from "zod";
 
-import { completeJson, isAiConfigured } from "../ai/gateway";
+import { AiError, completeJson, isAiConfigured } from "../ai/gateway";
 import {
   assertPermission,
   orgProcedure,
@@ -29,6 +29,9 @@ export type AskResult =
 const UNAVAILABLE_MESSAGE =
   "Ask Masdan can’t answer right now. Reports and Transactions have the same numbers.";
 
+const OVER_BUDGET_MESSAGE =
+  "Your household has used today’s AI allowance. Ask again tomorrow; Reports and Transactions have the same numbers.";
+
 export const askRouter = {
   /**
    * Read-only. The model picks one of a fixed set of report queries and names
@@ -55,6 +58,10 @@ export const askRouter = {
       try {
         extraction = await completeJson({
           feature: "askMasdan",
+          household: {
+            db: context.db,
+            organizationId: context.organizationId,
+          },
           messages: askMessages(input.question, household),
           name: "ask_masdan",
           schema: askExtraction,
@@ -63,7 +70,12 @@ export const askRouter = {
       } catch (error) {
         // The question is financial and never logged; the failure kind is enough.
         log.warn({ action: "ask.ai.failed", ...parseError(error) });
-        return { message: UNAVAILABLE_MESSAGE, status: "unavailable" };
+        const overBudget =
+          error instanceof AiError && error.reason === "over_budget";
+        return {
+          message: overBudget ? OVER_BUDGET_MESSAGE : UNAVAILABLE_MESSAGE,
+          status: "unavailable",
+        };
       }
 
       const plan = resolveAskPlan(input.question, household, extraction);

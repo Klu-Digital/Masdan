@@ -176,7 +176,7 @@ describe("transactions.parseQuickEntry", () => {
     );
 
     const [request] = completeJson.mock.calls[0] ?? [];
-    const prompt = JSON.stringify(request);
+    const prompt = JSON.stringify(request?.messages);
     expect(prompt).toContain("Metrobank Titanium");
     expect(prompt).not.toContain(home.card.id);
     expect(prompt).not.toContain(home.organizationId);

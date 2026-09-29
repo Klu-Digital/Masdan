@@ -60,7 +60,9 @@ These are the ones that cost real time to rediscover. The README carries the ful
 
 **Sessions live in Postgres, not Redis.** Setting better-auth's `secondaryStorage` stops it writing the `session` row, which breaks the `activeOrganizationId` repair in `packages/auth/src/index.ts` and 403s every new user. `rateLimit.customStorage` is a different door and is the one we use. `packages/auth/src/personal-organization.db.test.ts` guards this.
 
-**Optional infrastructure fails open.** Redis, storage and the queue all degrade to no-ops rather than erroring — with `REDIS_URL` unset the server boots normally, rate limits vanish, and the cache becomes a pass-through. Preserve that when adding callers. The corollary: "no 429s in the logs" is not evidence the limiter works; alert on the `redis.error` log action.
+**Optional infrastructure degrades, but security and cost limits never vanish.** Redis, storage and the queue all degrade rather than erroring — with `REDIS_URL` unset the server boots normally and the cache becomes a pass-through. Rate limits are the exception to failing open: count through `countHit` from `@masdan/redis`, which falls back to an in-process window (per process, so looser across replicas) rather than letting everything through. Preserve both when adding callers.
+
+**Every AI call is capped and charged.** `completeJson` in `packages/api/src/ai/gateway.ts` sends a per-feature `max_tokens` (defaults in `ai/features.ts`, overridden at `/admin/ai` and cached per process for 30s like flags) and takes a `household` whose daily token spend, in Postgres (`ai_usage`), is checked against `AI_DAILY_TOKEN_BUDGET` before the call and charged after it. Pass the request's `db`, never a transaction handle: a rollback would refund the tokens.
 
 **apps/server enqueues, apps/workers runs.** Cron and queue maintenance belong to workers so nothing competes with the request path. `queue.start()` is fatal in workers and deliberately non-fatal in the server.
 

@@ -56,6 +56,7 @@ export const parseReceiptEntry = async (
   try {
     const extraction = await completeJson({
       feature: "receipt",
+      household: { db, organizationId },
       messages: receiptMessages(
         {
           base64: Buffer.from(image.bytes).toString("base64"),

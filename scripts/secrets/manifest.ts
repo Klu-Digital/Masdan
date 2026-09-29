@@ -47,6 +47,18 @@ export const configManifest = [
     ],
   },
   {
+    description: "AI tokens each household may spend per UTC day",
+    kind: "config",
+    name: "AI_DAILY_TOKEN_BUDGET",
+    required: false,
+    targets: [
+      "local-server",
+      "local-workers",
+      "dokploy-server",
+      "dokploy-workers",
+    ],
+  },
+  {
     description: "provider/model used to suggest transaction categories",
     kind: "config",
     name: "CATEGORIZE_AI_MODEL",

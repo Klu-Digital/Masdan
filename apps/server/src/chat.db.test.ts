@@ -181,6 +181,43 @@ describe("/chat/:channel/webhook", () => {
     expect(await jobsFor(update.update_id)).toHaveLength(0);
   });
 
+  it("stops one sender's link attempts after five, without a job", async () => {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const accepted = await post(
+        messageUpdate(`/link AAAA-AAA${attempt + 2}`)
+      );
+      expect(await accepted.json()).toEqual({});
+    }
+    const update = messageUpdate("/link AAAA-AAA9");
+
+    const response = await post(update);
+
+    expect(await response.json()).toMatchObject({
+      text: expect.stringMatching(/Too many link attempts/u),
+    });
+    expect(await jobsFor(update.update_id)).toHaveLength(0);
+  });
+
+  it("stops a code's fourth attempt, whoever sends it", async () => {
+    const fromSender = (id: number) => {
+      const update = messageUpdate("/link bbbb-cccc");
+      update.message.from.id = id;
+      return update;
+    };
+    for (const senderId of [101, 102, 103]) {
+      const accepted = await post(fromSender(senderId));
+      expect(await accepted.json()).toEqual({});
+    }
+    const update = fromSender(104);
+
+    const response = await post(update);
+
+    expect(await response.json()).toMatchObject({
+      text: expect.stringMatching(/Too many link attempts/u),
+    });
+    expect(await jobsFor(update.update_id)).toHaveLength(0);
+  });
+
   it("tells the sender to try again when the queue is down, and keeps no record", async () => {
     await stopTestQueue();
     const update = messageUpdate("dinner 400");

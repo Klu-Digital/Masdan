@@ -1,32 +1,27 @@
 import { env } from "@masdan/env/integrations";
+import { log, parseError } from "@masdan/observability";
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { z } from "zod";
 
-/**
- * Every AI call goes through Cloudflare AI Gateway's OpenAI-compatible
- * endpoint, server-side only. Callers name a feature, never a model: each
- * feature reads its own variable, so one can move to a cheaper or stronger
- * model — or another provider — without touching the others or its caller.
- */
-const FEATURE_MODELS = {
-  askMasdan: () => env.ASK_MASDAN_AI_MODEL,
-  categorize: () => env.CATEGORIZE_AI_MODEL,
-  quickTransaction: () => env.QUICK_TRANSACTION_AI_MODEL,
-  receipt: () => env.RECEIPT_AI_MODEL,
-} satisfies Record<string, () => string | undefined>;
+import { AI_FEATURES } from "./features";
+import type { AiFeature } from "./features";
+import { getAiTokenCaps } from "./token-caps.cache";
+import { hasAiBudget, recordAiUsage } from "./usage";
+import type { AiHousehold } from "./usage";
 
-export type AiFeature = keyof typeof FEATURE_MODELS;
+type AiErrorReason = "malformed" | "over_budget" | "unavailable";
 
 /**
  * `unavailable`: no gateway or model is configured for the feature.
+ * `over_budget`: the household has spent `AI_DAILY_TOKEN_BUDGET` today.
  * `malformed`: the model answered, but not with JSON matching the schema.
  * Transport errors and timeouts surface as the SDK's own errors.
  */
 export class AiError extends Error {
-  readonly reason: "malformed" | "unavailable";
+  readonly reason: AiErrorReason;
 
-  constructor(reason: "malformed" | "unavailable", message: string) {
+  constructor(reason: AiErrorReason, message: string) {
     super(message);
     this.name = "AiError";
     this.reason = reason;
@@ -34,7 +29,11 @@ export class AiError extends Error {
 }
 
 export const isAiConfigured = (feature: AiFeature): boolean =>
-  Boolean(env.CLOUDFLARE_AI_GATEWAY_URL && FEATURE_MODELS[feature]());
+  Boolean(
+    env.CLOUDFLARE_AI_GATEWAY_URL &&
+    AI_FEATURES[feature].model() &&
+    env.AI_DAILY_TOKEN_BUDGET > 0
+  );
 
 const gatewayClient = (baseURL: string): OpenAI =>
   new OpenAI({
@@ -55,32 +54,45 @@ const gatewayClient = (baseURL: string): OpenAI =>
   });
 
 /**
- * One chat completion constrained to `schema`. Throws `AiError`, or the SDK's
- * own error on transport failure or timeout — the result is only ever
- * returned after `schema` has parsed it.
+ * One chat completion through Cloudflare AI Gateway's OpenAI-compatible
+ * endpoint, server-side only, constrained to `schema` and charged to
+ * `household`'s daily budget. Throws `AiError`, or the SDK's own error on
+ * transport failure or timeout — the result is only ever returned after
+ * `schema` has parsed it.
  */
 export const completeJson = async <Schema extends z.ZodType>({
   feature,
+  household,
   messages,
   name,
   schema,
   timeoutMs,
 }: {
   feature: AiFeature;
+  household: AiHousehold;
   messages: ChatCompletionMessageParam[];
   name: string;
   schema: Schema;
   timeoutMs: number;
 }): Promise<z.output<Schema>> => {
-  const model = FEATURE_MODELS[feature]();
+  const model = AI_FEATURES[feature].model();
   if (!(env.CLOUDFLARE_AI_GATEWAY_URL && model)) {
     throw new AiError("unavailable", `AI is not configured for ${feature}`);
   }
+  if (!(await hasAiBudget(household))) {
+    throw new AiError(
+      "over_budget",
+      "The household has used today's AI token budget"
+    );
+  }
+  const caps = await getAiTokenCaps(household.db);
+  const maxTokens = caps[feature];
 
   const completion = await gatewayClient(
     env.CLOUDFLARE_AI_GATEWAY_URL
   ).chat.completions.create(
     {
+      max_tokens: maxTokens,
       messages,
       model,
       response_format: {
@@ -96,7 +108,23 @@ export const completeJson = async <Schema extends z.ZodType>({
     { timeout: timeoutMs }
   );
 
-  const content = completion.choices[0]?.message.content;
+  try {
+    // A provider that reports no usage is charged the answer's cap.
+    await recordAiUsage(household, completion.usage?.total_tokens ?? maxTokens);
+  } catch (error) {
+    // The tokens are spent either way; losing the answer too helps no one.
+    log.error({
+      action: "ai.usage.record_failed",
+      feature,
+      ...parseError(error),
+    });
+  }
+
+  const [choice] = completion.choices;
+  if (choice?.finish_reason === "length") {
+    throw new AiError("malformed", `The answer hit ${feature}'s token cap`);
+  }
+  const content = choice?.message.content;
   if (!content) {
     throw new AiError("malformed", "The model returned no content");
   }

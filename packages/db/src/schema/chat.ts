@@ -23,8 +23,7 @@ export type ChatChannel = (typeof chatChannels)[number];
 /**
  * A short-lived, single-use code a user sends from any chat app as
  * `/link <code>`. Only the SHA-256 of the code is stored. In Postgres, not
- * Redis: Redis is optional and fails open, so linking would silently break
- * without it.
+ * Redis: Redis is optional, so linking would silently break without it.
  */
 export const chatLinkCode = pgTable(
   "chat_link_code",

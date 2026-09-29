@@ -19,6 +19,7 @@ import { and, asc, count, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { completeJson, isAiConfigured } from "../ai/gateway";
+import type { AiHousehold } from "../ai/usage";
 import { findImport } from "../imports/imports.router";
 import {
   orgMutationProcedure,
@@ -96,12 +97,14 @@ const suggestionHousehold = async (
 
 /** `null` on any AI failure: the caller reports unavailable, never guesses. */
 const askModel = async (
+  budget: AiHousehold,
   subjects: SuggestionSubject[],
   household: SuggestionHousehold
 ): Promise<Map<string, CategorizationProposal> | null> => {
   try {
     const extraction = await completeJson({
       feature: "categorize",
+      household: budget,
       messages: suggestionMessages(subjects, household),
       name: "categorize_transactions",
       schema: suggestionExtraction,
@@ -667,6 +670,7 @@ export const suggestionsRouter = {
           };
         }
         const answered = await askModel(
+          { db: context.db, organizationId: context.organizationId },
           batch.map(({ subject }) => subject),
           await suggestionHousehold(context.db, context.organizationId)
         );
@@ -788,6 +792,7 @@ export const suggestionsRouter = {
 
         const subject = { key: target.transaction.id, text, type: target.type };
         const proposals = await askModel(
+          { db: context.db, organizationId: context.organizationId },
           [subject],
           await suggestionHousehold(context.db, context.organizationId)
         );

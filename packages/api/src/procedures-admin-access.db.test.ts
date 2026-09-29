@@ -74,6 +74,9 @@ describe("admin router access", () => {
         call(appRouter.admin.featureFlags.list, undefined, { context })
       )
     ).toBe("FORBIDDEN");
+    expect(
+      await codeOf(call(appRouter.admin.ai.tokenCaps, undefined, { context }))
+    ).toBe("FORBIDDEN");
   });
 
   it("lets a platform admin through to the same procedures", async () => {
@@ -92,6 +95,9 @@ describe("admin router access", () => {
     ).resolves.toBeDefined();
     await expect(
       call(appRouter.admin.featureFlags.list, undefined, { context })
+    ).resolves.toBeDefined();
+    await expect(
+      call(appRouter.admin.ai.tokenCaps, undefined, { context })
     ).resolves.toBeDefined();
   });
 

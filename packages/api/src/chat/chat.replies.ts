@@ -62,6 +62,8 @@ export const chatReplies = {
   help: `Send a transaction like ${EXAMPLE}, or send a receipt photo with an optional account caption.\n\nNot linked yet? ${WHERE_TO_LINK}`,
   linkFailed:
     "That code didn’t work. Codes work once and expire after 10 minutes — make a new one in Masdan under Settings → Household → Chat apps.",
+  linkRateLimited:
+    "Too many link attempts. Wait 10 minutes, then send /link with a fresh code.",
   linked: (householdName: string) =>
     `Linked to ${householdName}. Send a transaction like ${EXAMPLE} to add it.`,
   needsReview: (issues: readonly string[], link: string | null) =>
