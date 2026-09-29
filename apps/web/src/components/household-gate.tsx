@@ -50,16 +50,13 @@ export const HouseholdGate = ({
           </EmptyMedia>
           <EmptyTitle>No household yet</EmptyTitle>
           <EmptyDescription>
-            Create a household, or accept an invitation to join someone else’s.
+            Create a household, or open an invite link from someone else’s.
           </EmptyDescription>
           <EmptyContent>
             <Button
               render={<Link hash="new-household" to="/settings/household" />}
             >
               Create a household
-            </Button>
-            <Button render={<Link to="/invitations" />} variant="ghost">
-              View invitations
             </Button>
           </EmptyContent>
         </Empty>

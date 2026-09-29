@@ -1,6 +1,5 @@
 import {
   CheckmarkCircle02Icon,
-  Mail01Icon,
   PlusSignIcon,
   Settings02Icon,
   UnfoldMoreIcon,
@@ -58,11 +57,9 @@ export const HouseholdMark = ({
  */
 export const HouseholdSwitcher = ({
   activeOrganizationId,
-  pendingInvitations,
   placement = "sidebar",
 }: {
   activeOrganizationId: string | null;
-  pendingInvitations: number;
   placement?: "sidebar" | "sheet";
 }) => {
   const queryClient = useQueryClient();
@@ -164,15 +161,6 @@ export const HouseholdSwitcher = ({
           })}
         </MenuGroup>
         <MenuSeparator />
-        <MenuItem render={<Link to="/invitations" />}>
-          <HugeiconsIcon icon={Mail01Icon} strokeWidth={1.8} />
-          <span className="flex-1">Invitations</span>
-          {pendingInvitations > 0 ? (
-            <span className="bg-brand text-brand-foreground text-2xs rounded-full px-1.5 font-semibold tracking-normal tabular-nums">
-              {pendingInvitations}
-            </span>
-          ) : null}
-        </MenuItem>
         <MenuItem render={<Link to="/settings/household" />}>
           <HugeiconsIcon icon={Settings02Icon} strokeWidth={1.8} />
           Household settings

@@ -10,7 +10,13 @@ import { z } from "zod";
 import { authClient } from "@/lib/auth-client";
 import { invalidateSession } from "@/lib/session";
 
-const SignUpForm = ({ redirectTo }: { redirectTo: string }) => {
+const SignUpForm = ({
+  invitationId,
+  redirectTo,
+}: {
+  invitationId?: string;
+  redirectTo: string;
+}) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -21,27 +27,28 @@ const SignUpForm = ({ redirectTo }: { redirectTo: string }) => {
       password: "",
     },
     onSubmit: async ({ value }) => {
-      await authClient.signUp.email(
-        {
-          email: value.email,
-          name: value.name,
-          password: value.password,
+      // `invitationId` is read by the server's sign-up gate. The client type
+      // does not know it, hence a variable rather than an object literal.
+      const body = {
+        email: value.email,
+        invitationId,
+        name: value.name,
+        password: value.password,
+      };
+      await authClient.signUp.email(body, {
+        onError: (error) => {
+          toastManager.add({
+            title: error.error.message || error.error.statusText,
+            type: "error",
+          });
         },
-        {
-          onError: (error) => {
-            toastManager.add({
-              title: error.error.message || error.error.statusText,
-              type: "error",
-            });
-          },
-          onSuccess: async () => {
-            // See sign-in-form: the guard at the destination reads the session
-            // from this cache, so it has to be refreshed before we navigate.
-            await invalidateSession(queryClient);
-            await navigate({ href: redirectTo });
-          },
-        }
-      );
+        onSuccess: async () => {
+          // See sign-in-form: the guard at the destination reads the session
+          // from this cache, so it has to be refreshed before we navigate.
+          await invalidateSession(queryClient);
+          await navigate({ href: redirectTo });
+        },
+      });
     },
     validators: {
       onSubmit: z.object({

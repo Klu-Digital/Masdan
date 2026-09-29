@@ -49,119 +49,194 @@ const invite = (input: {
     headers: input.headers,
   });
 
-describe("invitations.listForCurrentUser", () => {
+const statusOf = async (id: string) => {
+  const [row] = await getTestDb()
+    .select({ status: invitation.status })
+    .from(invitation)
+    .where(eq(invitation.id, id));
+  return row?.status;
+};
+
+const membershipsOf = (userId: string) =>
+  getTestDb()
+    .select({ organizationId: member.organizationId, role: member.role })
+    .from(member)
+    .where(eq(member.userId, userId));
+
+describe("invitations.preview", () => {
   it("requires authentication", async () => {
     await expect(
-      call(appRouter.invitations.listForCurrentUser, undefined, {
-        context: await contextFor(),
-      })
+      call(
+        appRouter.invitations.preview,
+        { invitationId: crypto.randomUUID() },
+        { context: await contextFor() }
+      )
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 
-  it("returns pending invitations for the signed-in email across households", async () => {
+  it("shows the household to any link holder, but only while claimable", async () => {
     const owner = await signUpTestUser({ name: "Ada" });
-    const recipient = await signUpTestUser({
-      email: "recipient@example.com",
+    const holder = await signUpTestUser();
+    const created = await invite({
+      email: "someone-else@example.com",
+      headers: owner.headers,
+      organizationId: await activeHouseholdId(owner.headers),
     });
-    const stranger = await signUpTestUser({ email: "stranger@example.com" });
+
+    await expect(
+      call(
+        appRouter.invitations.preview,
+        { invitationId: created.id },
+        { context: await contextFor(holder.headers) }
+      )
+    ).resolves.toMatchObject({
+      inviterName: "Ada",
+      organizationName: "Ada's Household",
+      role: "member",
+    });
+
+    await getTestDb()
+      .update(invitation)
+      .set({ expiresAt: new Date(Date.now() - 60_000) })
+      .where(eq(invitation.id, created.id));
+    await expect(
+      call(
+        appRouter.invitations.preview,
+        { invitationId: created.id },
+        { context: await contextFor(holder.headers) }
+      )
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+
+describe("invitations.accept", () => {
+  it("joins the link holder under any email with the invited role, once", async () => {
+    const owner = await signUpTestUser();
     const householdId = await activeHouseholdId(owner.headers);
-    const secondHousehold = await auth.api.createOrganization({
+    const holder = await signUpTestUser({ email: "not-the-label@example.com" });
+    const second = await signUpTestUser();
+    const created = await auth.api.createInvitation({
       body: {
-        keepCurrentActiveOrganization: true,
-        name: "Second Household",
-        slug: "second-household-for-invitations",
+        email: "label@example.com",
+        organizationId: householdId,
+        role: "viewer",
       },
       headers: owner.headers,
     });
 
-    const first = await invite({
-      email: recipient.user.email,
-      headers: owner.headers,
-      organizationId: householdId,
-    });
-    const second = await invite({
-      email: recipient.user.email,
-      headers: owner.headers,
-      organizationId: secondHousehold.id,
-    });
-    await invite({
-      email: stranger.user.email,
-      headers: owner.headers,
-      organizationId: householdId,
-    });
-
-    const rows = await call(
-      appRouter.invitations.listForCurrentUser,
-      undefined,
-      {
-        context: await contextFor(recipient.headers),
-      }
-    );
-
-    expect(rows).toHaveLength(2);
-    expect(rows.map((row) => row.id)).toEqual(
-      expect.arrayContaining([first.id, second.id])
-    );
-    expect(rows.map((row) => row.organizationName)).toEqual(
-      expect.arrayContaining(["Ada's Household", "Second Household"])
-    );
-
     await expect(
-      call(appRouter.invitations.listForCurrentUser, undefined, {
-        context: await contextFor(stranger.headers),
-      })
-    ).resolves.toHaveLength(1);
+      call(
+        appRouter.invitations.accept,
+        { invitationId: created.id },
+        { context: await contextFor(holder.headers) }
+      )
+    ).resolves.toEqual({ organizationId: householdId });
+
+    expect(await membershipsOf(holder.user.id)).toContainEqual({
+      organizationId: householdId,
+      role: "viewer",
+    });
+    expect(await statusOf(created.id)).toBe("accepted");
+    await expect(
+      call(
+        appRouter.invitations.accept,
+        { invitationId: created.id },
+        { context: await contextFor(second.headers) }
+      )
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it("includes expired pending invitations but excludes terminal statuses", async () => {
-    const owner = await signUpTestUser({ name: "Status Owner" });
-    const recipient = await signUpTestUser({
-      email: "status-recipient@example.com",
-      name: "Status Recipient",
+  it.each([
+    ["expired", { expiresAt: new Date(Date.now() - 60_000) }],
+    ["canceled", { status: "canceled" }],
+    ["rejected", { status: "rejected" }],
+  ])("refuses a %s invitation", async (_label, patch) => {
+    const owner = await signUpTestUser();
+    const holder = await signUpTestUser();
+    const householdId = await activeHouseholdId(owner.headers);
+    const created = await invite({
+      email: "x@example.com",
+      headers: owner.headers,
+      organizationId: householdId,
     });
-    const organizationId = await activeHouseholdId(owner.headers);
-    const db = getTestDb();
-    const expiresAt = new Date(Date.now() - 60_000);
+    await getTestDb()
+      .update(invitation)
+      .set(patch)
+      .where(eq(invitation.id, created.id));
 
-    const [expired] = await db
-      .insert(invitation)
-      .values({
-        email: recipient.user.email,
-        expiresAt,
-        inviterId: owner.user.id,
-        organizationId,
-        role: "member",
-        status: "pending",
-      })
-      .returning({ id: invitation.id });
+    await expect(
+      call(
+        appRouter.invitations.accept,
+        { invitationId: created.id },
+        { context: await contextFor(holder.headers) }
+      )
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(await membershipsOf(holder.user.id)).not.toContainEqual(
+      expect.objectContaining({ organizationId: householdId })
+    );
+  });
 
-    await db.insert(invitation).values(
-      ["canceled", "accepted", "rejected"].map((status) => ({
-        email: recipient.user.email,
-        expiresAt,
-        inviterId: owner.user.id,
-        organizationId,
-        role: "member",
-        status,
-      }))
+  it("answers CONFLICT for an existing member and leaves the link usable", async () => {
+    const owner = await signUpTestUser();
+    const householdId = await activeHouseholdId(owner.headers);
+    const created = await invite({
+      email: "x@example.com",
+      headers: owner.headers,
+      organizationId: householdId,
+    });
+
+    await expect(
+      call(
+        appRouter.invitations.accept,
+        { invitationId: created.id },
+        { context: await contextFor(owner.headers) }
+      )
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(await statusOf(created.id)).toBe("pending");
+  });
+
+  it("gives an email namesake without the link no way in", async () => {
+    const owner = await signUpTestUser();
+    const namesake = await signUpTestUser({ email: "invitee@example.com" });
+    await invite({
+      email: "invitee@example.com",
+      headers: owner.headers,
+      organizationId: await activeHouseholdId(owner.headers),
+    });
+
+    expect(appRouter.invitations).not.toHaveProperty("listForCurrentUser");
+    await expect(
+      auth.api.listUserInvitations({ headers: namesake.headers, query: {} })
+    ).rejects.toThrow();
+    expect(await membershipsOf(namesake.user.id)).toHaveLength(1);
+  });
+});
+
+describe("invitations.decline", () => {
+  it("marks a pending invitation rejected, and only once", async () => {
+    const owner = await signUpTestUser();
+    const holder = await signUpTestUser();
+    const created = await invite({
+      email: "x@example.com",
+      headers: owner.headers,
+      organizationId: await activeHouseholdId(owner.headers),
+    });
+    const context = await contextFor(holder.headers);
+
+    await call(
+      appRouter.invitations.decline,
+      { invitationId: created.id },
+      { context }
     );
 
-    const rows = await call(
-      appRouter.invitations.listForCurrentUser,
-      undefined,
-      {
-        context: await contextFor(recipient.headers),
-      }
-    );
-
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({
-      id: expired?.id,
-      organizationId,
-      organizationName: "Status Owner's Household",
-      status: "pending",
-    });
-    expect(rows[0]?.expiresAt).toEqual(expiresAt);
+    expect(await statusOf(created.id)).toBe("rejected");
+    await expect(
+      call(
+        appRouter.invitations.decline,
+        { invitationId: created.id },
+        { context }
+      )
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 });
 
@@ -233,35 +308,5 @@ describe("Better Auth invitation authorization", () => {
       .from(invitation)
       .where(eq(invitation.id, created.id));
     expect(canceled?.status).toBe("canceled");
-  });
-
-  it("rejects invitation actions from a different recipient", async () => {
-    const owner = await signUpTestUser();
-    const recipient = await signUpTestUser({
-      email: "actual-recipient@example.com",
-    });
-    const stranger = await signUpTestUser({
-      email: "wrong-recipient@example.com",
-    });
-    const householdId = await activeHouseholdId(owner.headers);
-    const created = await invite({
-      email: recipient.user.email,
-      headers: owner.headers,
-      organizationId: householdId,
-    });
-
-    await expect(
-      auth.api.acceptInvitation({
-        body: { invitationId: created.id },
-        headers: stranger.headers,
-      })
-    ).rejects.toThrow();
-
-    await expect(
-      auth.api.rejectInvitation({
-        body: { invitationId: created.id },
-        headers: stranger.headers,
-      })
-    ).rejects.toThrow();
   });
 });

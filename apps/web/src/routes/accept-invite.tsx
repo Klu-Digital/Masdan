@@ -19,6 +19,7 @@ import {
 } from "@/lib/organization";
 import { asOptionalString } from "@/lib/redirect";
 import { invalidateSession } from "@/lib/session";
+import { orpc } from "@/utils/orpc";
 
 // `getRouteApi` rather than `Route.useSearch()` so the components below do not
 // have to reference `Route`, which is declared at the bottom of the file.
@@ -29,29 +30,14 @@ const InvitationCard = ({ invitationId }: { invitationId: string }) => {
   const queryClient = useQueryClient();
 
   const invitation = useQuery({
-    // The card below renders the failure, including the "wrong account" case
-    // that a global toast would only restate.
+    ...orpc.invitations.preview.queryOptions({ input: { invitationId } }),
+    // The card below renders the failure; a global toast would only restate it.
     meta: { suppressErrorToast: true },
-    queryFn: async () => {
-      const { data, error } = await authClient.organization.getInvitation({
-        query: { id: invitationId },
-      });
-      if (error) {
-        throw new Error(error.message ?? "This invitation is no longer valid");
-      }
-      return data;
-    },
-    queryKey: ["invitation", invitationId],
     retry: false,
   });
 
   const accept = useMutation({
-    mutationFn: (organizationId: string) =>
-      acceptHouseholdInvitation({
-        invitationId,
-        organizationId,
-        queryClient,
-      }),
+    mutationFn: () => acceptHouseholdInvitation({ invitationId, queryClient }),
     onError: (error: Error) => {
       toastManager.add({ title: error.message, type: "error" });
     },
@@ -85,12 +71,7 @@ const InvitationCard = ({ invitationId }: { invitationId: string }) => {
   if (invitation.isError || !invitation.data) {
     return (
       <AuthShell
-        // The most common cause is signing in with a different address than the
-        // one that was invited, so the escape hatch matters more than the reason.
-        description={
-          invitation.error?.message ??
-          "This invitation has expired, been cancelled, already been accepted or declined, or was sent to a different email address."
-        }
+        description="This invite link has expired, been cancelled, or already been used. Ask whoever invited you for a new one."
         title="Invitation unavailable"
       >
         <div className="grid gap-2">
@@ -119,11 +100,11 @@ const InvitationCard = ({ invitationId }: { invitationId: string }) => {
     );
   }
 
-  const { organizationName, inviterEmail, role } = invitation.data;
+  const { organizationName, inviterName, role } = invitation.data;
 
   return (
     <AuthShell
-      description={`${inviterEmail} invited you to join their household as ${role}.`}
+      description={`${inviterName} invited you to join their household as ${role ?? "member"}.`}
       title={`Join ${organizationName}`}
     >
       <div className="grid gap-2">
@@ -131,7 +112,7 @@ const InvitationCard = ({ invitationId }: { invitationId: string }) => {
           className="w-full"
           size="lg"
           loading={accept.isPending}
-          onClick={() => accept.mutate(invitation.data.organizationId)}
+          onClick={() => accept.mutate()}
         >
           Accept invitation
         </Button>
@@ -170,14 +151,14 @@ const RouteComponent = () => {
 
 export const Route = createFileRoute("/accept-invite")({
   /**
-   * Guards in neither of the usual directions: accepting needs a session,
-   * because the server matches the invitation's email — but an
-   * already-authenticated visitor must be left alone, or the "signed in? go to
-   * the dashboard" rule throws the invitation away.
+   * Guards in neither of the usual directions: accepting needs a session, but
+   * an already-authenticated visitor must be left alone, or the "signed in? go
+   * to the dashboard" rule throws the invitation away. Signed-out visitors land
+   * on sign-up, which reads the invitation back out of `redirect`.
    */
   beforeLoad: ({ context, location }) => {
     if (!context.session) {
-      throw redirect({ search: { redirect: location.href }, to: "/login" });
+      throw redirect({ search: { redirect: location.href }, to: "/signup" });
     }
   },
   component: RouteComponent,

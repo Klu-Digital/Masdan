@@ -46,18 +46,14 @@ const PAGE_SIZE = 50;
 
 interface ListedUser {
   banned?: boolean | null;
-  emailVerified: boolean;
 }
 
-const userStatusBadge = (user: ListedUser) => {
-  if (user.banned) {
-    return <Badge variant="error">banned</Badge>;
-  }
-  if (user.emailVerified) {
-    return <Badge variant="default">verified</Badge>;
-  }
-  return <Badge variant="outline">unverified</Badge>;
-};
+const userStatusBadge = (user: ListedUser) =>
+  user.banned ? (
+    <Badge variant="error">banned</Badge>
+  ) : (
+    <Badge variant="outline">active</Badge>
+  );
 
 const GLOBAL_ROLE_OPTIONS = [
   { label: "User", value: "user" },
@@ -227,7 +223,6 @@ interface AdminListedUser {
   banned?: boolean | null;
   createdAt: string | Date;
   email: string;
-  emailVerified: boolean;
   id: string;
   name: string;
   role?: string | null;

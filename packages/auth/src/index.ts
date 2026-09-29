@@ -5,11 +5,19 @@ import * as schema from "@masdan/db/schema/index";
 import { env } from "@masdan/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin, organization } from "better-auth/plugins";
 import { and, asc, eq, isNull } from "drizzle-orm";
 
+import { deliver } from "./deliver";
 import { ac, roles } from "./permissions";
 import { resolveRateLimitStorage } from "./rate-limit-storage";
+import { resetPasswordUrl } from "./reset-link";
+import {
+  anyUserExists,
+  isPendingInvitation,
+  signUpAllowed,
+} from "./sign-up-gate";
 
 /**
  * Scheme and hostname, no port, so `localhost:2600` -> `localhost:1900` is
@@ -48,6 +56,20 @@ export const defaultCookieAttributes = (
     secure: deployed,
   };
 };
+
+/**
+ * better-auth's own invitation endpoints match the invitee by email, which is
+ * exactly what link-based invitations replace. `invitations.*` in @masdan/api
+ * is the only way in.
+ */
+const EMAIL_MATCHED_INVITATION_PATHS = new Set([
+  "/organization/accept-invitation",
+  "/organization/get-invitation",
+  "/organization/list-user-invitations",
+  "/organization/reject-invitation",
+]);
+
+const SIGN_UP_PATH = "/sign-up/email";
 
 /** Turn a user's name into a slug candidate: `Ada Lovelace` -> `ada-lovelace`. */
 export const slugifyName = (name: string): string => {
@@ -120,11 +142,57 @@ export const createAuth = () => {
                 );
             }
           },
+          before: async (user, context) => {
+            // Only the HTTP door bootstraps: the seeder and test helpers call
+            // `auth.api` directly and must not mint an admin. Two simultaneous
+            // first sign-ups can both win; acceptable on an empty instance.
+            const bootstrap =
+              context?.path === SIGN_UP_PATH &&
+              context.request !== undefined &&
+              !(await anyUserExists(db));
+            if (!bootstrap) {
+              return;
+            }
+            return { data: { ...user, role: "admin" } };
+          },
         },
       },
     },
     emailAndPassword: {
       enabled: true,
+      revokeSessionsOnPasswordReset: true,
+      sendResetPassword: ({ user, token }) =>
+        deliver({
+          body: resetPasswordUrl(env.CORS_ORIGIN, token),
+          subject: "Password reset link",
+          to: user.email,
+        }),
+    },
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (EMAIL_MATCHED_INVITATION_PATHS.has(ctx.path)) {
+          throw new APIError("NOT_FOUND");
+        }
+        // Server-side `auth.api` calls (seeder, tests) carry no request.
+        if (ctx.path !== SIGN_UP_PATH || ctx.request === undefined) {
+          return;
+        }
+        const allowed = signUpAllowed({
+          allowSignup: env.ALLOW_SIGNUP,
+          hasUsers: await anyUserExists(db),
+          invitationPending: await isPendingInvitation(
+            db,
+            (ctx.body as { invitationId?: unknown } | undefined)?.invitationId
+          ),
+        });
+        if (!allowed) {
+          throw new APIError("FORBIDDEN", {
+            code: "SIGN_UP_INVITE_ONLY",
+            message:
+              "Sign-up is by invitation. Ask a household admin for an invite link.",
+          });
+        }
+      }),
     },
     plugins: [
       expo(),

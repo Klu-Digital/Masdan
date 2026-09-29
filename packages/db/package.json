@@ -21,6 +21,7 @@
     "post-migrate:new": "tsx src/dev-scripts/post-migrate/cli.ts new",
     "post-migrate:status": "tsx src/dev-scripts/post-migrate/cli.ts status",
     "purge": "tsx src/dev-scripts/purge/cli.ts",
+    "reset-password": "tsx src/dev-scripts/reset-password/cli.ts",
     "seed": "tsx src/dev-scripts/seed/cli.ts"
   },
   "dependencies": {

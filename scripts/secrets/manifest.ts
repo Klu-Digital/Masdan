@@ -71,6 +71,14 @@ export const configManifest = [
     ],
   },
   {
+    description:
+      "Open self-service sign-up; off means first account and invite links only",
+    kind: "config",
+    name: "ALLOW_SIGNUP",
+    required: false,
+    targets: ["local-server", "dokploy-server"],
+  },
+  {
     description: "Whether Better Auth rate limiting is enabled",
     kind: "config",
     name: "AUTH_RATE_LIMIT_ENABLED",

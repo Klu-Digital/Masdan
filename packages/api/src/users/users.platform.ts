@@ -1,3 +1,4 @@
+import { issuePasswordResetLink } from "@masdan/auth/recovery";
 import {
   file,
   member,
@@ -5,14 +6,16 @@ import {
   session,
   user,
 } from "@masdan/db/schema/index";
+import { log } from "@masdan/observability";
+import { ORPCError } from "@orpc/server";
 import { count, desc, eq, sum } from "drizzle-orm";
 import { z } from "zod";
 
 import { adminProcedure } from "../procedures";
 
 /**
- * better-auth's `admin()` plugin owns every user mutation, so this router only
- * adds the combined read.
+ * better-auth's `admin()` plugin owns every user mutation, so this router adds
+ * the combined read and the one thing that plugin cannot do: a reset link.
  */
 export const usersPlatformRouter = {
   detail: adminProcedure
@@ -61,5 +64,29 @@ export const usersPlatformRouter = {
         sessions,
         user: targetUser ?? null,
       };
+    }),
+
+  /**
+   * Written through better-auth's adapter, not this request's transaction. The
+   * URL is a live account-takeover credential: return it, never log it.
+   */
+  issuePasswordReset: adminProcedure
+    .input(z.object({ userId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const [target] = await context.db
+        .select({ id: user.id })
+        .from(user)
+        .where(eq(user.id, input.userId));
+      if (!target) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      const link = await issuePasswordResetLink(target.id);
+      log.info({
+        action: "admin.password_reset.issued",
+        actorId: context.session.user.id,
+        userId: target.id,
+      });
+      return link;
     }),
 };

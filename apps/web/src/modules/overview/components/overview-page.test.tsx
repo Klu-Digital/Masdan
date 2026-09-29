@@ -14,7 +14,6 @@ vi.mock("@masdan/ui/components/toast", () => ({
 
 const accountsList = vi.hoisted(() => vi.fn());
 const listStatements = vi.hoisted(() => vi.fn());
-const listForCurrentUser = vi.hoisted(() => vi.fn());
 const netWorth = vi.hoisted(() => vi.fn());
 const netWorthHistory = vi.hoisted(() => vi.fn());
 const cashFlow = vi.hoisted(() => vi.fn());
@@ -33,7 +32,6 @@ vi.mock("@/utils/orpc", async (importOriginal) => {
     ...actual,
     client: {
       accounts: { list: accountsList, listStatements },
-      invitations: { listForCurrentUser },
       reports: { cashFlow, netWorth, netWorthHistory, spendingByCategory },
       transactions: { list: transactionsList },
     },
@@ -257,7 +255,6 @@ beforeEach(() => {
   for (const mock of [
     accountsList,
     listStatements,
-    listForCurrentUser,
     netWorth,
     netWorthHistory,
     cashFlow,
@@ -267,7 +264,6 @@ beforeEach(() => {
   ]) {
     mock.mockReset();
   }
-  listForCurrentUser.mockResolvedValue([]);
   listStatements.mockResolvedValue([]);
   serveLedger();
 });

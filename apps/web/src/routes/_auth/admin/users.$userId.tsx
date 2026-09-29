@@ -47,7 +47,7 @@ import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
 import { invalidateSession } from "@/lib/session";
-import { orpc } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
 
 const routeApi = getRouteApi("/_auth/admin/users/$userId");
 
@@ -357,6 +357,64 @@ const SessionsCard = ({
   );
 };
 
+/** Masdan sends no email: the admin hands this link over themselves. */
+const PasswordCard = ({ userId }: { userId: string }) => {
+  const issue = useMutation({
+    mutationFn: () => client.admin.users.issuePasswordReset({ userId }),
+    onError: (error: Error) => {
+      toastManager.add({ title: error.message, type: "error" });
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Password</CardTitle>
+        <CardDescription>
+          Create a one-time reset link and hand it over yourself. It works once,
+          expires in 24 hours, and setting the new password signs the user out
+          everywhere.
+        </CardDescription>
+      </CardHeader>
+      {issue.data ? (
+        <CardPanel>
+          <Field>
+            <FieldLabel htmlFor="reset-link">
+              Reset link, shown only now
+            </FieldLabel>
+            <div className="flex gap-2">
+              <Input
+                id="reset-link"
+                onFocus={(event) => event.currentTarget.select()}
+                readOnly
+                value={issue.data.url}
+              />
+              <Button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(issue.data.url);
+                  toastManager.add({ title: "Link copied", type: "success" });
+                }}
+                variant="outline"
+              >
+                Copy
+              </Button>
+            </div>
+          </Field>
+        </CardPanel>
+      ) : null}
+      <CardFooter>
+        <Button
+          loading={issue.isPending}
+          onClick={() => issue.mutate()}
+          variant="outline"
+        >
+          {issue.data ? "Create another link" : "Create reset link"}
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+};
+
 const DangerZone = ({
   userEmail,
   userId,
@@ -537,6 +595,8 @@ const RouteComponent = () => {
       </Card>
 
       <SessionsCard sessions={sessions} userId={user.id} />
+
+      <PasswordCard userId={user.id} />
 
       <DangerZone userEmail={user.email} userId={user.id} />
     </div>

@@ -3,7 +3,6 @@ import {
   CheckmarkCircle02Icon,
   FileImportIcon,
   Invoice02Icon,
-  Mail01Icon,
   PlusSignIcon,
   UserAdd01Icon,
   Wallet01Icon,
@@ -59,7 +58,6 @@ import {
   parseIsoDate,
 } from "@/lib/dates";
 import { householdToday } from "@/lib/household-date";
-import { userInvitationsQueryOptions } from "@/lib/organization";
 import { AccountCardThumb } from "@/modules/accounts/components/account-card";
 import { AccountTile } from "@/modules/accounts/components/account-row";
 import { nextPaymentDue } from "@/modules/accounts/credit";
@@ -874,36 +872,6 @@ const Welcome = ({ household }: { household: OverviewHousehold }) => {
   );
 };
 
-const InvitationNotice = () => {
-  const invitations = useQuery(userInvitationsQueryOptions());
-  const pending =
-    invitations.data?.filter((invitation) => !invitation.expired) ?? [];
-  if (pending.length === 0) {
-    return null;
-  }
-  const [first] = pending;
-  return (
-    <Link
-      className="bg-brand-soft hover:bg-brand/16 focus-visible:ring-ring/50 flex items-center gap-3 rounded-2xl px-4 py-3 transition-colors outline-none focus-visible:ring-3"
-      to="/invitations"
-    >
-      <HugeiconsIcon
-        className="text-brand-text size-5 shrink-0"
-        icon={Mail01Icon}
-        strokeWidth={1.8}
-      />
-      <span className="min-w-0 flex-1 text-sm">
-        {pending.length === 1 && first
-          ? `You’re invited to join ${first.organizationName}.`
-          : `You have ${pending.length} household invitations.`}
-      </span>
-      <span className="text-brand-text shrink-0 text-sm font-medium">
-        Review
-      </span>
-    </Link>
-  );
-};
-
 const Overview = ({ household }: { household: OverviewHousehold }) => {
   const { activeOrganizationId, can, session, timezone } = household;
   const today = householdToday(timezone);
@@ -935,8 +903,6 @@ const Overview = ({ household }: { household: OverviewHousehold }) => {
           </PageTitle>
         </PageHeading>
       </PageHeader>
-
-      <InvitationNotice />
 
       {accounts.isPending ? (
         <section

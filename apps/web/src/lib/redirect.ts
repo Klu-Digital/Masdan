@@ -13,7 +13,6 @@ const AUTH_ENTRY_PATHS = new Set([
   "/login",
   "/reset-password",
   "/signup",
-  "/verify-email",
 ]);
 
 /**
@@ -63,3 +62,17 @@ export const redirectSearch = (
 ) => ({
   redirect: asOptionalString(search.redirect),
 });
+
+/**
+ * The invite link a signed-out visitor was bounced from, so sign-up can present
+ * it: with sign-up closed, a pending invitation is what lets the account in.
+ */
+export const invitationFromRedirect = (
+  redirectTo: string,
+  origin: string
+): string | undefined => {
+  const url = new URL(redirectTo, origin);
+  return url.pathname === "/accept-invite"
+    ? (url.searchParams.get("invitation") ?? undefined)
+    : undefined;
+};

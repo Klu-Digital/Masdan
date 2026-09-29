@@ -1,3 +1,4 @@
+import { auth } from "@masdan/auth";
 import { user } from "@masdan/db/schema/index";
 import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
 import { call } from "@orpc/server";
@@ -63,5 +64,54 @@ describe("admin.users.detail", () => {
     expect(result.user).toBeNull();
     expect(result.memberships).toEqual([]);
     expect(result.sessions).toEqual([]);
+  });
+});
+
+describe("admin.users.issuePasswordReset", () => {
+  it("returns a one-time web link that resets the target's password", async () => {
+    const admin = await signUpTestUser();
+    await grantPlatformAdmin(admin.user.id);
+    const target = await signUpTestUser();
+
+    const { url, expiresAt } = await call(
+      appRouter.admin.users.issuePasswordReset,
+      { userId: target.user.id },
+      { context: await contextFor(admin.headers) }
+    );
+
+    const token = new URL(url).searchParams.get("token") ?? "";
+    expect(new URL(url).pathname).toBe("/reset-password");
+    expect(expiresAt.getTime()).toBeGreaterThan(Date.now());
+    await auth.api.resetPassword({
+      body: { newPassword: "handed-over-pw-1", token },
+    });
+    expect(await getSessionFor(target.headers)).toBeNull();
+    await expect(
+      auth.api.signInEmail({
+        body: { email: target.user.email, password: "handed-over-pw-1" },
+      })
+    ).resolves.toMatchObject({ user: { id: target.user.id } });
+  });
+
+  it("is forbidden to a non-admin and NOT_FOUND for an unknown user", async () => {
+    const ordinary = await signUpTestUser();
+    const target = await signUpTestUser();
+    const admin = await signUpTestUser();
+    await grantPlatformAdmin(admin.user.id);
+
+    await expect(
+      call(
+        appRouter.admin.users.issuePasswordReset,
+        { userId: target.user.id },
+        { context: await contextFor(ordinary.headers) }
+      )
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      call(
+        appRouter.admin.users.issuePasswordReset,
+        { userId: crypto.randomUUID() },
+        { context: await contextFor(admin.headers) }
+      )
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 });

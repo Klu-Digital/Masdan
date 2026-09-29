@@ -42,7 +42,7 @@ const RouteComponent = () => {
   if (sent) {
     return (
       <AuthShell
-        description="If an account exists for that address, a reset link is on its way. The link expires in one hour."
+        description="If an account exists for that address, a reset link was written to the server's output for whoever runs this Masdan. It expires in one hour."
         footer={
           <Link
             className="text-brand-text font-medium underline-offset-4 hover:underline"
@@ -51,7 +51,7 @@ const RouteComponent = () => {
             Back to sign in
           </Link>
         }
-        title="Check your email"
+        title="Reset link requested"
       >
         <Button
           className="w-full"
@@ -67,7 +67,7 @@ const RouteComponent = () => {
 
   return (
     <AuthShell
-      description="We'll email you a link to set a new one."
+      description="Masdan doesn't send email. Ask whoever runs your Masdan to reset it from the admin panel, or request a link below and they'll find it in the server's output."
       footer={
         <Link
           className="text-brand-text font-medium underline-offset-4 hover:underline"
@@ -123,7 +123,7 @@ const RouteComponent = () => {
               loading={isSubmitting}
               type="submit"
             >
-              Send reset link
+              Request reset link
             </Button>
           )}
         </form.Subscribe>

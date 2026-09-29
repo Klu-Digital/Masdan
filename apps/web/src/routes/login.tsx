@@ -43,7 +43,7 @@ const RouteComponent = () => {
 export const Route = createFileRoute("/login")({
   /**
    * The "already signed in" bounce belongs to this route and `/signup` only.
-   * `/reset-password`, `/verify-email` and `/accept-invite` carry a token an
+   * `/reset-password` and `/accept-invite` carry a token an
    * authenticated visitor may act on, so a shared guard would drop an invite on
    * the floor.
    */

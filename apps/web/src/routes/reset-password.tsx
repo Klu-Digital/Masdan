@@ -146,12 +146,11 @@ const ResetForm = ({ token }: { token: string }) => {
 const RouteComponent = () => {
   const { token } = routeApi.useSearch();
 
-  // better-auth validates the token server-side first; an expired one arrives
-  // as `?error=` with no token.
+  // Links point straight here; an expired token only fails on submit.
   if (!token) {
     return (
       <AuthShell
-        description="This reset link is invalid or has expired. Reset links can only be used once."
+        description="This reset link is invalid or has expired, and each one works once. Ask whoever runs your Masdan for a new one."
         footer={
           <Link
             className="text-brand-text font-medium underline-offset-4 hover:underline"

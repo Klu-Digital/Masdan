@@ -224,8 +224,8 @@ const PendingInvitations = ({
         ))}
       </List>
       <ListSectionFooter>
-        They’ll see the invitation when they sign in with that email. The link
-        is a fallback.
+        Masdan sends no email: copy the invite link and send it yourself. Anyone
+        holding it can join with that role until it expires or you cancel it.
       </ListSectionFooter>
     </ListSection>
   );
@@ -243,14 +243,18 @@ const InviteForm = ({ organizationId }: { organizationId: string }) => {
       });
       if (error) {
         toastManager.add({
-          title: error.message ?? "Could not send the invitation",
+          title: error.message ?? "Could not create the invitation",
           type: "error",
         });
         return;
       }
       await invalidateOrganizations(queryClient);
       form.reset();
-      toastManager.add({ title: `Invited ${value.email}`, type: "success" });
+      toastManager.add({
+        description: "Copy its link from Pending invitations and send it.",
+        title: `Invitation created for ${value.email}`,
+        type: "success",
+      });
     },
     validators: {
       onSubmit: z.object({

@@ -1,7 +1,4 @@
-import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { Avatar, AvatarFallback } from "@masdan/ui/components/avatar";
-import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
 import { Input } from "@masdan/ui/components/input";
@@ -11,7 +8,6 @@ import {
   ListItemContent,
   ListItemDescription,
   ListItemTitle,
-  ListItemTrailing,
   ListSection,
   ListSectionFooter,
   ListSectionHeader,
@@ -19,7 +15,7 @@ import {
 import { Tabs, TabsList, TabsTab } from "@masdan/ui/components/tabs";
 import { toastManager } from "@masdan/ui/components/toast";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, getRouteApi } from "@tanstack/react-router";
 import { z } from "zod";
 
@@ -62,28 +58,6 @@ const ProfileSettings = () => {
           .trim()
           .min(MIN_NAME_LENGTH, `Use at least ${MIN_NAME_LENGTH} characters`),
       }),
-    },
-  });
-
-  const resendVerification = useMutation({
-    mutationFn: async () => {
-      const { error } = await authClient.sendVerificationEmail({
-        callbackURL: "/verify-email",
-        email: session.user.email,
-      });
-      if (error) {
-        throw new Error(error.message ?? "Could not send the email");
-      }
-    },
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
-    onSuccess: () => {
-      toastManager.add({
-        description: `Check ${session.user.email}.`,
-        title: "Verification email sent",
-        type: "success",
-      });
     },
   });
 
@@ -165,27 +139,8 @@ const ProfileSettings = () => {
           <ListItem>
             <ListItemContent>
               <ListItemTitle>{session.user.email}</ListItemTitle>
-              <ListItemDescription>
-                Used to sign in and to receive household invitations.
-              </ListItemDescription>
+              <ListItemDescription>Used to sign in.</ListItemDescription>
             </ListItemContent>
-            <ListItemTrailing>
-              {session.user.emailVerified ? (
-                <Badge size="lg" variant="success">
-                  <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} />
-                  Verified
-                </Badge>
-              ) : (
-                <Button
-                  loading={resendVerification.isPending}
-                  onClick={() => resendVerification.mutate()}
-                  size="sm"
-                  variant="tinted"
-                >
-                  Verify email
-                </Button>
-              )}
-            </ListItemTrailing>
           </ListItem>
         </List>
       </ListSection>

@@ -399,6 +399,21 @@ Things to know:
 
 Full guide, including the ownership (`:any`) convention and how to add a resource: [`packages/auth/README.md`](packages/auth/README.md).
 
+## Accounts, recovery and invitations
+
+Masdan is self-hosted and **sends no email**. Recovery is admin-driven, with shell access to the server as the root of trust.
+
+- **Sign-up is closed by default.** The first account on an empty database bootstraps the instance and becomes platform admin (`user.role = "admin"`). After that, only someone holding a household invite link can create an account. Set `ALLOW_SIGNUP=true` to open it.
+- **Invitations are links.** An invitation's email is only a label. The inviter copies the link from household settings and sends it themselves, and whoever holds it can join with the invited role until it expires or is cancelled. Accepting goes through `invitations.accept`; better-auth's email-matched invitation endpoints are blocked.
+- **A platform admin resets passwords** from `/admin/users/<id>` → Password. That creates a one-time link, valid for 24 hours, which the admin hands over out of band. Completing it signs the user out everywhere.
+- **A locked-out lone admin uses the CLI:** `pnpm admin:reset-password <email>` prompts for a new password (empty generates one) and revokes the account's sessions. The server image has no pnpm, so inside the container run `cd /app/packages/db && ./node_modules/.bin/tsx src/dev-scripts/reset-password/cli.ts <email>`. `pnpm admin:grant <email>` makes an existing account platform admin the same way.
+- **Forgot password** still works as a fallback for whoever runs the server: the reset link is written to the server's raw stdout (`docker logs`), never to the structured logger.
+
+Things that bite:
+
+- **A reset link must never reach `log`.** Structured logs drain to PostHog when `POSTHOG_PROJECT_API_KEY` is set, so a logged link is an account takeover handed to a third party. Delivery goes through `deliver()` in `packages/auth/src/deliver.ts`, the one place optional SMTP would slot in. Links point straight at the web page, because better-auth's own `/api/auth/reset-password/<token>` redirect puts the token in a path the request logger records.
+- **The sign-up gate only guards HTTP.** Server-side `auth.api.signUpEmail` calls (the seeder, `signUpTestUser`) carry no request and bypass it, and so never mint a bootstrap admin.
+
 ## Data export
 
 Households can download their records as CSV from **Settings → Household → Export data**: transactions, splits, transaction tags, transfers, accounts, balance history, credit-card statements, categories and tags. Each file comes from its own `exports.*` procedure, is generated synchronously from Postgres, and covers only the active household.
@@ -486,6 +501,8 @@ masdan/
 - `pnpm run db:post-migrate:new "<description>"`: Scaffold a new post-migration script
 - `pnpm run db:purge -- --yes`: **Destructive.** Drop every table and row for a clean local reset (see [`packages/db/src/dev-scripts/purge/README.md`](packages/db/src/dev-scripts/purge/README.md))
 - `pnpm run db:studio`: Open database studio UI
+- `pnpm run admin:grant <email>`: Make an existing account platform admin
+- `pnpm run admin:reset-password <email>`: Set a new password and revoke the account's sessions (see [Accounts, recovery and invitations](#accounts-recovery-and-invitations))
 - `pnpm run redis:start`: Start the local Redis container in the background
 - `pnpm run redis:watch`: Start the local Redis container attached, streaming logs
 - `pnpm run redis:stop`: Stop the local Redis container

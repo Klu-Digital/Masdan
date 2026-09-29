@@ -7,16 +7,29 @@ import {
 
 import AuthShell from "@/components/auth-shell";
 import SignUpForm from "@/components/sign-up-form";
-import { redirectSearch, safeRedirect } from "@/lib/redirect";
+import {
+  invitationFromRedirect,
+  redirectSearch,
+  safeRedirect,
+} from "@/lib/redirect";
 
 const routeApi = getRouteApi("/signup");
 
 const RouteComponent = () => {
   const { redirect: requested } = routeApi.useSearch();
+  const redirectTo = safeRedirect(requested, window.location.origin);
+  const invitationId = invitationFromRedirect(
+    redirectTo,
+    window.location.origin
+  );
 
   return (
     <AuthShell
-      description="No credit card required."
+      description={
+        invitationId
+          ? "Create an account to accept your household invitation."
+          : "Joining a household? Open the invite link you were sent."
+      }
       footer={
         <>
           Already have an account?{" "}
@@ -31,9 +44,7 @@ const RouteComponent = () => {
       }
       title="Create your account"
     >
-      <SignUpForm
-        redirectTo={safeRedirect(requested, window.location.origin)}
-      />
+      <SignUpForm invitationId={invitationId} redirectTo={redirectTo} />
     </AuthShell>
   );
 };

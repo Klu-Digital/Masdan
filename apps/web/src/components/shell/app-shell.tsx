@@ -1,6 +1,5 @@
 import {
   Logout02Icon,
-  Mail01Icon,
   MoreHorizontalCircle01Icon,
   PlusSignIcon,
   Search01Icon,
@@ -44,7 +43,6 @@ import {
   ListItemTrailing,
 } from "@masdan/ui/components/list";
 import { Tabs, TabsList, TabsTab } from "@masdan/ui/components/tabs";
-import { useQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -54,7 +52,6 @@ import AppBreadcrumbs from "@/components/app-breadcrumbs";
 import { PrivacyToggle } from "@/components/privacy-toggle";
 import { useTheme } from "@/components/theme-provider";
 import { useHousehold } from "@/hooks/use-household";
-import { userInvitationsQueryOptions } from "@/lib/organization";
 import { RemindersMenu } from "@/modules/reminders/components/reminders-menu";
 
 import { HouseholdSwitcher } from "./household-switcher";
@@ -62,30 +59,18 @@ import { ADMIN_NAV, ORGANIZE_NAV, PRIMARY_NAV } from "./navigation";
 import { NewMenu } from "./new-menu";
 import { UserMenu, useSignOut } from "./user-menu";
 
-const usePendingInvitations = (): number => {
-  const invitations = useQuery(userInvitationsQueryOptions());
-  return (
-    invitations.data?.filter((invitation) => !invitation.expired).length ?? 0
-  );
-};
-
 const Sidebar = ({
   activeOrganizationId,
   isPlatformAdmin,
-  pendingInvitations,
 }: {
   activeOrganizationId: string | null;
   isPlatformAdmin: boolean;
-  pendingInvitations: number;
 }) => {
   const { collapsed } = useAppFrame();
   return (
     <AppSidebar aria-label="Main">
       <AppSidebarHeader>
-        <HouseholdSwitcher
-          activeOrganizationId={activeOrganizationId}
-          pendingInvitations={pendingInvitations}
-        />
+        <HouseholdSwitcher activeOrganizationId={activeOrganizationId} />
         {activeOrganizationId ? (
           <NewMenu
             trigger={
@@ -141,14 +126,6 @@ const Sidebar = ({
       </AppSidebarContent>
       <AppSidebarFooter>
         <AppNavSection>
-          {pendingInvitations > 0 ? (
-            <AppNavItem
-              badge={pendingInvitations}
-              icon={Mail01Icon}
-              label="Invitations"
-              render={<Link to="/invitations" />}
-            />
-          ) : null}
           <AppNavItem
             icon={Settings02Icon}
             label="Settings"
@@ -228,13 +205,11 @@ const AppearancePicker = () => {
 };
 
 const MoreRow = ({
-  badge,
   children,
   icon,
 }: {
-  badge?: number;
   children: ReactNode;
-  icon: typeof Mail01Icon;
+  icon: typeof Settings02Icon;
 }) => (
   <>
     <ListItemLeading>
@@ -245,13 +220,7 @@ const MoreRow = ({
     <ListItemContent>
       <ListItemTitle>{children}</ListItemTitle>
     </ListItemContent>
-    <ListItemTrailing chevron>
-      {badge ? (
-        <span className="bg-brand text-brand-foreground text-2xs rounded-full px-1.5 font-semibold tracking-normal tabular-nums">
-          {badge}
-        </span>
-      ) : null}
-    </ListItemTrailing>
+    <ListItemTrailing chevron />
   </>
 );
 
@@ -261,13 +230,11 @@ const MoreSheet = ({
   isPlatformAdmin,
   onOpenChange,
   open,
-  pendingInvitations,
 }: {
   activeOrganizationId: string | null;
   isPlatformAdmin: boolean;
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  pendingInvitations: number;
 }) => {
   const signOut = useSignOut();
   return (
@@ -281,7 +248,6 @@ const MoreSheet = ({
             <div className="bg-card dark:ring-hairline rounded-2xl p-1.5 dark:ring-1">
               <HouseholdSwitcher
                 activeOrganizationId={activeOrganizationId}
-                pendingInvitations={pendingInvitations}
                 placement="sheet"
               />
             </div>
@@ -296,15 +262,6 @@ const MoreSheet = ({
                   <MoreRow icon={item.icon}>{item.label}</MoreRow>
                 </ListItem>
               ))}
-              <ListItem
-                render={
-                  <Link onClick={() => onOpenChange(false)} to="/invitations" />
-                }
-              >
-                <MoreRow badge={pendingInvitations} icon={Mail01Icon}>
-                  Invitations
-                </MoreRow>
-              </ListItem>
             </List>
             <List>
               <ListItem
@@ -429,7 +386,6 @@ export const AppShell = ({
   children: ReactNode;
   isPlatformAdmin: boolean;
 }) => {
-  const pendingInvitations = usePendingInvitations();
   const [moreOpen, setMoreOpen] = useState(false);
 
   return (
@@ -443,7 +399,6 @@ export const AppShell = ({
       <Sidebar
         activeOrganizationId={activeOrganizationId}
         isPlatformAdmin={isPlatformAdmin}
-        pendingInvitations={pendingInvitations}
       />
       <AppMain>
         {banner}
@@ -462,7 +417,6 @@ export const AppShell = ({
         isPlatformAdmin={isPlatformAdmin}
         onOpenChange={setMoreOpen}
         open={moreOpen}
-        pendingInvitations={pendingInvitations}
       />
     </AppFrame>
   );

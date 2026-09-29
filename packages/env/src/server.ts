@@ -10,6 +10,8 @@ export const env = createEnv({
   server: {
     ...sharedServerVariables,
     ...integrationVariables,
+    /** Open self-service sign-up. Off: only the first account and invite-link holders. */
+    ALLOW_SIGNUP: z.stringbool().default(false),
     /** better-auth defaults its rate limiter to production-only. */
     AUTH_RATE_LIMIT_ENABLED: z.stringbool().optional(),
     AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),

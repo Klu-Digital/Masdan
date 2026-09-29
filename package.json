@@ -38,6 +38,7 @@
     "db:purge": "vp run --filter @masdan/db purge",
     "db:reset": "pnpm run db:purge --yes && pnpm run db:push && pnpm run db:post-migrate && pnpm run db:seed",
     "admin:grant": "vp run --filter @masdan/db grant-admin",
+    "admin:reset-password": "vp run --filter @masdan/db reset-password",
     "queue:migrate": "vp run --filter @masdan/queue queue:migrate",
     "db:seed": "vp run --filter @masdan/db seed",
     "db:start": "docker compose up -d postgres",
