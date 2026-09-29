@@ -19,16 +19,16 @@
     "@masdan/db": "workspace:*",
     "@masdan/env": "workspace:*",
     "@masdan/queue": "workspace:*",
-    "drizzle-orm": "catalog:",
     "ioredis": "catalog:",
-    "pg": "^8.22.0",
+    "pg": "catalog:",
     "pg-boss": "catalog:"
   },
   "devDependencies": {
     "@masdan/config": "workspace:*",
     "@testcontainers/postgresql": "^12.1.0",
     "@types/pg": "^8.20.0",
-    "typescript": "^6.0.3",
-    "vite-plus": "0.3.0"
+    "testcontainers": "^12.1.0",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

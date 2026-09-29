@@ -19,12 +19,12 @@
     "@masdan/observability": "workspace:*",
     "@masdan/redis": "workspace:*",
     "better-auth": "catalog:",
-    "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@masdan/config": "workspace:*",
-    "typescript": "^6.0.3"
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

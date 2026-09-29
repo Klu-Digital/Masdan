@@ -14,8 +14,6 @@
   "dependencies": {
     "@hono/node-server": "^2.0.12",
     "@hono/prometheus": "catalog:",
-    "dotenv": "catalog:",
-    "evlog": "catalog:",
     "hono": "catalog:",
     "prom-client": "catalog:",
     "zod": "catalog:"
@@ -31,8 +29,9 @@
     "@masdan/testing": "workspace:*",
     "@types/node": "catalog:",
     "drizzle-orm": "catalog:",
-    "tsdown": "^0.22.14",
-    "tsx": "^4.23.1",
-    "typescript": "^6.0.3"
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

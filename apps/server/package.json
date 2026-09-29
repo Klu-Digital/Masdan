@@ -20,8 +20,6 @@
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
-    "better-auth": "catalog:",
-    "dotenv": "catalog:",
     "evlog": "catalog:",
     "hono": "catalog:",
     "prom-client": "catalog:",
@@ -39,8 +37,9 @@
     "@masdan/testing": "workspace:*",
     "@orpc/client": "catalog:",
     "@types/node": "catalog:",
-    "tsdown": "^0.22.14",
-    "tsx": "^4.23.1",
-    "typescript": "^6.0.3"
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

@@ -21,11 +21,7 @@
     "@masdan/queue": "workspace:*",
     "@masdan/redis": "workspace:*",
     "@masdan/storage": "workspace:*",
-    "@orpc/client": "catalog:",
-    "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
-    "@orpc/zod": "catalog:",
-    "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
     "openai": "^7.23.0",
     "zod": "catalog:"
@@ -33,6 +29,7 @@
   "devDependencies": {
     "@masdan/config": "workspace:*",
     "hono": "catalog:",
-    "typescript": "^6.0.3"
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

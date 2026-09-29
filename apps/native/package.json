@@ -25,7 +25,6 @@
     "@tanstack/react-form": "catalog:",
     "@tanstack/react-query": "catalog:",
     "better-auth": "catalog:",
-    "dotenv": "catalog:",
     "expo": "~57.0.15",
     "expo-constants": "~57.0.13",
     "expo-font": "~57.0.1",
@@ -60,6 +59,6 @@
     "@masdan/config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "~19.2.18",
-    "typescript": "~6.0.3"
+    "typescript": "catalog:"
   }
 }

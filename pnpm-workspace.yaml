@@ -4,6 +4,14 @@ packages:
 overrides:
   vite: npm:@voidzero-dev/vite-plus-core@0.3.0
   vitest: 4.1.11
+# Phantom imports must fail: nothing is hoisted into a package's reach. Private
+# hoisting stays on because expo/react-native type resolution relies on it.
+publicHoistPattern: []
+strictPeerDependencies: true
+# `vite` is aliased to vite-plus-core (0.3.0), which no upstream peer range accepts.
+peerDependencyRules:
+  allowAny:
+    - vite
 allowBuilds:
   esbuild: true
   sharp: true
@@ -23,7 +31,6 @@ catalog:
   "@hugeicons/react": ^1.1.10
   "@hugeicons/core-free-icons": ^4.3.3
   next-themes: ^0.4.6
-  sonner: ^2.0.7
   "@orpc/tanstack-query": ^1.14.12
   "@orpc/client": ^1.14.12
   "@tanstack/react-query": ^5.101.4
@@ -38,3 +45,11 @@ catalog:
   "@aws-sdk/s3-request-presigner": ^3.1125.0
   pg-boss: ^12.30.0
   ioredis: ^5.11.1
+  typescript: ^6.0.3
+  pg: ^8.22.0
+  tsx: ^4.23.1
+  tsdown: ^0.22.14
+  react: ^19.2.8
+  react-dom: ^19.2.8
+  "@types/react": ^19.2.17
+  vite-plus: 0.3.0

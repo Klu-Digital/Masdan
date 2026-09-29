@@ -20,18 +20,16 @@
     "@masdan/storage": "workspace:*",
     "@masdan/ui": "workspace:*",
     "@orpc/client": "catalog:",
-    "@orpc/server": "catalog:",
     "@orpc/tanstack-query": "catalog:",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-form": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "^1.170.18",
     "better-auth": "catalog:",
-    "dotenv": "catalog:",
     "frimousse": "^0.3.0",
     "next-themes": "catalog:",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -39,13 +37,16 @@
     "@tanstack/react-query-devtools": "^5.101.4",
     "@tanstack/react-router-devtools": "^1.167.0",
     "@tanstack/router-plugin": "^1.168.23",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/node": "catalog:",
-    "@types/react": "^19.2.17",
+    "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "^6.0.4",
-    "postcss": "^8.5.24",
     "tailwindcss": "catalog:",
-    "typescript": "^6.0.3",
-    "vite": "^8.1.5"
+    "typescript": "catalog:",
+    "vite": "^8.1.5",
+    "vite-plus": "catalog:"
   }
 }

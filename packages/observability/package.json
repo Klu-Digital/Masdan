@@ -20,6 +20,6 @@
     "@masdan/config": "workspace:*",
     "@orpc/server": "catalog:",
     "hono": "catalog:",
-    "typescript": "^6.0.3"
+    "typescript": "catalog:"
   }
 }

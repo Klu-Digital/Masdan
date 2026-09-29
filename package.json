@@ -2,16 +2,13 @@
   "name": "masdan",
   "private": true,
   "license": "MIT",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "type": "module",
   "scripts": {
     "dev": "pnpm dev:infra && mprocs",
     "build": "vp run -r build",
     "check-types": "vp run -r --parallel check-types && tsc --noEmit -p scripts/tsconfig.json",
     "check": "ultracite check",
+    "knip": "knip --dependencies",
     "fix": "ultracite fix",
     "lint": "vp lint",
     "format": "vp fmt",
@@ -59,34 +56,21 @@
     "test:web": "vp test run --project web",
     "test:watch": "vp test watch"
   },
-  "dependencies": {
-    "@masdan/env": "workspace:*",
-    "dotenv": "catalog:",
-    "zod": "catalog:"
-  },
   "devDependencies": {
     "@masdan/config": "workspace:*",
     "@masdan/testing": "workspace:*",
     "@shadcn/lint": "^0.1.0",
-    "@testcontainers/postgresql": "^12.1.0",
-    "@testing-library/jest-dom": "^7.0.1",
-    "@testing-library/react": "^16.3.3",
-    "@testing-library/user-event": "^14.6.7",
     "@types/node": "catalog:",
     "jsdom": "^30.0.1",
+    "knip": "^6.38.0",
     "lefthook": "^2.1.12",
     "mprocs": "^0.9.6",
     "oxfmt": "^0.65.0",
     "oxlint": "^1.80.0",
     "rolldown": "1.2.6",
-    "testcontainers": "^12.1.0",
-    "typescript": "^6.0.3",
+    "typescript": "catalog:",
     "ultracite": "^7.11.0",
-    "vite-plus": "0.3.0"
-  },
-  "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0",
-    "vitest": "4.1.11"
+    "vite-plus": "catalog:"
   },
   "packageManager": "pnpm@10.33.2"
 }

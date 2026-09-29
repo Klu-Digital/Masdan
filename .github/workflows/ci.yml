@@ -57,6 +57,16 @@ jobs:
       # covers apps/native too, which has no other job.
       - run: pnpm check-types
 
+  deps:
+    name: Dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-workspace
+      # Unused, unlisted and unresolved dependencies only; dead exports are #66's.
+      - run: pnpm knip
+
   test-unit:
     name: Unit & web tests
     runs-on: ubuntu-latest
