@@ -17,7 +17,7 @@ export const monthStartOf = (month: string): string => `${month}-01`;
 
 const ZERO = "0.000000";
 
-export interface BudgetLine {
+interface BudgetLine {
   budget: {
     amount: string;
     currencyCode: string;
@@ -44,7 +44,7 @@ export interface BudgetLine {
   status: BudgetStatus;
 }
 
-export interface BudgetTotals {
+interface BudgetTotals {
   budgeted: string;
   budgetedCount: number;
   currencyCode: string;

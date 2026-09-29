@@ -25,7 +25,7 @@ import type { IconSvgElement } from "@hugeicons/react";
 
 import type { FileRoutesByTo } from "@/routeTree.gen";
 
-export type NavPath = keyof FileRoutesByTo;
+type NavPath = keyof FileRoutesByTo;
 
 export interface NavDestination {
   icon: IconSvgElement;

@@ -9,7 +9,22 @@
     },
     "apps/web": {
       "entry": ["src/**/*.test.{ts,tsx}"],
-      "ignoreDependencies": ["tailwindcss"]
+      "ignoreDependencies": ["tailwindcss"],
+      "ignoreIssues": {
+        "src/routes/**": ["exports"]
+      }
+    },
+    "packages/api": {
+      "includeEntryExports": true
+    },
+    "packages/auth": {
+      "includeEntryExports": true
+    },
+    "packages/queue": {
+      "includeEntryExports": true
+    },
+    "packages/storage": {
+      "includeEntryExports": true
     },
     "packages/db": {
       "ignoreDependencies": ["fishery"]

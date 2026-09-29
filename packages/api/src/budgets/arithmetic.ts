@@ -1,6 +1,6 @@
 import { fixedAmountText, signedScaledAmount } from "../shared/money";
 
-export const BUDGET_STATUSES = ["unbudgeted", "within", "overspent"] as const;
+const BUDGET_STATUSES = ["unbudgeted", "within", "overspent"] as const;
 export type BudgetStatus = (typeof BUDGET_STATUSES)[number];
 
 const PERCENT = 100n;

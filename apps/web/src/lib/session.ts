@@ -3,9 +3,7 @@ import { queryOptions } from "@tanstack/react-query";
 
 import { authClient } from "@/lib/auth-client";
 
-export type Session = typeof authClient.$Infer.Session;
-
-export const sessionQueryKey = ["session"] as const;
+const sessionQueryKey = ["session"] as const;
 
 /**
  * The one session read in the app: resolved once by the root route into router

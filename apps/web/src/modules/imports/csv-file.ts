@@ -7,7 +7,7 @@ import {
 import type { CsvDelimiter, CsvRecord } from "@masdan/api/imports/csv";
 import { splitHeader } from "@masdan/api/imports/mapping";
 
-export const SAMPLE_RECORDS = 50;
+const SAMPLE_RECORDS = 50;
 const CSV_EXTENSION = /\.(?:csv|txt)$/iu;
 
 export interface LocalCsv {

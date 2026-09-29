@@ -53,7 +53,7 @@ export interface QuickEntryAccount {
   name: string;
 }
 
-export interface QuickEntryCategory {
+interface QuickEntryCategory {
   id: string;
   name: string;
   type: QuickEntryKind;
@@ -95,7 +95,7 @@ export interface QuickEntryIssue {
   reason: "ambiguous" | "conflict" | "invalid" | "missing";
 }
 
-export interface QuickEntryPrefill {
+interface QuickEntryPrefill {
   accountId: string | null;
   amount: string | null;
   categoryId: string | null;

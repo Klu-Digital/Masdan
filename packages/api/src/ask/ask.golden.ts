@@ -10,7 +10,7 @@ import type { AskExtraction, AskHousehold, AskQuery } from "./ask.plan";
 const id = (n: number): string =>
   `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
-export const GOLDEN_IDS = {
+const GOLDEN_IDS = {
   bpiSavings: id(1),
   food: id(101),
   freelance: id(111),

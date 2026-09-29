@@ -5,7 +5,7 @@ import { RPCLink } from "@orpc/client/fetch";
 
 import { getServerUrl } from "@/lib/server-url";
 
-export const link = new RPCLink({
+const link = new RPCLink({
   fetch(url, options) {
     return fetch(url, {
       ...options,

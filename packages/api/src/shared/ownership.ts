@@ -14,7 +14,7 @@ export interface OwnedKey {
 }
 
 /** The row, only if it is this household's: a foreign id matches nothing. */
-export const ownedRow = (table: OwnedTable, key: OwnedKey) =>
+const ownedRow = (table: OwnedTable, key: OwnedKey) =>
   and(eq(table.id, key.id), eq(table.organizationId, key.organizationId));
 
 const selectOwned = (db: Database, table: OwnedTable, key: OwnedKey) =>

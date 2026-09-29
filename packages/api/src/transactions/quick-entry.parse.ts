@@ -27,7 +27,7 @@ export const quickEntryText = z
   .min(1)
   .max(QUICK_ENTRY_MAX_LENGTH);
 
-export type QuickEntryAiStatus = "failed" | "ok" | "unavailable";
+type QuickEntryAiStatus = "failed" | "ok" | "unavailable";
 
 export interface QuickEntryParse extends QuickEntryResult {
   ai: QuickEntryAiStatus;

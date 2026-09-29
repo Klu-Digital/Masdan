@@ -1,7 +1,7 @@
 import { daysBetween } from "../reports/periods";
 import { FEED_SOURCE } from "./feed";
 
-export const FX_STALE_AFTER_DAYS = 7;
+const FX_STALE_AFTER_DAYS = 7;
 const RATE_SCALE = 12;
 
 export interface RateRow {

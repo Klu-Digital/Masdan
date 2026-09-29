@@ -11,18 +11,18 @@ import { z } from "zod";
 
 /** Descriptions per model call; the prompt and the reply both stay small. */
 export const SUGGESTION_BATCH_SIZE = 40;
-export const SUGGESTION_TEXT_MAX_LENGTH = 200;
+const SUGGESTION_TEXT_MAX_LENGTH = 200;
 export const SUGGESTION_MAX_TAGS = 3;
 
 export type SuggestionKind = "expense" | "income";
 
-export interface SuggestionCategory {
+interface SuggestionCategory {
   id: string;
   name: string;
   type: SuggestionKind;
 }
 
-export interface SuggestionTag {
+interface SuggestionTag {
   id: string;
   name: string;
 }

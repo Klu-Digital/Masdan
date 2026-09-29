@@ -19,7 +19,7 @@ export const OPENING_BALANCE_MODES = ["reject", "rebase", "include"] as const;
 export type OpeningBalanceMode = (typeof OPENING_BALANCE_MODES)[number];
 
 export const MAX_IMPORT_ROWS = 10_000;
-export const MAX_IMPORT_COLUMNS = 200;
+const MAX_IMPORT_COLUMNS = 200;
 const MAX_NOTES_LENGTH = 2000;
 const MAX_WHOLE_DIGITS = 18;
 
@@ -29,7 +29,7 @@ const columnIndex = z
   .min(0)
   .max(MAX_IMPORT_COLUMNS - 1);
 
-export const importAmountMappingSchema = z.discriminatedUnion("kind", [
+const importAmountMappingSchema = z.discriminatedUnion("kind", [
   z
     .object({
       column: columnIndex,
@@ -63,7 +63,7 @@ export const importMappingSchema = z
 
 export type ImportMapping = z.infer<typeof importMappingSchema>;
 
-export interface ImportRowError {
+interface ImportRowError {
   field: string;
   message: string;
 }
@@ -81,7 +81,7 @@ export interface NormalizedImportRow {
   type: ImportDirection | null;
 }
 
-export const columnLabel = (headers: string[], index: number): string => {
+const columnLabel = (headers: string[], index: number): string => {
   const header = headers[index]?.trim();
   return header || `Column ${index + 1}`;
 };

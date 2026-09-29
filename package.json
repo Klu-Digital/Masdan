@@ -8,7 +8,7 @@
     "build": "vp run -r build",
     "check-types": "vp run -r --parallel check-types && tsc --noEmit -p scripts/tsconfig.json",
     "check": "ultracite check",
-    "knip": "knip --dependencies",
+    "knip": "knip --dependencies --exports",
     "fix": "ultracite fix",
     "lint": "vp lint",
     "format": "vp fmt",

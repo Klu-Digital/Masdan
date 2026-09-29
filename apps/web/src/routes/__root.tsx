@@ -16,7 +16,7 @@ import type { orpc } from "@/utils/orpc";
 
 import "../index.css";
 
-export interface RouterAppContext {
+interface RouterAppContext {
   orpc: typeof orpc;
   queryClient: QueryClient;
 }

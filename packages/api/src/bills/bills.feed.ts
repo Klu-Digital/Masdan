@@ -17,7 +17,7 @@ import type { CalendarEvent } from "./ical";
 
 /** 256 random bits, base64url: unguessable, and the whole secret is the URL. */
 const TOKEN_BYTES = 32;
-export const FEED_TOKEN_PATTERN = /^[\w-]{43}$/u;
+const FEED_TOKEN_PATTERN = /^[\w-]{43}$/u;
 
 /** The feed reaches this far back and ahead of the household's today. */
 const FEED_MONTHS_BACK = 3;
@@ -47,7 +47,7 @@ const STATUS_LABELS: Record<Bill["status"], string> = {
  * shares it with whoever the subscriber shares the calendar with, so amounts,
  * balances and account details stay out.
  */
-export const feedEvents = (bills: readonly Bill[]): CalendarEvent[] =>
+const feedEvents = (bills: readonly Bill[]): CalendarEvent[] =>
   bills.map((bill) => ({
     date: bill.dueDate,
     description: `${STATUS_LABELS[bill.status]}. Open Masdan for the amount.`,

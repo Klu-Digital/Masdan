@@ -18,10 +18,10 @@ import type { QuickEntryAccount } from "../transactions/quick-entry";
 export const ASK_QUESTION_MAX_LENGTH = 300;
 
 /** Largest-transaction answers list at most this many rows. */
-export const ASK_MAX_RECORDS = 10;
+const ASK_MAX_RECORDS = 10;
 const DEFAULT_RECORDS = 5;
 
-export const ASK_INTENTS = [
+const ASK_INTENTS = [
   "spending",
   "income",
   "cash_flow",
@@ -31,11 +31,11 @@ export const ASK_INTENTS = [
   "unsupported",
 ] as const;
 
-export type AskIntent = Exclude<(typeof ASK_INTENTS)[number], "unsupported">;
+type AskIntent = Exclude<(typeof ASK_INTENTS)[number], "unsupported">;
 
 export type AskKind = "expense" | "income";
 
-export interface AskCategory {
+interface AskCategory {
   id: string;
   name: string;
   type: AskKind;
@@ -81,7 +81,7 @@ export type AskPlan =
   | { message: string; options: string[]; status: "clarify" }
   | { message: string; status: "unsupported" };
 
-export const UNSUPPORTED_MESSAGE =
+const UNSUPPORTED_MESSAGE =
   "I can answer questions about spending, income, cash flow, your largest transactions, net worth and account balances.";
 
 const SYSTEM_PROMPT = `You turn one question about a household's finances into a query for a fixed set of reports. You never answer the question yourself.

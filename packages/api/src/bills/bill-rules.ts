@@ -25,7 +25,7 @@ export type BillStatus = "expected" | "overdue" | "paid";
 export type BillSource = "schedule" | "statement" | "projected";
 
 /** Bounds a daily schedule's expansion over a long feed range. */
-export const MAX_OCCURRENCES_PER_SCHEDULE = 500;
+const MAX_OCCURRENCES_PER_SCHEDULE = 500;
 
 /** Unpaid and past its due day is overdue; the due day itself is still expected. */
 export const billStatus = (

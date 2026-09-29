@@ -156,7 +156,6 @@ export const requireFlag = (name: FeatureFlagName) =>
   });
 
 export { rateLimit } from "./rate-limit";
-export type { RateLimitOptions } from "./rate-limit";
 
 /** Context guaranteed by `orgProcedure`, and required by everything below. */
 type OrgContext = Context & { organizationId: string; memberRole: string };

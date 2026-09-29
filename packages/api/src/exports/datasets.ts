@@ -26,7 +26,7 @@ import { toCsv } from "./csv";
 // Every joined table repeats the `organization_id` filter: a join on id alone
 // would print another household's names if a foreign key ever crossed tenants.
 
-export interface CsvExport {
+interface CsvExport {
   csv: string;
   rowCount: number;
 }

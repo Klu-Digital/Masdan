@@ -5,10 +5,7 @@ import { authClient } from "@/lib/auth-client";
 import { invalidateSession } from "@/lib/session";
 import { client } from "@/utils/client";
 
-export type Organization = typeof authClient.$Infer.Organization;
-export type ActiveOrganization = typeof authClient.$Infer.ActiveOrganization;
-
-export const organizationQueryKey = ["organization"] as const;
+const organizationQueryKey = ["organization"] as const;
 
 /**
  * The active organization lives on the session row, never in the URL. It is in

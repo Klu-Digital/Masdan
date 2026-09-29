@@ -134,7 +134,7 @@ const groupBy = <T, K>(items: T[], key: (item: T) => K): Map<K, T[]> => {
  * Tags, splits and transfers for a page of rows: one query each, so a list
  * costs the same few round trips at 10 rows as at 100.
  */
-export const withDetailsList = async <T extends TransactionRow>(
+const withDetailsList = async <T extends TransactionRow>(
   db: Database,
   organizationId: string,
   rows: T[]

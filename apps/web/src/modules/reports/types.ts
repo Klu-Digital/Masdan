@@ -9,6 +9,4 @@ export type CashFlowReport = RouterOutputs["reports"]["cashFlow"];
 export type SpendingReport = RouterOutputs["reports"]["spendingByCategory"];
 export type BudgetPerformanceReport =
   RouterOutputs["reports"]["budgetPerformance"];
-export type BudgetPerformanceInput =
-  RouterInputs["reports"]["budgetPerformance"];
 export type LedgerReportInput = RouterInputs["reports"]["cashFlow"];

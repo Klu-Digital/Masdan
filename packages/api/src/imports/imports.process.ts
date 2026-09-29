@@ -46,7 +46,7 @@ import type {
 const CHUNK_SIZE = 500;
 
 /** A failure the user can act on; its message is shown as-is. */
-export class ImportFailureError extends Error {
+class ImportFailureError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "ImportFailureError";

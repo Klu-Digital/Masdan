@@ -2,7 +2,7 @@ import type { MoneySign } from "@/components/finance/money";
 
 import type { Transaction } from "./types";
 
-export type TransactionKind = "expense" | "income" | "transfer";
+type TransactionKind = "expense" | "income" | "transfer";
 
 export interface TransactionView {
   /** Neutral in the household ledger; relative to the posting's account when scoped. */

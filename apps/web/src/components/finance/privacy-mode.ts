@@ -8,7 +8,7 @@ export const PRIVACY_MASK = "****";
 const STORAGE_KEY = "masdan.privacy";
 const listeners = new Set<() => void>();
 
-export const readPrivacyMode = (): boolean => {
+const readPrivacyMode = (): boolean => {
   try {
     return window.localStorage.getItem(STORAGE_KEY) === "on";
   } catch {
@@ -27,7 +27,7 @@ const apply = (on: boolean): void => {
   }
 };
 
-export const setPrivacyMode = (on: boolean): void => {
+const setPrivacyMode = (on: boolean): void => {
   try {
     if (on) {
       window.localStorage.setItem(STORAGE_KEY, "on");

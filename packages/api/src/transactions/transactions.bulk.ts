@@ -33,7 +33,7 @@ export const bulkUpdateValues = z
   );
 
 type BulkUpdateInput = z.output<typeof bulkUpdateValues>;
-export type BulkSkipReason =
+type BulkSkipReason =
   | "not_found"
   | "transfer"
   | "archived"

@@ -9,7 +9,7 @@ import { orpc } from "@/utils/orpc";
  * `src/routes/_auth/*`. Cached for the same window the server uses; holding it
  * longer only hides the staleness.
  */
-export const useFeatureFlags = () =>
+const useFeatureFlags = () =>
   useQuery({
     ...orpc.featureFlags.all.queryOptions(),
     refetchOnWindowFocus: true,

@@ -16,9 +16,9 @@ import { signedScaledAmount } from "../shared/money";
 /** A reminder surfaces this many days before its date. */
 export const REMINDER_LEAD_DAYS = 7;
 /** A closing date stays actionable this long for the statement to be recorded. */
-export const STATEMENT_RECORD_DAYS = 10;
+const STATEMENT_RECORD_DAYS = 10;
 /** A statement dated up to this many days before the closing day still counts. */
-export const STATEMENT_EARLY_DAYS = 7;
+const STATEMENT_EARLY_DAYS = 7;
 /** An unpaid due date stops nagging this long after it passed. */
 export const PAYMENT_OVERDUE_DAYS = 30;
 /** A recorded due date this close to the card's due day replaces the projection. */

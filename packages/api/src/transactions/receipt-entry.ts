@@ -37,7 +37,7 @@ export const receiptExtraction = z.strictObject({
 });
 
 export type ReceiptExtraction = z.output<typeof receiptExtraction>;
-export type ReceiptIssue = QuickEntryIssue;
+type ReceiptIssue = QuickEntryIssue;
 export interface ReceiptEntryResult {
   input: TransactionCreateInput | null;
   issues: ReceiptIssue[];

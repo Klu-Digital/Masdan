@@ -46,7 +46,7 @@ export interface PeriodInput {
 }
 
 /** The first calendar day the household's ledger says anything about. */
-export const earliestLedgerDate = async (
+const earliestLedgerDate = async (
   db: Database,
   organizationId: string
 ): Promise<string | null> => {
@@ -136,7 +136,7 @@ const includedBalances = (db: Database, organizationId: string) =>
     .groupBy(financialAccount.id)
     .as("balances");
 
-export interface NetWorthPosition {
+interface NetWorthPosition {
   accountCount: number;
   assets: string;
   currencyCode: string;
@@ -151,7 +151,7 @@ export interface NetWorthPosition {
   unclassifiedAssets: string;
 }
 
-export interface NetWorthTypeTotal {
+interface NetWorthTypeTotal {
   accountClass: string;
   accountCount: number;
   accountType: string;
@@ -240,7 +240,7 @@ export const getNetWorth = async (
   };
 };
 
-export interface NetWorthHistoryPosition {
+interface NetWorthHistoryPosition {
   assets: string;
   currencyCode: string;
   liabilities: string;
@@ -248,7 +248,7 @@ export interface NetWorthHistoryPosition {
   netWorth: string;
 }
 
-export interface NetWorthHistoryPoint {
+interface NetWorthHistoryPoint {
   date: string;
   positions: NetWorthHistoryPosition[];
 }
@@ -260,7 +260,7 @@ export interface NetWorthHistory {
   points: NetWorthHistoryPoint[];
 }
 
-export const MAX_HISTORY_POINTS = 1000;
+const MAX_HISTORY_POINTS = 1000;
 
 const BUCKET_INTERVALS = {
   day: sql.raw("interval '1 day'"),
@@ -417,7 +417,7 @@ const netTotal = money(
 );
 const transactionMonth = sql<string>`to_char(${financialTransaction.transactionDate}, 'YYYY-MM')`;
 
-export interface CashFlowMonth {
+interface CashFlowMonth {
   currencyCode: string;
   expense: string;
   income: string;
@@ -426,7 +426,7 @@ export interface CashFlowMonth {
   savingsRate: number | null;
 }
 
-export interface CashFlowTotal {
+interface CashFlowTotal {
   currencyCode: string;
   expense: string;
   income: string;
@@ -456,7 +456,7 @@ export const getMonthlyCashFlow = (
     .groupBy(transactionMonth, financialTransaction.currencyCode)
     .orderBy(asc(transactionMonth), asc(financialTransaction.currencyCode));
 
-export const getCashFlowTotals = (
+const getCashFlowTotals = (
   db: Database,
   organizationId: string,
   range: LedgerRange

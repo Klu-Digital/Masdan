@@ -251,7 +251,7 @@ const PRESETS: { label: string; value: DatePreset }[] = [
   { label: "This year", value: "this-year" },
 ];
 
-export const DateRangeFilter = ({
+const DateRangeFilter = ({
   dateFrom,
   dateTo,
   onChange,

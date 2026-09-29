@@ -117,7 +117,7 @@ const OPENING_BALANCE_CHOICES: {
 const columnNumber = (value: string): number | null =>
   value === NONE ? null : Number(value);
 
-export const toImportConfig = (values: ImportFormValues): ImportConfig => ({
+const toImportConfig = (values: ImportFormValues): ImportConfig => ({
   accountId: values.accountId,
   defaultExpenseCategoryId: values.defaultExpenseCategoryId,
   defaultIncomeCategoryId: values.defaultIncomeCategoryId,

@@ -143,7 +143,7 @@ export const hasPermission = (input: {
  * `user.role` — unrelated to `roles.admin` above, which is an organization
  * membership role that happens to share the name.
  */
-export const PLATFORM_ADMIN_ROLE = "admin";
+const PLATFORM_ADMIN_ROLE = "admin";
 
 export const isPlatformAdmin = (role?: string | null): boolean =>
   (role ?? "")

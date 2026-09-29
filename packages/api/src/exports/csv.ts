@@ -7,7 +7,7 @@ export interface CsvColumn<Row> {
   value: (row: Row) => CsvValue;
 }
 
-export const CSV_ROW_TERMINATOR = "\r\n";
+const CSV_ROW_TERMINATOR = "\r\n";
 
 const NEEDS_QUOTING = /[",\r\n]/u;
 const FORMULA_TRIGGER = /^[=+\-@\t\r]/u;

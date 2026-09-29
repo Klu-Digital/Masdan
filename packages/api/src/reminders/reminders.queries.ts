@@ -22,7 +22,7 @@ import type { ReminderCard, ReminderStatement } from "./reminder-rules";
  * judged only against its own cards, statements and payments.
  */
 
-export interface HouseholdCard extends ReminderCard {
+interface HouseholdCard extends ReminderCard {
   cardLastFour: string | null;
   cardNetwork: string | null;
   cardProductKey: string | null;

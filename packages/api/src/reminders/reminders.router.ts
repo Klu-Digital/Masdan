@@ -22,7 +22,7 @@ import {
   resolutionOf,
 } from "./reminders.queries";
 
-export interface CardReminder {
+interface CardReminder {
   account: {
     cardLastFour: string | null;
     cardNetwork: string | null;

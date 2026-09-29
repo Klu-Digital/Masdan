@@ -64,7 +64,7 @@ export const DataGridRow = ({
   />
 );
 
-export const DataGridHead = ({
+const DataGridHead = ({
   className,
   ...props
 }: React.ComponentProps<"th">): React.ReactElement => (
@@ -173,5 +173,3 @@ export const DataGridColumnHeader = ({
     )}
   </DataGridHead>
 );
-
-export { Table as DataGridPrimitive } from "@masdan/ui/components/table";

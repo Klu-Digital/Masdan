@@ -56,7 +56,7 @@ export interface RuleSubject {
   type: RuleTransactionType;
 }
 
-export type RuleConditionField = "account" | "amount" | "description" | "type";
+type RuleConditionField = "account" | "amount" | "description" | "type";
 
 export interface RuleConditionCheck {
   field: RuleConditionField;
@@ -71,7 +71,7 @@ export interface RuleMatch<R extends EvaluableRule = EvaluableRule> {
 const WHITESPACE = /\s+/gu;
 
 /** Case- and spacing-insensitive, so "GRAB  Ride" and "grab ride" compare equal. */
-export const normalizeRuleText = (value: string | null): string =>
+const normalizeRuleText = (value: string | null): string =>
   (value ?? "").toLowerCase().replaceAll(WHITESPACE, " ").trim();
 
 const textMatches = (
@@ -152,7 +152,7 @@ export const ruleMatches = (
 };
 
 /** Explicit precedence: position, then id — never the order rows came back in. */
-export const compareRules = (
+const compareRules = (
   left: Pick<EvaluableRule, "id" | "position">,
   right: Pick<EvaluableRule, "id" | "position">
 ): number => {

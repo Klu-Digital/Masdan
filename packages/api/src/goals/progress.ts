@@ -1,6 +1,6 @@
 import { fixedAmountText, signedScaledAmount } from "../shared/money";
 
-export const GOAL_STATUSES = ["active", "completed", "archived"] as const;
+const GOAL_STATUSES = ["active", "completed", "archived"] as const;
 export type GoalStatus = (typeof GOAL_STATUSES)[number];
 
 const PERCENT = 100n;

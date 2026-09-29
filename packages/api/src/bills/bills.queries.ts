@@ -31,7 +31,7 @@ import type { BillSource, BillStatus, CardTransfer } from "./bill-rules";
  * from its own schedules, cards, statements, payments and confirmations.
  */
 
-export interface BillPaymentRecord {
+interface BillPaymentRecord {
   confirmedAt: Date;
   confirmedByName: string | null;
   id: string;

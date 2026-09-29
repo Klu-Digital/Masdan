@@ -37,9 +37,7 @@ export type ChatReceipt =
   | { kind: "ignored" }
   | { kind: "reply"; text: string };
 
-export type ReceiveChatMessage = (
-  message: InboundChatMessage
-) => Promise<ChatReceipt>;
+type ReceiveChatMessage = (message: InboundChatMessage) => Promise<ChatReceipt>;
 
 export interface ChatChannelAdapter {
   download?: (ref: string, maxBytes: number) => Promise<Uint8Array>;

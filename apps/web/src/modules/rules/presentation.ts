@@ -2,7 +2,7 @@ import { describeRuleConditions } from "@masdan/api/rules/engine";
 import type { RuleConditions } from "@masdan/api/rules/engine";
 
 /** Rule amounts apply to any account, so they read without a currency. */
-export const formatRuleAmount = (amount: string): string =>
+const formatRuleAmount = (amount: string): string =>
   Number(amount).toLocaleString("en-US", { maximumFractionDigits: 6 });
 
 /** "Description contains “grab” · Money out", with account names resolved. */

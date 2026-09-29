@@ -33,18 +33,18 @@ import type { AskHousehold, AskKind, AskQuery } from "./ask.plan";
  * involved here: every number and every sentence comes from the ledger.
  */
 
-export interface AskAmount {
+interface AskAmount {
   amount: string;
   currencyCode: string;
 }
 
-export interface AskFigure {
+interface AskFigure {
   /** One per currency, household default first; never converted or mixed. */
   amounts: AskAmount[];
   label: string;
 }
 
-export interface AskRow {
+interface AskRow {
   amount: string;
   count: number | null;
   currencyCode: string;
@@ -54,7 +54,7 @@ export interface AskRow {
 }
 
 /** Enough to redo the answer by hand in the normal views. */
-export interface AskContext {
+interface AskContext {
   account: string | null;
   /** Net worth answers are as of this household-local day. */
   asOf: string | null;
@@ -64,7 +64,7 @@ export interface AskContext {
   search: string | null;
 }
 
-export type AskLink =
+type AskLink =
   | {
       search: {
         accountIds: string[];

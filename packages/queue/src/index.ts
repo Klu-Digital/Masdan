@@ -23,9 +23,9 @@ const DEAD_LETTER_RETENTION_SECONDS = 30 * 24 * 60 * 60;
 const jobEntries = Object.entries(jobs) as [JobName, JobDefinition][];
 
 /** Structurally typed by pg-boss, which keeps this package off `@masdan/db`. */
-export type Transaction = DrizzleTransactionLike;
+type Transaction = DrizzleTransactionLike;
 
-export type EnqueueOptions = Omit<SendOptions, "db"> & {
+type EnqueueOptions = Omit<SendOptions, "db"> & {
   /**
    * In practice `context.db` inside a `mutationProcedure`: the job row is
    * written on the caller's connection, so it commits with the rows it depends
@@ -38,7 +38,7 @@ export type EnqueueOptions = Omit<SendOptions, "db"> & {
 /** The per-job view handed to a handler, with `data` already validated. */
 export type JobOf<N extends JobName> = Job<JobPayload<N>>;
 
-export const createQueueClient = () => {
+const createQueueClient = () => {
   let boss: PgBoss | undefined;
   let starting: Promise<PgBoss> | undefined;
 
@@ -187,12 +187,5 @@ export type QueueClient = ReturnType<typeof createQueueClient>;
 
 export const queue: QueueClient = createQueueClient();
 
-export {
-  DEAD_LETTER_QUEUE,
-  DEFAULT_QUEUE_OPTIONS,
-  jobNames,
-  jobs,
-} from "./jobs";
+export { jobNames, jobs } from "./jobs";
 export type { JobDefinition, JobName, JobPayload } from "./jobs";
-export { resolveQueueConfig } from "./config";
-export type { QueueRole } from "./config";

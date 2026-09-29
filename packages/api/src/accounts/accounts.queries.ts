@@ -91,7 +91,7 @@ export const withBalance = async <
   return { ...account, balance, ...creditMetrics(account, balance) };
 };
 
-export const requireCreditCard = async (
+const requireCreditCard = async (
   db: Database,
   organizationId: string,
   accountId: string

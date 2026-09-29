@@ -34,7 +34,6 @@
     "@types/react-dom": "catalog:",
     "shadcn": "^4.16.0",
     "tailwindcss": "catalog:",
-    "typescript": "catalog:",
-    "vite-plus": "catalog:"
+    "typescript": "catalog:"
   }
 }

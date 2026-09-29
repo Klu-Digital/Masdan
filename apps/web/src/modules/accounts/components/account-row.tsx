@@ -69,7 +69,7 @@ export const accountSubtitle = (
     .join(" · ");
 
 /** Utilization and the next due date — the two things a card row must say. */
-export const CardContext = ({
+const CardContext = ({
   account,
   organizationId,
   today,

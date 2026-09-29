@@ -70,7 +70,7 @@ const buildClient = (
     ...(endpoint ? { endpoint } : {}),
   });
 
-export const createStorage = () => {
+const createStorage = () => {
   // Built on first use: `storage` below is a module-scope singleton, so eager
   // construction would make merely importing this package throw wherever
   // storage is unconfigured.

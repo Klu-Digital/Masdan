@@ -42,7 +42,7 @@ export const useSignOut = () => {
   };
 };
 
-export const ThemeChoices = () => {
+const ThemeChoices = () => {
   const { setTheme, theme } = useTheme();
   return (
     <MenuGroup>

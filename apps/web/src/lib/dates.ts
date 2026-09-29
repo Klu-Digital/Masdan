@@ -57,7 +57,6 @@ const shortFormat = new Intl.DateTimeFormat(undefined, {
   month: "short",
 });
 const monthFormat = new Intl.DateTimeFormat(undefined, { month: "short" });
-const monthNameFormat = new Intl.DateTimeFormat(undefined, { month: "long" });
 const monthYearFormat = new Intl.DateTimeFormat(undefined, {
   month: "long",
   year: "numeric",
@@ -117,9 +116,6 @@ export const formatLongDate = (iso: string): string =>
 
 export const formatMonth = (isoMonth: string): string =>
   monthFormat.format(parseIsoDate(`${isoMonth.slice(0, 7)}-01`));
-
-export const formatMonthName = (isoMonth: string): string =>
-  monthNameFormat.format(parseIsoDate(`${isoMonth.slice(0, 7)}-01`));
 
 export const formatMonthYear = (isoMonth: string): string =>
   monthYearFormat.format(parseIsoDate(`${isoMonth.slice(0, 7)}-01`));

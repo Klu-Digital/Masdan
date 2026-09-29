@@ -126,7 +126,7 @@ const secretMatches = (expected: string, received: string | null) =>
  * One Bot API call. The token is part of the URL, so errors are rebuilt from
  * Telegram's `description` rather than passed through with the request.
  */
-export const callTelegram = async (
+const callTelegram = async (
   botToken: string,
   method: string,
   body: Record<string, unknown>
