@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  check,
   date,
   foreignKey,
   index,
@@ -14,9 +15,10 @@ import {
 
 import { organization, user } from "./auth";
 import { category } from "./categories";
-import { money, timestamps, timestamptz } from "./columns";
+import { money, oneOf, timestamps, timestamptz } from "./columns";
 import { financialAccount } from "./financial-accounts";
 import type { TransactionRuleApplication } from "./rules";
+import { transactionRuleTypes } from "./rules";
 import { file } from "./storage";
 import type {
   TransactionImportRowSuggestion,
@@ -44,6 +46,14 @@ export const transactionImportRowStatuses = [
 export type TransactionImportRowStatus =
   (typeof transactionImportRowStatuses)[number];
 
+/** The status a failed import resumes from when retried. */
+export const transactionImportFailedStatuses = [
+  "validating",
+  "committing",
+] as const;
+
+export const openingBalanceModes = ["reject", "rebase", "include"] as const;
+
 export interface TransactionImportRowError {
   field: string;
   message: string;
@@ -67,7 +77,7 @@ export const transactionImport = pgTable(
     error: text("error"),
     /** The status to resume from when a failed import is retried. */
     failedStatus: text("failed_status", {
-      enum: ["validating", "committing"],
+      enum: transactionImportFailedStatuses,
     }),
     fileName: text("file_name").notNull(),
     headers: jsonb("headers").$type<string[]>().default([]).notNull(),
@@ -79,7 +89,7 @@ export const transactionImport = pgTable(
     /** Parsed with the import mapping schema on every read. */
     mapping: jsonb("mapping").$type<unknown>().notNull(),
     openingBalanceMode: text("opening_balance_mode", {
-      enum: ["reject", "rebase", "include"],
+      enum: openingBalanceModes,
     }).notNull(),
     organizationId: uuid("organization_id")
       .notNull()
@@ -91,6 +101,18 @@ export const transactionImport = pgTable(
     validatedAt: timestamptz("validated_at"),
   },
   (table) => [
+    check(
+      "transaction_import_status_chk",
+      oneOf(table.status, transactionImportStatuses)
+    ),
+    check(
+      "transaction_import_failed_status_chk",
+      oneOf(table.failedStatus, transactionImportFailedStatuses)
+    ),
+    check(
+      "transaction_import_opening_balance_mode_chk",
+      oneOf(table.openingBalanceMode, openingBalanceModes)
+    ),
     unique("transaction_import_organization_id_key").on(
       table.organizationId,
       table.id
@@ -162,9 +184,17 @@ export const transactionImportRow = pgTable(
     ).$type<TransactionSuggestionApplication>(),
     transactionDate: date("transaction_date", { mode: "string" }),
     transactionId: uuid("transaction_id"),
-    type: text("type", { enum: ["income", "expense"] }),
+    type: text("type", { enum: transactionRuleTypes }),
   },
   (table) => [
+    check(
+      "transaction_import_row_status_chk",
+      oneOf(table.status, transactionImportRowStatuses)
+    ),
+    check(
+      "transaction_import_row_type_chk",
+      oneOf(table.type, transactionRuleTypes)
+    ),
     foreignKey({
       columns: [table.organizationId, table.importId],
       foreignColumns: [transactionImport.organizationId, transactionImport.id],
@@ -194,5 +224,6 @@ export const transactionImportRow = pgTable(
       table.rowNumber
     ),
     index("transaction_import_row_transaction_idx").on(table.transactionId),
+    index("transaction_import_row_organization_idx").on(table.organizationId),
   ]
 );

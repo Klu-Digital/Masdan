@@ -1,7 +1,14 @@
 import { sql } from "drizzle-orm";
-import { index, integer, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import {
+  check,
+  index,
+  integer,
+  pgTable,
+  text,
+  uuid,
+} from "drizzle-orm/pg-core";
 
-import { timestamps, timestamptz } from "./columns";
+import { oneOf, timestamps, timestamptz } from "./columns";
 
 const uuidv7 = sql`uuidv7()`;
 
@@ -27,5 +34,11 @@ export const postMigration = pgTable(
     startedAt: timestamptz("started_at").notNull(),
     status: text("status", { enum: postMigrationStatuses }).notNull(),
   },
-  (table) => [index("post_migration_status_idx").on(table.status)]
+  (table) => [
+    check(
+      "post_migration_status_chk",
+      oneOf(table.status, postMigrationStatuses)
+    ),
+    index("post_migration_status_idx").on(table.status),
+  ]
 );

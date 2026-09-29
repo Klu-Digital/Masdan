@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { organization, user } from "./auth";
-import { timestamptz } from "./columns";
+import { oneOf, timestamptz } from "./columns";
 import { financialAccount } from "./financial-accounts";
 import { financialTransaction, recurringSchedule } from "./transactions";
 
@@ -47,6 +47,7 @@ export const billPayment = pgTable(
     transactionId: uuid("transaction_id"),
   },
   (table) => [
+    check("bill_payment_kind_chk", oneOf(table.kind, billKinds)),
     foreignKey({
       columns: [table.organizationId, table.accountId],
       foreignColumns: [financialAccount.organizationId, financialAccount.id],

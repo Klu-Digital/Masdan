@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  check,
   index,
   integer,
   pgTable,
@@ -9,8 +10,9 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { CATEGORY_TYPES } from "../reference/categories";
 import { organization } from "./auth";
-import { timestamps, timestamptz } from "./columns";
+import { oneOf, timestamps, timestamptz } from "./columns";
 
 /** Household-owned transaction classification; archive instead of delete. */
 export const category = pgTable(
@@ -28,9 +30,10 @@ export const category = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     sortOrder: integer("sort_order").default(0).notNull(),
-    type: text("type").notNull(),
+    type: text("type", { enum: CATEGORY_TYPES }).notNull(),
   },
   (table) => [
+    check("category_type_chk", oneOf(table.type, CATEGORY_TYPES)),
     unique("category_organization_id_key").on(table.organizationId, table.id),
     index("category_organization_archived_idx").on(
       table.organizationId,

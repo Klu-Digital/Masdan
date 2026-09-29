@@ -13,15 +13,22 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import {
+  ACCOUNT_CLASSES,
+  ACCOUNT_TYPES,
+  ASSET_ACCOUNT_TYPES,
+  LIQUIDITY_TYPES,
+  SNAPSHOT_SOURCES,
+} from "../reference/accounts";
 import { member, organization } from "./auth";
-import { money, timestamps, timestamptz } from "./columns";
+import { money, oneOf, timestamps, timestamptz } from "./columns";
 import { currency } from "./finance";
 
 export const financialAccount = pgTable(
   "financial_account",
   {
-    accountClass: text("account_class").notNull(),
-    accountType: text("account_type").notNull(),
+    accountClass: text("account_class", { enum: ACCOUNT_CLASSES }).notNull(),
+    accountType: text("account_type", { enum: ACCOUNT_TYPES }).notNull(),
     archivedAt: timestamptz("archived_at"),
     cardLastFour: text("card_last_four"),
     cardNetwork: text("card_network"),
@@ -39,7 +46,7 @@ export const financialAccount = pgTable(
       .default(sql`uuidv7()`),
     includeInNetWorth: boolean("include_in_net_worth").default(true).notNull(),
     institution: text("institution"),
-    liquidity: text("liquidity"),
+    liquidity: text("liquidity", { enum: LIQUIDITY_TYPES }),
     name: text("name").notNull(),
     notes: text("notes"),
     openingBalance: money("opening_balance").default("0").notNull(),
@@ -53,6 +60,22 @@ export const financialAccount = pgTable(
     statementClosingDay: smallint("statement_closing_day"),
   },
   (table) => [
+    check(
+      "financial_account_class_chk",
+      oneOf(table.accountClass, ACCOUNT_CLASSES)
+    ),
+    check(
+      "financial_account_type_chk",
+      oneOf(table.accountType, ACCOUNT_TYPES)
+    ),
+    check(
+      "financial_account_class_type_chk",
+      sql`(${table.accountClass} = 'asset') = (${oneOf(table.accountType, ASSET_ACCOUNT_TYPES)})`
+    ),
+    check(
+      "financial_account_liquidity_chk",
+      sql`${table.liquidity} IS NULL OR ${oneOf(table.liquidity, LIQUIDITY_TYPES)}`
+    ),
     // What every composite foreign key into this table references.
     unique("financial_account_organization_id_key").on(
       table.organizationId,
@@ -164,9 +187,15 @@ export const financialAccountBalanceSnapshot = pgTable(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
-    source: text("source").default("manual").notNull(),
+    source: text("source", { enum: SNAPSHOT_SOURCES })
+      .default("manual")
+      .notNull(),
   },
   (table) => [
+    check(
+      "financial_account_balance_snapshot_source_chk",
+      oneOf(table.source, SNAPSHOT_SOURCES)
+    ),
     foreignKey({
       columns: [table.organizationId, table.accountId],
       foreignColumns: [financialAccount.organizationId, financialAccount.id],

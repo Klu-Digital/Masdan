@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { organization, user } from "./auth";
-import { timestamptz } from "./columns";
+import { oneOf, timestamptz } from "./columns";
 import { financialTransaction } from "./transactions";
 
 /**
@@ -79,6 +79,7 @@ export const chatLink = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
   },
   (table) => [
+    check("chat_link_channel_chk", oneOf(table.channel, chatChannels)),
     uniqueIndex("chat_link_channel_external_user_uidx").on(
       table.channel,
       table.externalUserId
@@ -88,6 +89,7 @@ export const chatLink = pgTable(
       table.userId,
       table.organizationId
     ),
+    index("chat_link_organization_idx").on(table.organizationId),
   ]
 );
 
@@ -110,6 +112,10 @@ export const chatInboundMessage = pgTable(
     transactionId: uuid("transaction_id"),
   },
   (table) => [
+    check(
+      "chat_inbound_message_channel_chk",
+      oneOf(table.channel, chatChannels)
+    ),
     primaryKey({ columns: [table.channel, table.messageId] }),
     foreignKey({
       columns: [table.organizationId, table.transactionId],

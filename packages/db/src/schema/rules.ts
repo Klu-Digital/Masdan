@@ -14,7 +14,7 @@ import {
 
 import { organization } from "./auth";
 import { category } from "./categories";
-import { money, timestamps } from "./columns";
+import { money, oneOf, timestamps } from "./columns";
 import { financialAccount } from "./financial-accounts";
 import { tag } from "./tags";
 
@@ -79,6 +79,14 @@ export const transactionRule = pgTable(
     setCategoryId: uuid("set_category_id"),
   },
   (table) => [
+    check(
+      "transaction_rule_match_text_operator_chk",
+      oneOf(table.matchTextOperator, transactionRuleTextOperators)
+    ),
+    check(
+      "transaction_rule_match_type_chk",
+      oneOf(table.matchType, transactionRuleTypes)
+    ),
     unique("transaction_rule_organization_id_key").on(
       table.organizationId,
       table.id

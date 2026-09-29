@@ -59,7 +59,7 @@ const seedHousehold = async (label: string) => {
     accountType: "bank",
     currencyCode: "PHP",
     organizationId,
-  };
+  } as const;
   const [bank, wallet] = await db
     .insert(financialAccount)
     .values([

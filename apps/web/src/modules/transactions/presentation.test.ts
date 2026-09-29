@@ -8,7 +8,7 @@ const base = {
   notes: null,
   transfer: null,
   transferSide: null,
-  type: "expense",
+  type: "expense" as const,
 };
 
 const transfer = {

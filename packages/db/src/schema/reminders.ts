@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { organization, user } from "./auth";
-import { timestamps, timestamptz } from "./columns";
+import { oneOf, timestamps, timestamptz } from "./columns";
 import { creditCardStatement, financialAccount } from "./financial-accounts";
 
 /** `statement`: a closing date to record; `payment`: a due date to pay. */
@@ -68,6 +68,18 @@ export const creditCardReminder = pgTable(
       .notNull(),
   },
   (table) => [
+    check(
+      "credit_card_reminder_kind_chk",
+      oneOf(table.kind, cardReminderKinds)
+    ),
+    check(
+      "credit_card_reminder_status_chk",
+      oneOf(table.status, cardReminderStatuses)
+    ),
+    check(
+      "credit_card_reminder_resolution_value_chk",
+      oneOf(table.resolution, cardReminderResolutions)
+    ),
     foreignKey({
       columns: [table.organizationId, table.accountId],
       foreignColumns: [financialAccount.organizationId, financialAccount.id],

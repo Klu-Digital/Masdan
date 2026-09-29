@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  check,
   index,
   pgTable,
   text,
@@ -10,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { organization, user } from "./auth";
-import { timestamps } from "./columns";
+import { oneOf, timestamps } from "./columns";
 
 /** Postgres 18+ native time-ordered UUID, used as the default for every id column. */
 const uuidv7 = sql`uuidv7()`;
@@ -46,6 +47,7 @@ export const file = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
   },
   (table) => [
+    check("file_status_chk", oneOf(table.status, fileStatuses)),
     unique("file_organization_id_key").on(table.organizationId, table.id),
     uniqueIndex("file_key_uidx").on(table.key),
     index("file_organizationId_idx").on(table.organizationId),

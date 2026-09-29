@@ -17,7 +17,7 @@ import {
 
 import { organization } from "./auth";
 import { category } from "./categories";
-import { money, timestamps, timestamptz } from "./columns";
+import { money, oneOf, timestamps, timestamptz } from "./columns";
 import { currency } from "./finance";
 import { financialAccount } from "./financial-accounts";
 import type { TransactionRuleApplication } from "./rules";
@@ -79,6 +79,14 @@ export const recurringSchedule = pgTable(
     stoppedAt: timestamptz("stopped_at"),
   },
   (table) => [
+    check(
+      "recurring_schedule_frequency_chk",
+      oneOf(table.frequency, recurringFrequencies)
+    ),
+    check(
+      "recurring_schedule_status_chk",
+      oneOf(table.status, recurringScheduleStatuses)
+    ),
     unique("recurring_schedule_organization_id_key").on(
       table.organizationId,
       table.id
