@@ -84,9 +84,10 @@ export const withBalance = async <
   T extends { accountType: string; creditLimit: string | null; id: string },
 >(
   db: Database,
+  organizationId: string,
   account: T
 ) => {
-  const balance = await getAccountBalance(db, account.id);
+  const balance = await getAccountBalance(db, organizationId, account.id);
   return { ...account, balance, ...creditMetrics(account, balance) };
 };
 
@@ -132,7 +133,7 @@ export const getAccount = async (
     .where(eq(financialAccountOwner.financialAccountId, account.id));
 
   return {
-    ...(await withBalance(db, account)),
+    ...(await withBalance(db, organizationId, account)),
     ownerMemberIds: owners.map(({ memberId }) => memberId),
   };
 };
@@ -175,6 +176,7 @@ export const listAccounts = async (
 
   const balances = await getAccountBalances(
     db,
+    organizationId,
     accounts.map((account) => account.id)
   );
 

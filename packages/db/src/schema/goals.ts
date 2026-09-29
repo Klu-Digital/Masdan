@@ -1,5 +1,13 @@
 import { sql } from "drizzle-orm";
-import { check, date, index, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import {
+  check,
+  date,
+  foreignKey,
+  index,
+  pgTable,
+  text,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 import { organization } from "./auth";
 import { money, timestamps, timestamptz } from "./columns";
@@ -12,13 +20,7 @@ import { financialAccount } from "./financial-accounts";
 export const savingsGoal = pgTable(
   "savings_goal",
   {
-    /**
-     * No `onDelete`: accounts are archived, never deleted, so a goal keeps
-     * pointing at the balance it was measured by.
-     */
-    accountId: uuid("account_id")
-      .notNull()
-      .references(() => financialAccount.id),
+    accountId: uuid("account_id").notNull(),
     archivedAt: timestamptz("archived_at"),
     completedAt: timestamptz("completed_at"),
     ...timestamps(),
@@ -34,6 +36,13 @@ export const savingsGoal = pgTable(
     targetDate: date("target_date", { mode: "string" }),
   },
   (table) => [
+    // Accounts are archived, never deleted, so a goal keeps pointing at the
+    // balance it was measured by.
+    foreignKey({
+      columns: [table.organizationId, table.accountId],
+      foreignColumns: [financialAccount.organizationId, financialAccount.id],
+      name: "savings_goal_account_id_fkey",
+    }).onDelete("restrict"),
     check("savings_goal_positive_target_chk", sql`${table.targetAmount} > 0`),
     index("savings_goal_organization_idx").on(
       table.organizationId,

@@ -133,6 +133,7 @@ export const validTags = async (
 
 export const replaceTags = async (
   db: Database,
+  organizationId: string,
   transactionId: string,
   tagIds: string[]
 ): Promise<void> => {
@@ -143,12 +144,15 @@ export const replaceTags = async (
   if (tagIds.length > 0) {
     await db
       .insert(financialTransactionTag)
-      .values(tagIds.map((tagId) => ({ tagId, transactionId })));
+      .values(
+        tagIds.map((tagId) => ({ organizationId, tagId, transactionId }))
+      );
   }
 };
 
 export const replaceSplits = async (
   db: Database,
+  organizationId: string,
   transactionId: string,
   splits: { amount: string; categoryId: string }[]
 ): Promise<void> => {
@@ -161,6 +165,7 @@ export const replaceSplits = async (
       splits.map((split, sortOrder) => ({
         amount: split.amount,
         categoryId: split.categoryId,
+        organizationId,
         sortOrder,
         transactionId,
       }))
@@ -340,7 +345,7 @@ export const createTransaction = async (
     });
   }
 
-  await replaceTags(db, created.id, input.tagIds);
-  await replaceSplits(db, created.id, splits);
+  await replaceTags(db, organizationId, created.id, input.tagIds);
+  await replaceSplits(db, organizationId, created.id, splits);
   return created;
 };

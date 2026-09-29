@@ -1,5 +1,12 @@
 import { sql } from "drizzle-orm";
-import { index, pgTable, text, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import {
+  index,
+  pgTable,
+  text,
+  unique,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 import { organization } from "./auth";
 import { timestamps, timestamptz } from "./columns";
@@ -20,6 +27,7 @@ export const tag = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
   },
   (table) => [
+    unique("tag_organization_id_key").on(table.organizationId, table.id),
     index("tag_organization_archived_idx").on(
       table.organizationId,
       table.archivedAt

@@ -58,6 +58,7 @@ export const balanceCategory = eq(category.id, financialTransaction.categoryId);
 
 export const getAccountBalances = async (
   db: Database,
+  organizationId: string,
   accountIds: string[]
 ): Promise<Map<string, string>> => {
   if (accountIds.length === 0) {
@@ -72,7 +73,12 @@ export const getAccountBalances = async (
     .from(financialAccount)
     .leftJoin(financialTransaction, balancePostings())
     .leftJoin(category, balanceCategory)
-    .where(inArray(financialAccount.id, accountIds))
+    .where(
+      and(
+        eq(financialAccount.organizationId, organizationId),
+        inArray(financialAccount.id, accountIds)
+      )
+    )
     .groupBy(
       financialAccount.id,
       financialAccount.accountClass,
@@ -84,8 +90,9 @@ export const getAccountBalances = async (
 
 export const getAccountBalance = async (
   db: Database,
+  organizationId: string,
   accountId: string
 ): Promise<string> => {
-  const balances = await getAccountBalances(db, [accountId]);
+  const balances = await getAccountBalances(db, organizationId, [accountId]);
   return balances.get(accountId) ?? "0";
 };

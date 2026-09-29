@@ -239,7 +239,11 @@ describe("savings goals", () => {
     );
 
     const goal = await home.goal(savings.id, { targetAmount: "50000" });
-    const balance = await getAccountBalance(getTestDb(), savings.id);
+    const balance = await getAccountBalance(
+      getTestDb(),
+      home.organizationId,
+      savings.id
+    );
     expect(goal.saved).toBe("33749.750000");
     expect(Number(goal.saved)).toBe(Number(balance));
     expect(goal).toMatchObject({

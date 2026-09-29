@@ -164,6 +164,7 @@ const ruleColumns = (values: RuleValues) => ({
 
 const replaceRuleTags = async (
   db: Database,
+  organizationId: string,
   ruleId: string,
   tagIds: string[]
 ): Promise<void> => {
@@ -173,7 +174,7 @@ const replaceRuleTags = async (
   if (tagIds.length > 0) {
     await db
       .insert(transactionRuleTag)
-      .values(tagIds.map((tagId) => ({ ruleId, tagId })));
+      .values(tagIds.map((tagId) => ({ organizationId, ruleId, tagId })));
   }
 };
 
@@ -356,7 +357,12 @@ export const rulesRouter = {
           message: "Could not create rule",
         });
       }
-      await replaceRuleTags(context.db, created.id, input.actions.tagIds);
+      await replaceRuleTags(
+        context.db,
+        context.organizationId,
+        created.id,
+        input.actions.tagIds
+      );
       return findRule(context.db, context.organizationId, created.id);
     }),
 
@@ -491,7 +497,12 @@ export const rulesRouter = {
             eq(transactionRule.organizationId, context.organizationId)
           )
         );
-      await replaceRuleTags(context.db, ruleId, values.actions.tagIds);
+      await replaceRuleTags(
+        context.db,
+        context.organizationId,
+        ruleId,
+        values.actions.tagIds
+      );
       return findRule(context.db, context.organizationId, ruleId);
     }),
 };

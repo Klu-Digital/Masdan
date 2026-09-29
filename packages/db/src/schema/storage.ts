@@ -4,6 +4,7 @@ import {
   index,
   pgTable,
   text,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -45,6 +46,7 @@ export const file = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
   },
   (table) => [
+    unique("file_organization_id_key").on(table.organizationId, table.id),
     uniqueIndex("file_key_uidx").on(table.key),
     index("file_organizationId_idx").on(table.organizationId),
     index("file_userId_idx").on(table.userId),

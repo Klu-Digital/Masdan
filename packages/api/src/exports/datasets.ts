@@ -355,6 +355,7 @@ const accounts = async (
 
   const balances = await getAccountBalances(
     db,
+    organizationId,
     rows.map((row) => row.id)
   );
 

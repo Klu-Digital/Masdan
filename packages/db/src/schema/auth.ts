@@ -5,6 +5,7 @@ import {
   boolean,
   uuid,
   index,
+  unique,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
@@ -129,6 +130,7 @@ export const member = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
   },
   (table) => [
+    unique("member_organization_id_key").on(table.organizationId, table.id),
     index("member_organizationId_idx").on(table.organizationId),
     index("member_userId_idx").on(table.userId),
   ]

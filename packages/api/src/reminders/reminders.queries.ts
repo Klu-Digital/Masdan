@@ -70,7 +70,7 @@ export const loadHouseholdCards = async (
       )
     );
   const ids = rows.map(({ id }) => id);
-  const balances = await getAccountBalances(db, ids);
+  const balances = await getAccountBalances(db, organizationId, ids);
   const statements = ids.length
     ? await db
         .selectDistinctOn([creditCardStatement.accountId], {

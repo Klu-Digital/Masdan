@@ -86,6 +86,7 @@ const validateOwners = async (
 
 const replaceOwners = async (
   db: Database,
+  organizationId: string,
   accountId: string,
   ownerMemberIds: string[]
 ): Promise<void> => {
@@ -97,6 +98,7 @@ const replaceOwners = async (
       ownerMemberIds.map((memberId) => ({
         financialAccountId: accountId,
         memberId,
+        organizationId,
       }))
     );
   }
@@ -174,7 +176,7 @@ export const createAccount = async (
     });
   }
 
-  await replaceOwners(db, created.id, ownerMemberIds);
+  await replaceOwners(db, organizationId, created.id, ownerMemberIds);
   if (created.accountType === "credit_card") {
     await enqueueReminderRefresh(db, organizationId);
   }
@@ -255,12 +257,15 @@ export const updateAccount = async (
     throw notFound("Financial account");
   }
 
-  await replaceOwners(db, accountId, ownerMemberIds);
+  await replaceOwners(db, organizationId, accountId, ownerMemberIds);
   if (updated.accountType === "credit_card") {
     await enqueueReminderRefresh(db, organizationId);
   }
 
-  return { ...(await withBalance(db, updated)), ownerMemberIds };
+  return {
+    ...(await withBalance(db, organizationId, updated)),
+    ownerMemberIds,
+  };
 };
 
 /** Archive (a date) or restore (`null`); a restored card's reminders come back. */
@@ -287,7 +292,7 @@ export const setAccountArchived = async (
   if (archivedAt === null && row.accountType === "credit_card") {
     await enqueueReminderRefresh(db, organizationId);
   }
-  return withBalance(db, row);
+  return withBalance(db, organizationId, row);
 };
 
 export const createStatement = async (
@@ -329,7 +334,7 @@ export const saveSnapshot = async (
 
   const [snapshot] = await db
     .insert(financialAccountBalanceSnapshot)
-    .values(input)
+    .values({ ...input, organizationId })
     .returning();
   if (!snapshot) {
     throw new ORPCError("INTERNAL_SERVER_ERROR", {

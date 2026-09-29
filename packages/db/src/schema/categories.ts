@@ -4,6 +4,7 @@ import {
   integer,
   pgTable,
   text,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -30,6 +31,7 @@ export const category = pgTable(
     type: text("type").notNull(),
   },
   (table) => [
+    unique("category_organization_id_key").on(table.organizationId, table.id),
     index("category_organization_archived_idx").on(
       table.organizationId,
       table.archivedAt

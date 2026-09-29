@@ -141,8 +141,8 @@ export const updateTransaction = async (
     throw notFound("Transaction");
   }
 
-  await replaceTags(db, updated.id, input.tagIds);
-  await replaceSplits(db, updated.id, splits);
+  await replaceTags(db, organizationId, updated.id, input.tagIds);
+  await replaceSplits(db, organizationId, updated.id, splits);
   const [result] = await transactionQuery(db)
     .where(
       and(

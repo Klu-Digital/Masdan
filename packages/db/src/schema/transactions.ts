@@ -10,6 +10,7 @@ import {
   pgTable,
   primaryKey,
   text,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -52,13 +53,9 @@ export const MAX_RECURRING_INTERVAL = 366;
 export const recurringSchedule = pgTable(
   "recurring_schedule",
   {
-    accountId: uuid("account_id")
-      .notNull()
-      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    accountId: uuid("account_id").notNull(),
     amount: money("amount").notNull(),
-    categoryId: uuid("category_id")
-      .notNull()
-      .references(() => category.id, { onDelete: "cascade" }),
+    categoryId: uuid("category_id").notNull(),
     ...timestamps(),
     frequency: text("frequency", { enum: recurringFrequencies }).notNull(),
     id: uuid("id")
@@ -82,6 +79,20 @@ export const recurringSchedule = pgTable(
     stoppedAt: timestamptz("stopped_at"),
   },
   (table) => [
+    unique("recurring_schedule_organization_id_key").on(
+      table.organizationId,
+      table.id
+    ),
+    foreignKey({
+      columns: [table.organizationId, table.accountId],
+      foreignColumns: [financialAccount.organizationId, financialAccount.id],
+      name: "recurring_schedule_account_id_fkey",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.organizationId, table.categoryId],
+      foreignColumns: [category.organizationId, category.id],
+      name: "recurring_schedule_category_id_fkey",
+    }).onDelete("restrict"),
     check("recurring_schedule_positive_amount_chk", sql`${table.amount} > 0`),
     check(
       "recurring_schedule_interval_chk",
@@ -108,15 +119,24 @@ export const recurringSchedule = pgTable(
 export const recurringScheduleTag = pgTable(
   "recurring_schedule_tag",
   {
-    scheduleId: uuid("schedule_id")
+    organizationId: uuid("organization_id")
       .notNull()
-      .references(() => recurringSchedule.id, { onDelete: "cascade" }),
-    tagId: uuid("tag_id")
-      .notNull()
-      .references(() => tag.id, { onDelete: "cascade" }),
+      .references(() => organization.id, { onDelete: "cascade" }),
+    scheduleId: uuid("schedule_id").notNull(),
+    tagId: uuid("tag_id").notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.scheduleId, table.tagId] }),
+    foreignKey({
+      columns: [table.organizationId, table.scheduleId],
+      foreignColumns: [recurringSchedule.organizationId, recurringSchedule.id],
+      name: "recurring_schedule_tag_schedule_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.organizationId, table.tagId],
+      foreignColumns: [tag.organizationId, tag.id],
+      name: "recurring_schedule_tag_tag_id_fkey",
+    }).onDelete("restrict"),
     index("recurring_schedule_tag_tag_idx").on(table.tagId),
   ]
 );
@@ -125,9 +145,7 @@ export const financialTransfer = pgTable(
   "financial_transfer",
   {
     ...timestamps(),
-    destinationAccountId: uuid("destination_account_id")
-      .notNull()
-      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    destinationAccountId: uuid("destination_account_id").notNull(),
     destinationAmount: money("destination_amount").notNull(),
     id: uuid("id")
       .primaryKey()
@@ -136,13 +154,25 @@ export const financialTransfer = pgTable(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
-    sourceAccountId: uuid("source_account_id")
-      .notNull()
-      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    sourceAccountId: uuid("source_account_id").notNull(),
     sourceAmount: money("source_amount").notNull(),
     transactionDate: date("transaction_date", { mode: "string" }).notNull(),
   },
   (table) => [
+    unique("financial_transfer_organization_id_key").on(
+      table.organizationId,
+      table.id
+    ),
+    foreignKey({
+      columns: [table.organizationId, table.sourceAccountId],
+      foreignColumns: [financialAccount.organizationId, financialAccount.id],
+      name: "financial_transfer_source_account_id_fkey",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.organizationId, table.destinationAccountId],
+      foreignColumns: [financialAccount.organizationId, financialAccount.id],
+      name: "financial_transfer_destination_account_id_fkey",
+    }).onDelete("restrict"),
     check(
       "financial_transfer_distinct_accounts_chk",
       sql`${table.sourceAccountId} <> ${table.destinationAccountId}`
@@ -172,14 +202,11 @@ export const financialTransfer = pgTable(
 export const financialTransaction = pgTable(
   "financial_transaction",
   {
-    accountId: uuid("account_id")
-      .notNull()
-      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    accountId: uuid("account_id").notNull(),
+    /** Always positive; the category type or transfer side gives the direction. */
     amount: money("amount").notNull(),
     archivedAt: timestamptz("archived_at"),
-    categoryId: uuid("category_id").references(() => category.id, {
-      onDelete: "cascade",
-    }),
+    categoryId: uuid("category_id"),
     ...timestamps(),
     currencyCode: text("currency_code")
       .notNull()
@@ -194,10 +221,7 @@ export const financialTransaction = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     paidStatus: paidStatusEnum("paid_status").default("paid").notNull(),
-    /**
-     * The schedule occurrence this transaction was posted for. No `onDelete`:
-     * schedules are stopped, never deleted, so history keeps its origin.
-     */
+    /** The schedule occurrence this transaction was posted for. */
     recurringOccurrenceDate: date("recurring_occurrence_date", {
       mode: "string",
     }),
@@ -210,12 +234,36 @@ export const financialTransaction = pgTable(
       "suggestion_application"
     ).$type<TransactionSuggestionApplication>(),
     transactionDate: date("transaction_date", { mode: "string" }).notNull(),
-    transferId: uuid("transfer_id").references(() => financialTransfer.id, {
-      onDelete: "cascade",
-    }),
+    transferId: uuid("transfer_id"),
     transferSide: transferSideEnum("transfer_side"),
   },
   (table) => [
+    unique("financial_transaction_organization_id_key").on(
+      table.organizationId,
+      table.id
+    ),
+    // Accounts, categories and schedules are archived or stopped, never
+    // deleted, so a stray delete must not take ledger history with it.
+    foreignKey({
+      columns: [table.organizationId, table.accountId],
+      foreignColumns: [financialAccount.organizationId, financialAccount.id],
+      name: "financial_transaction_account_id_fkey",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.organizationId, table.categoryId],
+      foreignColumns: [category.organizationId, category.id],
+      name: "financial_transaction_category_id_fkey",
+    }).onDelete("restrict"),
+    // Deleting a transfer deletes both of its legs.
+    foreignKey({
+      columns: [table.organizationId, table.transferId],
+      foreignColumns: [financialTransfer.organizationId, financialTransfer.id],
+      name: "financial_transaction_transfer_id_fkey",
+    }).onDelete("cascade"),
+    check(
+      "financial_transaction_positive_amount_chk",
+      sql`${table.amount} > 0`
+    ),
     index("financial_transaction_organization_date_idx").on(
       table.organizationId,
       table.archivedAt,
@@ -246,10 +294,10 @@ export const financialTransaction = pgTable(
       .on(table.accountId, table.importFingerprint)
       .where(sql`${table.importFingerprint} IS NOT NULL`),
     foreignKey({
-      columns: [table.recurringScheduleId],
-      foreignColumns: [recurringSchedule.id],
+      columns: [table.organizationId, table.recurringScheduleId],
+      foreignColumns: [recurringSchedule.organizationId, recurringSchedule.id],
       name: "financial_transaction_recurring_schedule_id_fkey",
-    }),
+    }).onDelete("restrict"),
     check(
       "financial_transaction_recurring_occurrence_chk",
       sql`(${table.recurringScheduleId} IS NULL) = (${table.recurringOccurrenceDate} IS NULL)`
@@ -265,18 +313,34 @@ export const financialTransactionSplit = pgTable(
   "financial_transaction_split",
   {
     amount: money("amount").notNull(),
-    categoryId: uuid("category_id")
-      .notNull()
-      .references(() => category.id, { onDelete: "cascade" }),
+    categoryId: uuid("category_id").notNull(),
     id: uuid("id")
       .primaryKey()
       .default(sql`uuidv7()`),
-    sortOrder: integer("sort_order").notNull(),
-    transactionId: uuid("transaction_id")
+    organizationId: uuid("organization_id")
       .notNull()
-      .references(() => financialTransaction.id, { onDelete: "cascade" }),
+      .references(() => organization.id, { onDelete: "cascade" }),
+    sortOrder: integer("sort_order").notNull(),
+    transactionId: uuid("transaction_id").notNull(),
   },
   (table) => [
+    foreignKey({
+      columns: [table.organizationId, table.transactionId],
+      foreignColumns: [
+        financialTransaction.organizationId,
+        financialTransaction.id,
+      ],
+      name: "financial_transaction_split_transaction_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.organizationId, table.categoryId],
+      foreignColumns: [category.organizationId, category.id],
+      name: "financial_transaction_split_category_id_fkey",
+    }).onDelete("restrict"),
+    check(
+      "financial_transaction_split_positive_amount_chk",
+      sql`${table.amount} > 0`
+    ),
     uniqueIndex("financial_transaction_split_transaction_order_uidx").on(
       table.transactionId,
       table.sortOrder
@@ -285,23 +349,32 @@ export const financialTransactionSplit = pgTable(
   ]
 );
 
-/**
- * A file belongs to at most one transaction, so removing the attachment can
- * delete the file outright. Same-household is enforced by the attach procedure.
- */
+/** A file belongs to at most one transaction, so removing the attachment can delete the file outright. */
 export const financialTransactionAttachment = pgTable(
   "financial_transaction_attachment",
   {
     createdAt: timestamptz("created_at").defaultNow().notNull(),
-    fileId: uuid("file_id")
+    fileId: uuid("file_id").notNull(),
+    organizationId: uuid("organization_id")
       .notNull()
-      .references(() => file.id, { onDelete: "cascade" }),
-    transactionId: uuid("transaction_id")
-      .notNull()
-      .references(() => financialTransaction.id, { onDelete: "cascade" }),
+      .references(() => organization.id, { onDelete: "cascade" }),
+    transactionId: uuid("transaction_id").notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.transactionId, table.fileId] }),
+    foreignKey({
+      columns: [table.organizationId, table.fileId],
+      foreignColumns: [file.organizationId, file.id],
+      name: "financial_transaction_attachment_file_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.organizationId, table.transactionId],
+      foreignColumns: [
+        financialTransaction.organizationId,
+        financialTransaction.id,
+      ],
+      name: "financial_transaction_attachment_transaction_id_fkey",
+    }).onDelete("cascade"),
     uniqueIndex("financial_transaction_attachment_file_uidx").on(table.fileId),
   ]
 );
@@ -309,15 +382,27 @@ export const financialTransactionAttachment = pgTable(
 export const financialTransactionTag = pgTable(
   "financial_transaction_tag",
   {
-    tagId: uuid("tag_id")
+    organizationId: uuid("organization_id")
       .notNull()
-      .references(() => tag.id, { onDelete: "cascade" }),
-    transactionId: uuid("transaction_id")
-      .notNull()
-      .references(() => financialTransaction.id, { onDelete: "cascade" }),
+      .references(() => organization.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id").notNull(),
+    transactionId: uuid("transaction_id").notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.transactionId, table.tagId] }),
+    foreignKey({
+      columns: [table.organizationId, table.tagId],
+      foreignColumns: [tag.organizationId, tag.id],
+      name: "financial_transaction_tag_tag_id_fkey",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.organizationId, table.transactionId],
+      foreignColumns: [
+        financialTransaction.organizationId,
+        financialTransaction.id,
+      ],
+      name: "financial_transaction_tag_transaction_id_fkey",
+    }).onDelete("cascade"),
     index("financial_transaction_tag_tag_transaction_idx").on(
       table.tagId,
       table.transactionId

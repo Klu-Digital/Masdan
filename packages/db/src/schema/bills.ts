@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   check,
   date,
+  foreignKey,
   index,
   pgTable,
   text,
@@ -27,9 +28,7 @@ export const billPayment = pgTable(
   "bill_payment",
   {
     /** Card bills only. */
-    accountId: uuid("account_id").references(() => financialAccount.id, {
-      onDelete: "cascade",
-    }),
+    accountId: uuid("account_id"),
     confirmedByUserId: uuid("confirmed_by_user_id").references(() => user.id, {
       onDelete: "set null",
     }),
@@ -44,16 +43,29 @@ export const billPayment = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     /** Recurring bills only. */
-    scheduleId: uuid("schedule_id").references(() => recurringSchedule.id, {
-      onDelete: "cascade",
-    }),
-    /** Deleting the payment deletes the proof with it. */
-    transactionId: uuid("transaction_id").references(
-      () => financialTransaction.id,
-      { onDelete: "cascade" }
-    ),
+    scheduleId: uuid("schedule_id"),
+    transactionId: uuid("transaction_id"),
   },
   (table) => [
+    foreignKey({
+      columns: [table.organizationId, table.accountId],
+      foreignColumns: [financialAccount.organizationId, financialAccount.id],
+      name: "bill_payment_account_id_fkey",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.organizationId, table.scheduleId],
+      foreignColumns: [recurringSchedule.organizationId, recurringSchedule.id],
+      name: "bill_payment_schedule_id_fkey",
+    }).onDelete("restrict"),
+    // Deleting the payment deletes the proof with it.
+    foreignKey({
+      columns: [table.organizationId, table.transactionId],
+      foreignColumns: [
+        financialTransaction.organizationId,
+        financialTransaction.id,
+      ],
+      name: "bill_payment_transaction_id_fkey",
+    }).onDelete("cascade"),
     check(
       "bill_payment_source_chk",
       sql`(${table.kind} = 'recurring') = (${table.scheduleId} IS NOT NULL)

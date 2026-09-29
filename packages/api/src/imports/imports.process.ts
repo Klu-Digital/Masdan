@@ -447,11 +447,12 @@ const setRowStatus = async (
 
 const extendOpeningDate = async (
   db: Database,
+  organizationId: string,
   accountId: string,
   mode: OpeningBalanceMode,
   earliest: string
 ): Promise<void> => {
-  const balanceBefore = await getAccountBalance(db, accountId);
+  const balanceBefore = await getAccountBalance(db, organizationId, accountId);
   await db
     .update(financialAccount)
     .set({ openingBalanceDate: earliest })
@@ -461,7 +462,7 @@ const extendOpeningDate = async (
   }
   // Moving the date back pulls the earlier rows into the balance; offset them
   // so only rows on or after the old opening date move today's balance.
-  const balanceAfter = await getAccountBalance(db, accountId);
+  const balanceAfter = await getAccountBalance(db, organizationId, accountId);
   await db
     .update(financialAccount)
     .set({
@@ -604,7 +605,11 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
         inserted.map(({ fingerprint, id }) => [fingerprint, id])
       );
       const links: { rowId: string; transactionId: string }[] = [];
-      const tagLinks: { tagId: string; transactionId: string }[] = [];
+      const tagLinks: {
+        organizationId: string;
+        tagId: string;
+        transactionId: string;
+      }[] = [];
       for (const row of batch) {
         const transactionId = byFingerprint.get(row.fingerprint);
         if (!transactionId) {
@@ -613,7 +618,11 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
         }
         links.push({ rowId: row.id, transactionId });
         for (const tagId of rowTagIds(row)) {
-          tagLinks.push({ tagId, transactionId });
+          tagLinks.push({
+            organizationId: current.organizationId,
+            tagId,
+            transactionId,
+          });
         }
         if (
           row.transactionDate &&
@@ -650,6 +659,7 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
     ) {
       await extendOpeningDate(
         tx,
+        current.organizationId,
         account.id,
         current.openingBalanceMode,
         earliest

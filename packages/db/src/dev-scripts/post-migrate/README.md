@@ -1,6 +1,6 @@
 # Post-migration scripts
 
-For schema changes that can't be expressed as DDL alone — a calculated column that needs every existing row backfilled, data that needs reshaping after a migration adds a table. A drizzle migration changes structure; a post-migration script changes data, in TypeScript, with access to the app's schema.
+For schema changes that can't be expressed as DDL alone — a calculated column that needs every existing row backfilled, data that needs reshaping after a migration adds a table. A drizzle migration changes structure; a post-migration script changes data, in TypeScript, with access to the app's schema. Every backfill goes here, never in migration SQL.
 
 ## Quick start
 

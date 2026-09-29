@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   check,
   date,
+  foreignKey,
   index,
   pgTable,
   text,
@@ -41,9 +42,7 @@ export type CardReminderResolution = (typeof cardReminderResolutions)[number];
 export const creditCardReminder = pgTable(
   "credit_card_reminder",
   {
-    accountId: uuid("account_id")
-      .notNull()
-      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    accountId: uuid("account_id").notNull(),
     ...timestamps(),
     dismissedAt: timestamptz("dismissed_at"),
     dismissedByUserId: uuid("dismissed_by_user_id").references(() => user.id, {
@@ -63,14 +62,25 @@ export const creditCardReminder = pgTable(
     resolution: text("resolution", { enum: cardReminderResolutions }),
     resolvedAt: timestamptz("resolved_at"),
     /** Set when the due date came from a recorded statement; null when projected from the card's due day. */
-    statementId: uuid("statement_id").references(() => creditCardStatement.id, {
-      onDelete: "cascade",
-    }),
+    statementId: uuid("statement_id"),
     status: text("status", { enum: cardReminderStatuses })
       .default("active")
       .notNull(),
   },
   (table) => [
+    foreignKey({
+      columns: [table.organizationId, table.accountId],
+      foreignColumns: [financialAccount.organizationId, financialAccount.id],
+      name: "credit_card_reminder_account_id_fkey",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.organizationId, table.statementId],
+      foreignColumns: [
+        creditCardStatement.organizationId,
+        creditCardStatement.id,
+      ],
+      name: "credit_card_reminder_statement_id_fkey",
+    }).onDelete("cascade"),
     check(
       "credit_card_reminder_resolution_chk",
       sql`(${table.status} = 'resolved') = (${table.resolution} IS NOT NULL)`

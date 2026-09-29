@@ -1,5 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
+  check,
+  foreignKey,
   index,
   pgTable,
   primaryKey,
@@ -91,7 +93,8 @@ export const chatLink = pgTable(
 
 /**
  * One row per delivered message. The key is what turns a channel's retries
- * into no-ops; `processedAt` does the same for a retried worker job.
+ * into no-ops; `processedAt` does the same for a retried worker job. The
+ * household is unknown until processing, so it is set with the transaction.
  */
 export const chatInboundMessage = pgTable(
   "chat_inbound_message",
@@ -99,12 +102,27 @@ export const chatInboundMessage = pgTable(
     channel: text("channel", { enum: chatChannels }).notNull(),
     /** The channel's own id for the delivery, e.g. Telegram's `update_id`. */
     messageId: text("message_id").notNull(),
+    organizationId: uuid("organization_id").references(() => organization.id, {
+      onDelete: "cascade",
+    }),
     processedAt: timestamptz("processed_at"),
     receivedAt: timestamptz("received_at").defaultNow().notNull(),
-    transactionId: uuid("transaction_id").references(
-      () => financialTransaction.id,
-      { onDelete: "set null" }
-    ),
+    transactionId: uuid("transaction_id"),
   },
-  (table) => [primaryKey({ columns: [table.channel, table.messageId] })]
+  (table) => [
+    primaryKey({ columns: [table.channel, table.messageId] }),
+    foreignKey({
+      columns: [table.organizationId, table.transactionId],
+      foreignColumns: [
+        financialTransaction.organizationId,
+        financialTransaction.id,
+      ],
+      name: "chat_inbound_message_transaction_id_fkey",
+    }).onDelete("set null"),
+    // MATCH SIMPLE skips the key above when either half is null.
+    check(
+      "chat_inbound_message_household_chk",
+      sql`(${table.organizationId} IS NULL) = (${table.transactionId} IS NULL)`
+    ),
+  ]
 );

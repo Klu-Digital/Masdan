@@ -378,7 +378,11 @@ describe("attachments.attach", () => {
     await getTestDb()
       .insert(financialTransactionAttachment)
       .values(
-        seeded.map(({ id }) => ({ fileId: id, transactionId: transaction.id }))
+        seeded.map(({ id }) => ({
+          fileId: id,
+          organizationId: household.organizationId,
+          transactionId: transaction.id,
+        }))
       );
     const receipt = await uploadReceipt(household);
 

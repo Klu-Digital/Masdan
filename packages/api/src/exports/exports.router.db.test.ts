@@ -159,9 +159,11 @@ const seedHousehold = async (
   if (!(bank && card && closed)) {
     throw new Error("Account seed failed");
   }
-  await db
-    .insert(financialAccountOwner)
-    .values({ financialAccountId: bank.id, memberId: owner.id });
+  await db.insert(financialAccountOwner).values({
+    financialAccountId: bank.id,
+    memberId: owner.id,
+    organizationId,
+  });
 
   const [liveTag, oldTag] = await db
     .insert(tag)
@@ -224,8 +226,8 @@ const seedHousehold = async (
     throw new Error("Transaction seed failed");
   }
   await db.insert(financialTransactionTag).values([
-    { tagId: liveTag.id, transactionId: expense.id },
-    { tagId: oldTag.id, transactionId: expense.id },
+    { organizationId, tagId: liveTag.id, transactionId: expense.id },
+    { organizationId, tagId: oldTag.id, transactionId: expense.id },
   ]);
   const splits = await db
     .insert(financialTransactionSplit)
@@ -233,12 +235,14 @@ const seedHousehold = async (
       {
         amount: "100",
         categoryId: dining.id,
+        organizationId,
         sortOrder: 0,
         transactionId: split.id,
       },
       {
         amount: "200",
         categoryId: oldCategory.id,
+        organizationId,
         sortOrder: 1,
         transactionId: split.id,
       },
@@ -292,6 +296,7 @@ const seedHousehold = async (
         balance: "-1234567890123.123456",
         effectiveDate: "2025-12-31",
         importReference: `${label}-ref`,
+        organizationId,
         source: "import",
       })
       .returning()
@@ -588,7 +593,7 @@ describe("household CSV exports", () => {
     await expect(exportAll(context)).resolves.toEqual(files);
   });
 
-  it("never includes another household's records, even through links", async () => {
+  it("never includes another household's records", async () => {
     const first = await signUpTestUser();
     const second = await signUpTestUser();
     const firstSeed = await seedHousehold(
@@ -601,20 +606,6 @@ describe("household CSV exports", () => {
       second.user.id,
       "Qxv7Bravo"
     );
-
-    // A corrupt cross-tenant link must not pull a foreign name into either file.
-    await getTestDb().insert(financialTransactionTag).values({
-      tagId: firstSeed.tags.liveTag.id,
-      transactionId: secondSeed.transactions.income.id,
-    });
-    await getTestDb().insert(transactionImportRow).values({
-      importId: secondSeed.csvImport.id,
-      organizationId: secondSeed.organizationId,
-      raw: [],
-      rowNumber: 9,
-      status: "imported",
-      transactionId: firstSeed.transactions.expense.id,
-    });
 
     const firstFiles = await exportAll(await contextFor(first.headers));
     const secondFiles = await exportAll(await contextFor(second.headers));
@@ -631,18 +622,6 @@ describe("household CSV exports", () => {
       }
     }
     expect(recordsOf(firstFiles, "transactions")).toHaveLength(7);
-    expect(
-      byId(
-        recordsOf(firstFiles, "transactions"),
-        firstSeed.transactions.expense.id
-      )
-    ).toMatchObject({ import_file_name: "", import_id: "" });
-    expect(
-      byId(
-        recordsOf(secondFiles, "transactions"),
-        secondSeed.transactions.income.id
-      ).tag_names
-    ).toBe("");
   });
 
   it("requires membership and a role with read access", async () => {

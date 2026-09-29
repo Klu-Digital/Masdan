@@ -1,11 +1,13 @@
 import { sql } from "drizzle-orm";
 import {
   date,
+  foreignKey,
   index,
   integer,
   jsonb,
   pgTable,
   text,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -51,9 +53,7 @@ export interface TransactionImportRowError {
 export const transactionImport = pgTable(
   "transaction_import",
   {
-    accountId: uuid("account_id")
-      .notNull()
-      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    accountId: uuid("account_id").notNull(),
     /** sha256 of the source bytes, set when the worker first reads the file. */
     checksum: text("checksum"),
     committedAt: timestamptz("committed_at"),
@@ -61,12 +61,8 @@ export const transactionImport = pgTable(
     createdByUserId: uuid("created_by_user_id").references(() => user.id, {
       onDelete: "set null",
     }),
-    defaultExpenseCategoryId: uuid("default_expense_category_id")
-      .notNull()
-      .references(() => category.id, { onDelete: "cascade" }),
-    defaultIncomeCategoryId: uuid("default_income_category_id")
-      .notNull()
-      .references(() => category.id, { onDelete: "cascade" }),
+    defaultExpenseCategoryId: uuid("default_expense_category_id").notNull(),
+    defaultIncomeCategoryId: uuid("default_income_category_id").notNull(),
     duplicateRows: integer("duplicate_rows").default(0).notNull(),
     error: text("error"),
     /** The status to resume from when a failed import is retried. */
@@ -88,15 +84,39 @@ export const transactionImport = pgTable(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
-    sourceFileId: uuid("source_file_id").references(() => file.id, {
-      onDelete: "set null",
-    }),
+    sourceFileId: uuid("source_file_id"),
     status: text("status", { enum: transactionImportStatuses }).notNull(),
     totalRows: integer("total_rows").default(0).notNull(),
     validRows: integer("valid_rows").default(0).notNull(),
     validatedAt: timestamptz("validated_at"),
   },
   (table) => [
+    unique("transaction_import_organization_id_key").on(
+      table.organizationId,
+      table.id
+    ),
+    foreignKey({
+      columns: [table.organizationId, table.accountId],
+      foreignColumns: [financialAccount.organizationId, financialAccount.id],
+      name: "transaction_import_account_id_fkey",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.organizationId, table.defaultExpenseCategoryId],
+      foreignColumns: [category.organizationId, category.id],
+      name: "transaction_import_default_expense_category_id_fkey",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.organizationId, table.defaultIncomeCategoryId],
+      foreignColumns: [category.organizationId, category.id],
+      name: "transaction_import_default_income_category_id_fkey",
+    }).onDelete("restrict"),
+    // The migration narrows this to `SET NULL (source_file_id)`, which drizzle
+    // cannot express: nulling organization_id too would fail its NOT NULL.
+    foreignKey({
+      columns: [table.organizationId, table.sourceFileId],
+      foreignColumns: [file.organizationId, file.id],
+      name: "transaction_import_source_file_id_fkey",
+    }).onDelete("set null"),
     index("transaction_import_organization_idx").on(
       table.organizationId,
       table.id
@@ -112,9 +132,7 @@ export const transactionImportRow = pgTable(
   "transaction_import_row",
   {
     amount: money("amount"),
-    categoryId: uuid("category_id").references(() => category.id, {
-      onDelete: "set null",
-    }),
+    categoryId: uuid("category_id"),
     description: text("description"),
     errors: jsonb("errors")
       .$type<TransactionImportRowError[]>()
@@ -124,9 +142,7 @@ export const transactionImportRow = pgTable(
     id: uuid("id")
       .primaryKey()
       .default(sql`uuidv7()`),
-    importId: uuid("import_id")
-      .notNull()
-      .references(() => transactionImport.id, { onDelete: "cascade" }),
+    importId: uuid("import_id").notNull(),
     notes: text("notes"),
     organizationId: uuid("organization_id")
       .notNull()
@@ -145,13 +161,29 @@ export const transactionImportRow = pgTable(
       "suggestion_application"
     ).$type<TransactionSuggestionApplication>(),
     transactionDate: date("transaction_date", { mode: "string" }),
-    transactionId: uuid("transaction_id").references(
-      () => financialTransaction.id,
-      { onDelete: "set null" }
-    ),
+    transactionId: uuid("transaction_id"),
     type: text("type", { enum: ["income", "expense"] }),
   },
   (table) => [
+    foreignKey({
+      columns: [table.organizationId, table.importId],
+      foreignColumns: [transactionImport.organizationId, transactionImport.id],
+      name: "transaction_import_row_import_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.organizationId, table.categoryId],
+      foreignColumns: [category.organizationId, category.id],
+      name: "transaction_import_row_category_id_fkey",
+    }).onDelete("restrict"),
+    // Narrowed to `SET NULL (transaction_id)` in the migration, as above.
+    foreignKey({
+      columns: [table.organizationId, table.transactionId],
+      foreignColumns: [
+        financialTransaction.organizationId,
+        financialTransaction.id,
+      ],
+      name: "transaction_import_row_transaction_id_fkey",
+    }).onDelete("set null"),
     uniqueIndex("transaction_import_row_import_row_uidx").on(
       table.importId,
       table.rowNumber

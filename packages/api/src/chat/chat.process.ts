@@ -61,11 +61,15 @@ type Executor = Pick<Database, "update">;
 const claimMessage = async (
   db: Executor,
   job: ChatJob,
-  transactionId: string | null = null
+  transaction: { id: string; organizationId: string } | null = null
 ): Promise<void> => {
   const [claimed] = await db
     .update(chatInboundMessage)
-    .set({ processedAt: new Date(), transactionId })
+    .set({
+      organizationId: transaction?.organizationId ?? null,
+      processedAt: new Date(),
+      transactionId: transaction?.id ?? null,
+    })
     .where(
       and(
         eq(chatInboundMessage.channel, job.channel),
@@ -239,7 +243,10 @@ const addEntry = async (
           message: "Could not create transaction",
         });
       }
-      await claimMessage(tx, job, created.id);
+      await claimMessage(tx, job, {
+        id: created.id,
+        organizationId: link.organizationId,
+      });
       const [account] = await tx
         .select({
           currencyCode: financialAccount.currencyCode,
@@ -414,10 +421,15 @@ const addReceipt = async (
       if (!uploaded) {
         throw new Error("Could not create receipt file");
       }
-      await tx
-        .insert(financialTransactionAttachment)
-        .values({ fileId: uploaded.id, transactionId: created.id });
-      await claimMessage(tx, job, created.id);
+      await tx.insert(financialTransactionAttachment).values({
+        fileId: uploaded.id,
+        organizationId: link.organizationId,
+        transactionId: created.id,
+      });
+      await claimMessage(tx, job, {
+        id: created.id,
+        organizationId: link.organizationId,
+      });
       const [account] = await tx
         .select({
           currencyCode: financialAccount.currencyCode,

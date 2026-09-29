@@ -2,11 +2,13 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   pgTable,
   primaryKey,
   text,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -61,10 +63,7 @@ export const transactionRule = pgTable(
     id: uuid("id")
       .primaryKey()
       .default(sql`uuidv7()`),
-    matchAccountId: uuid("match_account_id").references(
-      () => financialAccount.id,
-      { onDelete: "cascade" }
-    ),
+    matchAccountId: uuid("match_account_id"),
     matchAmountMax: money("match_amount_max"),
     matchAmountMin: money("match_amount_min"),
     matchText: text("match_text"),
@@ -77,11 +76,23 @@ export const transactionRule = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     position: integer("position").notNull(),
-    setCategoryId: uuid("set_category_id").references(() => category.id, {
-      onDelete: "cascade",
-    }),
+    setCategoryId: uuid("set_category_id"),
   },
   (table) => [
+    unique("transaction_rule_organization_id_key").on(
+      table.organizationId,
+      table.id
+    ),
+    foreignKey({
+      columns: [table.organizationId, table.matchAccountId],
+      foreignColumns: [financialAccount.organizationId, financialAccount.id],
+      name: "transaction_rule_match_account_id_fkey",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.organizationId, table.setCategoryId],
+      foreignColumns: [category.organizationId, category.id],
+      name: "transaction_rule_set_category_id_fkey",
+    }).onDelete("restrict"),
     index("transaction_rule_organization_position_idx").on(
       table.organizationId,
       table.position,
@@ -108,15 +119,24 @@ export const transactionRule = pgTable(
 export const transactionRuleTag = pgTable(
   "transaction_rule_tag",
   {
-    ruleId: uuid("rule_id")
+    organizationId: uuid("organization_id")
       .notNull()
-      .references(() => transactionRule.id, { onDelete: "cascade" }),
-    tagId: uuid("tag_id")
-      .notNull()
-      .references(() => tag.id, { onDelete: "cascade" }),
+      .references(() => organization.id, { onDelete: "cascade" }),
+    ruleId: uuid("rule_id").notNull(),
+    tagId: uuid("tag_id").notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.ruleId, table.tagId] }),
+    foreignKey({
+      columns: [table.organizationId, table.ruleId],
+      foreignColumns: [transactionRule.organizationId, transactionRule.id],
+      name: "transaction_rule_tag_rule_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.organizationId, table.tagId],
+      foreignColumns: [tag.organizationId, tag.id],
+      name: "transaction_rule_tag_tag_id_fkey",
+    }).onDelete("restrict"),
     index("transaction_rule_tag_tag_idx").on(table.tagId),
   ]
 );

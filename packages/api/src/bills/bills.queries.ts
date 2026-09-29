@@ -157,7 +157,7 @@ const loadCards = async (db: Database, organizationId: string) => {
     );
   const ids = cards.map(({ id }) => id);
   const [balances, statements] = await Promise.all([
-    getAccountBalances(db, ids),
+    getAccountBalances(db, organizationId, ids),
     ids.length === 0
       ? Promise.resolve([])
       : db

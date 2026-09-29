@@ -192,6 +192,7 @@ const lockSchedule = (
 
 const replaceScheduleTags = async (
   db: Database,
+  organizationId: string,
   scheduleId: string,
   tagIds: string[]
 ): Promise<void> => {
@@ -201,7 +202,7 @@ const replaceScheduleTags = async (
   if (tagIds.length > 0) {
     await db
       .insert(recurringScheduleTag)
-      .values(tagIds.map((tagId) => ({ scheduleId, tagId })));
+      .values(tagIds.map((tagId) => ({ organizationId, scheduleId, tagId })));
   }
 };
 
@@ -272,7 +273,12 @@ export const recurringRouter = {
           message: "Could not create the schedule",
         });
       }
-      await replaceScheduleTags(context.db, created.id, input.tagIds);
+      await replaceScheduleTags(
+        context.db,
+        context.organizationId,
+        created.id,
+        input.tagIds
+      );
       await enqueueIfDue(
         context.db,
         created.id,
@@ -454,7 +460,12 @@ export const recurringRouter = {
           nextOccurrenceDate,
         })
         .where(eq(recurringSchedule.id, current.id));
-      await replaceScheduleTags(context.db, current.id, values.tagIds);
+      await replaceScheduleTags(
+        context.db,
+        context.organizationId,
+        current.id,
+        values.tagIds
+      );
       await enqueueIfDue(
         context.db,
         current.id,

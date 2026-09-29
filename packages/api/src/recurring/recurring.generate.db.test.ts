@@ -138,7 +138,11 @@ describe("generateDueOccurrences", () => {
     const scheduleId = await createSchedule(fixture);
     await getTestDb()
       .insert(recurringScheduleTag)
-      .values({ scheduleId, tagId: commute?.id ?? "" });
+      .values({
+        organizationId: fixture.organizationId,
+        scheduleId,
+        tagId: commute?.id ?? "",
+      });
 
     const result = await generateDueOccurrences(
       getTestDb(),
@@ -168,9 +172,13 @@ describe("generateDueOccurrences", () => {
     expect(tags).toEqual([{ tagId: commute?.id }]);
     expect(await nextOccurrenceOf(scheduleId)).toBe("2026-11-01");
     // The ledger balance moves exactly as a manual expense would.
-    expect(await getAccountBalance(getTestDb(), fixture.accountId)).toBe(
-      "8500.000000"
-    );
+    expect(
+      await getAccountBalance(
+        getTestDb(),
+        fixture.organizationId,
+        fixture.accountId
+      )
+    ).toBe("8500.000000");
   });
 
   it("waits for local midnight in the household's timezone", async () => {

@@ -602,6 +602,7 @@ const balancesAnswer = async (
     .orderBy(asc(financialAccount.name));
   const balances = await getAccountBalances(
     db,
+    organizationId,
     accounts.map((account) => account.id)
   );
   const rowOf = (account: (typeof accounts)[number]): AskRow => ({

@@ -3,10 +3,12 @@ import {
   boolean,
   check,
   date,
+  foreignKey,
   index,
   pgTable,
   smallint,
   text,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -51,6 +53,11 @@ export const financialAccount = pgTable(
     statementClosingDay: smallint("statement_closing_day"),
   },
   (table) => [
+    // What every composite foreign key into this table references.
+    unique("financial_account_organization_id_key").on(
+      table.organizationId,
+      table.id
+    ),
     index("financial_account_organization_archived_idx").on(
       table.organizationId,
       table.archivedAt
@@ -66,9 +73,7 @@ export const financialAccount = pgTable(
 export const creditCardStatement = pgTable(
   "credit_card_statement",
   {
-    accountId: uuid("account_id")
-      .notNull()
-      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    accountId: uuid("account_id").notNull(),
     ...timestamps(),
     dueDate: date("due_date", { mode: "string" }),
     id: uuid("id")
@@ -84,6 +89,15 @@ export const creditCardStatement = pgTable(
     statementDate: date("statement_date", { mode: "string" }).notNull(),
   },
   (table) => [
+    unique("credit_card_statement_organization_id_key").on(
+      table.organizationId,
+      table.id
+    ),
+    foreignKey({
+      columns: [table.organizationId, table.accountId],
+      foreignColumns: [financialAccount.organizationId, financialAccount.id],
+      name: "credit_card_statement_account_id_fkey",
+    }).onDelete("restrict"),
     check(
       "credit_card_statement_period_chk",
       sql`${table.periodStart} <= ${table.periodEnd}`
@@ -107,17 +121,27 @@ export const financialAccountOwner = pgTable(
   "financial_account_owner",
   {
     createdAt: timestamptz("created_at").defaultNow().notNull(),
-    financialAccountId: uuid("financial_account_id")
-      .notNull()
-      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    financialAccountId: uuid("financial_account_id").notNull(),
     id: uuid("id")
       .primaryKey()
       .default(sql`uuidv7()`),
-    memberId: uuid("member_id")
+    memberId: uuid("member_id").notNull(),
+    organizationId: uuid("organization_id")
       .notNull()
-      .references(() => member.id, { onDelete: "cascade" }),
+      .references(() => organization.id, { onDelete: "cascade" }),
   },
   (table) => [
+    foreignKey({
+      columns: [table.organizationId, table.financialAccountId],
+      foreignColumns: [financialAccount.organizationId, financialAccount.id],
+      name: "financial_account_owner_financial_account_id_fkey",
+    }).onDelete("restrict"),
+    // Removing a member from the household drops their ownerships with them.
+    foreignKey({
+      columns: [table.organizationId, table.memberId],
+      foreignColumns: [member.organizationId, member.id],
+      name: "financial_account_owner_member_id_fkey",
+    }).onDelete("cascade"),
     uniqueIndex("financial_account_owner_account_member_uidx").on(
       table.financialAccountId,
       table.memberId
@@ -129,9 +153,7 @@ export const financialAccountOwner = pgTable(
 export const financialAccountBalanceSnapshot = pgTable(
   "financial_account_balance_snapshot",
   {
-    accountId: uuid("account_id")
-      .notNull()
-      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    accountId: uuid("account_id").notNull(),
     balance: money("balance").notNull(),
     createdAt: timestamptz("created_at").defaultNow().notNull(),
     effectiveDate: date("effective_date", { mode: "string" }).notNull(),
@@ -139,9 +161,17 @@ export const financialAccountBalanceSnapshot = pgTable(
       .primaryKey()
       .default(sql`uuidv7()`),
     importReference: text("import_reference"),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
     source: text("source").default("manual").notNull(),
   },
   (table) => [
+    foreignKey({
+      columns: [table.organizationId, table.accountId],
+      foreignColumns: [financialAccount.organizationId, financialAccount.id],
+      name: "financial_account_balance_snapshot_account_id_fkey",
+    }).onDelete("restrict"),
     index("financial_account_balance_snapshot_account_date_idx").on(
       table.accountId,
       table.effectiveDate

@@ -178,7 +178,11 @@ export const attachmentsRouter = {
 
       const [linked] = await context.db
         .insert(financialTransactionAttachment)
-        .values({ fileId: source.id, transactionId: transaction.id })
+        .values({
+          fileId: source.id,
+          organizationId: context.organizationId,
+          transactionId: transaction.id,
+        })
         .onConflictDoNothing()
         .returning({ fileId: financialTransactionAttachment.fileId });
       if (!linked) {
