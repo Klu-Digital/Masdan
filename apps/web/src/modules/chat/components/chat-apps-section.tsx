@@ -17,10 +17,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
-import { chatStatusQueryOptions, invalidateChatStatus } from "../queries";
-import type { ChatChannelStatus } from "../queries";
+import type { ChatChannelStatus } from "../types";
+
+/** Polled while a code is showing. */
+const LINK_POLL_MS = 3000;
 
 const timeFormat = new Intl.DateTimeFormat(undefined, { timeStyle: "short" });
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
@@ -133,33 +136,32 @@ const ChatApps = ({
     return () => clearTimeout(timer);
   }, [pendingCode]);
 
+  const { chat } = householdOrpc(activeOrganizationId);
   const channels = useQuery(
-    chatStatusQueryOptions(activeOrganizationId, pendingCode !== null)
+    chat.status.queryOptions({
+      // The link completes in the chat app, not in this tab.
+      refetchInterval: pendingCode === null ? false : LINK_POLL_MS,
+    })
   ).data?.channels;
   const linked = channels?.filter((channel) => channel.link) ?? [];
   const unlinked = channels?.filter((channel) => !channel.link) ?? [];
   const showCode = pendingCode && linked.length <= pendingCode.linkedBefore;
 
-  const createCode = useMutation({
-    mutationFn: () => client.chat.createLinkCode(),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
-    onSuccess: (created) =>
-      setPendingCode({ ...created, linkedBefore: linked.length }),
-  });
-  const unlink = useMutation({
-    mutationFn: (channel: ChatChannelStatus["channel"]) =>
-      client.chat.unlink({ channel }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
-    onSuccess: async () => {
-      setPendingCode(null);
-      await invalidateChatStatus(queryClient, activeOrganizationId);
-      toastManager.add({ title: "Unlinked", type: "success" });
-    },
-  });
+  const createCode = useMutation(
+    chat.createLinkCode.mutationOptions({
+      onSuccess: (created) =>
+        setPendingCode({ ...created, linkedBefore: linked.length }),
+    })
+  );
+  const unlink = useMutation(
+    chat.unlink.mutationOptions({
+      onSuccess: async () => {
+        setPendingCode(null);
+        await invalidate(queryClient, activeOrganizationId, "chat");
+        toastManager.add({ title: "Unlinked", type: "success" });
+      },
+    })
+  );
 
   if (!channels) {
     return null;
@@ -211,8 +213,10 @@ const ChatApps = ({
           <ChannelRow
             channel={channel}
             key={channel.channel}
-            onUnlink={() => unlink.mutate(channel.channel)}
-            unlinking={unlink.isPending && unlink.variables === channel.channel}
+            onUnlink={() => unlink.mutate({ channel: channel.channel })}
+            unlinking={
+              unlink.isPending && unlink.variables.channel === channel.channel
+            }
           />
         ))}
         {linking}

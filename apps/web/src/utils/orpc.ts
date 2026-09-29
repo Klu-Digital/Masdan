@@ -1,22 +1,82 @@
 import type { AppRouterClient } from "@masdan/api/routers/index";
-import { env } from "@masdan/env/web";
 import { toastManager } from "@masdan/ui/components/toast";
-import { createORPCClient } from "@orpc/client";
-import { RPCLink } from "@orpc/client/fetch";
+import { ORPCError, isDefinedError } from "@orpc/client";
+import type {
+  InferClientErrorUnion,
+  InferClientInputs,
+  InferClientOutputs,
+} from "@orpc/client";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
-import { QueryCache, QueryClient } from "@tanstack/react-query";
+import type { RouterUtils } from "@orpc/tanstack-query";
+import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 
-import { getServerUrl } from "@/lib/server-url";
+import { client } from "@/utils/client";
 
-/** Opt-out flag for the global error toast below. */
+/** Opt-outs for the global error toasts below. */
 declare module "@tanstack/react-query" {
   interface Register {
+    mutationMeta: { suppressErrorToast?: boolean };
     queryMeta: { suppressErrorToast?: boolean };
   }
 }
 
+export type RouterInputs = InferClientInputs<AppRouterClient>;
+export type RouterOutputs = InferClientOutputs<AppRouterClient>;
+/** Every error a procedure can answer; the defined ones carry typed `data`. */
+type RouterError = InferClientErrorUnion<AppRouterClient>;
+
+const STALE_TIME_MS = 30_000;
+const MAX_RETRIES = 2;
+const GENERIC_ERROR = "Something went wrong. Try again in a moment.";
+
+/**
+ * What a person is told when a call fails. Only defined errors carry messages
+ * the server wrote for people; an undefined `ORPCError` is a crash whose
+ * message is not for them.
+ */
+export const errorMessage = (error: unknown): string => {
+  // `isDefinedError` checks at runtime; the cast only lends it the types.
+  const routerError = error as RouterError;
+  if (isDefinedError(routerError)) {
+    if (routerError.code === "TOO_MANY_REQUESTS") {
+      return `Too many attempts. Try again in ${routerError.data.retryAfter} seconds.`;
+    }
+    return routerError.message;
+  }
+  if (error instanceof ORPCError) {
+    return GENERIC_ERROR;
+  }
+  // `fetch` rejects with a TypeError when the server is unreachable.
+  if (error instanceof TypeError) {
+    return "Can’t reach Masdan. Check your connection.";
+  }
+  // Thrown by this app's own code (uploads, better-auth wrappers).
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return GENERIC_ERROR;
+};
+
 export const createQueryClient = () =>
   new QueryClient({
+    defaultOptions: {
+      queries: {
+        // A defined error (403, 404, a conflict) is an answer; asking again
+        // only delays it.
+        retry: (failureCount, error) =>
+          !isDefinedError(error) && failureCount < MAX_RETRIES,
+        staleTime: STALE_TIME_MS,
+      },
+    },
+    mutationCache: new MutationCache({
+      onError: (error, _variables, _result, mutation) => {
+        // Mutations that show the failure inline opt out.
+        if (mutation.meta?.suppressErrorToast) {
+          return;
+        }
+        toastManager.add({ title: errorMessage(error), type: "error" });
+      },
+    }),
     queryCache: new QueryCache({
       onError: (error, query) => {
         // Queries that render their own failure state opt out, or the visitor
@@ -31,7 +91,7 @@ export const createQueryClient = () =>
               query.invalidate();
             },
           },
-          title: `Error: ${error.message}`,
+          title: errorMessage(error),
           type: "error",
         });
       },
@@ -40,16 +100,34 @@ export const createQueryClient = () =>
 
 export const queryClient = createQueryClient();
 
-export const link = new RPCLink({
-  fetch(url, options) {
-    return fetch(url, {
-      ...options,
-      credentials: "include",
-    });
-  },
-  url: `${getServerUrl(env.VITE_SERVER_URL)}/rpc`,
-});
-
-export const client: AppRouterClient = createORPCClient(link);
-
+/** Utils for data that belongs to no household: admin, reference data, invites. */
 export const orpc = createTanstackQueryUtils(client);
+
+type AppRouterUtils = RouterUtils<AppRouterClient>;
+
+/** Where a household's queries live in the cache; every key starts with it. */
+export const householdPath = (activeOrganizationId: string | null) => [
+  "household",
+  activeOrganizationId ?? "",
+];
+
+const householdUtils = new Map<string | null, AppRouterUtils>();
+
+/**
+ * Utils for tenant data. The household is part of every key, so switching
+ * households — in this tab or another — never serves the previous one's cache.
+ * `null` builds keys no enabled query should use; gate those on `enabled`.
+ */
+export const householdOrpc = (
+  activeOrganizationId: string | null
+): AppRouterUtils => {
+  const cached = householdUtils.get(activeOrganizationId);
+  if (cached) {
+    return cached;
+  }
+  const utils = createTanstackQueryUtils(client, {
+    path: householdPath(activeOrganizationId),
+  });
+  householdUtils.set(activeOrganizationId, utils);
+  return utils;
+};

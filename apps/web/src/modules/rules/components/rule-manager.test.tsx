@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { renderWithProviders } from "@/test/render";
-import type * as TypeImport___utils_orpc from "@/utils/orpc";
 
 vi.mock("@masdan/ui/components/toast", () => ({
   toastManager: { add: vi.fn(), close: vi.fn(), update: vi.fn() },
@@ -21,11 +20,10 @@ const rpc = vi.hoisted(() => ({
   update: vi.fn(),
 }));
 
-vi.mock("@/utils/orpc", async (importOriginal) => {
-  const actual = await importOriginal<typeof TypeImport___utils_orpc>();
+vi.mock("@/utils/client", async () => {
+  const { mockClient } = await import("@/test/client");
   return {
-    ...actual,
-    client: {
+    client: mockClient({
       accounts: { list: rpc.accounts },
       categories: { list: rpc.categories },
       rules: {
@@ -37,7 +35,7 @@ vi.mock("@/utils/orpc", async (importOriginal) => {
         update: rpc.update,
       },
       tags: { list: rpc.tags },
-    },
+    }),
   };
 });
 

@@ -21,7 +21,7 @@ import {
 import { useState } from "react";
 
 import { ruleEffects, ruleReasons } from "../presentation";
-import type { Rule } from "../queries";
+import type { Rule } from "../types";
 
 const TYPE_LABELS = { expense: "Money out", income: "Money in" } as const;
 

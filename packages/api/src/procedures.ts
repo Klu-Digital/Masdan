@@ -8,8 +8,9 @@ import { and, eq } from "drizzle-orm";
 
 import type { Context } from "./context";
 import { isFeatureEnabled } from "./feature-flags/feature-flags.cache";
+import { domainErrors } from "./shared/errors";
 
-export const o = os.$context<Context>();
+export const o = os.$context<Context>().errors(domainErrors);
 
 export const publicProcedure = o.use(orpcLogger());
 

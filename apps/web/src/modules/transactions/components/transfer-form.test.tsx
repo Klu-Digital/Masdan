@@ -4,8 +4,6 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-import type * as TypeImport___utils_orpc from "@/utils/orpc";
-
 vi.mock("@masdan/ui/components/toast", () => ({
   toastManager: { add: vi.fn(), close: vi.fn(), update: vi.fn() },
 }));
@@ -13,11 +11,13 @@ vi.mock("@masdan/ui/components/toast", () => ({
 const accountsList = vi.hoisted(() => vi.fn());
 const create = vi.hoisted(() => vi.fn());
 
-vi.mock("@/utils/orpc", async (importOriginal) => {
-  const actual = await importOriginal<typeof TypeImport___utils_orpc>();
+vi.mock("@/utils/client", async () => {
+  const { mockClient } = await import("@/test/client");
   return {
-    ...actual,
-    client: { accounts: { list: accountsList }, transfers: { create } },
+    client: mockClient({
+      accounts: { list: accountsList },
+      transfers: { create },
+    }),
   };
 });
 

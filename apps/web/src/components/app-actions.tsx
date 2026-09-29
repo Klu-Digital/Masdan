@@ -156,6 +156,7 @@ export const AppActionsProvider = ({ children }: { children: ReactNode }) => {
       {inspector ? (
         <TransactionInspector
           actions={ledgerActions}
+          activeOrganizationId={activeOrganizationId}
           onEdit={(detail) => {
             setInspector((current) =>
               current ? { ...current, open: false } : current

@@ -64,7 +64,12 @@ import { Tabs, TabsList, TabsTab } from "@masdan/ui/components/tabs";
 import { toastManager } from "@masdan/ui/components/toast";
 import { toNumber } from "@masdan/ui/lib/money";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { EmojiPicker } from "frimousse";
 import { useState } from "react";
@@ -73,11 +78,9 @@ import { z } from "zod";
 import { ColorSelector } from "@/components/color-selector";
 import { startOfMonth, toIsoDate } from "@/lib/dates";
 import { FormActions } from "@/modules/transactions/components/transaction-form";
-import { transactionSummaryQueryOptions } from "@/modules/transactions/queries";
 import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
-import { client } from "@/utils/orpc";
-
-import { categoriesQueryOptions, invalidateCategories } from "../queries";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
 interface Category {
   archivedAt: Date | null;
@@ -200,6 +203,17 @@ const CategoryComposer = ({
 }) => {
   const queryClient = useQueryClient();
   const editing = category !== undefined;
+  const { categories } = householdOrpc(activeOrganizationId);
+  const onSuccess = async (_: unknown, { name }: { name: string }) => {
+    await invalidate(queryClient, activeOrganizationId, "categories");
+    onOpenChange(false);
+    toastManager.add({
+      title: editing ? "Category updated" : `${name.trim()} added`,
+      type: "success",
+    });
+  };
+  const create = useMutation(categories.create.mutationOptions({ onSuccess }));
+  const update = useMutation(categories.update.mutationOptions({ onSuccess }));
   const form = useForm({
     defaultValues: {
       color: colorValue(category?.color),
@@ -208,25 +222,12 @@ const CategoryComposer = ({
       type: initialType(category, defaultType),
     },
     onSubmit: async ({ value }) => {
-      try {
-        await (category
-          ? client.categories.update({ ...value, categoryId: category.id })
-          : client.categories.create(value));
-        await invalidateCategories(queryClient, activeOrganizationId);
-        onOpenChange(false);
-        toastManager.add({
-          title: editing ? "Category updated" : `${value.name.trim()} added`,
-          type: "success",
-        });
-      } catch (error) {
-        toastManager.add({
-          title:
-            error instanceof Error
-              ? error.message
-              : `Could not ${editing ? "update" : "create"} the category`,
-          type: "error",
-        });
-      }
+      // The mutation cache toasts the failure; the form keeps its values.
+      await (
+        category
+          ? update.mutateAsync({ ...value, categoryId: category.id })
+          : create.mutateAsync(value)
+      ).catch(() => null);
     },
     validators: { onSubmit: categorySchema },
   });
@@ -361,16 +362,19 @@ export const CategoryManager = ({
   today?: string;
 }) => {
   const queryClient = useQueryClient();
-  const categories = useQuery(categoriesQueryOptions(activeOrganizationId));
-  const summary = useQuery({
-    ...transactionSummaryQueryOptions(activeOrganizationId, {
-      dateFrom: startOfMonth(today),
-      dateTo: today,
-    }),
-    enabled: currency !== undefined,
-    meta: { suppressErrorToast: true },
-    retry: false,
-  });
+  const orpc = householdOrpc(activeOrganizationId);
+  const categories = useQuery(
+    orpc.categories.list.queryOptions({ input: { includeArchived: true } })
+  );
+  const summary = useQuery(
+    orpc.transactions.summary.queryOptions({
+      enabled: currency !== undefined,
+      input: { dateFrom: startOfMonth(today), dateTo: today },
+      meta: { suppressErrorToast: true },
+      placeholderData: keepPreviousData,
+      retry: false,
+    })
+  );
   const [type, setType] = useState<CategoryType>("expense");
   const [showArchived, setShowArchived] = useState(false);
   const [composer, setComposer] = useState<{
@@ -382,13 +386,10 @@ export const CategoryManager = ({
   const archive = useMutation({
     mutationFn: ({ id, restore }: { id: string; restore: boolean }) =>
       restore
-        ? client.categories.restore({ categoryId: id })
-        : client.categories.archive({ categoryId: id }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+        ? orpc.categories.restore.call({ categoryId: id })
+        : orpc.categories.archive.call({ categoryId: id }),
     onSuccess: async (_, { id, restore }) => {
-      await invalidateCategories(queryClient, activeOrganizationId);
+      await invalidate(queryClient, activeOrganizationId, "categories");
       toastManager.add({
         actionProps: restore
           ? undefined

@@ -10,9 +10,7 @@ const rpc = vi.hoisted(() => ({
   createUpload: vi.fn(),
 }));
 
-vi.mock("@/utils/orpc", () => ({
-  client: { files: rpc },
-}));
+vi.mock("@/utils/client", () => ({ client: { files: rpc } }));
 
 const { uploadFile } = await import("./upload");
 

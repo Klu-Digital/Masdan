@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
@@ -16,17 +16,20 @@ const rpc = vi.hoisted(() => ({
   list: vi.fn(),
   remove: vi.fn(),
 }));
-vi.mock("@/utils/orpc", () => ({
-  client: {
-    attachments: {
-      attach: rpc.attach,
-      downloadUrl: rpc.downloadUrl,
-      list: rpc.list,
-      remove: rpc.remove,
-    },
-    files: { deleteFile: rpc.deleteFile },
-  },
-}));
+vi.mock("@/utils/client", async () => {
+  const { mockClient } = await import("@/test/client");
+  return {
+    client: mockClient({
+      attachments: {
+        attach: rpc.attach,
+        downloadUrl: rpc.downloadUrl,
+        list: rpc.list,
+        remove: rpc.remove,
+      },
+      files: { deleteFile: rpc.deleteFile },
+    }),
+  };
+});
 
 const uploadFile = vi.hoisted(() =>
   vi.fn<typeof TypeImport___lib_upload.uploadFile>()
@@ -45,6 +48,7 @@ vi.mock("@/hooks/use-household", () => ({
   }),
 }));
 
+const { createQueryClient } = await import("@/utils/orpc");
 const { TransactionAttachments } = await import("./transaction-attachments");
 
 const TRANSACTION = "00000000-0000-4000-8000-000000000001";
@@ -79,8 +83,9 @@ const attachment = (overrides: Record<string, unknown> = {}) => ({
 });
 
 const renderAttachments = ({ editable = true } = {}) => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+  const queryClient = createQueryClient();
+  queryClient.setDefaultOptions({
+    queries: { ...queryClient.getDefaultOptions().queries, retry: false },
   });
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

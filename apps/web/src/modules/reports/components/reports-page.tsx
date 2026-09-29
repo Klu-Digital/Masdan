@@ -20,22 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@masdan/ui/components/select";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type { ReactNode } from "react";
 
 import { formatLongDate } from "@/lib/dates";
+import { householdOrpc } from "@/utils/orpc";
 
 import { DEFAULT_RANGE, chartGranularity } from "../period";
 import type { ReportRange } from "../period";
-import {
-  budgetPerformanceQueryOptions,
-  cashFlowQueryOptions,
-  netWorthHistoryQueryOptions,
-  netWorthQueryOptions,
-  spendingQueryOptions,
-} from "../queries";
 import { PeriodPicker } from "./period-picker";
 import {
   BudgetPerformanceSection,
@@ -46,17 +40,28 @@ import {
 } from "./report-sections";
 
 const useReports = (activeOrganizationId: string, range: ReportRange) => {
-  const netWorth = useQuery(netWorthQueryOptions(activeOrganizationId));
+  const { reports } = householdOrpc(activeOrganizationId);
+  // Each section renders its own failure state; a new range keeps the old
+  // figures on screen until the next ones land.
+  const shared = {
+    meta: { suppressErrorToast: true },
+    placeholderData: keepPreviousData,
+  };
+  const netWorth = useQuery(reports.netWorth.queryOptions(shared));
   const history = useQuery(
-    netWorthHistoryQueryOptions(activeOrganizationId, {
-      ...range,
-      granularity: chartGranularity(range),
+    reports.netWorthHistory.queryOptions({
+      ...shared,
+      input: { ...range, granularity: chartGranularity(range) },
     })
   );
-  const cashFlow = useQuery(cashFlowQueryOptions(activeOrganizationId, range));
-  const spending = useQuery(spendingQueryOptions(activeOrganizationId, range));
+  const cashFlow = useQuery(
+    reports.cashFlow.queryOptions({ ...shared, input: range })
+  );
+  const spending = useQuery(
+    reports.spendingByCategory.queryOptions({ ...shared, input: range })
+  );
   const budgetPerformance = useQuery(
-    budgetPerformanceQueryOptions(activeOrganizationId, range)
+    reports.budgetPerformance.queryOptions({ ...shared, input: range })
   );
   const queries = [netWorth, history, cashFlow, spending, budgetPerformance];
   return {

@@ -12,7 +12,7 @@ import {
 
 import { renderWithProviders, useWideViewport } from "@/test/render";
 
-import type { Transaction } from "../queries";
+import type { Transaction } from "../types";
 import { BulkActionBar } from "./bulk-action-bar";
 import { Ledger } from "./ledger";
 

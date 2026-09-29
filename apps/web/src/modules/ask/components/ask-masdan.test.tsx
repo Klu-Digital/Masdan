@@ -4,13 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { formatLongDate } from "@/lib/dates";
 import { renderWithProviders } from "@/test/render";
-import type * as TypeImport___utils_orpc from "@/utils/orpc";
 
 const question = vi.hoisted(() => vi.fn());
 
-vi.mock("@/utils/orpc", async (importOriginal) => {
-  const actual = await importOriginal<typeof TypeImport___utils_orpc>();
-  return { ...actual, client: { ask: { question } } };
+vi.mock("@/utils/client", async () => {
+  const { mockClient } = await import("@/test/client");
+  return { client: mockClient({ ask: { question } }) };
 });
 
 const { AskMasdan } = await import("./ask-masdan");

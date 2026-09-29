@@ -38,9 +38,6 @@ const InvitationCard = ({ invitationId }: { invitationId: string }) => {
 
   const accept = useMutation({
     mutationFn: () => acceptHouseholdInvitation({ invitationId, queryClient }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
     onSuccess: async () => {
       toastManager.add({ title: "Invitation accepted", type: "success" });
       await navigate({ to: "/dashboard" });
@@ -49,9 +46,6 @@ const InvitationCard = ({ invitationId }: { invitationId: string }) => {
 
   const decline = useMutation({
     mutationFn: () => rejectHouseholdInvitation({ invitationId, queryClient }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
     onSuccess: async () => {
       toastManager.add({ title: "Invitation declined", type: "success" });
       await navigate({ to: "/dashboard" });

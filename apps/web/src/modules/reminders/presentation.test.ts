@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import { reminderCopy, strongestTone } from "./presentation";
-import type { Reminder } from "./queries";
+import type { Reminder } from "./types";
 
 const TODAY = "2026-03-05";
 

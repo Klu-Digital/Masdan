@@ -20,7 +20,7 @@ import { Textarea } from "@masdan/ui/components/textarea";
 import { toastManager } from "@masdan/ui/components/toast";
 import { moneyParts } from "@masdan/ui/lib/money";
 import { useForm } from "@tanstack/react-form";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
@@ -33,15 +33,15 @@ import {
   FormActions,
   trimDecimal,
 } from "@/modules/transactions/components/transaction-form";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
 import {
   FREQUENCY_LABELS,
   FREQUENCY_UNITS,
   previewOccurrences,
 } from "../presentation";
-import { invalidateSchedules } from "../queries";
-import type { Schedule, ScheduleInput } from "../queries";
+import type { Schedule, ScheduleInput } from "../types";
 
 export interface ComposerAccount extends PickerAccount {
   archivedAt: Date | null;
@@ -226,29 +226,28 @@ export const ScheduleComposer = ({
   const defaultAccountId =
     activeAccounts.length === 1 ? (activeAccounts[0]?.id ?? "") : "";
 
+  const { recurring } = householdOrpc(activeOrganizationId);
+  const onSuccess = async (_: unknown, { name }: { name: string }) => {
+    await invalidate(queryClient, activeOrganizationId, "recurring");
+    onOpenChange(false);
+    toastManager.add({
+      title: editing ? "Schedule updated" : `${name} scheduled`,
+      type: "success",
+    });
+  };
+  const create = useMutation(recurring.create.mutationOptions({ onSuccess }));
+  const update = useMutation(recurring.update.mutationOptions({ onSuccess }));
+
   const form = useForm({
     defaultValues: toFormValues(today, defaultAccountId, schedule),
     onSubmit: async ({ value }) => {
-      try {
-        const input = toInput(value);
-        await (schedule
-          ? client.recurring.update({ ...input, scheduleId: schedule.id })
-          : client.recurring.create(input));
-        await invalidateSchedules(queryClient, activeOrganizationId);
-        onOpenChange(false);
-        toastManager.add({
-          title: editing ? "Schedule updated" : `${input.name} scheduled`,
-          type: "success",
-        });
-      } catch (error) {
-        toastManager.add({
-          title:
-            error instanceof Error
-              ? error.message
-              : `Could not ${editing ? "update" : "create"} the schedule`,
-          type: "error",
-        });
-      }
+      const input = toInput(value);
+      // The mutation cache toasts the failure; the form keeps its values.
+      await (
+        schedule
+          ? update.mutateAsync({ ...input, scheduleId: schedule.id })
+          : create.mutateAsync(input)
+      ).catch(() => null);
     },
     validators: { onSubmit: scheduleFormSchema },
   });

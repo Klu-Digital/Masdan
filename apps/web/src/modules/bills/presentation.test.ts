@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import { calendarWeeks, daySummary, moveWithinMonth } from "./presentation";
-import type { Bill } from "./queries";
+import type { Bill } from "./types";
 
 describe("calendarWeeks", () => {
   it("pads the first and last weeks so every week has seven days", () => {

@@ -47,7 +47,7 @@ import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
 import { invalidateSession } from "@/lib/session";
-import { client, orpc } from "@/utils/orpc";
+import { orpc } from "@/utils/orpc";
 
 const routeApi = getRouteApi("/_auth/admin/users/$userId");
 
@@ -90,9 +90,6 @@ const RoleCard = ({
       if (error) {
         throw new Error(error.message ?? "Could not set the role");
       }
-    },
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({
@@ -169,9 +166,6 @@ const BanCard = ({
         throw new Error(error.message ?? "Could not ban this user");
       }
     },
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
     onSuccess: async () => {
       await invalidate();
       toastManager.add({ title: "User banned", type: "success" });
@@ -184,9 +178,6 @@ const BanCard = ({
       if (error) {
         throw new Error(error.message ?? "Could not unban this user");
       }
-    },
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
     },
     onSuccess: async () => {
       await invalidate();
@@ -292,9 +283,6 @@ const SessionsCard = ({
         throw new Error(error.message ?? "Could not revoke sessions");
       }
     },
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: orpc.admin.users.detail.key(),
@@ -360,10 +348,7 @@ const SessionsCard = ({
 /** Masdan sends no email: the admin hands this link over themselves. */
 const PasswordCard = ({ userId }: { userId: string }) => {
   const issue = useMutation({
-    mutationFn: () => client.admin.users.issuePasswordReset({ userId }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+    mutationFn: () => orpc.admin.users.issuePasswordReset.call({ userId }),
   });
 
   return (
@@ -433,9 +418,6 @@ const DangerZone = ({
         throw new Error(error.message ?? "Could not impersonate this user");
       }
     },
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
     onSuccess: async () => {
       await invalidateSession(queryClient);
       await router.navigate({ to: "/dashboard" });
@@ -448,9 +430,6 @@ const DangerZone = ({
       if (error) {
         throw new Error(error.message ?? "Could not remove this user");
       }
-    },
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
     },
     onSuccess: async () => {
       toastManager.add({ title: "User removed", type: "success" });

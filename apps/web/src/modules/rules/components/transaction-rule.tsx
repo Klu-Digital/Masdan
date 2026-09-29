@@ -5,13 +5,12 @@ import { toastManager } from "@masdan/ui/components/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useHousehold } from "@/hooks/use-household";
-import { accountsQueryOptions } from "@/modules/accounts/queries";
-import { invalidateTransactions } from "@/modules/transactions/queries";
-import type { TransactionDetail } from "@/modules/transactions/queries";
-import { client } from "@/utils/orpc";
+import type { TransactionDetail } from "@/modules/transactions/types";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
+import type { RouterOutputs } from "@/utils/orpc";
 
 import { ruleEffects, ruleReasons } from "../presentation";
-import { ruleMatchQueryOptions } from "../queries";
 
 const Reasons = ({ reasons }: { reasons: string[] }) => (
   <ul className="text-muted-foreground flex flex-col gap-0.5 text-xs">
@@ -21,9 +20,7 @@ const Reasons = ({ reasons }: { reasons: string[] }) => (
   </ul>
 );
 
-type Match = NonNullable<
-  Awaited<ReturnType<typeof client.rules.matchTransaction>>["match"]
->;
+type Match = NonNullable<RouterOutputs["rules"]["matchTransaction"]["match"]>;
 
 /** The rule that would run now, why, and only what it would change. */
 const MatchPreview = ({
@@ -70,31 +67,29 @@ export const TransactionRule = ({
 }) => {
   const queryClient = useQueryClient();
   const { activeOrganizationId } = useHousehold();
-  const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const accounts = useQuery(
+    orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
+  );
   const eligible =
     transaction.transfer === null &&
     transaction.archivedAt === null &&
     transaction.splits.length === 0;
-  const preview = useQuery({
-    ...ruleMatchQueryOptions(transaction.id),
-    enabled: eligible,
-  });
+  const preview = useQuery(
+    orpc.rules.matchTransaction.queryOptions({
+      enabled: eligible,
+      input: { transactionId: transaction.id },
+    })
+  );
 
   const apply = useMutation({
     mutationFn: (ruleId: string) =>
-      client.rules.applyToTransaction({
+      orpc.rules.applyToTransaction.call({
         ruleId,
         transactionId: transaction.id,
       }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
     onSuccess: async (updated) => {
-      await Promise.all([
-        invalidateTransactions(queryClient, activeOrganizationId),
-        queryClient.invalidateQueries({ queryKey: ["transaction"] }),
-        queryClient.invalidateQueries({ queryKey: ["rule-match"] }),
-      ]);
+      await invalidate(queryClient, activeOrganizationId, "ledger");
       toastManager.add({
         title: `Applied ${updated.ruleApplication?.ruleName ?? "rule"}`,
         type: "success",

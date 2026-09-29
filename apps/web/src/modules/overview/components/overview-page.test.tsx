@@ -4,7 +4,6 @@ import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { renderWithProviders } from "@/test/render";
-import type * as TypeImport___utils_orpc from "@/utils/orpc";
 
 import type { OverviewHousehold } from "./overview-page";
 
@@ -26,15 +25,14 @@ const actions = vi.hoisted(() => ({
   openCommandMenu: vi.fn(),
 }));
 
-vi.mock("@/utils/orpc", async (importOriginal) => {
-  const actual = await importOriginal<typeof TypeImport___utils_orpc>();
+vi.mock("@/utils/client", async () => {
+  const { mockClient } = await import("@/test/client");
   return {
-    ...actual,
-    client: {
+    client: mockClient({
       accounts: { list: accountsList, listStatements },
       reports: { cashFlow, netWorth, netWorthHistory, spendingByCategory },
       transactions: { list: transactionsList },
-    },
+    }),
   };
 });
 vi.mock("@/components/app-actions", () => ({ useAppActions: () => actions }));

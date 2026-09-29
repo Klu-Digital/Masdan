@@ -3,7 +3,7 @@ import { queryOptions } from "@tanstack/react-query";
 
 import { authClient } from "@/lib/auth-client";
 import { invalidateSession } from "@/lib/session";
-import { client } from "@/utils/orpc";
+import { client } from "@/utils/client";
 
 export type Organization = typeof authClient.$Infer.Organization;
 export type ActiveOrganization = typeof authClient.$Infer.ActiveOrganization;

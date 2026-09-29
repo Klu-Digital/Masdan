@@ -35,7 +35,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { client, orpc } from "@/utils/orpc";
+import { orpc } from "@/utils/orpc";
+import type { RouterOutputs } from "@/utils/orpc";
 
 const PAGE_SIZE = 50;
 
@@ -48,10 +49,8 @@ const STATUS_OPTIONS = [
 
 type StatusFilter = (typeof STATUS_OPTIONS)[number]["value"];
 
-type FilesResult = Awaited<ReturnType<typeof client.admin.files.list>>;
-type StuckFilesResult = Awaited<
-  ReturnType<typeof client.admin.files.pendingOlderThan>
->;
+type FilesResult = RouterOutputs["admin"]["files"]["list"];
+type StuckFilesResult = RouterOutputs["admin"]["files"]["pendingOlderThan"];
 
 const formatBytes = (bytes: number | null) => {
   if (bytes === null) {
@@ -203,20 +202,16 @@ const FilesTable = () => {
   );
 
   const download = useMutation({
-    mutationFn: (fileId: string) => client.admin.files.downloadUrl({ fileId }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+    mutationFn: (fileId: string) =>
+      orpc.admin.files.downloadUrl.call({ fileId }),
     onSuccess: (data) => {
       window.open(data.downloadUrl, "_blank", "noopener,noreferrer");
     },
   });
 
   const remove = useMutation({
-    mutationFn: (fileId: string) => client.admin.files.deleteFile({ fileId }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+    mutationFn: (fileId: string) =>
+      orpc.admin.files.deleteFile.call({ fileId }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: orpc.admin.files.list.key(),

@@ -39,7 +39,7 @@ import {
   StatLabel,
   StatValue,
 } from "@masdan/ui/components/stat";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
 import type React from "react";
@@ -48,16 +48,10 @@ import { useAppActions } from "@/components/app-actions";
 import { NewMenu } from "@/components/shell/new-menu";
 import type { Household } from "@/hooks/use-household";
 import { householdToday } from "@/lib/household-date";
-import { accountsQueryOptions } from "@/modules/accounts/queries";
-import { categoriesQueryOptions } from "@/modules/categories/queries";
-import { tagsQueryOptions } from "@/modules/tags/queries";
+import { householdOrpc } from "@/utils/orpc";
 
-import {
-  transactionTotalsQueryOptions,
-  transactionsQueryOptions,
-} from "../queries";
-import type { Transaction } from "../queries";
 import type { TransactionSearch } from "../search";
+import type { Transaction } from "../types";
 import { useLedgerActions } from "../use-ledger-actions";
 import { useLedgerSelection } from "../use-ledger-selection";
 import { BulkActionBar } from "./bulk-action-bar";
@@ -104,7 +98,10 @@ const TotalsStrip = ({
     types: search.types,
   };
   const totals = useQuery(
-    transactionTotalsQueryOptions(activeOrganizationId, input)
+    householdOrpc(activeOrganizationId).transactions.totals.queryOptions({
+      input,
+      placeholderData: keepPreviousData,
+    })
   );
 
   if (totals.isPending) {
@@ -187,11 +184,22 @@ export const TransactionsPage = ({
   const navigate = useNavigate();
   const { compose } = useAppActions();
   const ledgerActions = useLedgerActions(activeOrganizationId);
-  const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
-  const categories = useQuery(categoriesQueryOptions(activeOrganizationId));
-  const tags = useQuery(tagsQueryOptions(activeOrganizationId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const accounts = useQuery(
+    orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
+  );
+  const categories = useQuery(
+    orpc.categories.list.queryOptions({ input: { includeArchived: true } })
+  );
+  const tags = useQuery(
+    orpc.tags.list.queryOptions({ input: { includeArchived: true } })
+  );
   const transactions = useQuery(
-    transactionsQueryOptions(activeOrganizationId, search)
+    orpc.transactions.list.queryOptions({
+      input: search,
+      // Filter changes keep the current rows on screen until the next page lands.
+      placeholderData: keepPreviousData,
+    })
   );
   const today = householdToday(timezone);
   const { clearSelection, selectedIds, toggleAll, toggleSelection } =

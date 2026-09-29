@@ -5,7 +5,7 @@ import { getRouteApi } from "@tanstack/react-router";
 import { useCallback } from "react";
 
 import { activeOrganizationQueryOptions } from "@/lib/organization";
-import { householdProfileQueryOptions } from "@/modules/household/queries";
+import { householdOrpc } from "@/utils/orpc";
 
 const authRoute = getRouteApi("/_auth");
 
@@ -21,7 +21,11 @@ export const useHousehold = () => {
   const organization = useQuery(
     activeOrganizationQueryOptions(activeOrganizationId)
   );
-  const profile = useQuery(householdProfileQueryOptions(activeOrganizationId));
+  const profile = useQuery(
+    householdOrpc(activeOrganizationId).households.profile.queryOptions({
+      enabled: activeOrganizationId !== null,
+    })
+  );
   const role =
     organization.data?.members?.find(
       (member) => member.userId === session.user.id

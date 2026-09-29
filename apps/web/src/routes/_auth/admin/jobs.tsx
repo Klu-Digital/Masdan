@@ -39,12 +39,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
 import { z } from "zod";
 
-import { client, orpc } from "@/utils/orpc";
+import { orpc } from "@/utils/orpc";
+import type { RouterOutputs } from "@/utils/orpc";
 
-type RegistryResult = Awaited<ReturnType<typeof client.admin.jobs.registry>>;
-type CountsResult = Awaited<ReturnType<typeof client.admin.jobs.counts>>;
-type RecentResult = Awaited<ReturnType<typeof client.admin.jobs.recent>>;
-type SchedulesResult = Awaited<ReturnType<typeof client.admin.jobs.schedules>>;
+type RegistryResult = RouterOutputs["admin"]["jobs"]["registry"];
+type CountsResult = RouterOutputs["admin"]["jobs"]["counts"];
+type RecentResult = RouterOutputs["admin"]["jobs"]["recent"];
+type SchedulesResult = RouterOutputs["admin"]["jobs"]["schedules"];
 
 const jobStateBadgeVariant = (state: string) => {
   if (state === "completed") {
@@ -252,10 +253,7 @@ const EnqueueForm = ({
     // The form only knows it picked a valid option; the server validates the
     // payload against the job's own schema.
     mutationFn: (input: { name: string; payload: unknown }) =>
-      client.admin.jobs.enqueue(input as never),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+      orpc.admin.jobs.enqueue.call(input as never),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: orpc.admin.jobs.recent.key(),
@@ -284,7 +282,7 @@ const EnqueueForm = ({
         await enqueue.mutateAsync({ name: value.name, payload });
         formApi.reset();
       } catch {
-        // Surfaced to the user via the mutation's own `onError` toast.
+        // The mutation cache toasts the failure.
       }
     },
     validators: {

@@ -1,6 +1,6 @@
 import type { MoneySign } from "@masdan/ui/lib/money";
 
-import type { Transaction } from "./queries";
+import type { Transaction } from "./types";
 
 export type TransactionKind = "expense" | "income" | "transfer";
 

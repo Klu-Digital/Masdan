@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { renderWithProviders } from "@/test/render";
-import type * as TypeImport___utils_orpc from "@/utils/orpc";
 
 vi.mock("@masdan/ui/components/toast", () => ({
   toastManager: { add: vi.fn(), close: vi.fn(), update: vi.fn() },
@@ -15,11 +14,10 @@ const cashFlow = vi.hoisted(() => vi.fn());
 const budgetPerformance = vi.hoisted(() => vi.fn());
 const spendingByCategory = vi.hoisted(() => vi.fn());
 
-vi.mock("@/utils/orpc", async (importOriginal) => {
-  const actual = await importOriginal<typeof TypeImport___utils_orpc>();
+vi.mock("@/utils/client", async () => {
+  const { mockClient } = await import("@/test/client");
   return {
-    ...actual,
-    client: {
+    client: mockClient({
       reports: {
         budgetPerformance,
         cashFlow,
@@ -27,7 +25,7 @@ vi.mock("@/utils/orpc", async (importOriginal) => {
         netWorthHistory,
         spendingByCategory,
       },
-    },
+    }),
   };
 });
 

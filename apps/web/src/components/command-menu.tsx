@@ -43,8 +43,8 @@ import { useTheme } from "@/components/theme-provider";
 import { useHousehold } from "@/hooks/use-household";
 import type { AccountComposerRequest } from "@/modules/accounts/components/account-composer";
 import { accountKind } from "@/modules/accounts/kinds";
-import { accountsQueryOptions } from "@/modules/accounts/queries";
 import type { ComposerRequest } from "@/modules/transactions/components/composer";
+import { householdOrpc } from "@/utils/orpc";
 
 interface CommandEntry {
   icon: IconSvgElement;
@@ -78,10 +78,12 @@ export const CommandMenu = ({
   const { setTheme } = useTheme();
   const [privacyOn, setPrivacyOn] = usePrivacyMode();
   const { activeOrganizationId, can } = useHousehold();
-  const accounts = useQuery({
-    ...accountsQueryOptions(activeOrganizationId),
-    enabled: open && activeOrganizationId !== null,
-  });
+  const accounts = useQuery(
+    householdOrpc(activeOrganizationId).accounts.list.queryOptions({
+      enabled: open && activeOrganizationId !== null,
+      input: { includeArchived: true },
+    })
+  );
 
   const sections = useMemo<CommandSection[]>(() => {
     const done = (run: () => void) => () => {

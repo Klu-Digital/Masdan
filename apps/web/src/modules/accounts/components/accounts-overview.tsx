@@ -32,18 +32,14 @@ import { useState } from "react";
 import { useAppActions } from "@/components/app-actions";
 import type { ActiveHousehold } from "@/components/household-gate";
 import { householdToday } from "@/lib/household-date";
-import {
-  consolidatedNetWorthQueryOptions,
-  netWorthQueryOptions,
-} from "@/modules/reports/queries";
 import type {
   ConsolidatedNetWorthReport,
   NetWorthReport,
-} from "@/modules/reports/queries";
+} from "@/modules/reports/types";
+import { householdOrpc } from "@/utils/orpc";
 
 import { ACCOUNT_KINDS } from "../kinds";
 import { allocations } from "../net-worth";
-import { accountsQueryOptions } from "../queries";
 import { AccountRow } from "./account-row";
 import { BalanceSheet } from "./balance-sheet";
 import { ExchangeRatesDialog } from "./exchange-rates-dialog";
@@ -286,8 +282,13 @@ export const AccountsOverview = ({
 }) => {
   const { activeOrganizationId, can, currency, timezone } = household;
   const { composeAccount } = useAppActions();
-  const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
-  const netWorth = useQuery(netWorthQueryOptions(activeOrganizationId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const accounts = useQuery(
+    orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
+  );
+  const netWorth = useQuery(
+    orpc.reports.netWorth.queryOptions({ meta: { suppressErrorToast: true } })
+  );
   const multiCurrency =
     new Set(
       accounts.data
@@ -296,10 +297,12 @@ export const AccountsOverview = ({
         )
         .map((account) => account.currencyCode)
     ).size > 1;
-  const consolidated = useQuery({
-    ...consolidatedNetWorthQueryOptions(activeOrganizationId),
-    enabled: activeOrganizationId !== null && multiCurrency,
-  });
+  const consolidated = useQuery(
+    orpc.reports.consolidatedNetWorth.queryOptions({
+      enabled: multiCurrency,
+      meta: { suppressErrorToast: true },
+    })
+  );
   const [showArchived, setShowArchived] = useState(false);
   const today = householdToday(timezone);
   const canCreate = can({ financialAccount: ["create"] });
@@ -379,6 +382,7 @@ export const AccountsOverview = ({
             accounts={active}
             consolidated={multiCurrency ? converted : undefined}
             balanceSheet={balanceSheet}
+            organizationId={activeOrganizationId}
             report={netWorth.isError ? undefined : netWorth.data}
             today={today}
           />
@@ -404,6 +408,7 @@ export const AccountsOverview = ({
                   <AccountRow
                     account={account}
                     key={account.id}
+                    organizationId={activeOrganizationId}
                     today={today}
                   />
                 ))}

@@ -19,9 +19,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { getServerUrl } from "@/lib/server-url";
-import { client } from "@/utils/orpc";
-
-import { billFeedQueryOptions, invalidateBills } from "../queries";
+import { householdOrpc } from "@/utils/orpc";
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 
@@ -38,31 +36,33 @@ export const FeedSection = ({
   activeOrganizationId: string;
 }) => {
   const queryClient = useQueryClient();
-  const status = useQuery(billFeedQueryOptions(activeOrganizationId));
+  const feedApi = householdOrpc(activeOrganizationId).bills.feed;
+  const status = useQuery(feedApi.status.queryOptions());
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: feedApi.key() });
   const [fresh, setFresh] = useState<string | null>(null);
   const feed = status.data?.feed ?? null;
 
-  const create = useMutation({
-    mutationFn: () => client.bills.feed.create(),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
-    onSuccess: async ({ path }) => {
-      setFresh(feedUrl(path));
-      await invalidateBills(queryClient, activeOrganizationId);
-    },
-  });
-  const revoke = useMutation({
-    mutationFn: () => client.bills.feed.revoke(),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
-    onSuccess: async () => {
-      setFresh(null);
-      await invalidateBills(queryClient, activeOrganizationId);
-      toastManager.add({ title: "Calendar link turned off", type: "success" });
-    },
-  });
+  const create = useMutation(
+    feedApi.create.mutationOptions({
+      onSuccess: async ({ path }) => {
+        setFresh(feedUrl(path));
+        await refresh();
+      },
+    })
+  );
+  const revoke = useMutation(
+    feedApi.revoke.mutationOptions({
+      onSuccess: async () => {
+        setFresh(null);
+        await refresh();
+        toastManager.add({
+          title: "Calendar link turned off",
+          type: "success",
+        });
+      },
+    })
+  );
 
   let row: React.ReactNode = null;
   if (fresh) {

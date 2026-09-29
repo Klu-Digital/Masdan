@@ -23,9 +23,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { client, orpc } from "@/utils/orpc";
+import { orpc } from "@/utils/orpc";
+import type { RouterOutputs } from "@/utils/orpc";
 
-type CapsResult = Awaited<ReturnType<typeof client.admin.ai.tokenCaps>>;
+type CapsResult = RouterOutputs["admin"]["ai"]["tokenCaps"];
 type Cap = CapsResult["caps"][number];
 
 interface SetVariables {
@@ -147,10 +148,7 @@ const RouteComponent = () => {
 
   const setCap = useMutation({
     mutationFn: (variables: SetVariables) =>
-      client.admin.ai.setTokenCap(variables),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+      orpc.admin.ai.setTokenCap.call(variables),
     onSuccess: async (data) => {
       await refresh();
       toastManager.add({
@@ -162,10 +160,7 @@ const RouteComponent = () => {
 
   const resetCap = useMutation({
     mutationFn: (variables: ResetVariables) =>
-      client.admin.ai.resetTokenCap(variables),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+      orpc.admin.ai.resetTokenCap.call(variables),
     onSuccess: async (data) => {
       await refresh();
       toastManager.add({

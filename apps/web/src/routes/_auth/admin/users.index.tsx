@@ -81,9 +81,6 @@ const CreateUserDialog = () => {
         throw new Error(error.message ?? "Could not create the user");
       }
     },
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       toastManager.add({ title: "User created", type: "success" });
@@ -98,7 +95,7 @@ const CreateUserDialog = () => {
         await createUser.mutateAsync(value);
         formApi.reset();
       } catch {
-        // Surfaced to the user via the mutation's own `onError` toast.
+        // The mutation cache toasts the failure.
       }
     },
     validators: {

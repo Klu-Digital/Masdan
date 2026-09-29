@@ -14,7 +14,7 @@ import type { ComponentProps } from "react";
 import type {
   ConsolidatedNetWorthReport,
   NetWorthReport,
-} from "@/modules/reports/queries";
+} from "@/modules/reports/types";
 
 import { ACCOUNT_GROUPS } from "../kinds";
 import { convertedBalances, groupOf, groupTotal } from "../net-worth";
@@ -51,10 +51,12 @@ export const BalanceSheet = ({
   accounts,
   balanceSheet,
   consolidated,
+  organizationId,
   report,
   today,
 }: {
   accounts: Account[];
+  organizationId: string;
   balanceSheet: ReturnType<typeof allocations>;
   consolidated?: ConsolidatedNetWorthReport;
   report?: NetWorthReport;
@@ -213,6 +215,7 @@ export const BalanceSheet = ({
                                 account.id
                               )}
                               key={account.id}
+                              organizationId={organizationId}
                               today={today}
                             />
                           ))}
@@ -231,6 +234,7 @@ export const BalanceSheet = ({
                                 account.id
                               )}
                               key={account.id}
+                              organizationId={organizationId}
                               today={today}
                             />
                           ))}

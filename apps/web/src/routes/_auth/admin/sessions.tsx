@@ -23,12 +23,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
-import type { client } from "@/utils/orpc";
+import type { RouterOutputs } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
 const PAGE_SIZE = 50;
 
-type SessionsResult = Awaited<ReturnType<typeof client.admin.sessions.list>>;
+type SessionsResult = RouterOutputs["admin"]["sessions"]["list"];
 
 const SessionsList = ({
   offset,
@@ -156,9 +156,6 @@ const RouteComponent = () => {
       if (error) {
         throw new Error(error.message ?? "Could not revoke sessions");
       }
-    },
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({

@@ -62,27 +62,12 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { formatLongDate } from "@/lib/dates";
-import {
-  accountsQueryOptions,
-  invalidateAccounts,
-} from "@/modules/accounts/queries";
-import { categoriesQueryOptions } from "@/modules/categories/queries";
-import { tagsQueryOptions } from "@/modules/tags/queries";
-import { invalidateTransactions } from "@/modules/transactions/queries";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
 import { STATUS_LABELS, scheduleTiming } from "../presentation";
-import {
-  invalidateSchedules,
-  schedulePostingsQueryOptions,
-  schedulesQueryOptions,
-} from "../queries";
-import type { Schedule } from "../queries";
+import type { Schedule } from "../types";
 import { ScheduleComposer } from "./schedule-composer";
-
-const onError = (error: Error) => {
-  toastManager.add({ title: error.message, type: "error" });
-};
 
 export interface SchedulePermissions {
   canCreate: boolean;
@@ -113,8 +98,18 @@ const Row = ({ children, label }: { children: ReactNode; label: string }) => (
 );
 
 /** The transactions a schedule already posted — separate rows from the template. */
-const PostedTransactions = ({ schedule }: { schedule: Schedule }) => {
-  const postings = useQuery(schedulePostingsQueryOptions(schedule.id));
+const PostedTransactions = ({
+  activeOrganizationId,
+  schedule,
+}: {
+  activeOrganizationId: string;
+  schedule: Schedule;
+}) => {
+  const postings = useQuery(
+    householdOrpc(activeOrganizationId).recurring.postings.queryOptions({
+      input: { scheduleId: schedule.id },
+    })
+  );
   const sign = schedule.type === "income" ? "in" : "out";
   let body: ReactNode;
   if (postings.isPending) {
@@ -181,11 +176,13 @@ const PostedTransactions = ({ schedule }: { schedule: Schedule }) => {
 /** One schedule: what it posts and when, then what it has posted so far. */
 const ScheduleDetails = ({
   actions,
+  activeOrganizationId,
   onOpenChange,
   open,
   schedule,
 }: {
   actions: ReactNode;
+  activeOrganizationId: string;
   onOpenChange: (open: boolean) => void;
   open: boolean;
   schedule: Schedule;
@@ -260,7 +257,10 @@ const ScheduleDetails = ({
             ) : null}
           </List>
         </section>
-        <PostedTransactions schedule={schedule} />
+        <PostedTransactions
+          activeOrganizationId={activeOrganizationId}
+          schedule={schedule}
+        />
         <div className="flex flex-wrap gap-2">{actions}</div>
       </div>
     </ResponsiveSheet>
@@ -286,10 +286,17 @@ export const ScheduleManager = ({
   timezone: string;
 }) => {
   const queryClient = useQueryClient();
-  const schedules = useQuery(schedulesQueryOptions(activeOrganizationId));
-  const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
-  const categories = useQuery(categoriesQueryOptions(activeOrganizationId));
-  const tags = useQuery(tagsQueryOptions(activeOrganizationId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const schedules = useQuery(orpc.recurring.list.queryOptions());
+  const accounts = useQuery(
+    orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
+  );
+  const categories = useQuery(
+    orpc.categories.list.queryOptions({ input: { includeArchived: true } })
+  );
+  const tags = useQuery(
+    orpc.tags.list.queryOptions({ input: { includeArchived: true } })
+  );
   const [composer, setComposer] = useState<{
     key: number;
     open: boolean;
@@ -299,42 +306,41 @@ export const ScheduleManager = ({
   const [stopping, setStopping] = useState<Schedule | null>(null);
 
   const refresh = () =>
-    Promise.all([
-      invalidateSchedules(queryClient, activeOrganizationId),
-      invalidateTransactions(queryClient, activeOrganizationId),
-      invalidateAccounts(queryClient, activeOrganizationId),
-    ]);
+    invalidate(queryClient, activeOrganizationId, "recurring");
 
-  const pause = useMutation({
-    mutationFn: (scheduleId: string) => client.recurring.pause({ scheduleId }),
-    onError,
-    onSuccess: async (schedule) => {
-      await refresh();
-      toastManager.add({ title: `${schedule.name} paused`, type: "success" });
-    },
-  });
-  const resume = useMutation({
-    mutationFn: (scheduleId: string) => client.recurring.resume({ scheduleId }),
-    onError,
-    onSuccess: async (schedule) => {
-      await refresh();
-      toastManager.add({
-        title: schedule.nextOccurrenceDate
-          ? `${schedule.name} resumed — next ${formatLongDate(schedule.nextOccurrenceDate)}`
-          : `${schedule.name} resumed`,
-        type: "success",
-      });
-    },
-  });
-  const stop = useMutation({
-    mutationFn: (scheduleId: string) => client.recurring.stop({ scheduleId }),
-    onError,
-    onSuccess: async (schedule) => {
-      setStopping(null);
-      await refresh();
-      toastManager.add({ title: `${schedule.name} stopped`, type: "success" });
-    },
-  });
+  const pause = useMutation(
+    orpc.recurring.pause.mutationOptions({
+      onSuccess: async (schedule) => {
+        await refresh();
+        toastManager.add({ title: `${schedule.name} paused`, type: "success" });
+      },
+    })
+  );
+  const resume = useMutation(
+    orpc.recurring.resume.mutationOptions({
+      onSuccess: async (schedule) => {
+        await refresh();
+        toastManager.add({
+          title: schedule.nextOccurrenceDate
+            ? `${schedule.name} resumed — next ${formatLongDate(schedule.nextOccurrenceDate)}`
+            : `${schedule.name} resumed`,
+          type: "success",
+        });
+      },
+    })
+  );
+  const stop = useMutation(
+    orpc.recurring.stop.mutationOptions({
+      onSuccess: async (schedule) => {
+        setStopping(null);
+        await refresh();
+        toastManager.add({
+          title: `${schedule.name} stopped`,
+          type: "success",
+        });
+      },
+    })
+  );
 
   const openComposer = (schedule?: Schedule) => {
     setDetailsId(null);
@@ -401,13 +407,13 @@ export const ScheduleManager = ({
         },
         schedule.status === "active"
           ? {
-              handleSelect: () => pause.mutate(schedule.id),
+              handleSelect: () => pause.mutate({ scheduleId: schedule.id }),
               icon: PauseIcon,
               label: "Pause",
               loading: pause.isPending,
             }
           : {
-              handleSelect: () => resume.mutate(schedule.id),
+              handleSelect: () => resume.mutate({ scheduleId: schedule.id }),
               icon: PlayIcon,
               label: "Resume",
               loading: resume.isPending,
@@ -539,6 +545,7 @@ export const ScheduleManager = ({
       {details ? (
         <ScheduleDetails
           actions={lifecycleActions(details, "buttons")}
+          activeOrganizationId={activeOrganizationId}
           onOpenChange={(open) => {
             if (!open) {
               setDetailsId(null);
@@ -587,7 +594,9 @@ export const ScheduleManager = ({
             </AlertDialogClose>
             <Button
               loading={stop.isPending}
-              onClick={() => stopping && stop.mutate(stopping.id)}
+              onClick={() =>
+                stopping && stop.mutate({ scheduleId: stopping.id })
+              }
               variant="destructive"
             >
               Stop schedule

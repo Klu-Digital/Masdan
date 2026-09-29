@@ -62,10 +62,9 @@ import {
 } from "@/lib/organization";
 import { invalidateSession } from "@/lib/session";
 import { ChatAppsSection } from "@/modules/chat/components/chat-apps-section";
-import { currenciesQueryOptions } from "@/modules/currency/queries";
 import { DataExportSection } from "@/modules/exports/components/data-export-section";
 import { HouseholdFinanceCard } from "@/modules/household/components/household-finance-card";
-import { householdProfileQueryOptions } from "@/modules/household/queries";
+import { householdOrpc, orpc } from "@/utils/orpc";
 
 const routeApi = getRouteApi("/_auth/settings/household");
 
@@ -160,9 +159,6 @@ const PendingInvitations = ({
         throw new Error(error.message ?? "Could not cancel the invitation");
       }
       await invalidateOrganizations(queryClient);
-    },
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
     },
     onSuccess: () => {
       toastManager.add({ title: "Invitation cancelled", type: "success" });
@@ -466,9 +462,13 @@ const HouseholdSettings = () => {
     activeOrganizationQueryOptions(activeOrganizationId)
   );
   const householdProfile = useQuery(
-    householdProfileQueryOptions(activeOrganizationId)
+    householdOrpc(activeOrganizationId).households.profile.queryOptions({
+      enabled: activeOrganizationId !== null,
+    })
   );
-  const currencies = useQuery(currenciesQueryOptions());
+  const currencies = useQuery(
+    orpc.currencies.list.queryOptions({ staleTime: Number.POSITIVE_INFINITY })
+  );
   const hash = useRouterState({ select: (state) => state.location.hash });
 
   const loaded = !organization.isPending;

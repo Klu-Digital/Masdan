@@ -2,7 +2,7 @@ import { ArrowDataTransferHorizontalIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { IconTile } from "@masdan/ui/components/icon-tile";
 
-import type { Transaction } from "../queries";
+import type { Transaction } from "../types";
 
 export const TransactionTile = ({
   size = "default",

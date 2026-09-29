@@ -11,7 +11,7 @@ import { Textarea } from "@masdan/ui/components/textarea";
 import { toastManager } from "@masdan/ui/components/toast";
 import { formatMoney, moneyParts } from "@masdan/ui/lib/money";
 import { useForm } from "@tanstack/react-form";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { z } from "zod";
 
@@ -20,17 +20,14 @@ import { householdToday } from "@/lib/household-date";
 import { AccountCardThumb } from "@/modules/accounts/components/account-card";
 import { AccountPicker } from "@/modules/accounts/components/account-picker";
 import { accountKind, accountTint } from "@/modules/accounts/kinds";
-import {
-  accountsQueryOptions,
-  invalidateAccounts,
-} from "@/modules/accounts/queries";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
+import type { RouterOutputs } from "@/utils/orpc";
 
-import { invalidateTransactions } from "../queries";
 import { FormActions, trimDecimal } from "./transaction-form";
 import type { FormActionState } from "./transaction-form";
 
-export type Transfer = Awaited<ReturnType<typeof client.transfers.get>>;
+export type Transfer = RouterOutputs["transfers"]["get"];
 
 const transferSchema = z
   .object({
@@ -88,7 +85,12 @@ export const TransferForm = ({
 }) => {
   const queryClient = useQueryClient();
   const editing = transfer !== undefined;
-  const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const accounts = useQuery(
+    orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
+  );
+  const create = useMutation(orpc.transfers.create.mutationOptions());
+  const update = useMutation(orpc.transfers.update.mutationOptions());
   const activeAccounts =
     accounts.data?.filter((account) => account.archivedAt === null) ?? [];
 
@@ -123,31 +125,22 @@ export const TransferForm = ({
         return;
       }
       const payload = { ...value, destinationAmount };
-      try {
-        const saved = await (transfer
-          ? client.transfers.update({ ...payload, transferId: transfer.id })
-          : client.transfers.create(payload));
-        await Promise.all([
-          invalidateTransactions(queryClient, activeOrganizationId),
-          invalidateAccounts(queryClient, activeOrganizationId),
-          queryClient.invalidateQueries({ queryKey: ["transaction"] }),
-          queryClient.invalidateQueries({ queryKey: ["account"] }),
-        ]);
-        formApi.reset();
-        toastManager.add({
-          title: editing ? "Transfer updated" : "Transfer recorded",
-          type: "success",
-        });
-        onSaved(saved.id);
-      } catch (error) {
-        toastManager.add({
-          title:
-            error instanceof Error
-              ? error.message
-              : `Could not ${editing ? "update" : "record"} this transfer`,
-          type: "error",
-        });
+      // The mutation cache toasts the failure; the form keeps its values.
+      const saved = await (
+        transfer
+          ? update.mutateAsync({ ...payload, transferId: transfer.id })
+          : create.mutateAsync(payload)
+      ).catch(() => null);
+      if (!saved) {
+        return;
       }
+      await invalidate(queryClient, activeOrganizationId, "ledger");
+      formApi.reset();
+      toastManager.add({
+        title: editing ? "Transfer updated" : "Transfer recorded",
+        type: "success",
+      });
+      onSaved(saved.id);
     },
     validators: { onSubmit: transferSchema },
   });

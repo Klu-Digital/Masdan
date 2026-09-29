@@ -20,14 +20,12 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
 
-import type { client } from "@/utils/orpc";
+import type { RouterOutputs } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
-type StatsResult = Awaited<ReturnType<typeof client.admin.overview.stats>>;
-type SignupsResult = Awaited<
-  ReturnType<typeof client.admin.overview.signupsLast30Days>
->;
-type HealthResult = Awaited<ReturnType<typeof client.admin.system.health>>;
+type StatsResult = RouterOutputs["admin"]["overview"]["stats"];
+type SignupsResult = RouterOutputs["admin"]["overview"]["signupsLast30Days"];
+type HealthResult = RouterOutputs["admin"]["system"]["health"];
 
 const StatCard = ({
   isPending,

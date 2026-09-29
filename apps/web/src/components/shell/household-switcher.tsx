@@ -16,7 +16,6 @@ import {
   MenuTrigger,
 } from "@masdan/ui/components/menu";
 import { Skeleton } from "@masdan/ui/components/skeleton";
-import { toastManager } from "@masdan/ui/components/toast";
 import { cn } from "@masdan/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
@@ -80,9 +79,6 @@ export const HouseholdSwitcher = ({
       await invalidateOrganizations(queryClient);
       await queryClient.invalidateQueries();
       await router.invalidate();
-    },
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
     },
   });
 

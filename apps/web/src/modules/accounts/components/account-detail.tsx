@@ -57,13 +57,19 @@ import {
 } from "@masdan/ui/components/stat";
 import { toastManager } from "@masdan/ui/components/toast";
 import { formatMoney, toNumber } from "@masdan/ui/lib/money";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { useAppActions } from "@/components/app-actions";
 import type { ActiveHousehold } from "@/components/household-gate";
+import { useHousehold } from "@/hooks/use-household";
 import {
   formatLongDate,
   formatRelativeDays,
@@ -73,25 +79,16 @@ import {
 } from "@/lib/dates";
 import { householdToday } from "@/lib/household-date";
 import { Ledger } from "@/modules/transactions/components/ledger";
-import {
-  transactionSummaryQueryOptions,
-  transactionsQueryOptions,
-} from "@/modules/transactions/queries";
 import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
 import { useLedgerActions } from "@/modules/transactions/use-ledger-actions";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
 import { networkMarkOf } from "../card-art";
 import { cardCountriesOf, useCardCatalog } from "../card-catalog";
 import { cardProductLabel, nextPaymentDue, utilizationTone } from "../credit";
 import type { CardStatement } from "../credit";
 import { accountKind } from "../kinds";
-import {
-  accountQueryOptions,
-  accountSnapshotsQueryOptions,
-  accountStatementsQueryOptions,
-  invalidateAccounts,
-} from "../queries";
 import { AccountCard } from "./account-card";
 import type { AccountDetail as Account } from "./account-composer";
 import { AccountTile, accountSubtitle } from "./account-row";
@@ -149,10 +146,13 @@ const MonthFlow = ({
   today: string;
 }) => {
   const summary = useQuery(
-    transactionSummaryQueryOptions(organizationId, {
-      accountIds: [account.id],
-      dateFrom: startOfMonth(today),
-      dateTo: today,
+    householdOrpc(organizationId).transactions.summary.queryOptions({
+      input: {
+        accountIds: [account.id],
+        dateFrom: startOfMonth(today),
+        dateTo: today,
+      },
+      placeholderData: keepPreviousData,
     })
   );
   const month = summary.data?.cashFlow.find(
@@ -230,7 +230,12 @@ const CreditCardPanel = ({
   today: string;
 }) => {
   const { compose } = useAppActions();
-  const statements = useQuery(accountStatementsQueryOptions(account.id));
+  const { activeOrganizationId } = useHousehold();
+  const statements = useQuery(
+    householdOrpc(activeOrganizationId).accounts.listStatements.queryOptions({
+      input: { accountId: account.id },
+    })
+  );
   const [recording, setRecording] = useState(false);
   const history = statements.data ?? [];
   const due = nextPaymentDue(account, history, today);
@@ -490,8 +495,13 @@ export const AccountDetailPage = ({
   const queryClient = useQueryClient();
   const { compose, composeAccount, inspect } = useAppActions();
   const ledgerActions = useLedgerActions(activeOrganizationId);
-  const account = useQuery(accountQueryOptions(accountId));
-  const snapshots = useQuery(accountSnapshotsQueryOptions(accountId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const account = useQuery(
+    orpc.accounts.get.queryOptions({ input: { accountId } })
+  );
+  const snapshots = useQuery(
+    orpc.accounts.listSnapshots.queryOptions({ input: { accountId } })
+  );
   const catalog = useCardCatalog(cardCountriesOf(account.data ?? {}));
   const activitySearch = {
     ...DEFAULT_TRANSACTION_SEARCH,
@@ -499,25 +509,20 @@ export const AccountDetailPage = ({
     pageSize: ACTIVITY_PAGE_SIZE,
   };
   const activity = useQuery(
-    transactionsQueryOptions(activeOrganizationId, activitySearch)
+    orpc.transactions.list.queryOptions({
+      input: activitySearch,
+      placeholderData: keepPreviousData,
+    })
   );
   const today = householdToday(timezone);
 
   const archive = useMutation({
     mutationFn: (restore: boolean) =>
       restore
-        ? client.accounts.restore({ accountId })
-        : client.accounts.archive({ accountId }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+        ? orpc.accounts.restore.call({ accountId })
+        : orpc.accounts.archive.call({ accountId }),
     onSuccess: async (_, restore) => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: accountQueryOptions(accountId).queryKey,
-        }),
-        invalidateAccounts(queryClient, activeOrganizationId),
-      ]);
+      await invalidate(queryClient, activeOrganizationId, "accounts");
       toastManager.add({
         actionProps: restore
           ? undefined

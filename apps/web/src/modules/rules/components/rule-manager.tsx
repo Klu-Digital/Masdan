@@ -54,20 +54,13 @@ import { toastManager } from "@masdan/ui/components/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { accountsQueryOptions } from "@/modules/accounts/queries";
-import { categoriesQueryOptions } from "@/modules/categories/queries";
-import { tagsQueryOptions } from "@/modules/tags/queries";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
 import { ruleEffects, ruleReasons } from "../presentation";
-import { invalidateRules, rulesQueryKey, rulesQueryOptions } from "../queries";
-import type { Rule } from "../queries";
+import type { Rule } from "../types";
 import { RuleComposer } from "./rule-composer";
 import { RuleTester } from "./rule-tester";
-
-const onError = (error: Error) => {
-  toastManager.add({ title: error.message, type: "error" });
-};
 
 const moved = (rules: Rule[], index: number, offset: -1 | 1): string[] => {
   const ids = rules.map(({ id }) => id);
@@ -96,10 +89,17 @@ export const RuleManager = ({
   canUpdate: boolean;
 }) => {
   const queryClient = useQueryClient();
-  const rules = useQuery(rulesQueryOptions(activeOrganizationId));
-  const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
-  const categories = useQuery(categoriesQueryOptions(activeOrganizationId));
-  const tags = useQuery(tagsQueryOptions(activeOrganizationId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const rules = useQuery(orpc.rules.list.queryOptions());
+  const accounts = useQuery(
+    orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
+  );
+  const categories = useQuery(
+    orpc.categories.list.queryOptions({ input: { includeArchived: true } })
+  );
+  const tags = useQuery(
+    orpc.tags.list.queryOptions({ input: { includeArchived: true } })
+  );
   const [composer, setComposer] = useState<{
     key: number;
     open: boolean;
@@ -107,36 +107,37 @@ export const RuleManager = ({
   } | null>(null);
   const [deleting, setDeleting] = useState<Rule | null>(null);
 
-  const setEnabled = useMutation({
-    mutationFn: (input: { enabled: boolean; ruleId: string }) =>
-      client.rules.setEnabled(input),
-    onError,
-    onSuccess: async (rule) => {
-      await invalidateRules(queryClient, activeOrganizationId);
-      toastManager.add({
-        title: rule.enabled ? `${rule.name} enabled` : `${rule.name} disabled`,
-        type: "success",
-      });
-    },
-  });
+  const setEnabled = useMutation(
+    orpc.rules.setEnabled.mutationOptions({
+      onSuccess: async (rule) => {
+        await invalidate(queryClient, activeOrganizationId, "rules");
+        toastManager.add({
+          title: rule.enabled
+            ? `${rule.name} enabled`
+            : `${rule.name} disabled`,
+          type: "success",
+        });
+      },
+    })
+  );
 
-  const reorder = useMutation({
-    mutationFn: (ruleIds: string[]) => client.rules.reorder({ ruleIds }),
-    onError,
-    onSuccess: (ordered) => {
-      queryClient.setQueryData(rulesQueryKey(activeOrganizationId), ordered);
-    },
-  });
+  const reorder = useMutation(
+    orpc.rules.reorder.mutationOptions({
+      onSuccess: (ordered) => {
+        queryClient.setQueryData(orpc.rules.list.queryKey(), ordered);
+      },
+    })
+  );
 
-  const remove = useMutation({
-    mutationFn: (ruleId: string) => client.rules.delete({ ruleId }),
-    onError,
-    onSuccess: async () => {
-      setDeleting(null);
-      await invalidateRules(queryClient, activeOrganizationId);
-      toastManager.add({ title: "Rule deleted", type: "success" });
-    },
-  });
+  const remove = useMutation(
+    orpc.rules.delete.mutationOptions({
+      onSuccess: async () => {
+        setDeleting(null);
+        await invalidate(queryClient, activeOrganizationId, "rules");
+        toastManager.add({ title: "Rule deleted", type: "success" });
+      },
+    })
+  );
 
   const header = (
     <PageHeader>
@@ -221,7 +222,9 @@ export const RuleManager = ({
                 <Button
                   aria-label={`Move ${rule.name} up`}
                   disabled={index === 0 || reorder.isPending}
-                  onClick={() => reorder.mutate(moved(rules.data, index, -1))}
+                  onClick={() =>
+                    reorder.mutate({ ruleIds: moved(rules.data, index, -1) })
+                  }
                   size="icon-sm"
                   variant="ghost"
                 >
@@ -232,7 +235,9 @@ export const RuleManager = ({
                   disabled={
                     index === rules.data.length - 1 || reorder.isPending
                   }
-                  onClick={() => reorder.mutate(moved(rules.data, index, 1))}
+                  onClick={() =>
+                    reorder.mutate({ ruleIds: moved(rules.data, index, 1) })
+                  }
                   size="icon-sm"
                   variant="ghost"
                 >
@@ -359,7 +364,7 @@ export const RuleManager = ({
             </AlertDialogClose>
             <Button
               loading={remove.isPending}
-              onClick={() => deleting && remove.mutate(deleting.id)}
+              onClick={() => deleting && remove.mutate({ ruleId: deleting.id })}
               variant="destructive"
             >
               Delete rule

@@ -7,7 +7,7 @@ import { ResponsiveSheet } from "@masdan/ui/components/responsive-sheet";
 import { toastManager } from "@masdan/ui/components/toast";
 import { moneyParts } from "@masdan/ui/lib/money";
 import { useForm } from "@tanstack/react-form";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
@@ -17,10 +17,10 @@ import {
   FormActions,
   trimDecimal,
 } from "@/modules/transactions/components/transaction-form";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
-import { invalidateGoals } from "../queries";
-import type { Goal, GoalInput } from "../queries";
+import type { Goal, GoalInput } from "../types";
 
 export interface GoalAccount extends PickerAccount {
   accountClass: string;
@@ -87,6 +87,17 @@ export const GoalComposer = ({
 }) => {
   const queryClient = useQueryClient();
   const editing = goal !== undefined;
+  const { goals } = householdOrpc(activeOrganizationId);
+  const onSuccess = async (_: unknown, { name }: { name: string }) => {
+    await invalidate(queryClient, activeOrganizationId, "goals");
+    onOpenChange(false);
+    toastManager.add({
+      title: editing ? "Goal updated" : `${name} added`,
+      type: "success",
+    });
+  };
+  const create = useMutation(goals.create.mutationOptions({ onSuccess }));
+  const update = useMutation(goals.update.mutationOptions({ onSuccess }));
   // An archived account stays pickable only for the goal that already uses it.
   const choices = accounts.filter(
     (account) =>
@@ -98,26 +109,13 @@ export const GoalComposer = ({
   const form = useForm({
     defaultValues: toFormValues(defaultAccountId, goal),
     onSubmit: async ({ value }) => {
-      try {
-        const input = toInput(value);
-        await (goal
-          ? client.goals.update({ ...input, goalId: goal.id })
-          : client.goals.create(input));
-        await invalidateGoals(queryClient, activeOrganizationId);
-        onOpenChange(false);
-        toastManager.add({
-          title: editing ? "Goal updated" : `${input.name} added`,
-          type: "success",
-        });
-      } catch (error) {
-        toastManager.add({
-          title:
-            error instanceof Error
-              ? error.message
-              : `Could not ${editing ? "update" : "create"} the goal`,
-          type: "error",
-        });
-      }
+      const input = toInput(value);
+      // The mutation cache toasts the failure; the form keeps its values.
+      await (
+        goal
+          ? update.mutateAsync({ ...input, goalId: goal.id })
+          : create.mutateAsync(input)
+      ).catch(() => null);
     },
     validators: { onSubmit: goalFormSchema },
   });

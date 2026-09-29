@@ -16,7 +16,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 
 import { formatLongDate, formatShortDate } from "@/lib/dates";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
 import {
   STATUS_LABELS,
@@ -24,8 +25,7 @@ import {
   paidReason,
   statusBadgeVariant,
 } from "../presentation";
-import { billCandidatesQueryOptions, invalidateBills } from "../queries";
-import type { Bill, BillCandidate } from "../queries";
+import type { Bill, BillCandidate } from "../types";
 
 const candidateTitle = (candidate: BillCandidate): string => {
   if (candidate.isPosting) {
@@ -36,17 +36,27 @@ const candidateTitle = (candidate: BillCandidate): string => {
 
 /** Transactions that could be this bill's payment, with a link action each. */
 const Candidates = ({
+  activeOrganizationId,
   bill,
   linking,
   onLink,
   today,
 }: {
+  activeOrganizationId: string;
   bill: Bill;
   linking: string | null;
   onLink: (transactionId: string) => void;
   today: string;
 }) => {
-  const candidates = useQuery(billCandidatesQueryOptions(bill));
+  const candidates = useQuery(
+    householdOrpc(activeOrganizationId).bills.candidates.queryOptions({
+      input: {
+        dueDate: bill.dueDate,
+        kind: bill.kind,
+        sourceId: bill.sourceId,
+      },
+    })
+  );
   if (candidates.isPending) {
     return <Skeleton className="h-16 w-full" radius="2xl" />;
   }
@@ -108,17 +118,14 @@ const ConfirmSection = ({
   const queryClient = useQueryClient();
   const confirm = useMutation({
     mutationFn: (transactionId: string | null) =>
-      client.bills.confirm({
+      householdOrpc(activeOrganizationId).bills.confirm.call({
         dueDate: bill.dueDate,
         kind: bill.kind,
         sourceId: bill.sourceId,
         transactionId,
       }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
     onSuccess: async () => {
-      await invalidateBills(queryClient, activeOrganizationId);
+      await invalidate(queryClient, activeOrganizationId, "ledger");
       toastManager.add({ title: `${bill.name} marked paid`, type: "success" });
     },
   });
@@ -135,6 +142,7 @@ const ConfirmSection = ({
             : "Transfers into the card after the statement closed count automatically."}
         </p>
         <Candidates
+          activeOrganizationId={activeOrganizationId}
           bill={bill}
           linking={linking}
           onLink={(transactionId) => confirm.mutate(transactionId)}
@@ -188,12 +196,10 @@ export const BillSheet = ({
 }) => {
   const queryClient = useQueryClient();
   const unconfirm = useMutation({
-    mutationFn: (paymentId: string) => client.bills.unconfirm({ paymentId }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+    mutationFn: (paymentId: string) =>
+      householdOrpc(activeOrganizationId).bills.unconfirm.call({ paymentId }),
     onSuccess: async () => {
-      await invalidateBills(queryClient, activeOrganizationId);
+      await invalidate(queryClient, activeOrganizationId, "ledger");
       toastManager.add({
         title: `${bill.name} marked unpaid`,
         type: "success",

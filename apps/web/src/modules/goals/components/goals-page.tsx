@@ -60,11 +60,10 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 
 import { formatLongDate } from "@/lib/dates";
-import { accountsQueryOptions } from "@/modules/accounts/queries";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
-import { goalsQueryOptions, invalidateGoals } from "../queries";
-import type { Goal } from "../queries";
+import type { Goal } from "../types";
 import { GoalComposer } from "./goal-composer";
 
 export interface GoalPermissions {
@@ -83,19 +82,23 @@ const LIFECYCLE_TOASTS: Record<LifecycleAction, string> = {
   restore: "restored",
 };
 
-const runLifecycle = (action: LifecycleAction, goalId: string) => {
+const runLifecycle = (
+  goals: ReturnType<typeof householdOrpc>["goals"],
+  action: LifecycleAction,
+  goalId: string
+) => {
   switch (action) {
     case "archive": {
-      return client.goals.archive({ goalId });
+      return goals.archive.call({ goalId });
     }
     case "complete": {
-      return client.goals.complete({ goalId });
+      return goals.complete.call({ goalId });
     }
     case "reopen": {
-      return client.goals.reopen({ goalId });
+      return goals.reopen.call({ goalId });
     }
     default: {
-      return client.goals.restore({ goalId });
+      return goals.restore.call({ goalId });
     }
   }
 };
@@ -192,8 +195,13 @@ export const GoalsPage = ({
   permissions: GoalPermissions;
 }) => {
   const queryClient = useQueryClient();
-  const goals = useQuery(goalsQueryOptions(activeOrganizationId));
-  const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const goals = useQuery(
+    orpc.goals.list.queryOptions({ meta: { suppressErrorToast: true } })
+  );
+  const accounts = useQuery(
+    orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
+  );
   const [composer, setComposer] = useState<{
     goal?: Goal;
     key: number;
@@ -203,12 +211,9 @@ export const GoalsPage = ({
 
   const lifecycle = useMutation({
     mutationFn: ({ action, goal }: { action: LifecycleAction; goal: Goal }) =>
-      runLifecycle(action, goal.id),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+      runLifecycle(orpc.goals, action, goal.id),
     onSuccess: async (_, { action, goal }) => {
-      await invalidateGoals(queryClient, activeOrganizationId);
+      await invalidate(queryClient, activeOrganizationId, "goals");
       const undo = action === "archive" && permissions.canRestore;
       toastManager.add({
         actionProps: undo

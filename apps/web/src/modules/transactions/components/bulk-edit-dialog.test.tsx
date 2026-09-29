@@ -4,16 +4,14 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-import type * as OrpcModule from "@/utils/orpc";
-
 const bulkUpdate = vi.hoisted(() => vi.fn());
 const toast = vi.hoisted(() => vi.fn());
 vi.mock("@masdan/ui/components/toast", () => ({
   toastManager: { add: toast },
 }));
-vi.mock("@/utils/orpc", async (importOriginal) => {
-  const actual = await importOriginal<typeof OrpcModule>();
-  return { ...actual, client: { transactions: { bulkUpdate } } };
+vi.mock("@/utils/client", async () => {
+  const { mockClient } = await import("@/test/client");
+  return { client: mockClient({ transactions: { bulkUpdate } }) };
 });
 
 const { createQueryClient } = await import("@/utils/orpc");

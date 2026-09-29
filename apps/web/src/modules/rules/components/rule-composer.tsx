@@ -19,15 +19,15 @@ import {
 import { Switch } from "@masdan/ui/components/switch";
 import { toastManager } from "@masdan/ui/components/toast";
 import { useForm } from "@tanstack/react-form";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { CategoryPicker } from "@/modules/categories/components/category-picker";
 import { FormActions } from "@/modules/transactions/components/transaction-form";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
-import { invalidateRules } from "../queries";
-import type { Rule, RuleInput } from "../queries";
+import type { Rule, RuleInput } from "../types";
 
 interface Option {
   label: string;
@@ -240,29 +240,27 @@ export const RuleComposer = ({
 }) => {
   const queryClient = useQueryClient();
   const editing = rule !== undefined;
+  const { rules } = householdOrpc(activeOrganizationId);
+  const onSuccess = async (_: unknown, { name }: { name: string }) => {
+    await invalidate(queryClient, activeOrganizationId, "rules");
+    onOpenChange(false);
+    toastManager.add({
+      title: editing ? "Rule updated" : `${name} added`,
+      type: "success",
+    });
+  };
+  const create = useMutation(rules.create.mutationOptions({ onSuccess }));
+  const update = useMutation(rules.update.mutationOptions({ onSuccess }));
   const form = useForm({
     defaultValues: toFormValues(rule),
     onSubmit: async ({ value }) => {
-      try {
-        const input = toInput(value);
-        await (rule
-          ? client.rules.update({ ...input, ruleId: rule.id })
-          : client.rules.create(input));
-        await invalidateRules(queryClient, activeOrganizationId);
-        onOpenChange(false);
-        toastManager.add({
-          title: editing ? "Rule updated" : `${input.name} added`,
-          type: "success",
-        });
-      } catch (error) {
-        toastManager.add({
-          title:
-            error instanceof Error
-              ? error.message
-              : `Could not ${editing ? "update" : "create"} the rule`,
-          type: "error",
-        });
-      }
+      const input = toInput(value);
+      // The mutation cache toasts the failure; the form keeps its values.
+      await (
+        rule
+          ? update.mutateAsync({ ...input, ruleId: rule.id })
+          : create.mutateAsync(input)
+      ).catch(() => null);
     },
     validators: { onSubmit: ruleFormSchema },
   });

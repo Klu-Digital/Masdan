@@ -32,9 +32,10 @@ import { useState } from "react";
 
 import { formatLongDate } from "@/lib/dates";
 import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
-import { client } from "@/utils/orpc";
+import { orpc } from "@/utils/orpc";
+import type { RouterOutputs } from "@/utils/orpc";
 
-type AskResult = Awaited<ReturnType<typeof client.ask.question>>;
+type AskResult = RouterOutputs["ask"]["question"];
 type AskAnswer = Extract<AskResult, { status: "answered" }>["answer"];
 
 /** Matches the API's limit, so an overlong question never costs a round trip. */
@@ -179,9 +180,12 @@ const Reply = ({ result }: { result: AskResult }) => {
  */
 export const AskMasdan = () => {
   const [question, setQuestion] = useState("");
-  const ask = useMutation({
-    mutationFn: (text: string) => client.ask.question({ question: text }),
-  });
+  const ask = useMutation(
+    orpc.ask.question.mutationOptions({
+      // The answer panel shows the failure.
+      meta: { suppressErrorToast: true },
+    })
+  );
   const text = question.trim();
 
   return (
@@ -197,7 +201,7 @@ export const AskMasdan = () => {
         onSubmit={(event) => {
           event.preventDefault();
           if (text && !ask.isPending) {
-            ask.mutate(text);
+            ask.mutate({ question: text });
           }
         }}
       >

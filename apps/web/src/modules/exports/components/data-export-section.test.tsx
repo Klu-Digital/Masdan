@@ -10,7 +10,6 @@ import {
 } from "vite-plus/test";
 
 import { renderWithProviders } from "@/test/render";
-import type * as TypeImport___utils_orpc from "@/utils/orpc";
 
 const toastAdd = vi.hoisted(() => vi.fn());
 
@@ -21,12 +20,9 @@ vi.mock("@masdan/ui/components/toast", () => ({
 const transactions = vi.hoisted(() => vi.fn());
 const accounts = vi.hoisted(() => vi.fn());
 
-vi.mock("@/utils/orpc", async (importOriginal) => {
-  const actual = await importOriginal<typeof TypeImport___utils_orpc>();
-  return {
-    ...actual,
-    client: { exports: { accounts, transactions } },
-  };
+vi.mock("@/utils/client", async () => {
+  const { mockClient } = await import("@/test/client");
+  return { client: mockClient({ exports: { accounts, transactions } }) };
 });
 
 const { DataExportSection } = await import("./data-export-section");

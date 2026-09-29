@@ -3,7 +3,7 @@ import { formatMoney } from "@masdan/ui/lib/money";
 
 import { formatRelativeDays, formatShortDate } from "@/lib/dates";
 
-import type { Reminder } from "./queries";
+import type { Reminder } from "./types";
 
 export type ReminderTone = "default" | "warning" | "danger";
 

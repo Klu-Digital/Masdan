@@ -1,6 +1,6 @@
 import { addDays, endOfMonth, parseIsoDate } from "@/lib/dates";
 
-import type { Bill } from "./queries";
+import type { Bill } from "./types";
 
 export type BillStatus = Bill["status"];
 

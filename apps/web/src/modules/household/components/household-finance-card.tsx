@@ -20,13 +20,13 @@ import {
 } from "@masdan/ui/components/list";
 import { toastManager } from "@masdan/ui/components/toast";
 import { useForm } from "@tanstack/react-form";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { z } from "zod";
 
-import type { Currency } from "@/modules/currency/queries";
-import { invalidateHouseholdProfile } from "@/modules/household/queries";
-import { client } from "@/utils/orpc";
+import type { Currency } from "@/modules/currency/types";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
 interface PickerItem {
   label: string;
@@ -113,6 +113,11 @@ export const HouseholdFinanceCard = ({
   profile: HouseholdFinanceProfile;
 }) => {
   const queryClient = useQueryClient();
+  const updateProfile = useMutation(
+    householdOrpc(
+      activeOrganizationId
+    ).households.updateProfile.mutationOptions()
+  );
   const currencyItems = useMemo(
     () =>
       currencies.map((currency) => ({
@@ -128,23 +133,17 @@ export const HouseholdFinanceCard = ({
       timezone: profile.timezone,
     },
     onSubmit: async ({ value }) => {
-      try {
-        const updated = await client.households.updateProfile(value);
-        form.reset({
-          defaultCurrency: updated.defaultCurrency.code,
-          timezone: updated.timezone,
-        });
-        await invalidateHouseholdProfile(queryClient, activeOrganizationId);
-        toastManager.add({ title: "Money defaults saved", type: "success" });
-      } catch (error) {
-        toastManager.add({
-          title:
-            error instanceof Error
-              ? error.message
-              : "Could not save household settings",
-          type: "error",
-        });
+      // The mutation cache toasts the failure; the form keeps its values.
+      const updated = await updateProfile.mutateAsync(value).catch(() => null);
+      if (!updated) {
+        return;
       }
+      form.reset({
+        defaultCurrency: updated.defaultCurrency.code,
+        timezone: updated.timezone,
+      });
+      await invalidate(queryClient, activeOrganizationId, "households");
+      toastManager.add({ title: "Money defaults saved", type: "success" });
     },
     validators: { onSubmit: financeProfileSchema },
   });

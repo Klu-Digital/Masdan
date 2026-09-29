@@ -45,7 +45,7 @@ import {
   StatValue,
 } from "@masdan/ui/components/stat";
 import { cn } from "@masdan/ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 
@@ -56,6 +56,7 @@ import {
   formatShortDate,
   parseIsoDate,
 } from "@/lib/dates";
+import { householdOrpc } from "@/utils/orpc";
 
 import {
   STATUS_LABELS,
@@ -65,8 +66,7 @@ import {
   statusBadgeVariant,
 } from "../presentation";
 import type { BillStatus } from "../presentation";
-import { billsMonthQueryOptions } from "../queries";
-import type { Bill, BillTotals, BillsMonth } from "../queries";
+import type { Bill, BillTotals, BillsMonth } from "../types";
 import { BillSheet } from "./bill-sheet";
 import { FeedSection } from "./feed-section";
 
@@ -448,7 +448,13 @@ export const BillsPage = ({
   /** No month returns to the household's current one. */
   onMonthChange: (month?: string) => void;
 }) => {
-  const bills = useQuery(billsMonthQueryOptions(activeOrganizationId, month));
+  const bills = useQuery(
+    householdOrpc(activeOrganizationId).bills.month.queryOptions({
+      input: { month },
+      meta: { suppressErrorToast: true },
+      placeholderData: keepPreviousData,
+    })
+  );
   const shown = month ?? bills.data?.currentMonth;
   const currentMonth = bills.data?.currentMonth;
   const goTo = (target: string) =>

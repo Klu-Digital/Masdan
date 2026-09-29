@@ -2,7 +2,8 @@
 // the AWS SDK and @masdan/env/server into the browser bundle.
 import { isAllowedContentType } from "@masdan/storage/content-types";
 
-import { client } from "@/utils/orpc";
+import { client } from "@/utils/client";
+import type { RouterOutputs } from "@/utils/orpc";
 
 /**
  * Mirrors the `state` prop on `@masdan/ui`'s `Attachment`. `processing` is the
@@ -22,9 +23,7 @@ export interface UploadFileOptions {
   signal?: AbortSignal;
 }
 
-export type UploadedFile = Awaited<
-  ReturnType<typeof client.files.confirmUpload>
->;
+export type UploadedFile = RouterOutputs["files"]["confirmUpload"];
 
 /** XMLHttpRequest is the only browser API that reports upload progress. */
 const putWithProgress = (

@@ -57,9 +57,8 @@ import { z } from "zod";
 import { ColorSelector } from "@/components/color-selector";
 import { FormActions } from "@/modules/transactions/components/transaction-form";
 import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
-import { client } from "@/utils/orpc";
-
-import { invalidateTags, tagsQueryOptions } from "../queries";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
 interface Tag {
   archivedAt: Date | null;
@@ -91,28 +90,26 @@ const TagComposer = ({
 }) => {
   const queryClient = useQueryClient();
   const editing = tag !== undefined;
+  const { tags } = householdOrpc(activeOrganizationId);
+  const onSuccess = async (_: unknown, { name }: { name: string }) => {
+    await invalidate(queryClient, activeOrganizationId, "tags");
+    onOpenChange(false);
+    toastManager.add({
+      title: editing ? "Tag updated" : `${name.trim()} added`,
+      type: "success",
+    });
+  };
+  const create = useMutation(tags.create.mutationOptions({ onSuccess }));
+  const update = useMutation(tags.update.mutationOptions({ onSuccess }));
   const form = useForm({
     defaultValues: { color: colorValue(tag?.color), name: tag?.name ?? "" },
     onSubmit: async ({ value }) => {
-      try {
-        await (tag
-          ? client.tags.update({ ...value, tagId: tag.id })
-          : client.tags.create(value));
-        await invalidateTags(queryClient, activeOrganizationId);
-        onOpenChange(false);
-        toastManager.add({
-          title: editing ? "Tag updated" : `${value.name.trim()} added`,
-          type: "success",
-        });
-      } catch (error) {
-        toastManager.add({
-          title:
-            error instanceof Error
-              ? error.message
-              : `Could not ${editing ? "update" : "create"} the tag`,
-          type: "error",
-        });
-      }
+      // The mutation cache toasts the failure; the form keeps its values.
+      await (
+        tag
+          ? update.mutateAsync({ ...value, tagId: tag.id })
+          : create.mutateAsync(value)
+      ).catch(() => null);
     },
     validators: { onSubmit: tagSchema },
   });
@@ -210,7 +207,10 @@ export const TagManager = ({
   canUpdate: boolean;
 }) => {
   const queryClient = useQueryClient();
-  const tags = useQuery(tagsQueryOptions(activeOrganizationId));
+  const tagsApi = householdOrpc(activeOrganizationId).tags;
+  const tags = useQuery(
+    tagsApi.list.queryOptions({ input: { includeArchived: true } })
+  );
   const [showArchived, setShowArchived] = useState(false);
   const [composer, setComposer] = useState<{
     key: number;
@@ -221,13 +221,10 @@ export const TagManager = ({
   const archive = useMutation({
     mutationFn: ({ id, restore }: { id: string; restore: boolean }) =>
       restore
-        ? client.tags.restore({ tagId: id })
-        : client.tags.archive({ tagId: id }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+        ? tagsApi.restore.call({ tagId: id })
+        : tagsApi.archive.call({ tagId: id }),
     onSuccess: async (_, { id, restore }) => {
-      await invalidateTags(queryClient, activeOrganizationId);
+      await invalidate(queryClient, activeOrganizationId, "tags");
       toastManager.add({
         actionProps: restore
           ? undefined

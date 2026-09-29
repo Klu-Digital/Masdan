@@ -16,12 +16,15 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { AccountCardThumb } from "@/modules/accounts/components/account-card";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
 import { reminderCopy, strongestTone } from "../presentation";
 import type { ReminderTone } from "../presentation";
-import { invalidateReminders, remindersQueryOptions } from "../queries";
-import type { Reminder } from "../queries";
+import type { Reminder } from "../types";
+
+/** New reminders come from the worker, not from anything this tab did. */
+const REFETCH_INTERVAL_MS = 5 * 60 * 1000;
 
 const maskMoney = (): string => PRIVACY_MASK;
 
@@ -121,20 +124,24 @@ export const RemindersMenu = ({
 }) => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const reminders = useQuery(remindersQueryOptions(activeOrganizationId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const reminders = useQuery(
+    orpc.reminders.list.queryOptions({
+      enabled: activeOrganizationId !== null,
+      meta: { suppressErrorToast: true },
+      refetchInterval: REFETCH_INTERVAL_MS,
+    })
+  );
   const items = reminders.data?.items ?? [];
   const today = reminders.data?.today ?? "";
 
   const dismiss = useMutation({
     mutationFn: ({ reminder, undo }: { reminder: Reminder; undo: boolean }) =>
       undo
-        ? client.reminders.restore({ reminderId: reminder.id })
-        : client.reminders.dismiss({ reminderId: reminder.id }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+        ? orpc.reminders.restore.call({ reminderId: reminder.id })
+        : orpc.reminders.dismiss.call({ reminderId: reminder.id }),
     onSuccess: async (_, { reminder, undo }) => {
-      await invalidateReminders(queryClient, activeOrganizationId);
+      await invalidate(queryClient, activeOrganizationId, "reminders");
       if (undo) {
         return;
       }

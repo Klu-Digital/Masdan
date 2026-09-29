@@ -33,7 +33,7 @@ import { Tabs, TabsList, TabsTab } from "@masdan/ui/components/tabs";
 import { Textarea } from "@masdan/ui/components/textarea";
 import { toastManager } from "@masdan/ui/components/toast";
 import { useForm } from "@tanstack/react-form";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { z } from "zod";
 
@@ -41,20 +41,20 @@ import { ColorSelector } from "@/components/color-selector";
 import { DatePicker } from "@/components/date-picker";
 import { MoreOptions } from "@/components/more-options";
 import { householdToday } from "@/lib/household-date";
-import { currenciesQueryOptions } from "@/modules/currency/queries";
 import {
   FormActions,
   trimDecimal,
 } from "@/modules/transactions/components/transaction-form";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc, orpc } from "@/utils/orpc";
+import type { RouterInputs, RouterOutputs } from "@/utils/orpc";
 
 import { cardCountriesOf, useCardCatalog } from "../card-catalog";
 import { ACCOUNT_GROUPS, ACCOUNT_KINDS, accountKind } from "../kinds";
-import { accountQueryOptions, invalidateAccounts } from "../queries";
 import { CardProductPicker } from "./card-product-picker";
 import { IssuerField } from "./issuer-field";
 
-export type AccountDetail = Awaited<ReturnType<typeof client.accounts.get>>;
+export type AccountDetail = RouterOutputs["accounts"]["get"];
 
 export interface AccountComposerRequest {
   account?: AccountDetail;
@@ -196,7 +196,12 @@ const AccountForm = ({
   onOpenAccount?: (accountId: string) => void;
 }) => {
   const queryClient = useQueryClient();
-  const currencies = useQuery(currenciesQueryOptions());
+  const currencies = useQuery(
+    orpc.currencies.list.queryOptions({ staleTime: Number.POSITIVE_INFINITY })
+  );
+  const { accounts } = householdOrpc(activeOrganizationId);
+  const create = useMutation(accounts.create.mutationOptions());
+  const update = useMutation(accounts.update.mutationOptions());
   const editing = account !== undefined;
   const kind = accountKind(accountType);
   const savedProductKey = account?.cardProductKey ?? null;
@@ -242,42 +247,32 @@ const AccountForm = ({
         cardLastFour: isCard ? value.cardLastFour : null,
         cardNetwork: isCard ? value.cardNetwork : null,
         cardProductKey: isCard ? value.cardProductKey : null,
-        color: (value.color ?? null) as Parameters<
-          typeof client.accounts.create
-        >[0]["color"],
+        color: (value.color ??
+          null) as RouterInputs["accounts"]["create"]["color"],
         creditLimit: isCard ? value.creditLimit : null,
         openingBalance: value.openingBalance || "0",
         paymentDueDay: isCard ? value.paymentDueDay : null,
         statementClosingDay: isCard ? value.statementClosingDay : null,
       };
-      try {
-        const saved = await (account
-          ? client.accounts.update({ ...payload, accountId: account.id })
-          : client.accounts.create(payload));
-        await Promise.all([
-          invalidateAccounts(queryClient, activeOrganizationId),
-          queryClient.invalidateQueries({
-            queryKey: accountQueryOptions(saved.id).queryKey,
-          }),
-        ]);
-        onClose();
-        toastManager.add({
-          actionProps:
-            editing || !onOpenAccount
-              ? undefined
-              : { children: "Open", onClick: () => onOpenAccount(saved.id) },
-          title: editing ? "Account updated" : `${saved.name} added`,
-          type: "success",
-        });
-      } catch (error) {
-        toastManager.add({
-          title:
-            error instanceof Error
-              ? error.message
-              : `Could not ${editing ? "update" : "add"} the account`,
-          type: "error",
-        });
+      // The mutation cache toasts the failure; the form keeps its values.
+      const saved = await (
+        account
+          ? update.mutateAsync({ ...payload, accountId: account.id })
+          : create.mutateAsync(payload)
+      ).catch(() => null);
+      if (!saved) {
+        return;
       }
+      await invalidate(queryClient, activeOrganizationId, "accounts");
+      onClose();
+      toastManager.add({
+        actionProps:
+          editing || !onOpenAccount
+            ? undefined
+            : { children: "Open", onClick: () => onOpenAccount(saved.id) },
+        title: editing ? "Account updated" : `${saved.name} added`,
+        type: "success",
+      });
     },
     validators: { onSubmit: accountSchema },
   });

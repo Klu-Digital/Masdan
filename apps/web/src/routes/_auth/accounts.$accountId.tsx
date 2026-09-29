@@ -2,7 +2,7 @@ import { createFileRoute, getRouteApi } from "@tanstack/react-router";
 
 import { HouseholdGate } from "@/components/household-gate";
 import { AccountDetailPage } from "@/modules/accounts/components/account-detail";
-import { accountQueryOptions } from "@/modules/accounts/queries";
+import { householdOrpc } from "@/utils/orpc";
 
 const routeApi = getRouteApi("/_auth/accounts/$accountId");
 
@@ -24,7 +24,9 @@ export const Route = createFileRoute("/_auth/accounts/$accountId")({
   loader: async ({ context, params }) => {
     try {
       return await context.queryClient.ensureQueryData(
-        accountQueryOptions(params.accountId)
+        householdOrpc(context.activeOrganizationId).accounts.get.queryOptions({
+          input: { accountId: params.accountId },
+        })
       );
     } catch {
       return null;

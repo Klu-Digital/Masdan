@@ -16,11 +16,11 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
 
-import type { client } from "@/utils/orpc";
+import type { RouterOutputs } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
-type HealthResult = Awaited<ReturnType<typeof client.admin.system.health>>;
-type ConfigResult = Awaited<ReturnType<typeof client.admin.system.config>>;
+type HealthResult = RouterOutputs["admin"]["system"]["health"];
+type ConfigResult = RouterOutputs["admin"]["system"]["config"];
 
 const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div className="flex items-center justify-between py-1.5 text-sm">

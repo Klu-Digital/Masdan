@@ -10,14 +10,14 @@ import {
   ListSectionFooter,
   ListSectionHeader,
 } from "@masdan/ui/components/list";
-import { toastManager } from "@masdan/ui/components/toast";
 import { useMutation } from "@tanstack/react-query";
 
 import { householdToday } from "@/lib/household-date";
 import { downloadCsv, exportFileName } from "@/modules/exports/download";
-import { client } from "@/utils/orpc";
+import { orpc } from "@/utils/orpc";
+import type { RouterOutputs } from "@/utils/orpc";
 
-type ExportDataset = keyof typeof client.exports;
+type ExportDataset = keyof RouterOutputs["exports"];
 
 const DATASETS: { description: string; name: ExportDataset; title: string }[] =
   [
@@ -72,13 +72,7 @@ export const DataExportSection = ({
   timeZone: string;
 }) => {
   const download = useMutation({
-    mutationFn: (name: ExportDataset) => client.exports[name](),
-    onError: (error: Error) => {
-      toastManager.add({
-        title: error.message || "Could not export",
-        type: "error",
-      });
-    },
+    mutationFn: (name: ExportDataset) => orpc.exports[name].call(),
     onSuccess: ({ csv, fileName }) => {
       downloadCsv(
         exportFileName(householdName, householdToday(timeZone), fileName),

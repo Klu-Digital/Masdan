@@ -63,31 +63,21 @@ import { AccountTile } from "@/modules/accounts/components/account-row";
 import { nextPaymentDue } from "@/modules/accounts/credit";
 import { ACCOUNT_GROUPS } from "@/modules/accounts/kinds";
 import { groupOf, groupTotal } from "@/modules/accounts/net-worth";
-import {
-  accountStatementsQueryOptions,
-  accountsQueryOptions,
-} from "@/modules/accounts/queries";
 import { NetWorthHistoryChart } from "@/modules/reports/components/report-sections";
-import {
-  cashFlowQueryOptions,
-  netWorthHistoryQueryOptions,
-  netWorthQueryOptions,
-  spendingQueryOptions,
-} from "@/modules/reports/queries";
 import type {
   CashFlowReport,
   LedgerReportInput,
   NetWorthHistoryInput,
   NetWorthReport,
   SpendingReport,
-} from "@/modules/reports/queries";
+} from "@/modules/reports/types";
 import { TransactionTile } from "@/modules/transactions/components/transaction-tile";
 import { describeTransaction } from "@/modules/transactions/presentation";
-import { transactionsQueryOptions } from "@/modules/transactions/queries";
 import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
-import type { client } from "@/utils/orpc";
+import { householdOrpc } from "@/utils/orpc";
+import type { RouterOutputs } from "@/utils/orpc";
 
-type Account = Awaited<ReturnType<typeof client.accounts.list>>;
+type Account = RouterOutputs["accounts"]["list"];
 
 /** The slice of the active household this page reads. */
 export interface OverviewHousehold extends Pick<
@@ -473,12 +463,18 @@ const SpendingHighlights = ({
 
 const CardDueRow = ({
   account,
+  organizationId,
   today,
 }: {
   account: Account[number];
+  organizationId: string;
   today: string;
 }) => {
-  const statements = useQuery(accountStatementsQueryOptions(account.id));
+  const statements = useQuery(
+    householdOrpc(organizationId).accounts.listStatements.queryOptions({
+      input: { accountId: account.id },
+    })
+  );
   const due = nextPaymentDue(account, statements.data ?? [], today);
   if (!due) {
     return null;
@@ -530,11 +526,13 @@ const Upcoming = ({
     (account) => account.accountType === "credit_card"
   );
   const unpaid = useQuery(
-    transactionsQueryOptions(organizationId, {
-      ...DEFAULT_TRANSACTION_SEARCH,
-      pageSize: UPCOMING_BILLS,
-      paidStatuses: ["unpaid"],
-      sortDirection: "asc",
+    householdOrpc(organizationId).transactions.list.queryOptions({
+      input: {
+        ...DEFAULT_TRANSACTION_SEARCH,
+        pageSize: UPCOMING_BILLS,
+        paidStatuses: ["unpaid"],
+        sortDirection: "asc",
+      },
     })
   );
   const bills = unpaid.data?.items ?? [];
@@ -569,7 +567,12 @@ const Upcoming = ({
       ) : (
         <List>
           {cards.map((card) => (
-            <CardDueRow account={card} key={card.id} today={today} />
+            <CardDueRow
+              account={card}
+              key={card.id}
+              organizationId={organizationId}
+              today={today}
+            />
           ))}
           {bills.map((bill) => {
             const view = describeTransaction(bill);
@@ -716,9 +719,8 @@ const RecentActivity = ({
   today: string;
 }) => {
   const recent = useQuery(
-    transactionsQueryOptions(organizationId, {
-      ...DEFAULT_TRANSACTION_SEARCH,
-      pageSize: RECENT_COUNT,
+    householdOrpc(organizationId).transactions.list.queryOptions({
+      input: { ...DEFAULT_TRANSACTION_SEARCH, pageSize: RECENT_COUNT },
     })
   );
   const items = recent.data?.items ?? [];
@@ -875,16 +877,21 @@ const Welcome = ({ household }: { household: OverviewHousehold }) => {
 const Overview = ({ household }: { household: OverviewHousehold }) => {
   const { activeOrganizationId, can, session, timezone } = household;
   const today = householdToday(timezone);
-  const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
-  const netWorth = useQuery(netWorthQueryOptions(activeOrganizationId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const accounts = useQuery(
+    orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
+  );
+  // Each section renders its own failure state.
+  const meta = { suppressErrorToast: true };
+  const netWorth = useQuery(orpc.reports.netWorth.queryOptions({ meta }));
   const month = useQuery(
-    cashFlowQueryOptions(activeOrganizationId, THIS_MONTH)
+    orpc.reports.cashFlow.queryOptions({ input: THIS_MONTH, meta })
   );
   const spending = useQuery(
-    spendingQueryOptions(activeOrganizationId, THIS_MONTH)
+    orpc.reports.spendingByCategory.queryOptions({ input: THIS_MONTH, meta })
   );
   const trend = useQuery(
-    netWorthHistoryQueryOptions(activeOrganizationId, NET_WORTH_TREND)
+    orpc.reports.netWorthHistory.queryOptions({ input: NET_WORTH_TREND, meta })
   );
   const currency =
     household.currency ?? netWorth.data?.defaultCurrency ?? "PHP";

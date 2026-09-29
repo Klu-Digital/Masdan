@@ -18,11 +18,11 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
 import { formatRelativeDays, formatShortDate } from "@/lib/dates";
+import { householdOrpc } from "@/utils/orpc";
 
 import { nextPaymentDue, utilizationTone } from "../credit";
 import { accountKind, accountTint } from "../kinds";
 import type { LabelledAllocation } from "../net-worth";
-import { accountStatementsQueryOptions } from "../queries";
 import { AccountCard, AccountCardThumb } from "./account-card";
 import { AllocationMeter } from "./allocation-meter";
 
@@ -71,12 +71,18 @@ export const accountSubtitle = (
 /** Utilization and the next due date — the two things a card row must say. */
 export const CardContext = ({
   account,
+  organizationId,
   today,
 }: {
   account: RowAccount;
+  organizationId: string;
   today: string;
 }) => {
-  const statements = useQuery(accountStatementsQueryOptions(account.id));
+  const statements = useQuery(
+    householdOrpc(organizationId).accounts.listStatements.queryOptions({
+      input: { accountId: account.id },
+    })
+  );
   const due = nextPaymentDue(account, statements.data ?? [], today);
   const utilization =
     account.utilization === null ? null : toNumber(account.utilization);
@@ -155,11 +161,13 @@ export const AccountRow = ({
   account,
   allocation,
   converted,
+  organizationId,
   today,
 }: {
   account: RowAccount;
   allocation?: LabelledAllocation | null;
   converted?: { balance: string; currencyCode: string };
+  organizationId: string;
   today: string;
 }) => {
   const isCard = account.accountType === "credit_card";
@@ -185,7 +193,11 @@ export const AccountRow = ({
         </ListItemTitle>
         <ListItemDescription>
           {isCard && !account.archivedAt ? (
-            <CardContext account={account} today={today} />
+            <CardContext
+              account={account}
+              organizationId={organizationId}
+              today={today}
+            />
           ) : (
             accountSubtitle(account)
           )}
@@ -218,11 +230,13 @@ export const CardTile = ({
   account,
   allocation,
   converted,
+  organizationId,
   today,
 }: {
   account: RowAccount;
   allocation?: LabelledAllocation | null;
   converted?: { balance: string; currencyCode: string };
+  organizationId: string;
   today: string;
 }) => (
   <Link
@@ -250,7 +264,11 @@ export const CardTile = ({
         </span>
       </span>
       <span className="text-muted-foreground text-xs">
-        <CardContext account={account} today={today} />
+        <CardContext
+          account={account}
+          organizationId={organizationId}
+          today={today}
+        />
       </span>
     </span>
   </Link>

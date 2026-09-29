@@ -5,7 +5,6 @@ import { beforeEach, expect, it, vi } from "vite-plus/test";
 import type { ActiveHousehold } from "@/components/household-gate";
 import { renderWithProviders } from "@/test/render";
 import { createQueryClient } from "@/utils/orpc";
-import type * as TypeImport___utils_orpc from "@/utils/orpc";
 
 const accountsList = vi.hoisted(() => vi.fn());
 const listStatements = vi.hoisted(() => vi.fn());
@@ -14,16 +13,15 @@ const consolidatedNetWorth = vi.hoisted(() => vi.fn());
 const currenciesList = vi.hoisted(() => vi.fn());
 const exchangeRatesList = vi.hoisted(() => vi.fn());
 
-vi.mock("@/utils/orpc", async (importOriginal) => {
-  const actual = await importOriginal<typeof TypeImport___utils_orpc>();
+vi.mock("@/utils/client", async () => {
+  const { mockClient } = await import("@/test/client");
   return {
-    ...actual,
-    client: {
+    client: mockClient({
       accounts: { list: accountsList, listStatements },
       currencies: { list: currenciesList },
       exchangeRates: { list: exchangeRatesList },
       reports: { consolidatedNetWorth, netWorth },
-    },
+    }),
   };
 });
 vi.mock("@/components/app-actions", () => ({

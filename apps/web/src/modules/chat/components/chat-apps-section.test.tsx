@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { renderWithProviders } from "@/test/render";
-import type * as TypeImport___utils_orpc from "@/utils/orpc";
 
 vi.mock("@masdan/ui/components/toast", () => ({
   toastManager: { add: vi.fn(), close: vi.fn(), update: vi.fn() },
@@ -18,9 +17,9 @@ const rpc = vi.hoisted(() => ({
   unlink: vi.fn(),
 }));
 
-vi.mock("@/utils/orpc", async (importOriginal) => {
-  const actual = await importOriginal<typeof TypeImport___utils_orpc>();
-  return { ...actual, client: { chat: rpc } };
+vi.mock("@/utils/client", async () => {
+  const { mockClient } = await import("@/test/client");
+  return { client: mockClient({ chat: rpc }) };
 });
 
 const { ChatAppsSection } = await import("./chat-apps-section");

@@ -4,16 +4,15 @@ import { Input } from "@masdan/ui/components/input";
 import { ResponsiveSheet } from "@masdan/ui/components/responsive-sheet";
 import { toastManager } from "@masdan/ui/components/toast";
 import { useForm } from "@tanstack/react-form";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
+import { useHousehold } from "@/hooks/use-household";
 import { addDays, nextDayOfMonth, previousDayOfMonth } from "@/lib/dates";
-import { invalidateAllReminders } from "@/modules/reminders/queries";
 import { FormActions } from "@/modules/transactions/components/transaction-form";
-import { client } from "@/utils/orpc";
-
-import { accountStatementsQueryOptions } from "../queries";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
 const decimal = /^-?\d+(?<fraction>\.\d{1,6})?$/u;
 const nonNegative = /^\d+(?<fraction>\.\d{1,6})?$/u;
@@ -88,6 +87,18 @@ export const StatementComposer = ({
   today: string;
 }) => {
   const queryClient = useQueryClient();
+  const { activeOrganizationId } = useHousehold();
+  const createStatement = useMutation(
+    householdOrpc(
+      activeOrganizationId
+    ).accounts.createStatement.mutationOptions({
+      onSuccess: async () => {
+        await invalidate(queryClient, activeOrganizationId, "accounts");
+        onOpenChange(false);
+        toastManager.add({ title: "Statement recorded", type: "success" });
+      },
+    })
+  );
   const form = useForm({
     defaultValues: {
       ...defaultCycle(card, today),
@@ -95,30 +106,15 @@ export const StatementComposer = ({
       statementBalance: "",
     } as StatementValues,
     onSubmit: async ({ value }) => {
-      try {
-        await client.accounts.createStatement({
+      // The mutation cache toasts the failure; the form keeps its values.
+      await createStatement
+        .mutateAsync({
           ...value,
           accountId: card.id,
           dueDate: value.dueDate || null,
           minimumAmountDue: value.minimumAmountDue || null,
-        });
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: accountStatementsQueryOptions(card.id).queryKey,
-          }),
-          invalidateAllReminders(queryClient),
-        ]);
-        onOpenChange(false);
-        toastManager.add({ title: "Statement recorded", type: "success" });
-      } catch (error) {
-        toastManager.add({
-          title:
-            error instanceof Error
-              ? error.message
-              : "Could not record the statement",
-          type: "error",
-        });
-      }
+        })
+        .catch(() => null);
     },
     validators: { onSubmit: statementSchema },
   });

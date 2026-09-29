@@ -21,14 +21,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
-import type { client } from "@/utils/orpc";
+import type { RouterOutputs } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
 const PAGE_SIZE = 50;
 
-type OrganizationsResult = Awaited<
-  ReturnType<typeof client.admin.organizations.list>
->;
+type OrganizationsResult = RouterOutputs["admin"]["organizations"]["list"];
 
 const OrganizationsList = ({
   offset,

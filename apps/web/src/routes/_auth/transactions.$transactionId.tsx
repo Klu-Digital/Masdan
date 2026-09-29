@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useAppActions } from "@/components/app-actions";
 import { useHousehold } from "@/hooks/use-household";
 import { TransactionInspector } from "@/modules/transactions/components/inspector";
-import { transactionQueryOptions } from "@/modules/transactions/queries";
 import { useLedgerActions } from "@/modules/transactions/use-ledger-actions";
+import { householdOrpc } from "@/utils/orpc";
 
 const routeApi = getRouteApi("/_auth/transactions/$transactionId");
 
@@ -32,6 +32,7 @@ const TransactionDetailRoute = () => {
   return (
     <TransactionInspector
       actions={actions}
+      activeOrganizationId={activeOrganizationId}
       onEdit={(detail) => {
         close();
         compose(
@@ -63,7 +64,11 @@ export const Route = createFileRoute("/_auth/transactions/$transactionId")({
   loader: async ({ context, params }) => {
     try {
       return await context.queryClient.ensureQueryData(
-        transactionQueryOptions(params.transactionId)
+        householdOrpc(
+          context.activeOrganizationId
+        ).transactions.get.queryOptions({
+          input: { transactionId: params.transactionId },
+        })
       );
     } catch {
       return null;

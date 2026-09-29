@@ -27,10 +27,10 @@ import { useState } from "react";
 import { formatLongDate } from "@/lib/dates";
 import { TransactionRule } from "@/modules/rules/components/transaction-rule";
 import { TransactionSuggestion } from "@/modules/suggestions/components/transaction-suggestion";
+import { householdOrpc } from "@/utils/orpc";
 
 import { describeTransaction } from "../presentation";
-import { transactionQueryOptions } from "../queries";
-import type { TransactionDetail } from "../queries";
+import type { TransactionDetail } from "../types";
 import type { LedgerActions } from "../use-ledger-actions";
 import { DeleteTransferDialog } from "./delete-transfer-dialog";
 import { TransactionAttachments } from "./transaction-attachments";
@@ -203,6 +203,7 @@ const SplitDetails = ({ detail }: { detail: TransactionDetail }) => {
 // oxlint-disable-next-line complexity
 export const TransactionInspector = ({
   actions,
+  activeOrganizationId,
   onEdit,
   onOpenChange,
   open,
@@ -210,13 +211,18 @@ export const TransactionInspector = ({
   transactionId,
 }: {
   actions: LedgerActions;
+  activeOrganizationId: string | null;
   onEdit: (detail: TransactionDetail) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
   permissions: LedgerPermissions;
   transactionId: string;
 }) => {
-  const query = useQuery(transactionQueryOptions(transactionId));
+  const query = useQuery(
+    householdOrpc(activeOrganizationId).transactions.get.queryOptions({
+      input: { transactionId },
+    })
+  );
   const [confirming, setConfirming] = useState(false);
   const detail = query.data;
   const view = detail ? describeTransaction(detail) : null;

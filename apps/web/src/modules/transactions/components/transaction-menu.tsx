@@ -16,7 +16,7 @@ import {
 } from "@masdan/ui/components/menu";
 import { useState } from "react";
 
-import type { Transaction } from "../queries";
+import type { Transaction } from "../types";
 import type { LedgerActions } from "../use-ledger-actions";
 import { DeleteTransferDialog } from "./delete-transfer-dialog";
 

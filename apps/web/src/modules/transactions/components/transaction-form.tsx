@@ -18,7 +18,7 @@ import { Textarea } from "@masdan/ui/components/textarea";
 import { toastManager } from "@masdan/ui/components/toast";
 import { formatMoney, moneyParts } from "@masdan/ui/lib/money";
 import { useForm } from "@tanstack/react-form";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { z } from "zod";
@@ -27,17 +27,11 @@ import { DatePicker } from "@/components/date-picker";
 import { MoreOptions } from "@/components/more-options";
 import { householdToday } from "@/lib/household-date";
 import { AccountPicker } from "@/modules/accounts/components/account-picker";
-import {
-  accountsQueryOptions,
-  invalidateAccounts,
-} from "@/modules/accounts/queries";
 import { CategoryPicker } from "@/modules/categories/components/category-picker";
-import { categoriesQueryOptions } from "@/modules/categories/queries";
-import { tagsQueryOptions } from "@/modules/tags/queries";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
-import { invalidateTransactions, transactionQueryOptions } from "../queries";
-import type { TransactionDetail } from "../queries";
+import type { TransactionDetail } from "../types";
 import { TransactionAttachments } from "./transaction-attachments";
 
 const splitSchema = z.object({
@@ -246,9 +240,18 @@ export const TransactionForm = ({
       next.delete(field);
       return next;
     });
-  const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
-  const categories = useQuery(categoriesQueryOptions(activeOrganizationId));
-  const tags = useQuery(tagsQueryOptions(activeOrganizationId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const accounts = useQuery(
+    orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
+  );
+  const categories = useQuery(
+    orpc.categories.list.queryOptions({ input: { includeArchived: true } })
+  );
+  const tags = useQuery(
+    orpc.tags.list.queryOptions({ input: { includeArchived: true } })
+  );
+  const create = useMutation(orpc.transactions.create.mutationOptions());
+  const update = useMutation(orpc.transactions.update.mutationOptions());
 
   const activeAccounts =
     accounts.data?.filter((account) => account.archivedAt === null) ?? [];
@@ -289,38 +292,24 @@ export const TransactionForm = ({
               categoryId: value.splits[0]?.categoryId ?? value.categoryId,
             }
           : value;
-      try {
-        const saved = await (transaction
-          ? client.transactions.update({
-              ...payload,
-              transactionId: transaction.id,
-            })
-          : client.transactions.create(payload));
-        await Promise.all([
-          invalidateTransactions(queryClient, activeOrganizationId),
-          invalidateAccounts(queryClient, activeOrganizationId),
-          queryClient.invalidateQueries({ queryKey: ["account"] }),
-          queryClient.invalidateQueries({
-            queryKey: transactionQueryOptions(saved.id).queryKey,
-          }),
-        ]);
-        formApi.reset();
-        toastManager.add({
-          title: editing
-            ? "Changes saved"
-            : `${kind === "income" ? "Income" : "Expense"} added`,
-          type: "success",
-        });
-        onSaved(saved.id);
-      } catch (error) {
-        toastManager.add({
-          title:
-            error instanceof Error
-              ? error.message
-              : `Could not ${editing ? "save" : "add"} this transaction`,
-          type: "error",
-        });
+      // The mutation cache toasts the failure; the form keeps its values.
+      const saved = await (
+        transaction
+          ? update.mutateAsync({ ...payload, transactionId: transaction.id })
+          : create.mutateAsync(payload)
+      ).catch(() => null);
+      if (!saved) {
+        return;
       }
+      await invalidate(queryClient, activeOrganizationId, "ledger");
+      formApi.reset();
+      toastManager.add({
+        title: editing
+          ? "Changes saved"
+          : `${kind === "income" ? "Income" : "Expense"} added`,
+        type: "success",
+      });
+      onSaved(saved.id);
     },
     validators: { onSubmit: transactionSchema },
   });

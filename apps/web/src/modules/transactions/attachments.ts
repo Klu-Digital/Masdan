@@ -1,19 +1,7 @@
-import { queryOptions } from "@tanstack/react-query";
+import type { RouterOutputs } from "@/utils/orpc";
 
-import { client } from "@/utils/orpc";
-
-export type TransactionAttachment = Awaited<
-  ReturnType<typeof client.attachments.list>
->[number];
-
-/** Under the transaction's own key, so every ledger refresh of it refetches these too. */
-export const attachmentsQueryOptions = (transactionId: string) =>
-  queryOptions({
-    // The section renders its own failure state.
-    meta: { suppressErrorToast: true },
-    queryFn: () => client.attachments.list({ transactionId }),
-    queryKey: ["transaction", transactionId, "attachments"] as const,
-  });
+export type TransactionAttachment =
+  RouterOutputs["attachments"]["list"][number];
 
 const KIB = 1024;
 const MIB = KIB * KIB;

@@ -4,8 +4,6 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-import type * as TypeImport___utils_orpc from "@/utils/orpc";
-
 const toast = vi.hoisted(() => vi.fn());
 vi.mock("@masdan/ui/components/toast", () => ({
   toastManager: { add: toast, close: vi.fn(), update: vi.fn() },
@@ -23,11 +21,10 @@ const parseQuickEntry = vi.hoisted(() => vi.fn());
 const create = vi.hoisted(() => vi.fn());
 const archive = vi.hoisted(() => vi.fn());
 
-vi.mock("@/utils/orpc", async (importOriginal) => {
-  const actual = await importOriginal<typeof TypeImport___utils_orpc>();
+vi.mock("@/utils/client", async () => {
+  const { mockClient } = await import("@/test/client");
   return {
-    ...actual,
-    client: { transactions: { archive, create, parseQuickEntry } },
+    client: mockClient({ transactions: { archive, create, parseQuickEntry } }),
   };
 });
 

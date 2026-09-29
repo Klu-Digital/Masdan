@@ -18,6 +18,8 @@ import {
 } from "@masdan/ui/components/select";
 import { useState } from "react";
 
+import { errorMessage as messageFor } from "@/utils/orpc";
+
 import { useBulkUpdate } from "../use-ledger-actions";
 import { MultiSelectFilter } from "./ledger-filters";
 
@@ -77,11 +79,7 @@ export const BulkEditDialog = ({
       reset();
       onSaved();
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Could not update transactions";
-      setErrorMessage(message);
+      setErrorMessage(messageFor(error));
     }
   };
   return (

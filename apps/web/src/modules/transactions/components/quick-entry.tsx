@@ -15,16 +15,14 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { useAppActions } from "@/components/app-actions";
-import { invalidateAccounts } from "@/modules/accounts/queries";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { errorMessage, householdOrpc } from "@/utils/orpc";
+import type { RouterOutputs } from "@/utils/orpc";
 
-import { invalidateTransactions } from "../queries";
-import type { TransactionDetail } from "../queries";
+import type { TransactionDetail } from "../types";
 import type { ReviewField } from "./transaction-form";
 
-type QuickEntryParse = Awaited<
-  ReturnType<typeof client.transactions.parseQuickEntry>
->;
+type QuickEntryParse = RouterOutputs["transactions"]["parseQuickEntry"];
 
 /** Matches the API's limit, so an overlong line never costs a round trip. */
 const MAX_LENGTH = 300;
@@ -69,13 +67,9 @@ export const QuickEntry = ({
     transaction: TransactionDetail;
   } | null>(null);
 
-  const refresh = () =>
-    Promise.all([
-      invalidateTransactions(queryClient, activeOrganizationId),
-      invalidateAccounts(queryClient, activeOrganizationId),
-      queryClient.invalidateQueries({ queryKey: ["account"] }),
-      queryClient.invalidateQueries({ queryKey: ["transaction"] }),
-    ]);
+  const orpc = householdOrpc(activeOrganizationId);
+
+  const refresh = () => invalidate(queryClient, activeOrganizationId, "ledger");
 
   const openForm = (parsed: QuickEntryParse, source: string) =>
     compose({
@@ -100,6 +94,7 @@ export const QuickEntry = ({
     });
 
   const submit = useMutation({
+    meta: { suppressErrorToast: true },
     mutationFn: async ({
       review,
       source,
@@ -107,7 +102,7 @@ export const QuickEntry = ({
       review: boolean;
       source: string;
     }) => {
-      const parsed = await client.transactions.parseQuickEntry({
+      const parsed = await orpc.transactions.parseQuickEntry.call({
         text: source,
       });
       if (review || !parsed.input) {
@@ -116,12 +111,12 @@ export const QuickEntry = ({
       try {
         return {
           parsed,
-          transaction: await client.transactions.create(parsed.input),
+          transaction: await orpc.transactions.create.call(parsed.input),
         };
       } catch (error) {
         // Create's own validation said no: finish it in the form instead.
         toastManager.add({
-          title: error instanceof Error ? error.message : "Check the details",
+          title: errorMessage(error),
           type: "error",
         });
         return { parsed, transaction: null };
@@ -147,10 +142,7 @@ export const QuickEntry = ({
 
   const undo = useMutation({
     mutationFn: (entry: { source: string; transactionId: string }) =>
-      client.transactions.archive({ transactionId: entry.transactionId }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+      orpc.transactions.archive.call({ transactionId: entry.transactionId }),
     onSuccess: async (_, entry) => {
       await refresh();
       // Back to the line as typed, ready to fix and resubmit.

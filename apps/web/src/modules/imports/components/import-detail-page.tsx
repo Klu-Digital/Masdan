@@ -35,35 +35,27 @@ import {
   TableRow,
 } from "@masdan/ui/components/table";
 import { Tabs, TabsList, TabsTab } from "@masdan/ui/components/tabs";
-import { toastManager } from "@masdan/ui/components/toast";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { PageSkeleton } from "@/components/household-gate";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
-import {
-  accountsQueryOptions,
-  invalidateAccounts,
-} from "@/modules/accounts/queries";
-import { categoriesQueryOptions } from "@/modules/categories/queries";
 import { ruleEffects, ruleReasons } from "@/modules/rules/presentation";
 import {
   ImportRowSuggestion,
   ImportSuggestionsBar,
 } from "@/modules/suggestions/components/import-suggestions";
-import { tagsQueryOptions } from "@/modules/tags/queries";
-import { invalidateTransactions } from "@/modules/transactions/queries";
 import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
-import {
-  importQueryOptions,
-  importRowsQueryOptions,
-  invalidateImport,
-  isImportProcessing,
-} from "../queries";
-import type { ImportRow, TransactionImport } from "../queries";
+import type { ImportRow, TransactionImport } from "../types";
 import { ImportStatusBadge } from "./import-status";
 import { MappingForm, toFormValues } from "./mapping-form";
 import type { ImportConfig } from "./mapping-form";
@@ -103,12 +95,26 @@ type RuleApplication = NonNullable<ImportRow["ruleApplication"]>;
 type Categories = NonNullable<ReturnType<typeof useCategories>["data"]>;
 type Tags = NonNullable<ReturnType<typeof useTags>["data"]>;
 
+const POLL_INTERVAL_MS = 1500;
+
+const isImportProcessing = (status: string | undefined): boolean =>
+  status === "validating" || status === "committing";
+
 const useCategories = (activeOrganizationId: string) =>
-  useQuery(categoriesQueryOptions(activeOrganizationId));
+  useQuery(
+    householdOrpc(activeOrganizationId).categories.list.queryOptions({
+      input: { includeArchived: true },
+    })
+  );
 const useTags = (activeOrganizationId: string) =>
-  useQuery(tagsQueryOptions(activeOrganizationId));
+  useQuery(
+    householdOrpc(activeOrganizationId).tags.list.queryOptions({
+      input: { includeArchived: true },
+    })
+  );
 
 const RowsTable = ({
+  activeOrganizationId,
   categories,
   currency,
   describeRule,
@@ -117,6 +123,7 @@ const RowsTable = ({
   rows,
   tags,
 }: {
+  activeOrganizationId: string;
   categories: Categories;
   currency: string;
   describeRule: (application: RuleApplication) => string;
@@ -170,6 +177,7 @@ const RowsTable = ({
               ) : null}
               {review || row.suggestionApplication ? (
                 <ImportRowSuggestion
+                  activeOrganizationId={activeOrganizationId}
                   canReview={review?.canReview ?? false}
                   categories={categories}
                   importId={importId}
@@ -268,57 +276,66 @@ export const ImportDetailPage = ({
   const [filter, setFilter] = useState<RowFilter>("all");
   const [editing, setEditing] = useState(false);
   const suggestionsEnabled = useFeatureFlag("FF__AI_CATEGORIZATION");
-  const imported = useQuery(importQueryOptions(importId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const imported = useQuery(
+    orpc.imports.get.queryOptions({
+      input: { importId },
+      refetchInterval: (query) =>
+        isImportProcessing(query.state.data?.status) ? POLL_INTERVAL_MS : false,
+    })
+  );
   const current = imported.data;
   const status = current?.status;
-  const rows = useQuery({
-    ...importRowsQueryOptions({
-      importId,
-      pageSize: 200,
-      statuses: filter === "all" || filter === "suggested" ? [] : [filter],
-      suggestionPending: filter === "suggested",
-    }),
-    enabled: current !== undefined && !isImportProcessing(status),
-  });
-  const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
+  const rows = useQuery(
+    orpc.imports.rows.queryOptions({
+      enabled: current !== undefined && !isImportProcessing(status),
+      input: {
+        importId,
+        pageSize: 200,
+        statuses: filter === "all" || filter === "suggested" ? [] : [filter],
+        suggestionPending: filter === "suggested",
+      },
+      placeholderData: keepPreviousData,
+    })
+  );
+  const accounts = useQuery(
+    orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
+  );
   const categories = useCategories(activeOrganizationId);
   const tags = useTags(activeOrganizationId);
 
   const previousStatus = useRef(status);
   useEffect(() => {
     if (previousStatus.current === "committing" && status === "completed") {
-      void invalidateTransactions(queryClient, activeOrganizationId);
-      void invalidateAccounts(queryClient, activeOrganizationId);
+      void invalidate(queryClient, activeOrganizationId, "ledger");
     }
     previousStatus.current = status;
   }, [activeOrganizationId, queryClient, status]);
 
   const act = useMutation({
     mutationFn: (action: "commit" | "discard" | "retry") =>
-      client.imports[action]({ importId }),
-    onError: (error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+      orpc.imports[action].call({ importId }),
     onSuccess: async (updated) => {
-      queryClient.setQueryData(importQueryOptions(importId).queryKey, (old) =>
-        old ? { ...old, ...updated } : old
+      queryClient.setQueryData(
+        orpc.imports.get.queryKey({ input: { importId } }),
+        (old) => (old ? { ...old, ...updated } : old)
       );
-      await invalidateImport(queryClient, importId);
+      await invalidate(queryClient, activeOrganizationId, "imports");
     },
   });
 
+  const update = useMutation(
+    orpc.imports.update.mutationOptions({
+      onSuccess: async () => {
+        setEditing(false);
+        setFilter("all");
+        await invalidate(queryClient, activeOrganizationId, "imports");
+      },
+    })
+  );
   const remap = async (config: ImportConfig) => {
-    try {
-      await client.imports.update({ ...config, importId });
-      setEditing(false);
-      setFilter("all");
-      await invalidateImport(queryClient, importId);
-    } catch (error) {
-      toastManager.add({
-        title: error instanceof Error ? error.message : "Couldn’t save mapping",
-        type: "error",
-      });
-    }
+    // The mutation cache toasts the failure; the form keeps its values.
+    await update.mutateAsync({ ...config, importId }).catch(() => null);
   };
 
   const sampleRows = rows.data?.items;
@@ -483,7 +500,10 @@ export const ImportDetailPage = ({
       {isImportProcessing(status) ? null : <Counts current={current} />}
 
       {suggestionsEnabled && canImport && status === "ready" && !editing ? (
-        <ImportSuggestionsBar importId={importId} />
+        <ImportSuggestionsBar
+          activeOrganizationId={activeOrganizationId}
+          importId={importId}
+        />
       ) : null}
 
       {editing && accounts.data && categories.data ? (
@@ -518,6 +538,7 @@ export const ImportDetailPage = ({
           </Tabs>
           {rows.data && rows.data.items.length > 0 ? (
             <RowsTable
+              activeOrganizationId={activeOrganizationId}
               categories={categories.data ?? []}
               currency={currency}
               describeRule={describeRule}

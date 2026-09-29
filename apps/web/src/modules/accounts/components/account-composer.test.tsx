@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { renderWithProviders } from "@/test/render";
-import type * as TypeImport___utils_orpc from "@/utils/orpc";
 
 import type { AccountDetail } from "./account-composer";
 
@@ -15,14 +14,13 @@ const create = vi.hoisted(() => vi.fn());
 const update = vi.hoisted(() => vi.fn());
 const currenciesList = vi.hoisted(() => vi.fn());
 
-vi.mock("@/utils/orpc", async (importOriginal) => {
-  const actual = await importOriginal<typeof TypeImport___utils_orpc>();
+vi.mock("@/utils/client", async () => {
+  const { mockClient } = await import("@/test/client");
   return {
-    ...actual,
-    client: {
+    client: mockClient({
       accounts: { create, update },
       currencies: { list: currenciesList },
-    },
+    }),
   };
 });
 

@@ -27,9 +27,10 @@ import type { UseMutationResult, UseQueryResult } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { client, orpc } from "@/utils/orpc";
+import { orpc } from "@/utils/orpc";
+import type { RouterOutputs } from "@/utils/orpc";
 
-type FlagsResult = Awaited<ReturnType<typeof client.admin.featureFlags.list>>;
+type FlagsResult = RouterOutputs["admin"]["featureFlags"]["list"];
 type Flag = FlagsResult[number];
 
 interface SetVariables {
@@ -170,10 +171,7 @@ const RouteComponent = () => {
 
   const setFlag = useMutation({
     mutationFn: (variables: SetVariables) =>
-      client.admin.featureFlags.set(variables),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+      orpc.admin.featureFlags.set.call(variables),
     onSuccess: async (_data, variables) => {
       await refresh();
       toastManager.add({
@@ -185,10 +183,7 @@ const RouteComponent = () => {
 
   const resetFlag = useMutation({
     mutationFn: (variables: ResetVariables) =>
-      client.admin.featureFlags.reset(variables),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+      orpc.admin.featureFlags.reset.call(variables),
     onSuccess: async (_data, variables) => {
       await refresh();
       toastManager.add({

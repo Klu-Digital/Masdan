@@ -6,11 +6,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import { useHousehold } from "@/hooks/use-household";
-import { categoriesQueryOptions } from "@/modules/categories/queries";
-import { tagsQueryOptions } from "@/modules/tags/queries";
-import { invalidateTransactions } from "@/modules/transactions/queries";
-import type { TransactionDetail } from "@/modules/transactions/queries";
-import { client } from "@/utils/orpc";
+import type { TransactionDetail } from "@/modules/transactions/types";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
 import { SuggestionEditor } from "./suggestion-editor";
 import type { SuggestionChoice } from "./suggestion-editor";
@@ -59,36 +57,30 @@ export const TransactionSuggestion = ({
   const enabled = useFeatureFlag("FF__AI_CATEGORIZATION");
   const queryClient = useQueryClient();
   const { activeOrganizationId } = useHousehold();
-  const categories = useQuery(categoriesQueryOptions(activeOrganizationId));
-  const tags = useQuery(tagsQueryOptions(activeOrganizationId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const categories = useQuery(
+    orpc.categories.list.queryOptions({ input: { includeArchived: true } })
+  );
+  const tags = useQuery(
+    orpc.tags.list.queryOptions({ input: { includeArchived: true } })
+  );
 
-  const suggest = useMutation({
-    mutationFn: () =>
-      client.suggestions.forTransaction({ transactionId: transaction.id }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
-  });
+  const suggest = useMutation(
+    orpc.suggestions.forTransaction.mutationOptions()
+  );
   const result = suggest.data;
   const suggested = result?.status === "suggested" ? result.suggested : null;
 
   const accept = useMutation({
     mutationFn: (choice: SuggestionChoice) =>
-      client.suggestions.acceptForTransaction({
+      orpc.suggestions.acceptForTransaction.call({
         ...choice,
         suggested: suggested ?? { categoryId: null, tagIds: [] },
         transactionId: transaction.id,
       }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
     onSuccess: async () => {
       suggest.reset();
-      await Promise.all([
-        invalidateTransactions(queryClient, activeOrganizationId),
-        queryClient.invalidateQueries({ queryKey: ["transaction"] }),
-        queryClient.invalidateQueries({ queryKey: ["rule-match"] }),
-      ]);
+      await invalidate(queryClient, activeOrganizationId, "ledger");
       toastManager.add({ title: "Suggestion accepted", type: "success" });
     },
   });
@@ -129,7 +121,7 @@ export const TransactionSuggestion = ({
       <Button
         className="self-start"
         loading={suggest.isPending}
-        onClick={() => suggest.mutate()}
+        onClick={() => suggest.mutate({ transactionId: transaction.id })}
         size="sm"
         variant="secondary"
       >

@@ -38,9 +38,10 @@ import { useRef, useState } from "react";
 import { useHousehold } from "@/hooks/use-household";
 import { uploadFile } from "@/lib/upload";
 import type { UploadFileOptions, UploadState } from "@/lib/upload";
-import { client } from "@/utils/orpc";
+import { client } from "@/utils/client";
+import { errorMessage, householdOrpc } from "@/utils/orpc";
 
-import { attachmentsQueryOptions, formatFileSize } from "../attachments";
+import { formatFileSize } from "../attachments";
 import type { TransactionAttachment } from "../attachments";
 
 /** A hint for the picker only; `files.createUpload` is what enforces it. */
@@ -141,9 +142,16 @@ export const TransactionAttachments = ({
   editable: boolean;
   transactionId: string;
 }) => {
-  const { can, session } = useHousehold();
+  const { activeOrganizationId, can, session } = useHousehold();
   const queryClient = useQueryClient();
-  const attachments = useQuery(attachmentsQueryOptions(transactionId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const attachments = useQuery(
+    orpc.attachments.list.queryOptions({
+      input: { transactionId },
+      // The section renders its own failure state.
+      meta: { suppressErrorToast: true },
+    })
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const nextUploadId = useRef(0);
   const [uploads, setUploads] = useState<PendingUpload[]>([]);
@@ -159,7 +167,7 @@ export const TransactionAttachments = ({
 
   const refresh = () =>
     queryClient.invalidateQueries({
-      queryKey: attachmentsQueryOptions(transactionId).queryKey,
+      queryKey: orpc.attachments.list.key({ input: { transactionId } }),
     });
 
   const patchUpload = (id: number, patch: Partial<PendingUpload>) =>
@@ -179,8 +187,7 @@ export const TransactionAttachments = ({
       setUploads((current) => current.filter((upload) => upload.id !== id));
     } catch (error) {
       patchUpload(id, {
-        error:
-          error instanceof Error ? error.message : "Couldn’t attach this file",
+        error: errorMessage(error),
         state: "error",
       });
     }
@@ -206,29 +213,23 @@ export const TransactionAttachments = ({
     }
   };
 
-  const download = useMutation({
-    mutationFn: (fileId: string) =>
-      client.attachments.downloadUrl({ fileId, transactionId }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
-    onSuccess: ({ downloadUrl }) => {
-      window.open(downloadUrl, "_blank", "noopener,noreferrer");
-    },
-  });
+  const download = useMutation(
+    orpc.attachments.downloadUrl.mutationOptions({
+      onSuccess: ({ downloadUrl }) => {
+        window.open(downloadUrl, "_blank", "noopener,noreferrer");
+      },
+    })
+  );
 
-  const remove = useMutation({
-    mutationFn: (fileId: string) =>
-      client.attachments.remove({ fileId, transactionId }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
-    onSuccess: async () => {
-      await refresh();
-      setRemoving(null);
-      toastManager.add({ title: "Attachment removed", type: "success" });
-    },
-  });
+  const remove = useMutation(
+    orpc.attachments.remove.mutationOptions({
+      onSuccess: async () => {
+        await refresh();
+        setRemoving(null);
+        toastManager.add({ title: "Attachment removed", type: "success" });
+      },
+    })
+  );
 
   if (attachments.isPending) {
     return (
@@ -318,9 +319,12 @@ export const TransactionAttachments = ({
                   aria-label={`Download ${attachment.name}`}
                   disabled={attachment.status !== "ready"}
                   loading={
-                    download.isPending && download.variables === attachment.id
+                    download.isPending &&
+                    download.variables.fileId === attachment.id
                   }
-                  onClick={() => download.mutate(attachment.id)}
+                  onClick={() =>
+                    download.mutate({ fileId: attachment.id, transactionId })
+                  }
                   size="icon-sm"
                   variant="ghost"
                 >
@@ -380,7 +384,7 @@ export const TransactionAttachments = ({
               loading={remove.isPending}
               onClick={() => {
                 if (removing) {
-                  remove.mutate(removing.id);
+                  remove.mutate({ fileId: removing.id, transactionId });
                 }
               }}
               variant="destructive"

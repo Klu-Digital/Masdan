@@ -3,7 +3,7 @@ import { ResponsiveSheet } from "@masdan/ui/components/responsive-sheet";
 import { Tabs, TabsList, TabsTab } from "@masdan/ui/components/tabs";
 import { useState } from "react";
 
-import type { TransactionDetail } from "../queries";
+import type { TransactionDetail } from "../types";
 import { TransactionForm } from "./transaction-form";
 import type {
   TransactionKindChoice,

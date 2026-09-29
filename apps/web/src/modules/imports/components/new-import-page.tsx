@@ -25,18 +25,16 @@ import {
   PageTitle,
 } from "@masdan/ui/components/page";
 import { Skeleton } from "@masdan/ui/components/skeleton";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 
 import { uploadFile } from "@/lib/upload";
-import { accountsQueryOptions } from "@/modules/accounts/queries";
-import { categoriesQueryOptions } from "@/modules/categories/queries";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { errorMessage, householdOrpc } from "@/utils/orpc";
 
 import { asCsvUpload, isCsvFile, readLocalCsv, sampleCsv } from "../csv-file";
 import type { LocalCsv } from "../csv-file";
-import { importsQueryKey, importsQueryOptions } from "../queries";
 import { ImportStatusBadge } from "./import-status";
 import { MappingForm, toFormValues } from "./mapping-form";
 import type {
@@ -79,7 +77,11 @@ const RecentImports = ({
 }: {
   activeOrganizationId: string;
 }) => {
-  const imports = useQuery(importsQueryOptions(activeOrganizationId));
+  const imports = useQuery(
+    householdOrpc(activeOrganizationId).imports.list.queryOptions({
+      input: { limit: 20 },
+    })
+  );
   if (imports.isPending) {
     return <Skeleton className="h-24 w-full" radius="2xl" />;
   }
@@ -123,11 +125,41 @@ export const NewImportPage = ({
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const accounts = useQuery(accountsQueryOptions(activeOrganizationId));
-  const categories = useQuery(categoriesQueryOptions(activeOrganizationId));
+  const orpc = householdOrpc(activeOrganizationId);
+  const accounts = useQuery(
+    orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
+  );
+  const categories = useQuery(
+    orpc.categories.list.queryOptions({ input: { includeArchived: true } })
+  );
   const [file, setFile] = useState<File | null>(null);
   const [source, setSource] = useState<LocalCsv | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  const start = useMutation({
+    // The failure shows inline, beside the file.
+    meta: { suppressErrorToast: true },
+    mutationFn: async ({
+      config,
+      selected,
+    }: {
+      config: ImportConfig;
+      selected: File;
+    }) => {
+      const uploaded = await uploadFile(asCsvUpload(selected));
+      return orpc.imports.create.call({
+        ...config,
+        fileId: uploaded?.id ?? "",
+      });
+    },
+    onError: (error) => setProblem(errorMessage(error)),
+    onSuccess: async (created) => {
+      await invalidate(queryClient, activeOrganizationId, "imports");
+      await navigate({
+        params: { importId: created.id },
+        to: "/imports/$importId",
+      });
+    },
+  });
 
   const chooseFile = async (selected: File | undefined) => {
     setProblem(null);
@@ -164,24 +196,8 @@ export const NewImportPage = ({
       return;
     }
     setProblem(null);
-    try {
-      const uploaded = await uploadFile(asCsvUpload(file));
-      const created = await client.imports.create({
-        ...config,
-        fileId: uploaded?.id ?? "",
-      });
-      await queryClient.invalidateQueries({
-        queryKey: importsQueryKey(activeOrganizationId),
-      });
-      await navigate({
-        params: { importId: created.id },
-        to: "/imports/$importId",
-      });
-    } catch (error) {
-      setProblem(
-        error instanceof Error ? error.message : "Couldn’t start the import"
-      );
-    }
+    // `onError` shows the failure inline.
+    await start.mutateAsync({ config, selected: file }).catch(() => null);
   };
 
   const ready = accounts.data && categories.data;

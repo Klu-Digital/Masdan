@@ -15,15 +15,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@masdan/ui/components/select";
-import { toastManager } from "@masdan/ui/components/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { currenciesQueryOptions } from "@/modules/currency/queries";
-import { consolidatedNetWorthQueryOptions } from "@/modules/reports/queries";
-import { client } from "@/utils/orpc";
-
-import { exchangeRatesQueryOptions } from "../queries";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc, orpc } from "@/utils/orpc";
 
 export const ExchangeRatesDialog = ({
   organizationId,
@@ -39,42 +35,27 @@ export const ExchangeRatesDialog = ({
   const [rate, setRate] = useState("");
   const [rateDate, setRateDate] = useState(today);
   const queryClient = useQueryClient();
-  const list = useQuery({
-    ...exchangeRatesQueryOptions(organizationId),
-    enabled: open,
-  });
-  const currencies = useQuery({ ...currenciesQueryOptions(), enabled: open });
-  const refresh = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: exchangeRatesQueryOptions(organizationId).queryKey,
-      }),
-      queryClient.invalidateQueries({
-        queryKey: consolidatedNetWorthQueryOptions(organizationId).queryKey,
-      }),
-    ]);
-  };
-  const set = useMutation({
-    mutationFn: () =>
-      client.exchangeRates.set({
-        fromCurrency,
-        rate,
-        rateDate,
-        toCurrency: defaultCurrency,
-      }),
-    onError: (error: Error) =>
-      toastManager.add({ title: error.message, type: "error" }),
-    onSuccess: async () => {
-      setRate("");
-      await refresh();
-    },
-  });
-  const remove = useMutation({
-    mutationFn: (id: string) => client.exchangeRates.remove({ id }),
-    onError: (error: Error) =>
-      toastManager.add({ title: error.message, type: "error" }),
-    onSuccess: refresh,
-  });
+  const { exchangeRates } = householdOrpc(organizationId);
+  const list = useQuery(exchangeRates.list.queryOptions({ enabled: open }));
+  const currencies = useQuery(
+    orpc.currencies.list.queryOptions({
+      enabled: open,
+      staleTime: Number.POSITIVE_INFINITY,
+    })
+  );
+  const refresh = () =>
+    invalidate(queryClient, organizationId, "exchangeRates");
+  const set = useMutation(
+    exchangeRates.set.mutationOptions({
+      onSuccess: async () => {
+        setRate("");
+        await refresh();
+      },
+    })
+  );
+  const remove = useMutation(
+    exchangeRates.remove.mutationOptions({ onSuccess: refresh })
+  );
   return (
     <Dialog onOpenChange={setOpen} open={open}>
       <DialogTrigger render={<Button size="sm" variant="secondary" />}>
@@ -113,7 +94,7 @@ export const ExchangeRatesDialog = ({
               </span>
               <Button
                 disabled={remove.isPending}
-                onClick={() => remove.mutate(row.id)}
+                onClick={() => remove.mutate({ id: row.id })}
                 size="sm"
                 variant="ghost"
               >
@@ -125,7 +106,12 @@ export const ExchangeRatesDialog = ({
             className="grid gap-3"
             onSubmit={(event) => {
               event.preventDefault();
-              set.mutate();
+              set.mutate({
+                fromCurrency,
+                rate,
+                rateDate,
+                toCurrency: defaultCurrency,
+              });
             }}
           >
             <Label htmlFor="fx-from">From currency</Label>

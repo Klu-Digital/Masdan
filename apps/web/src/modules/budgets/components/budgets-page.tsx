@@ -54,7 +54,12 @@ import {
 import { toastManager } from "@masdan/ui/components/toast";
 import { formatMoney, moneyParts, toNumber } from "@masdan/ui/lib/money";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
@@ -64,10 +69,10 @@ import {
   FormActions,
   trimDecimal,
 } from "@/modules/transactions/components/transaction-form";
-import { client } from "@/utils/orpc";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
-import { invalidateBudgets, monthBudgetsQueryOptions } from "../queries";
-import type { BudgetLine, MonthBudgets } from "../queries";
+import type { BudgetLine, MonthBudgets } from "../types";
 
 export interface BudgetPermissions {
   canClear: boolean;
@@ -106,44 +111,42 @@ const BudgetEditor = ({
 }) => {
   const queryClient = useQueryClient();
   const { category } = line;
-  const clear = useMutation({
-    mutationFn: () => client.budgets.clear({ categoryId: category.id, month }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
-    onSuccess: async () => {
-      await invalidateBudgets(queryClient, activeOrganizationId);
-      onOpenChange(false);
-      toastManager.add({
-        title: `${category.name} budget removed`,
-        type: "success",
-      });
-    },
-  });
-  const form = useForm({
-    defaultValues: { amount: trimDecimal(line.budget?.amount) },
-    onSubmit: async ({ value }) => {
-      try {
-        await client.budgets.set({
-          amount: value.amount.trim(),
-          categoryId: category.id,
-          month,
+  const { budgets } = householdOrpc(activeOrganizationId);
+  const clear = useMutation(
+    budgets.clear.mutationOptions({
+      onSuccess: async () => {
+        await invalidate(queryClient, activeOrganizationId, "budgets");
+        onOpenChange(false);
+        toastManager.add({
+          title: `${category.name} budget removed`,
+          type: "success",
         });
-        await invalidateBudgets(queryClient, activeOrganizationId);
+      },
+    })
+  );
+  const set = useMutation(
+    budgets.set.mutationOptions({
+      onSuccess: async () => {
+        await invalidate(queryClient, activeOrganizationId, "budgets");
         onOpenChange(false);
         toastManager.add({
           title: `${category.name} budget saved`,
           type: "success",
         });
-      } catch (error) {
-        toastManager.add({
-          title:
-            error instanceof Error
-              ? error.message
-              : "Could not save the budget",
-          type: "error",
-        });
-      }
+      },
+    })
+  );
+  const form = useForm({
+    defaultValues: { amount: trimDecimal(line.budget?.amount) },
+    onSubmit: async ({ value }) => {
+      // The mutation cache toasts the failure; the form keeps its values.
+      await set
+        .mutateAsync({
+          amount: value.amount.trim(),
+          categoryId: category.id,
+          month,
+        })
+        .catch(() => null);
     },
     validators: { onSubmit: budgetSchema },
   });
@@ -208,7 +211,9 @@ const BudgetEditor = ({
                 <Button
                   className="me-auto"
                   loading={clear.isPending}
-                  onClick={() => clear.mutate()}
+                  onClick={() =>
+                    clear.mutate({ categoryId: category.id, month })
+                  }
                   variant="destructive-outline"
                 >
                   Remove budget
@@ -446,7 +451,11 @@ export const BudgetsPage = ({
   permissions: BudgetPermissions;
 }) => {
   const budgets = useQuery(
-    monthBudgetsQueryOptions(activeOrganizationId, month)
+    householdOrpc(activeOrganizationId).budgets.month.queryOptions({
+      input: { month },
+      meta: { suppressErrorToast: true },
+      placeholderData: keepPreviousData,
+    })
   );
   const [editing, setEditing] = useState<{
     categoryId: string;

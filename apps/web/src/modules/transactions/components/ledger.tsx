@@ -28,8 +28,8 @@ import { formatDay, formatShortDate } from "@/lib/dates";
 
 import { describeTransaction } from "../presentation";
 import type { TransactionView } from "../presentation";
-import type { Transaction } from "../queries";
 import type { TransactionSortBy, TransactionSortDirection } from "../search";
+import type { Transaction } from "../types";
 import type { LedgerActions } from "../use-ledger-actions";
 import { TransactionMenu } from "./transaction-menu";
 import type { LedgerPermissions } from "./transaction-menu";

@@ -6,11 +6,10 @@ import { toastManager } from "@masdan/ui/components/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { invalidateImport } from "@/modules/imports/queries";
-import type { ImportRow } from "@/modules/imports/queries";
-import { client } from "@/utils/orpc";
+import type { ImportRow } from "@/modules/imports/types";
+import { invalidate } from "@/utils/invalidate";
+import { householdOrpc } from "@/utils/orpc";
 
-import { importSuggestionSummaryQueryOptions } from "../queries";
 import { SuggestionEditor } from "./suggestion-editor";
 import type { SuggestionChoice, SuggestionTag } from "./suggestion-editor";
 
@@ -30,30 +29,33 @@ const plural = (count: number, one: string, many: string): string =>
  * Asks for suggestions on rows still on the import's default category, a
  * batch at a time, and accepts every pending one in one go.
  */
-export const ImportSuggestionsBar = ({ importId }: { importId: string }) => {
+export const ImportSuggestionsBar = ({
+  activeOrganizationId,
+  importId,
+}: {
+  activeOrganizationId: string;
+  importId: string;
+}) => {
   const queryClient = useQueryClient();
-  const summary = useQuery(importSuggestionSummaryQueryOptions(importId));
+  const { suggestions } = householdOrpc(activeOrganizationId);
+  const summary = useQuery(
+    suggestions.importSummary.queryOptions({ input: { importId } })
+  );
 
   const suggest = useMutation({
-    mutationFn: () => client.suggestions.forImport({ importId }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+    mutationFn: () => suggestions.forImport.call({ importId }),
     onSuccess: async (result) => {
       if (result.status === "unavailable") {
         toastManager.add({ title: result.message, type: "error" });
         return;
       }
-      await invalidateImport(queryClient, importId);
+      await invalidate(queryClient, activeOrganizationId, "imports");
     },
   });
   const acceptAll = useMutation({
-    mutationFn: () => client.suggestions.acceptAllForImport({ importId }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
+    mutationFn: () => suggestions.acceptAllForImport.call({ importId }),
     onSuccess: async (result) => {
-      await invalidateImport(queryClient, importId);
+      await invalidate(queryClient, activeOrganizationId, "imports");
       toastManager.add({
         title: `Accepted ${plural(result.accepted, "suggestion", "suggestions")}`,
         type: "success",
@@ -111,12 +113,14 @@ export const ImportSuggestionsBar = ({ importId }: { importId: string }) => {
 
 /** One row's suggestion: accept as proposed, edit then accept, or reject. */
 export const ImportRowSuggestion = ({
+  activeOrganizationId,
   canReview,
   categories,
   importId,
   row,
   tags,
 }: {
+  activeOrganizationId: string;
   canReview: boolean;
   categories: ReviewCategory[];
   importId: string;
@@ -129,16 +133,13 @@ export const ImportRowSuggestion = ({
     mutationFn: (
       decision: ({ action: "accept" } & SuggestionChoice) | { action: "reject" }
     ) =>
-      client.suggestions.resolveImportRows({
+      householdOrpc(activeOrganizationId).suggestions.resolveImportRows.call({
         decisions: [{ ...decision, rowId: row.id }],
         importId,
       }),
-    onError: (error: Error) => {
-      toastManager.add({ title: error.message, type: "error" });
-    },
     onSuccess: async () => {
       setEditing(false);
-      await invalidateImport(queryClient, importId);
+      await invalidate(queryClient, activeOrganizationId, "imports");
     },
   });
 
