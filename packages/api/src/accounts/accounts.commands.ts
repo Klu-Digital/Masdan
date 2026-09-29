@@ -15,11 +15,10 @@ import { and, eq, inArray } from "drizzle-orm";
 import { enqueueReminderRefresh } from "../reminders/reminders.commands";
 import { notFound } from "../shared/errors";
 import { householdSettings } from "../shared/household";
-import { findOwned } from "../shared/ownership";
+import { lockOwned } from "../shared/ownership";
 import {
   accountFields,
   creditMetrics,
-  requireCreditCard,
   statementFields,
   withBalance,
 } from "./accounts.queries";
@@ -202,7 +201,9 @@ export const updateAccount = async (
     currencyCode: requestedCurrency,
     ...values
   } = input;
-  const existing = await findOwned(
+  // Held to commit, so a posting cannot land between the history check and
+  // the class or currency change; postings share-lock the account.
+  const existing = await lockOwned(
     db,
     financialAccount,
     { id: accountId, organizationId },
@@ -300,7 +301,16 @@ export const createStatement = async (
   organizationId: string,
   input: StatementValues
 ) => {
-  await requireCreditCard(db, organizationId, input.accountId);
+  const account = await lockOwned(
+    db,
+    financialAccount,
+    { id: input.accountId, organizationId },
+    "Financial account",
+    "share"
+  );
+  if (account.accountType !== "credit_card") {
+    throw notFound("Financial account");
+  }
 
   const [created] = await db
     .insert(creditCardStatement)
@@ -325,11 +335,12 @@ export const saveSnapshot = async (
   organizationId: string,
   input: SnapshotValues
 ) => {
-  await findOwned(
+  await lockOwned(
     db,
     financialAccount,
     { id: input.accountId, organizationId },
-    "Financial account"
+    "Financial account",
+    "share"
   );
 
   const [snapshot] = await db

@@ -68,7 +68,11 @@ export const bulkUpdateTransactions = async (
         eq(financialTransaction.organizationId, organizationId),
         inArray(financialTransaction.id, input.transactionIds)
       )
-    );
+    )
+    // Locked up front, in id order so overlapping bulk edits cannot deadlock:
+    // each edit below rebuilds the tag set from what it read.
+    .orderBy(financialTransaction.id)
+    .for("update");
   const byId = new Map(rows.map((row) => [row.id, row]));
   const updated: string[] = [];
   const categoryKept: string[] = [];

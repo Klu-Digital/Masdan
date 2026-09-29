@@ -82,9 +82,10 @@ const lockImport = async (db: Database, importId: string) => {
 const loadAccount = async (
   db: Database,
   organizationId: string,
-  accountId: string
+  accountId: string,
+  lock?: "update"
 ) => {
-  const [account] = await db
+  const query = db
     .select({
       archivedAt: financialAccount.archivedAt,
       currencyCode: financialAccount.currencyCode,
@@ -99,6 +100,7 @@ const loadAccount = async (
       )
     )
     .limit(1);
+  const [account] = await (lock ? query.for(lock) : query);
   if (!account || account.archivedAt !== null) {
     throw new ImportFailureError(
       "The destination account was archived or removed. Start a new import for another account."
@@ -477,10 +479,13 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
     if (current?.status !== "committing") {
       return;
     }
+    // Held to commit: a rebase reads the balance twice around moving the
+    // opening date, and a posting committed in between would be offset away.
     const account = await loadAccount(
       tx,
       current.organizationId,
-      current.accountId
+      current.accountId,
+      "update"
     );
     const rows = await tx
       .select()

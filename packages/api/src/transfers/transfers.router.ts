@@ -75,7 +75,9 @@ const selectTransferAccounts = async (
         ]),
         isNull(financialAccount.archivedAt)
       )
-    );
+    )
+    // Like `activeAccount`: a class or currency change waits for the postings.
+    .for("share");
 
   const byId = new Map(accounts.map((account) => [account.id, account]));
   const source = byId.get(input.sourceAccountId);

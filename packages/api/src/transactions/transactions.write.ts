@@ -29,6 +29,10 @@ export interface LedgerAccount {
   openingBalanceDate: string;
 }
 
+/**
+ * `FOR SHARE` so a concurrent class or currency change waits for this posting
+ * to commit and then sees it, rather than passing its "no history" check.
+ */
 export const activeAccount = async (
   db: Database,
   organizationId: string,
@@ -48,6 +52,7 @@ export const activeAccount = async (
         isNull(financialAccount.archivedAt)
       )
     )
+    .for("share")
     .limit(1);
 
   if (!account) {

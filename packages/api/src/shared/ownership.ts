@@ -35,16 +35,19 @@ export const findOwned = async <T extends OwnedTable>(
 };
 
 /**
- * `findOwned` holding `FOR UPDATE` until the caller's transaction ends, so a
- * read-then-write on the row cannot interleave with another.
+ * `findOwned` holding a row lock until the caller's transaction ends, so a
+ * read-then-write on the row cannot interleave with another. `"update"` is for
+ * the writer of the row; `"share"` is for a writer that only depends on it
+ * (posting to an account) and must wait out a concurrent change to it.
  */
 export const lockOwned = async <T extends OwnedTable>(
   db: Database,
   table: T,
   key: OwnedKey,
-  entity: string
+  entity: string,
+  strength: "share" | "update" = "update"
 ): Promise<InferSelectModel<T>> => {
-  const [row] = await selectOwned(db, table, key).for("update").limit(1);
+  const [row] = await selectOwned(db, table, key).for(strength).limit(1);
   if (!row) {
     throw notFound(entity);
   }

@@ -3,8 +3,14 @@ import {
   financialTransaction,
   member,
   session,
+  transactionRule,
 } from "@masdan/db/schema/index";
-import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
+import {
+  getSessionFor,
+  getTestDb,
+  signUpTestUser,
+  whileHolding,
+} from "@masdan/testing";
 import { call, ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vite-plus/test";
@@ -207,6 +213,44 @@ describe("rules lifecycle", () => {
     await expect(
       call(rulesRouter.list, undefined, household.context)
     ).resolves.toMatchObject([{ id: second.id }]);
+  });
+
+  it("gives a rule created while another is being created the next position", async () => {
+    const household = await signUpHousehold();
+
+    const second = await whileHolding(
+      getTestDb(),
+      async (tx) =>
+        call(rulesRouter.create, await rideRule(household), {
+          context: { ...household.context.context, db: tx },
+        }),
+      async () =>
+        call(
+          rulesRouter.create,
+          { ...(await rideRule(household)), name: "Angkas rides" },
+          household.context
+        )
+    );
+
+    expect(second.position).toBe(1);
+    const rules = await call(rulesRouter.list, undefined, household.context);
+    expect(rules.map(({ position }) => position)).toEqual([0, 1]);
+  });
+
+  it("lets the database refuse two rules at one position", async () => {
+    const household = await signUpHousehold();
+    const rule = {
+      matchText: "grab",
+      matchTextOperator: "contains" as const,
+      name: "Grab rides",
+      organizationId: household.organizationId,
+      position: 0,
+    };
+    await getTestDb().insert(transactionRule).values(rule);
+
+    await expect(
+      getTestDb().insert(transactionRule).values(rule)
+    ).rejects.toThrow();
   });
 
   it("rejects rules without conditions or actions, and mismatched categories", async () => {

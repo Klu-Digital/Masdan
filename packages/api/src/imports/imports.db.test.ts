@@ -13,6 +13,7 @@ import {
   signUpTestUser,
   startTestQueue,
   stopTestQueue,
+  whileHolding,
 } from "@masdan/testing";
 import { call, ORPCError } from "@orpc/server";
 import { and, asc, eq } from "drizzle-orm";
@@ -617,6 +618,43 @@ describe("imports before the opening balance date", () => {
       openingBalance: "-2000.000000",
       openingBalanceDate: "2025-12-01",
     });
+  });
+
+  it("rebase: a posting that lands mid-commit still moves today's balance", async () => {
+    const household = await signUpHousehold();
+    const account = await createAccount(household);
+    const source = await uploadCsv(household, history);
+    const created = await startImport(household, account.id, source.id, {
+      mapping: noCategory,
+      openingBalanceMode: "rebase",
+    });
+    await processImport(getTestDb(), created.id);
+    await call(
+      importsRouter.commit,
+      { importId: created.id },
+      household.context
+    );
+
+    await whileHolding(
+      getTestDb(),
+      (tx) =>
+        call(
+          transactionsRouter.create,
+          {
+            accountId: account.id,
+            amount: "50",
+            categoryId: household.expenseCategoryId,
+            paidStatus: "paid",
+            tagIds: [],
+            transactionDate: "2026-02-01",
+          },
+          { context: { ...household.context.context, db: tx } }
+        ),
+      () => processImport(getTestDb(), created.id)
+    );
+
+    // 1000 - 100 imported in range - 50 posted concurrently.
+    expect(await balanceOf(household, account.id)).toBe("850.000000");
   });
 });
 

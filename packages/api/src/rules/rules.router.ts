@@ -9,7 +9,7 @@ import {
   transactionRuleTag,
 } from "@masdan/db/schema/index";
 import { ORPCError } from "@orpc/server";
-import { and, count, eq, max } from "drizzle-orm";
+import { and, count, eq, max, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -340,6 +340,11 @@ export const rulesRouter = {
     .input(ruleValues)
     .handler(async ({ context, input }) => {
       await assertRuleReferences(context.db, context.organizationId, input);
+      // Two creates would read the same max, and the unique position would
+      // fail one of them at commit; there may be no rule row to lock yet.
+      await context.db.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtext(${`transaction_rule.position:${context.organizationId}`}))`
+      );
       const [last] = await context.db
         .select({ position: max(transactionRule.position) })
         .from(transactionRule)

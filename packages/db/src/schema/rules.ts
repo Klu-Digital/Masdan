@@ -51,9 +51,8 @@ export interface TransactionRuleApplication {
 }
 
 /**
- * A household's categorization rule. Rules run in `position` order and the
- * first enabled match wins; `id` breaks ties so order never depends on the
- * heap.
+ * A household's categorization rule. Rules run in `position` order, unique
+ * within the household, and the first enabled match wins.
  */
 export const transactionRule = pgTable(
   "transaction_rule",
@@ -101,10 +100,11 @@ export const transactionRule = pgTable(
       foreignColumns: [category.organizationId, category.id],
       name: "transaction_rule_set_category_id_fkey",
     }).onDelete("restrict"),
-    index("transaction_rule_organization_position_idx").on(
+    // DEFERRABLE INITIALLY DEFERRED in the migration, which drizzle cannot
+    // express: reorder rewrites positions one row at a time.
+    unique("transaction_rule_organization_position_key").on(
       table.organizationId,
-      table.position,
-      table.id
+      table.position
     ),
     check(
       "transaction_rule_text_operator_chk",

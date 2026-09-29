@@ -12,7 +12,7 @@ import { and, eq, isNull } from "drizzle-orm";
 
 import { ruleApplicationHolds } from "../rules/engine";
 import { notFound } from "../shared/errors";
-import { findOwned } from "../shared/ownership";
+import { lockOwned } from "../shared/ownership";
 import type { TransactionCreateInput, TransactionUpdateInput } from "./schema";
 import {
   transactionFields,
@@ -59,7 +59,8 @@ export const updateTransaction = async (
     suggestionApplication?: TransactionSuggestionApplication;
   } = {}
 ) => {
-  const existing = await findOwned(
+  // Held to commit: the tag and split replacement below is delete-then-insert.
+  const existing = await lockOwned(
     db,
     financialTransaction,
     { id: input.transactionId, organizationId },
