@@ -9,7 +9,6 @@ import {
   Target02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import {
@@ -59,6 +58,7 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type { ReactNode } from "react";
 
+import { Amount } from "@/components/finance/amount";
 import { formatLongDate } from "@/lib/dates";
 import { invalidate } from "@/utils/invalidate";
 import { householdOrpc } from "@/utils/orpc";

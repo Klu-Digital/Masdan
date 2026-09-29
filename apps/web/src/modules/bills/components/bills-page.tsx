@@ -5,7 +5,6 @@ import {
   CreditCardIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import {
@@ -37,18 +36,19 @@ import {
   SectionTitle,
 } from "@masdan/ui/components/page";
 import { Skeleton } from "@masdan/ui/components/skeleton";
+import { cn } from "@masdan/ui/lib/utils";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { useRef, useState } from "react";
+
+import { Amount } from "@/components/finance/amount";
 import {
   Stat,
   StatDetail,
   StatGroup,
   StatLabel,
   StatValue,
-} from "@masdan/ui/components/stat";
-import { cn } from "@masdan/ui/lib/utils";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
-
+} from "@/components/finance/stat";
 import {
   addMonths,
   formatLongDate,

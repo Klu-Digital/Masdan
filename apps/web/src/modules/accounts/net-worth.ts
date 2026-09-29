@@ -1,4 +1,4 @@
-import { toNumber } from "@masdan/ui/lib/money";
+import { toNumber } from "@/components/finance/money";
 
 import { accountKind } from "./kinds";
 import type { AccountGroup } from "./kinds";

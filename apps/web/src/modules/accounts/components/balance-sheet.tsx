@@ -1,16 +1,16 @@
 import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Amount } from "@masdan/ui/components/amount";
 import {
   Collapsible,
   CollapsiblePanel,
   CollapsibleTrigger,
 } from "@masdan/ui/components/collapsible";
 import { List, ListSection } from "@masdan/ui/components/list";
-import { Sensitive } from "@masdan/ui/components/sensitive";
-import { formatMoney, toNumber } from "@masdan/ui/lib/money";
 import type { ComponentProps } from "react";
 
+import { Amount } from "@/components/finance/amount";
+import { toNumber } from "@/components/finance/money";
+import { useFormattedMoney } from "@/components/finance/use-formatted-money";
 import type {
   ConsolidatedNetWorthReport,
   NetWorthReport,
@@ -62,6 +62,7 @@ export const BalanceSheet = ({
   report?: NetWorthReport;
   today: string;
 }) => {
+  const money = useFormattedMoney();
   const convertedById = convertedBalances(consolidated);
   return (
     <div className="grid items-start gap-8 lg:grid-cols-2">
@@ -179,9 +180,7 @@ export const BalanceSheet = ({
                       <span className="flex-1">{group.label}</span>
                       {total ? (
                         <span className="tabular-nums">
-                          <Sensitive>
-                            {formatMoney(total.total, total.currencyCode)}
-                          </Sensitive>
+                          {money(total.total, total.currencyCode)}
                           {group.liability ? " owed" : ""}
                         </span>
                       ) : null}

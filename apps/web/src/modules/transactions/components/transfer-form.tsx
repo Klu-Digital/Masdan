@@ -1,7 +1,6 @@
 import { ArrowUpDownIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { positiveAmount } from "@masdan/api/shared/money";
-import { AmountInput } from "@masdan/ui/components/amount-input";
 import { Button } from "@masdan/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
 import { IconTile } from "@masdan/ui/components/icon-tile";
@@ -9,13 +8,15 @@ import { Input } from "@masdan/ui/components/input";
 import { Skeleton } from "@masdan/ui/components/skeleton";
 import { Textarea } from "@masdan/ui/components/textarea";
 import { toastManager } from "@masdan/ui/components/toast";
-import { formatMoney, moneyParts } from "@masdan/ui/lib/money";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
+import { AmountInput } from "@/components/finance/amount-input";
+import { moneyParts } from "@/components/finance/money";
+import { useFormattedMoney } from "@/components/finance/use-formatted-money";
 import { householdToday } from "@/lib/household-date";
 import { AccountCardThumb } from "@/modules/accounts/components/account-card";
 import { AccountPicker } from "@/modules/accounts/components/account-picker";
@@ -84,6 +85,7 @@ export const TransferForm = ({
   transfer?: Transfer;
 }) => {
   const queryClient = useQueryClient();
+  const money = useFormattedMoney();
   const editing = transfer !== undefined;
   const orpc = householdOrpc(activeOrganizationId);
   const accounts = useQuery(
@@ -217,7 +219,7 @@ export const TransferForm = ({
                             {suggestion.label}
                           </span>
                           <span className="font-medium tabular-nums">
-                            {formatMoney(suggestion.amount, currency)}
+                            {money(suggestion.amount, currency)}
                           </span>
                         </button>
                       ))}

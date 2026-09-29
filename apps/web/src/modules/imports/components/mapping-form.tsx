@@ -9,7 +9,6 @@ import type {
   ImportMapping,
   OpeningBalanceMode,
 } from "@masdan/api/imports/mapping";
-import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import {
@@ -39,6 +38,7 @@ import { useForm, useStore } from "@tanstack/react-form";
 import { useMemo } from "react";
 import { z } from "zod";
 
+import { Amount } from "@/components/finance/amount";
 import { AccountPicker } from "@/modules/accounts/components/account-picker";
 import type { PickerAccount } from "@/modules/accounts/components/account-picker";
 

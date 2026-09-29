@@ -1,6 +1,6 @@
 import type { CardCatalog } from "@masdan/card-catalog/catalog";
-import { toNumber } from "@masdan/ui/lib/money";
 
+import { toNumber } from "@/components/finance/money";
 import { daysBetween, nextDayOfMonth } from "@/lib/dates";
 
 export interface CardStatement {

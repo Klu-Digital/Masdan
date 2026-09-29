@@ -4,8 +4,6 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./data-grid": "./src/data-grid/index.tsx",
-    "./filters": "./src/filters.tsx",
     "./globals.css": "./src/styles/globals.css",
     "./lib/*": "./src/lib/*.ts",
     "./components/*": "./src/components/*.tsx",

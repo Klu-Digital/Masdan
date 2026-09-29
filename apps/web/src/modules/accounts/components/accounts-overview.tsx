@@ -1,7 +1,6 @@
 import { PlusSignIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { AccountType } from "@masdan/api/accounts/constants";
-import { Amount } from "@masdan/ui/components/amount";
 import { Button } from "@masdan/ui/components/button";
 import {
   Empty,
@@ -17,19 +16,20 @@ import {
   PageHeading,
   PageTitle,
 } from "@masdan/ui/components/page";
-import { Sensitive } from "@masdan/ui/components/sensitive";
 import { Skeleton } from "@masdan/ui/components/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+
+import { useAppActions } from "@/components/app-actions";
+import { Amount } from "@/components/finance/amount";
+import { Sensitive } from "@/components/finance/sensitive";
 import {
   Stat,
   StatGroup,
   StatLabel,
   StatValue,
-} from "@masdan/ui/components/stat";
-import { formatMoney } from "@masdan/ui/lib/money";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-
-import { useAppActions } from "@/components/app-actions";
+} from "@/components/finance/stat";
+import { useFormattedMoney } from "@/components/finance/use-formatted-money";
 import type { ActiveHousehold } from "@/components/household-gate";
 import { householdToday } from "@/lib/household-date";
 import { accountsQueries } from "@/modules/accounts/queries";
@@ -162,6 +162,7 @@ const NetWorthHeadline = ({
   refetch: () => void;
   report: NetWorthReport | undefined;
 }) => {
+  const money = useFormattedMoney();
   if (isError) {
     return (
       <section aria-label="Net worth" className="flex items-center gap-3">
@@ -219,13 +220,11 @@ const NetWorthHeadline = ({
           <Stat className="col-span-2">
             <StatLabel>Other currencies</StatLabel>
             <StatValue>
-              <Sensitive>
-                {others
-                  .map((position) =>
-                    formatMoney(position.netWorth, position.currencyCode)
-                  )
-                  .join(" · ")}
-              </Sensitive>
+              {others
+                .map((position) =>
+                  money(position.netWorth, position.currencyCode)
+                )
+                .join(" · ")}
             </StatValue>
           </Stat>
         ) : null}

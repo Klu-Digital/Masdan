@@ -5,7 +5,6 @@ import {
   PencilEdit02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import { ColorDot, IconTile } from "@masdan/ui/components/icon-tile";
@@ -24,6 +23,7 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { Amount } from "@/components/finance/amount";
 import { formatLongDate } from "@/lib/dates";
 import { TransactionRule } from "@/modules/rules/components/transaction-rule";
 import { TransactionSuggestion } from "@/modules/suggestions/components/transaction-suggestion";

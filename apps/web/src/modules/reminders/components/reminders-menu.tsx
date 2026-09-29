@@ -10,11 +10,11 @@ import {
 } from "@masdan/ui/components/popover";
 import { Skeleton } from "@masdan/ui/components/skeleton";
 import { toastManager } from "@masdan/ui/components/toast";
-import { PRIVACY_MASK, usePrivacyMode } from "@masdan/ui/lib/privacy-mode";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { useFormattedMoney } from "@/components/finance/use-formatted-money";
 import { AccountCardThumb } from "@/modules/accounts/components/account-card";
 import { invalidate } from "@/utils/invalidate";
 import { householdOrpc } from "@/utils/orpc";
@@ -25,8 +25,6 @@ import type { Reminder } from "../types";
 
 /** New reminders come from the worker, not from anything this tab did. */
 const REFETCH_INTERVAL_MS = 5 * 60 * 1000;
-
-const maskMoney = (): string => PRIVACY_MASK;
 
 const detailClassName = (tone: ReminderTone): string => {
   if (tone === "danger") {
@@ -60,8 +58,8 @@ const ReminderRow = ({
   reminder: Reminder;
   today: string;
 }) => {
-  const [privacyOn] = usePrivacyMode();
-  const copy = reminderCopy(reminder, today, privacyOn ? maskMoney : undefined);
+  const money = useFormattedMoney();
+  const copy = reminderCopy(reminder, today, money);
   const { account } = reminder;
   return (
     <li className="flex items-start gap-1">

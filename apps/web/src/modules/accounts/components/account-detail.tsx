@@ -10,7 +10,6 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { resolveCardNetwork } from "@masdan/card-catalog/catalog";
-import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import {
@@ -35,7 +34,6 @@ import {
   MenuTrigger,
 } from "@masdan/ui/components/menu";
 import { Meter, MeterIndicator, MeterTrack } from "@masdan/ui/components/meter";
-import { NetworkMark } from "@masdan/ui/components/network-mark";
 import {
   Page,
   PageActions,
@@ -47,16 +45,8 @@ import {
   SectionHeader,
   SectionTitle,
 } from "@masdan/ui/components/page";
-import { Sensitive } from "@masdan/ui/components/sensitive";
 import { Skeleton } from "@masdan/ui/components/skeleton";
-import {
-  Stat,
-  StatGroup,
-  StatLabel,
-  StatValue,
-} from "@masdan/ui/components/stat";
 import { toastManager } from "@masdan/ui/components/toast";
-import { formatMoney, toNumber } from "@masdan/ui/lib/money";
 import {
   keepPreviousData,
   useMutation,
@@ -68,6 +58,16 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { useAppActions } from "@/components/app-actions";
+import { Amount } from "@/components/finance/amount";
+import { toNumber } from "@/components/finance/money";
+import { NetworkMark } from "@/components/finance/network-mark";
+import {
+  Stat,
+  StatGroup,
+  StatLabel,
+  StatValue,
+} from "@/components/finance/stat";
+import { useFormattedMoney } from "@/components/finance/use-formatted-money";
 import type { ActiveHousehold } from "@/components/household-gate";
 import { useHousehold } from "@/hooks/use-household";
 import {
@@ -229,6 +229,7 @@ const CreditCardPanel = ({
   canRecord: boolean;
   today: string;
 }) => {
+  const money = useFormattedMoney();
   const { compose } = useAppActions();
   const { activeOrganizationId } = useHousehold();
   const statements = useQuery(
@@ -355,12 +356,10 @@ const CreditCardPanel = ({
                   {due.statement?.minimumAmountDue ? (
                     <span className="text-muted-foreground text-xs">
                       Minimum{" "}
-                      <Sensitive>
-                        {formatMoney(
-                          due.statement.minimumAmountDue,
-                          account.currencyCode
-                        )}
-                      </Sensitive>
+                      {money(
+                        due.statement.minimumAmountDue,
+                        account.currencyCode
+                      )}
                     </span>
                   ) : null}
                   {due.source === "schedule" ? (
@@ -456,12 +455,7 @@ const CreditCardPanel = ({
                   {statement.minimumAmountDue ? (
                     <span className="text-muted-foreground text-xs">
                       Min{" "}
-                      <Sensitive>
-                        {formatMoney(
-                          statement.minimumAmountDue,
-                          account.currencyCode
-                        )}
-                      </Sensitive>
+                      {money(statement.minimumAmountDue, account.currencyCode)}
                     </span>
                   ) : null}
                 </ListItemTrailing>

@@ -1,4 +1,3 @@
-import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
 import { Checkbox } from "@masdan/ui/components/checkbox";
 import { ColorDot } from "@masdan/ui/components/icon-tile";
@@ -11,6 +10,11 @@ import {
   ListItemTitle,
   ListItemTrailing,
 } from "@masdan/ui/components/list";
+import { useMediaQuery } from "@masdan/ui/hooks/use-media-query";
+import { Fragment } from "react";
+import type React from "react";
+
+import { Amount } from "@/components/finance/amount";
 import {
   DataGrid,
   DataGridBody,
@@ -19,11 +23,7 @@ import {
   DataGridGroupRow,
   DataGridHeader,
   DataGridRow,
-} from "@masdan/ui/data-grid";
-import { useMediaQuery } from "@masdan/ui/hooks/use-media-query";
-import { Fragment } from "react";
-import type React from "react";
-
+} from "@/components/finance/data-grid";
 import { formatDay, formatShortDate } from "@/lib/dates";
 
 import { describeTransaction } from "../presentation";

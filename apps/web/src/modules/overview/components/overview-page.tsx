@@ -8,7 +8,6 @@ import {
   Wallet01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import {
@@ -39,15 +38,16 @@ import {
   SectionHeader,
   SectionTitle,
 } from "@masdan/ui/components/page";
-import { Sensitive } from "@masdan/ui/components/sensitive";
 import { Skeleton } from "@masdan/ui/components/skeleton";
-import { formatMoney, toNumber } from "@masdan/ui/lib/money";
 import { cn } from "@masdan/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createLink } from "@tanstack/react-router";
 import type { ComponentProps, ReactNode } from "react";
 
 import { useAppActions } from "@/components/app-actions";
+import { Amount } from "@/components/finance/amount";
+import { toNumber } from "@/components/finance/money";
+import { useFormattedMoney } from "@/components/finance/use-formatted-money";
 import type { ActiveHousehold } from "@/components/household-gate";
 import {
   formatDay,
@@ -160,6 +160,7 @@ const NetWorthCard = ({
   onRetry: () => void;
   report: NetWorthReport | undefined;
 }) => {
+  const money = useFormattedMoney();
   const position = report?.positions.find(
     (item) => item.currencyCode === currency
   );
@@ -188,11 +189,9 @@ const NetWorthCard = ({
           {others.length > 0 ? (
             <span className="text-muted-foreground text-xs">
               Plus{" "}
-              <Sensitive>
-                {others
-                  .map((item) => formatMoney(item.netWorth, item.currencyCode))
-                  .join(" · ")}
-              </Sensitive>
+              {others
+                .map((item) => money(item.netWorth, item.currencyCode))
+                .join(" · ")}
             </span>
           ) : null}
         </div>

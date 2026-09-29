@@ -19,7 +19,6 @@ import {
   AlertDialogPopup,
   AlertDialogTitle,
 } from "@masdan/ui/components/alert-dialog";
-import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import {
@@ -61,6 +60,7 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { Amount } from "@/components/finance/amount";
 import { formatLongDate } from "@/lib/dates";
 import { invalidate } from "@/utils/invalidate";
 import { householdOrpc } from "@/utils/orpc";

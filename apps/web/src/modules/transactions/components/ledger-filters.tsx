@@ -18,12 +18,16 @@ import {
   PopoverPopup,
   PopoverTrigger,
 } from "@masdan/ui/components/popover";
-import { FilterBar, FilterChip, FilterField } from "@masdan/ui/filters";
 import { cn } from "@masdan/ui/lib/utils";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { DatePicker } from "@/components/date-picker";
+import {
+  FilterBar,
+  FilterChip,
+  FilterField,
+} from "@/components/finance/filters";
 import {
   addDays,
   addMonths,

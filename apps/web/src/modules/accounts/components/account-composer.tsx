@@ -14,11 +14,6 @@ import { Button } from "@masdan/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
 import { IconTile } from "@masdan/ui/components/icon-tile";
 import { Input } from "@masdan/ui/components/input";
-import {
-  NetworkMark,
-  networkMarkLabel,
-} from "@masdan/ui/components/network-mark";
-import type { NetworkMarkKind } from "@masdan/ui/components/network-mark";
 import { ResponsiveSheet } from "@masdan/ui/components/responsive-sheet";
 import {
   Select,
@@ -39,6 +34,11 @@ import { z } from "zod";
 
 import { ColorSelector } from "@/components/color-selector";
 import { DatePicker } from "@/components/date-picker";
+import {
+  NetworkMark,
+  networkMarkLabel,
+} from "@/components/finance/network-mark";
+import type { NetworkMarkKind } from "@/components/finance/network-mark";
 import { MoreOptions } from "@/components/more-options";
 import { householdToday } from "@/lib/household-date";
 import {

@@ -1,4 +1,3 @@
-import { Amount } from "@masdan/ui/components/amount";
 import { EChartsComposedChart } from "@masdan/ui/components/evilcharts/charts/echarts-composed-chart";
 import type { ChartConfig } from "@masdan/ui/components/evilcharts/charts/echarts-composed-chart";
 import { IconTile } from "@masdan/ui/components/icon-tile";
@@ -16,14 +15,7 @@ import {
   SectionHeader,
   SectionTitle,
 } from "@masdan/ui/components/page";
-import { Sensitive } from "@masdan/ui/components/sensitive";
 import { Skeleton } from "@masdan/ui/components/skeleton";
-import {
-  Stat,
-  StatGroup,
-  StatLabel,
-  StatValue,
-} from "@masdan/ui/components/stat";
 import {
   Table,
   TableBody,
@@ -33,11 +25,20 @@ import {
   TableHeader,
   TableRow,
 } from "@masdan/ui/components/table";
-import { formatMoney, toNumber } from "@masdan/ui/lib/money";
-import { PRIVACY_MASK, usePrivacyMode } from "@masdan/ui/lib/privacy-mode";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
+import { Amount } from "@/components/finance/amount";
+import { toNumber } from "@/components/finance/money";
+import { usePrivacyMode } from "@/components/finance/privacy-mode";
+import { Sensitive } from "@/components/finance/sensitive";
+import {
+  Stat,
+  StatGroup,
+  StatLabel,
+  StatValue,
+} from "@/components/finance/stat";
+import { useFormattedMoney } from "@/components/finance/use-formatted-money";
 import {
   formatLongDate,
   formatMonth,
@@ -69,10 +70,10 @@ const Card = ({ children }: { children: ReactNode }) => (
 const formatRate = (rate: number | null): string =>
   rate === null ? "N/A" : `${rate}%`;
 
-const compactAxis = (currency: string, masked: boolean) => (value: number) =>
-  masked
-    ? PRIVACY_MASK
-    : formatMoney(value, currency, { compact: true, sign: "none" });
+const compactAxis =
+  (money: ReturnType<typeof useFormattedMoney>, currency: string) =>
+  (value: number) =>
+    money(value, currency, { compact: true, sign: "none" });
 
 // Both themes point at the same token; `.dark` redefines it, so the chart follows.
 const themeColor = (token: string) => ({
@@ -101,11 +102,12 @@ interface ChartRow {
 const cellText = <Row extends ChartRow>(
   column: { format?: (value: Row[keyof Row]) => string; key: keyof Row },
   row: Row,
-  currency: string
+  currency: string,
+  money: ReturnType<typeof useFormattedMoney>
 ): string =>
   column.format
     ? column.format(row[column.key])
-    : formatMoney(Number(row[column.key]), currency);
+    : money(Number(row[column.key]), currency);
 
 /** The canvas is invisible to assistive tech, so its values ride along here. */
 const ChartTable = <Row extends ChartRow>({
@@ -124,6 +126,7 @@ const ChartTable = <Row extends ChartRow>({
   rows: Row[];
 }) => {
   const [privacyOn] = usePrivacyMode();
+  const money = useFormattedMoney();
   return (
     <table className="sr-only">
       <caption>{caption}</caption>
@@ -143,7 +146,9 @@ const ChartTable = <Row extends ChartRow>({
             <th scope="row">{row.period}</th>
             {columns.map((column) => (
               <td key={column.key}>
-                {privacyOn ? "Amount hidden" : cellText(column, row, currency)}
+                {privacyOn
+                  ? "Amount hidden"
+                  : cellText(column, row, currency, money)}
               </td>
             ))}
           </tr>
@@ -164,6 +169,7 @@ export const NetWorthSummary = ({
   currency: string;
   report: NetWorthReport | undefined;
 }) => {
+  const money = useFormattedMoney();
   if (!report) {
     return <Skeleton className="h-40 w-full" radius="3xl" />;
   }
@@ -187,11 +193,9 @@ export const NetWorthSummary = ({
         {others.length > 0 ? (
           <span className="text-muted-foreground text-xs">
             Plus{" "}
-            <Sensitive>
-              {others
-                .map((item) => formatMoney(item.netWorth, item.currencyCode))
-                .join(" · ")}
-            </Sensitive>
+            {others
+              .map((item) => money(item.netWorth, item.currencyCode))
+              .join(" · ")}
           </span>
         ) : null}
       </div>
@@ -239,7 +243,7 @@ export const NetWorthHistoryChart = ({
   currency: string;
   history: NetWorthHistory | undefined;
 }) => {
-  const [privacyOn] = usePrivacyMode();
+  const money = useFormattedMoney();
   const points = history?.points ?? [];
   const today = history?.period.today ?? "";
   const data = points.map((point) => {
@@ -289,13 +293,11 @@ export const NetWorthHistoryChart = ({
               tickFormatter={(_, index) => data[index]?.label ?? ""}
             />
             <EChartsComposedChart.YAxis
-              tickFormatter={compactAxis(currency, privacyOn)}
+              tickFormatter={compactAxis(money, currency)}
             />
             <EChartsComposedChart.Legend align="left" />
             <EChartsComposedChart.Tooltip
-              valueFormatter={(value) =>
-                privacyOn ? PRIVACY_MASK : formatMoney(value, currency)
-              }
+              valueFormatter={(value) => money(value, currency)}
             />
             <EChartsComposedChart.Bar dataKey="assets" />
             <EChartsComposedChart.Bar dataKey="liabilities" />
@@ -330,7 +332,7 @@ export const CashFlowSection = ({
   currency: string;
   report: CashFlowReport | undefined;
 }) => {
-  const [privacyOn] = usePrivacyMode();
+  const money = useFormattedMoney();
   const total = report?.totals.find((item) => item.currencyCode === currency);
   const data = (report?.months ?? []).map((month) => {
     const flow = report?.monthly.find(
@@ -402,13 +404,11 @@ export const CashFlowSection = ({
                 tickFormatter={(_, index) => data[index]?.label ?? ""}
               />
               <EChartsComposedChart.YAxis
-                tickFormatter={compactAxis(currency, privacyOn)}
+                tickFormatter={compactAxis(money, currency)}
               />
               <EChartsComposedChart.Legend align="left" />
               <EChartsComposedChart.Tooltip
-                valueFormatter={(value) =>
-                  privacyOn ? PRIVACY_MASK : formatMoney(value, currency)
-                }
+                valueFormatter={(value) => money(value, currency)}
               />
               <EChartsComposedChart.Bar dataKey="income" />
               <EChartsComposedChart.Bar dataKey="expense" />
@@ -615,6 +615,7 @@ export const SpendingSection = ({
   currency: string;
   report: SpendingReport | undefined;
 }) => {
+  const money = useFormattedMoney();
   const rows = (report?.categories ?? []).filter(
     (row) => row.currencyCode === currency
   );
@@ -629,7 +630,7 @@ export const SpendingSection = ({
         <SectionTitle>Spending by category</SectionTitle>
         {total > 0 ? (
           <SectionDescription>
-            <Sensitive>{formatMoney(total, currency)}</Sensitive> in total
+            {money(total, currency)} in total
           </SectionDescription>
         ) : null}
       </SectionHeader>

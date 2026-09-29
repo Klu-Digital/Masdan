@@ -45,7 +45,10 @@ export default defineConfig({
       // `src/lib/segmented-control.ts` is component source in all but location.
       // `no-raw-colors` and `no-inline-styles` stay on: even a primitive should
       // take its colors from the theme.
-      files: ["packages/ui/src/**"],
+      // The finance renderers (card art, amounts) are bespoke drawing code with
+      // container-query sizing that no token can express, so they get the same
+      // exemptions.
+      files: ["packages/ui/src/**", "apps/web/src/components/finance/**"],
       rules: {
         "shadcn/no-arbitrary-values": "off",
         "shadcn/no-restyle": "off",

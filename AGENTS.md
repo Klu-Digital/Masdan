@@ -20,7 +20,7 @@ packages/redis Client, cache, rate-limit primitives — all optional
 packages/storage        S3-compatible presigned uploads
 packages/observability  evlog logging + PostHog drain
 packages/testing        Test harness: db, redis, queue, auth helpers
-packages/ui    Shared coss ui primitives (Base UI + Tailwind)
+packages/ui    Shared coss ui primitives (Base UI + Tailwind). Primitives only
 ```
 
 ## Commands
@@ -91,7 +91,7 @@ These are the ones that cost real time to rediscover. The README carries the ful
 
 **Logging.** Reach for `log` from `@masdan/observability`, never `console`. Every call carries an `action` — a dotted, snake_cased event name that is the thing you will later grep and alert on (`redis.error`, `queue.start_failed`, `featureflags.read.failed`). Spread `parseError(error)` into the payload rather than stringifying the error yourself.
 
-**Styling.** The `shadcn/*` oxlint rules are errors in app code: no raw colors, no inline styles, no arbitrary values, no unknown classes, and class names must be static strings (no `` `text-${tone}-500` ``). Colors come from the theme in `packages/ui/src/styles/globals.css`. `layout` is the one allowed arbitrary-value escape. One exemption is configured deliberately in `oxlint.config.ts`: `packages/ui/src/**` may style itself because it _is_ the design system. Import primitives as `@masdan/ui/components/button`; add more with `npx shadcn@latest add @coss/<name> -c packages/ui`.
+**Styling.** The `shadcn/*` oxlint rules are errors in app code: no raw colors, no inline styles, no arbitrary values, no unknown classes, and class names must be static strings (no `` `text-${tone}-500` ``). Colors come from the theme in `packages/ui/src/styles/globals.css`. `layout` is the one allowed arbitrary-value escape. Two exemptions are configured deliberately in `oxlint.config.ts`: `packages/ui/src/**` may style itself because it _is_ the design system, and so may `apps/web/src/components/finance/**`, the money, privacy-mode and card-art rendering that is domain code rather than a primitive (`packages/ui` holds none). Import primitives as `@masdan/ui/components/button`; add more with `npx shadcn@latest add @coss/<name> -c packages/ui`.
 
 **Lint deltas from the Ultracite preset.** `no-await-in-loop` is off — plenty of loops here are deliberately sequential (ordered migrations, retry backoff, cursor walks) and the rule's suggested fix is a bug. `react/no-unstable-nested-components` allows render props. Everything else is the preset, and `pnpm fix` autofixes most of it.
 

@@ -34,11 +34,11 @@ import {
   CommandPanel,
 } from "@masdan/ui/components/command";
 import { Kbd } from "@masdan/ui/components/kbd";
-import { usePrivacyMode } from "@masdan/ui/lib/privacy-mode";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 
+import { usePrivacyMode } from "@/components/finance/privacy-mode";
 import { useTheme } from "@/components/theme-provider";
 import { useHousehold } from "@/hooks/use-household";
 import type { AccountComposerRequest } from "@/modules/accounts/components/account-composer";

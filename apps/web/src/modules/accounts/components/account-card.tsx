@@ -1,4 +1,4 @@
-import { CreditCardVisual } from "@masdan/ui/components/credit-card-visual";
+import { CreditCardVisual } from "@/components/finance/credit-card-visual";
 
 import { cardPresentation } from "../card-art";
 import type { CardIdentity } from "../card-art";

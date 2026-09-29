@@ -1,6 +1,6 @@
 import { fixedAmountText, signedScaledAmount } from "@masdan/api/shared/money";
-import { formatMoney } from "@masdan/ui/lib/money";
 
+import { formatMoney } from "@/components/finance/money";
 import { formatRelativeDays, formatShortDate } from "@/lib/dates";
 
 import type { Reminder } from "./types";

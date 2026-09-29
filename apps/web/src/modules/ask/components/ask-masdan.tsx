@@ -1,7 +1,6 @@
 import { AiSearch02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Alert, AlertDescription } from "@masdan/ui/components/alert";
-import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import { Input } from "@masdan/ui/components/input";
@@ -19,17 +18,18 @@ import {
   SectionHeader,
   SectionTitle,
 } from "@masdan/ui/components/page";
+import { useMutation } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+
+import { Amount } from "@/components/finance/amount";
 import {
   Stat,
   StatGroup,
   StatLabel,
   StatValue,
-} from "@masdan/ui/components/stat";
-import { formatMoney } from "@masdan/ui/lib/money";
-import { useMutation } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import { useState } from "react";
-
+} from "@/components/finance/stat";
+import { useFormattedMoney } from "@/components/finance/use-formatted-money";
 import { formatLongDate } from "@/lib/dates";
 import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
 import { orpc } from "@/utils/orpc";
@@ -41,12 +41,13 @@ type AskAnswer = Extract<AskResult, { status: "answered" }>["answer"];
 /** Matches the API's limit, so an overlong question never costs a round trip. */
 const MAX_LENGTH = 300;
 
-const amountsText = (amounts: AskAnswer["figures"][number]["amounts"]) =>
+const amountsText = (
+  amounts: AskAnswer["figures"][number]["amounts"],
+  money: ReturnType<typeof useFormattedMoney>
+) =>
   amounts.length === 0
     ? "—"
-    : amounts
-        .map((item) => formatMoney(item.amount, item.currencyCode))
-        .join(" · ");
+    : amounts.map((item) => money(item.amount, item.currencyCode)).join(" · ");
 
 /** The period and filters behind the numbers, so they can be checked by hand. */
 const ContextBadges = ({ context }: { context: AskAnswer["context"] }) => {
@@ -111,45 +112,48 @@ const SourceLink = ({ link }: { link: AskAnswer["link"] }) => {
   );
 };
 
-const Answer = ({ answer }: { answer: AskAnswer }) => (
-  <div className="bg-card dark:ring-hairline flex flex-col gap-4 rounded-3xl p-5 sm:p-6 dark:ring-1">
-    <output className="text-base font-medium">{answer.headline}</output>
-    <ContextBadges context={answer.context} />
-    {answer.figures.length > 0 ? (
-      <StatGroup>
-        {answer.figures.map((figure) => (
-          <Stat key={figure.label}>
-            <StatLabel>{figure.label}</StatLabel>
-            <StatValue>{amountsText(figure.amounts)}</StatValue>
-          </Stat>
-        ))}
-      </StatGroup>
-    ) : null}
-    {answer.rows.length > 0 ? (
-      <List aria-label={answer.rowsLabel ?? "Details"}>
-        {answer.rows.map((row) => (
-          <ListItem key={row.id}>
-            <ListItemContent>
-              <ListItemTitle>{row.label}</ListItemTitle>
-              {row.detail || row.count !== null ? (
-                <ListItemDescription>
-                  {row.detail ??
-                    `${row.count} transaction${row.count === 1 ? "" : "s"}`}
-                </ListItemDescription>
-              ) : null}
-            </ListItemContent>
-            <ListItemTrailing>
-              <Amount currency={row.currencyCode} value={row.amount} />
-            </ListItemTrailing>
-          </ListItem>
-        ))}
-      </List>
-    ) : null}
-    <div>
-      <SourceLink link={answer.link} />
+const Answer = ({ answer }: { answer: AskAnswer }) => {
+  const money = useFormattedMoney();
+  return (
+    <div className="bg-card dark:ring-hairline flex flex-col gap-4 rounded-3xl p-5 sm:p-6 dark:ring-1">
+      <output className="text-base font-medium">{answer.headline}</output>
+      <ContextBadges context={answer.context} />
+      {answer.figures.length > 0 ? (
+        <StatGroup>
+          {answer.figures.map((figure) => (
+            <Stat key={figure.label}>
+              <StatLabel>{figure.label}</StatLabel>
+              <StatValue>{amountsText(figure.amounts, money)}</StatValue>
+            </Stat>
+          ))}
+        </StatGroup>
+      ) : null}
+      {answer.rows.length > 0 ? (
+        <List aria-label={answer.rowsLabel ?? "Details"}>
+          {answer.rows.map((row) => (
+            <ListItem key={row.id}>
+              <ListItemContent>
+                <ListItemTitle>{row.label}</ListItemTitle>
+                {row.detail || row.count !== null ? (
+                  <ListItemDescription>
+                    {row.detail ??
+                      `${row.count} transaction${row.count === 1 ? "" : "s"}`}
+                  </ListItemDescription>
+                ) : null}
+              </ListItemContent>
+              <ListItemTrailing>
+                <Amount currency={row.currencyCode} value={row.amount} />
+              </ListItemTrailing>
+            </ListItem>
+          ))}
+        </List>
+      ) : null}
+      <div>
+        <SourceLink link={answer.link} />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const Reply = ({ result }: { result: AskResult }) => {
   if (result.status === "answered") {

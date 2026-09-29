@@ -1,4 +1,4 @@
-import type { MoneySign } from "@masdan/ui/lib/money";
+import type { MoneySign } from "@/components/finance/money";
 
 import type { Transaction } from "./types";
 

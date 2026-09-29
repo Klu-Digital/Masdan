@@ -1,6 +1,7 @@
-import { Amount } from "@masdan/ui/components/amount";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vite-plus/test";
+
+import { Amount } from "@/components/finance/amount";
 
 describe("Amount", () => {
   it("speaks the sign in words and keeps the typographic minus visual-only", () => {

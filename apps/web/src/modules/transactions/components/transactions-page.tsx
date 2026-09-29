@@ -7,7 +7,6 @@ import {
   Search01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Amount } from "@masdan/ui/components/amount";
 import { Button } from "@masdan/ui/components/button";
 import {
   Empty,
@@ -32,19 +31,20 @@ import {
   SelectValue,
 } from "@masdan/ui/components/select";
 import { Skeleton } from "@masdan/ui/components/skeleton";
-import {
-  Stat,
-  StatDetail,
-  StatGroup,
-  StatLabel,
-  StatValue,
-} from "@masdan/ui/components/stat";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
 import type React from "react";
 
 import { useAppActions } from "@/components/app-actions";
+import { Amount } from "@/components/finance/amount";
+import {
+  Stat,
+  StatDetail,
+  StatGroup,
+  StatLabel,
+  StatValue,
+} from "@/components/finance/stat";
 import { NewMenu } from "@/components/shell/new-menu";
 import type { Household } from "@/hooks/use-household";
 import { householdToday } from "@/lib/household-date";

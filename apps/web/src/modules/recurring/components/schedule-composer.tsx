@@ -1,7 +1,6 @@
 import { RECURRING_FREQUENCIES } from "@masdan/api/recurring/recurrence";
 import { positiveAmount } from "@masdan/api/shared/money";
 import { TRANSACTION_PAID_STATUSES } from "@masdan/api/transactions/constants";
-import { AmountInput } from "@masdan/ui/components/amount-input";
 import { Button } from "@masdan/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
 import { ColorDot } from "@masdan/ui/components/icon-tile";
@@ -18,12 +17,13 @@ import { Switch } from "@masdan/ui/components/switch";
 import { Tabs, TabsList, TabsTab } from "@masdan/ui/components/tabs";
 import { Textarea } from "@masdan/ui/components/textarea";
 import { toastManager } from "@masdan/ui/components/toast";
-import { moneyParts } from "@masdan/ui/lib/money";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
+import { AmountInput } from "@/components/finance/amount-input";
+import { moneyParts } from "@/components/finance/money";
 import { formatLongDate } from "@/lib/dates";
 import { householdToday } from "@/lib/household-date";
 import { AccountPicker } from "@/modules/accounts/components/account-picker";

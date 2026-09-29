@@ -7,8 +7,9 @@ import type {
   CardNetwork,
   CardProductVisual,
 } from "@masdan/card-catalog/vocabulary";
-import type { CardArt } from "@masdan/ui/components/card-art/canvas";
-import type { NetworkMarkKind } from "@masdan/ui/components/network-mark";
+
+import type { CardArt } from "@/components/finance/card-art/canvas";
+import type { NetworkMarkKind } from "@/components/finance/network-mark";
 
 import { accountKind } from "./kinds";
 

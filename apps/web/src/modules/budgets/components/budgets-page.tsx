@@ -5,8 +5,6 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { positiveAmount } from "@masdan/api/shared/money";
-import { Amount } from "@masdan/ui/components/amount";
-import { AmountInput } from "@masdan/ui/components/amount-input";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import {
@@ -42,17 +40,8 @@ import {
   SectionTitle,
 } from "@masdan/ui/components/page";
 import { ResponsiveSheet } from "@masdan/ui/components/responsive-sheet";
-import { Sensitive } from "@masdan/ui/components/sensitive";
 import { Skeleton } from "@masdan/ui/components/skeleton";
-import {
-  Stat,
-  StatDetail,
-  StatGroup,
-  StatLabel,
-  StatValue,
-} from "@masdan/ui/components/stat";
 import { toastManager } from "@masdan/ui/components/toast";
-import { formatMoney, moneyParts, toNumber } from "@masdan/ui/lib/money";
 import { useForm } from "@tanstack/react-form";
 import {
   keepPreviousData,
@@ -64,6 +53,17 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 
+import { Amount } from "@/components/finance/amount";
+import { AmountInput } from "@/components/finance/amount-input";
+import { moneyParts, toNumber } from "@/components/finance/money";
+import {
+  Stat,
+  StatDetail,
+  StatGroup,
+  StatLabel,
+  StatValue,
+} from "@/components/finance/stat";
+import { useFormattedMoney } from "@/components/finance/use-formatted-money";
 import { addMonths, formatLongDate, formatMonthYear } from "@/lib/dates";
 import {
   FormActions,
@@ -109,6 +109,7 @@ const BudgetEditor = ({
   onOpenChange: (open: boolean) => void;
   open: boolean;
 }) => {
+  const money = useFormattedMoney();
   const queryClient = useQueryClient();
   const { category } = line;
   const { budgets } = householdOrpc(activeOrganizationId);
@@ -155,8 +156,7 @@ const BudgetEditor = ({
     <ResponsiveSheet
       description={
         <>
-          {formatMonthYear(month)} ·{" "}
-          <Sensitive>{formatMoney(line.spent, line.currencyCode)}</Sensitive>{" "}
+          {formatMonthYear(month)} · {money(line.spent, line.currencyCode)}{" "}
           spent
         </>
       }
@@ -237,18 +237,18 @@ const BudgetEditor = ({
   );
 };
 
-const OtherCurrencies = ({ line }: { line: BudgetLine }) =>
-  line.otherCurrencies.length > 0 ? (
+const OtherCurrencies = ({ line }: { line: BudgetLine }) => {
+  const money = useFormattedMoney();
+  return line.otherCurrencies.length > 0 ? (
     <ListItemDescription>
       Also{" "}
-      <Sensitive>
-        {line.otherCurrencies
-          .map((other) => formatMoney(other.total, other.currencyCode))
-          .join(", ")}
-      </Sensitive>{" "}
+      {line.otherCurrencies
+        .map((other) => money(other.total, other.currencyCode))
+        .join(", ")}{" "}
       in other currencies, not counted
     </ListItemDescription>
   ) : null;
+};
 
 const BudgetedRow = ({
   line,

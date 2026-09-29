@@ -1,9 +1,10 @@
-import { Amount } from "@masdan/ui/components/amount";
-import { Sensitive } from "@masdan/ui/components/sensitive";
-import { applyStoredPrivacyMode } from "@masdan/ui/lib/privacy-mode";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vite-plus/test";
+
+import { Amount } from "@/components/finance/amount";
+import { applyStoredPrivacyMode } from "@/components/finance/privacy-mode";
+import { Sensitive } from "@/components/finance/sensitive";
 
 import { PrivacyToggle } from "./privacy-toggle";
 

@@ -38,7 +38,7 @@ If people in that country name their cards in a language other than English, lis
 
 - **Keys are permanent.** Accounts store them. When a card is discontinued, set `status: "legacy"`. When a card is redesigned, update its `visual` and keep its key.
 - **Stylised, not reproduced.** Use colours, textures and a bank's name as text. Leave out logos, scanned artwork and card numbers.
-- **A new motif is for many cards, not one.** Propose one only when no existing motif comes close and at least two cards would use it. It takes three edits: add the name to `CARD_MOTIFS` here and to `CardMotifName` in `packages/ui/src/components/card-art/canvas.ts`; draw it in `packages/ui/src/components/card-art/motifs/<name>.tsx`; add it to the registry in `packages/ui/src/components/card-art/motifs.ts`. If you miss the registry, the build fails.
+- **A new motif is for many cards, not one.** Propose one only when no existing motif comes close and at least two cards would use it. It takes three edits: add the name to `CARD_MOTIFS` here and to `CardMotifName` in `apps/web/src/components/finance/card-art/canvas.ts`; draw it in `apps/web/src/components/finance/card-art/motifs/<name>.tsx`; add it to the registry in `apps/web/src/components/finance/card-art/motifs.ts`. If you miss the registry, the build fails.
 
 ## Prompt
 

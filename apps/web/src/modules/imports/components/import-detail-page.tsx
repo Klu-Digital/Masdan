@@ -3,7 +3,6 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@masdan/ui/components/alert";
-import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import {
@@ -20,12 +19,6 @@ import {
   PageTitle,
 } from "@masdan/ui/components/page";
 import { Spinner } from "@masdan/ui/components/spinner";
-import {
-  Stat,
-  StatGroup,
-  StatLabel,
-  StatValue,
-} from "@masdan/ui/components/stat";
 import {
   Table,
   TableBody,
@@ -44,6 +37,13 @@ import {
 import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Amount } from "@/components/finance/amount";
+import {
+  Stat,
+  StatGroup,
+  StatLabel,
+  StatValue,
+} from "@/components/finance/stat";
 import { PageSkeleton } from "@/components/household-gate";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import { ruleEffects, ruleReasons } from "@/modules/rules/presentation";

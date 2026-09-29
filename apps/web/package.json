@@ -26,6 +26,7 @@
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "^1.170.18",
     "better-auth": "catalog:",
+    "class-variance-authority": "^0.7.1",
     "frimousse": "^0.3.0",
     "next-themes": "catalog:",
     "react": "catalog:",

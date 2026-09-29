@@ -9,12 +9,12 @@ import {
 import { Button } from "@masdan/ui/components/button";
 import { Input } from "@masdan/ui/components/input";
 import { toastManager } from "@masdan/ui/components/toast";
-import { formatMoney } from "@masdan/ui/lib/money";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { useAppActions } from "@/components/app-actions";
+import { useFormattedMoney } from "@/components/finance/use-formatted-money";
 import { invalidate } from "@/utils/invalidate";
 import { errorMessage, householdOrpc } from "@/utils/orpc";
 import type { RouterOutputs } from "@/utils/orpc";
@@ -31,9 +31,12 @@ const MAX_LENGTH = 300;
 const reviewField = (field: QuickEntryParse["issues"][number]["field"]) =>
   (field === "kind" ? "categoryId" : field) satisfies ReviewField;
 
-const summaryOf = (transaction: TransactionDetail): string =>
+const summaryOf = (
+  transaction: TransactionDetail,
+  money: ReturnType<typeof useFormattedMoney>
+): string =>
   [
-    formatMoney(Number(transaction.amount), transaction.currencyCode),
+    money(Number(transaction.amount), transaction.currencyCode),
     transaction.categoryName,
     transaction.accountName,
   ]
@@ -60,6 +63,7 @@ export const QuickEntry = ({
 }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const money = useFormattedMoney();
   const { compose } = useAppActions();
   const [text, setText] = useState("");
   const [created, setCreated] = useState<{
@@ -206,7 +210,9 @@ export const QuickEntry = ({
           <AlertTitle>
             {created.transaction.type === "income" ? "Income" : "Expense"} added
           </AlertTitle>
-          <AlertDescription>{summaryOf(created.transaction)}</AlertDescription>
+          <AlertDescription>
+            {summaryOf(created.transaction, money)}
+          </AlertDescription>
           <AlertAction>
             {canArchive ? (
               <Button

@@ -1,8 +1,9 @@
 import { cardCatalog } from "@masdan/card-catalog/all";
 import { CARD_MOTIFS, CARD_PATTERNS } from "@masdan/card-catalog/vocabulary";
-import { CreditCardVisual } from "@masdan/ui/components/credit-card-visual";
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vite-plus/test";
+
+import { CreditCardVisual } from "@/components/finance/credit-card-visual";
 
 import type { CardIdentity } from "../card-art";
 import { AccountCard } from "./account-card";

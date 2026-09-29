@@ -6,7 +6,8 @@ import {
   TooltipPopup,
   TooltipTrigger,
 } from "@masdan/ui/components/tooltip";
-import { usePrivacyMode } from "@masdan/ui/lib/privacy-mode";
+
+import { usePrivacyMode } from "@/components/finance/privacy-mode";
 
 export const PrivacyToggle = () => {
   const [on, setOn] = usePrivacyMode();

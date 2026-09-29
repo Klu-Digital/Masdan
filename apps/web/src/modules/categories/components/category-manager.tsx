@@ -16,7 +16,6 @@ import type {
   CategoryColor,
   CategoryType,
 } from "@masdan/api/categories/constants";
-import { Amount } from "@masdan/ui/components/amount";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import {
@@ -62,7 +61,6 @@ import { ResponsiveSheet } from "@masdan/ui/components/responsive-sheet";
 import { Skeleton } from "@masdan/ui/components/skeleton";
 import { Tabs, TabsList, TabsTab } from "@masdan/ui/components/tabs";
 import { toastManager } from "@masdan/ui/components/toast";
-import { toNumber } from "@masdan/ui/lib/money";
 import { useForm } from "@tanstack/react-form";
 import {
   keepPreviousData,
@@ -76,6 +74,8 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { ColorSelector } from "@/components/color-selector";
+import { Amount } from "@/components/finance/amount";
+import { toNumber } from "@/components/finance/money";
 import { startOfMonth, toIsoDate } from "@/lib/dates";
 import { FormActions } from "@/modules/transactions/components/transaction-form";
 import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";

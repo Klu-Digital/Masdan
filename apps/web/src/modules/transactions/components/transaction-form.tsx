@@ -6,7 +6,6 @@ import {
   scaledAmount as scaledPositive,
 } from "@masdan/api/shared/money";
 import { TRANSACTION_PAID_STATUSES } from "@masdan/api/transactions/constants";
-import { AmountInput } from "@masdan/ui/components/amount-input";
 import { Button } from "@masdan/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
 import { ColorDot } from "@masdan/ui/components/icon-tile";
@@ -16,7 +15,6 @@ import { Skeleton } from "@masdan/ui/components/skeleton";
 import { Switch } from "@masdan/ui/components/switch";
 import { Textarea } from "@masdan/ui/components/textarea";
 import { toastManager } from "@masdan/ui/components/toast";
-import { formatMoney, moneyParts } from "@masdan/ui/lib/money";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -24,6 +22,9 @@ import type { ReactNode } from "react";
 import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
+import { AmountInput } from "@/components/finance/amount-input";
+import { moneyParts } from "@/components/finance/money";
+import { useFormattedMoney } from "@/components/finance/use-formatted-money";
 import { MoreOptions } from "@/components/more-options";
 import { householdToday } from "@/lib/household-date";
 import { AccountPicker } from "@/modules/accounts/components/account-picker";
@@ -157,6 +158,7 @@ const SplitSummary = ({
   currency: string;
   splits: { amount: string }[];
 }) => {
+  const money = useFormattedMoney();
   const target = scaledAmount(amount);
   const total = splitTotal(splits.filter((split) => split.amount !== ""));
   if (target === null || total === null) {
@@ -170,10 +172,10 @@ const SplitSummary = ({
   let label = "Fully allocated";
   let tone: "positive" | "warning" | "danger" = "positive";
   if (remaining > 0n) {
-    label = `${formatMoney(scaledToNumber(remaining), currency)} left to allocate`;
+    label = `${money(scaledToNumber(remaining), currency)} left to allocate`;
     tone = "warning";
   } else if (remaining < 0n) {
-    label = `${formatMoney(scaledToNumber(-remaining), currency)} over the total`;
+    label = `${money(scaledToNumber(-remaining), currency)} over the total`;
     tone = "danger";
   }
   const allocated = Math.min(scaledToNumber(total), scaledToNumber(target));
