@@ -33,6 +33,13 @@ export const DEFAULT_QUEUE_OPTIONS = { notify: true } satisfies Omit<
 >;
 
 /**
+ * Where a job lands once its retries are spent, instead of expiring silently.
+ * Not in `jobs`: nothing works it, so it is inspected by hand (and shows up in
+ * the `masdan_queue_jobs` gauge like any other queue).
+ */
+export const DEAD_LETTER_QUEUE = "dead-letter";
+
+/**
  * Keep payload schemas free of `.default()` and other transforms: `enqueue`
  * accepts the inferred output type, so a mismatch makes the call site's type a
  * lie.
@@ -102,9 +109,16 @@ export const jobs = defineJobs({
   /**
    * Posts one schedule's due occurrences. Safe to deliver twice or retry: the
    * unique (schedule, occurrence date) index turns a repeat into a no-op.
+   * `stately` with the schedule as `singletonKey`, so overlapping sweeps queue
+   * one job per schedule rather than one per tick.
    */
   "recurring.generate": {
-    queue: { retryBackoff: true, retryDelay: 30, retryLimit: 5 },
+    queue: {
+      policy: "stately",
+      retryBackoff: true,
+      retryDelay: 30,
+      retryLimit: 5,
+    },
     schema: z.object({ scheduleId: z.uuid() }),
   },
   /**

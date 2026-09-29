@@ -12,7 +12,9 @@ export const mountMetrics = (app: Hono<EvlogVariables>) => {
     return;
   }
 
-  const { printMetrics, registerMetrics } = prometheus();
+  const { printMetrics, registerMetrics } = prometheus({
+    collectDefaultMetrics: true,
+  });
 
   app.use("*", registerMetrics);
   app.get(path, bearerAuth({ token }), printMetrics);

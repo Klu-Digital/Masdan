@@ -15,7 +15,11 @@ export const handleRecurringSweep = async (
 ): Promise<void> => {
   const scheduleIds = await findDueSchedules(db, new Date(), SWEEP_LIMIT);
   for (const scheduleId of scheduleIds) {
-    await queue.enqueue("recurring.generate", { scheduleId });
+    await queue.enqueue(
+      "recurring.generate",
+      { scheduleId },
+      { singletonKey: scheduleId }
+    );
   }
   log.info({
     action: "recurring.sweep.completed",

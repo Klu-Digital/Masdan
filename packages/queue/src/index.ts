@@ -12,8 +12,11 @@ import type {
 
 import { resolveQueueConfig } from "./config";
 import type { QueueRole } from "./config";
-import { DEFAULT_QUEUE_OPTIONS, jobs } from "./jobs";
+import { DEAD_LETTER_QUEUE, DEFAULT_QUEUE_OPTIONS, jobs } from "./jobs";
 import type { JobDefinition, JobName, JobPayload } from "./jobs";
+
+/** Long enough to notice a failure over a weekend and still read its payload. */
+const DEAD_LETTER_RETENTION_SECONDS = 30 * 24 * 60 * 60;
 
 // `Object.entries` yields a union of the individual job types, on which optional
 // members like `cron` are not addressable. Widening is what makes it iterable.
@@ -72,11 +75,20 @@ export const createQueueClient = () => {
 
       await instance.start();
 
+      // Before the queues that point at it: pg-boss requires the target to exist.
+      await instance.createQueue(DEAD_LETTER_QUEUE, {
+        retentionSeconds: DEAD_LETTER_RETENTION_SECONDS,
+      });
+
       for (const [name, definition] of jobEntries) {
         await instance.createQueue(name, {
           ...DEFAULT_QUEUE_OPTIONS,
           ...definition.queue,
+          deadLetter: DEAD_LETTER_QUEUE,
         });
+        // createQueue is a no-op on an existing queue, so one created before the
+        // dead-letter queue existed would otherwise keep dropping failures.
+        await instance.updateQueue(name, { deadLetter: DEAD_LETTER_QUEUE });
       }
 
       if (role === "consumer") {
@@ -175,7 +187,12 @@ export type QueueClient = ReturnType<typeof createQueueClient>;
 
 export const queue: QueueClient = createQueueClient();
 
-export { DEFAULT_QUEUE_OPTIONS, jobNames, jobs } from "./jobs";
+export {
+  DEAD_LETTER_QUEUE,
+  DEFAULT_QUEUE_OPTIONS,
+  jobNames,
+  jobs,
+} from "./jobs";
 export type { JobDefinition, JobName, JobPayload } from "./jobs";
 export { resolveQueueConfig } from "./config";
 export type { QueueRole } from "./config";

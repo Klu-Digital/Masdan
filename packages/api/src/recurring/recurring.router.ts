@@ -238,7 +238,11 @@ const enqueueIfDue = async (
   ) {
     return;
   }
-  await queue.enqueue("recurring.generate", { scheduleId }, { tx: db });
+  await queue.enqueue(
+    "recurring.generate",
+    { scheduleId },
+    { singletonKey: scheduleId, tx: db }
+  );
 };
 
 const sameTiming = (a: Recurrence, b: Recurrence): boolean =>

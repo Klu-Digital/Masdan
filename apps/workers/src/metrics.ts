@@ -19,7 +19,10 @@ export const mountMetrics = (app: Hono) => {
   }
 
   const registry = new Registry();
-  const { printMetrics, registerMetrics } = prometheus({ registry });
+  const { printMetrics, registerMetrics } = prometheus({
+    collectDefaultMetrics: true,
+    registry,
+  });
 
   // One gauge with a `state` label, not four gauges: the refresh below stays a
   // single query however many states we report.

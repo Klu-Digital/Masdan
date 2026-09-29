@@ -11,9 +11,7 @@ import { registerWorkers } from "./register";
 const server = serve(
   { fetch: createApp().fetch, port: env.WORKERS_PORT },
   (info) => {
-    console.log(
-      `Workers health server is running on http://localhost:${info.port}`
-    );
+    log.info({ action: "workers.listening", port: info.port });
   }
 );
 

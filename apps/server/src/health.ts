@@ -1,27 +1,12 @@
 import { db } from "@masdan/db";
 import { log, parseError } from "@masdan/observability";
+import type { EvlogVariables } from "@masdan/observability/hono";
 import { queue } from "@masdan/queue";
 import { sql } from "drizzle-orm";
-import { Hono } from "hono";
+import type { Hono } from "hono";
 
-import { mountMetrics } from "./metrics";
-
-/**
- * Not an API: a Docker healthcheck and a Prometheus scrape. No request logger,
- * or a 10s healthcheck would dominate the logs. A factory, so tests can
- * `app.request(...)` without a port.
- */
-export const createApp = () => {
-  const app = new Hono();
-
-  mountMetrics(app);
-
-  // Reports the queue connection, not just liveness: a worker running but
-  // detached from Postgres is exactly what a healthcheck should catch.
-  app.get("/", (c) =>
-    queue.isStarted() ? c.text("OK") : c.text("queue not started", 503)
-  );
-
+/** `/` stays a liveness probe; this is the one that touches dependencies. */
+export const mountHealth = (app: Hono<EvlogVariables>) => {
   app.get("/health/ready", async (c) => {
     let database = true;
     try {
@@ -43,6 +28,4 @@ export const createApp = () => {
       ready ? 200 : 503
     );
   });
-
-  return app;
 };

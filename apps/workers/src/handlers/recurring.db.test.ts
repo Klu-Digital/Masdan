@@ -144,22 +144,38 @@ describe("recurring.generate handler", () => {
     const fixture = await signUpHousehold();
     const scheduleId = await createSchedule(fixture);
 
-    await queue.enqueue("recurring.generate", { scheduleId });
-    await queue.enqueue("recurring.generate", { scheduleId });
-    expect(
-      await drainQueue("recurring.generate", handleRecurringGenerate)
-    ).toBe(2);
+    await queue.enqueue(
+      "recurring.generate",
+      { scheduleId },
+      { singletonKey: scheduleId }
+    );
+    // The stately policy collapses a second enqueue for the same schedule.
+    await queue.enqueue(
+      "recurring.generate",
+      { scheduleId },
+      { singletonKey: scheduleId }
+    );
+    const [delivered] = await queue
+      .raw()
+      .fetch<{ scheduleId: string }>("recurring.generate", { batchSize: 10 });
+    expect(delivered).toBeDefined();
+    // Redelivered after completing, as pg-boss does on an at-least-once retry.
+    await handleRecurringGenerate(delivered as JobOf<"recurring.generate">);
+    await handleRecurringGenerate(delivered as JobOf<"recurring.generate">);
 
     expect(await postedFor(scheduleId)).toHaveLength(1);
-    const jobs = await getJobs("recurring.generate");
-    expect(jobs.map(({ state }) => state)).toEqual(["completed", "completed"]);
+    expect(await getJobs("recurring.generate")).toHaveLength(1);
   });
 
   it("does not duplicate when a job is retried after it already committed", async () => {
     const fixture = await signUpHousehold();
     const scheduleId = await createSchedule(fixture);
 
-    await queue.enqueue("recurring.generate", { scheduleId });
+    await queue.enqueue(
+      "recurring.generate",
+      { scheduleId },
+      { singletonKey: scheduleId }
+    );
     await drainQueue("recurring.generate", crashAfterCommit);
     const [failed] = await getJobs("recurring.generate");
     expect(failed?.state).toBe("retry");
@@ -177,15 +193,17 @@ describe("recurring.generate handler", () => {
       frequency: "daily",
       nextOccurrenceDate: "2026-09-01",
     });
-    for (let index = 0; index < 4; index += 1) {
-      await queue.enqueue("recurring.generate", { scheduleId });
-    }
+    await queue.enqueue(
+      "recurring.generate",
+      { scheduleId },
+      { singletonKey: scheduleId }
+    );
 
-    const jobs = await queue
+    const [job] = await queue
       .raw()
-      .fetch<{ scheduleId: string }>("recurring.generate", { batchSize: 4 });
+      .fetch<{ scheduleId: string }>("recurring.generate", { batchSize: 1 });
     await Promise.all(
-      jobs.map((job) =>
+      Array.from({ length: 4 }, () =>
         handleRecurringGenerate(job as JobOf<"recurring.generate">)
       )
     );
@@ -201,8 +219,16 @@ describe("recurring.generate handler", () => {
     const fixture = await signUpHousehold();
     const paused = await createSchedule(fixture);
     const stopped = await createSchedule(fixture);
-    await queue.enqueue("recurring.generate", { scheduleId: paused });
-    await queue.enqueue("recurring.generate", { scheduleId: stopped });
+    await queue.enqueue(
+      "recurring.generate",
+      { scheduleId: paused },
+      { singletonKey: paused }
+    );
+    await queue.enqueue(
+      "recurring.generate",
+      { scheduleId: stopped },
+      { singletonKey: stopped }
+    );
     await getTestDb()
       .update(recurringSchedule)
       .set({ pausedAt: new Date(), status: "paused" })

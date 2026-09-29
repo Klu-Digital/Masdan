@@ -43,6 +43,27 @@ describe("GET /", () => {
   });
 });
 
+describe("x-request-id", () => {
+  it("generates one when absent and echoes an inbound one", async () => {
+    const generated = await app.request("/");
+    expect(generated.headers.get("x-request-id")).toBeTruthy();
+
+    const echoed = await app.request("/", {
+      headers: { "x-request-id": "req-from-proxy" },
+    });
+    expect(echoed.headers.get("x-request-id")).toBe("req-from-proxy");
+  });
+});
+
+describe("GET /health/ready", () => {
+  it("is 503 until the queue has started, naming what is missing", async () => {
+    const response = await app.request("/health/ready");
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ database: true });
+  });
+});
+
 describe("POST /rpc body limit", () => {
   it("rejects a body over 1MiB with 413 before the handler runs", async () => {
     const response = await app.request("/rpc/currencies/list", {
