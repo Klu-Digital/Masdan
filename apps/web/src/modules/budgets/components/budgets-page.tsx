@@ -112,11 +112,11 @@ const BudgetEditor = ({
   const money = useFormattedMoney();
   const queryClient = useQueryClient();
   const { category } = line;
-  const { budgets } = householdOrpc(activeOrganizationId);
+  const { categoryBudgets } = householdOrpc(activeOrganizationId);
   const clear = useMutation(
-    budgets.clear.mutationOptions({
+    categoryBudgets.clear.mutationOptions({
       onSuccess: async () => {
-        await invalidate(queryClient, activeOrganizationId, "budgets");
+        await invalidate(queryClient, activeOrganizationId, "categoryBudgets");
         onOpenChange(false);
         toastManager.add({
           title: `${category.name} budget removed`,
@@ -126,9 +126,9 @@ const BudgetEditor = ({
     })
   );
   const set = useMutation(
-    budgets.set.mutationOptions({
+    categoryBudgets.set.mutationOptions({
       onSuccess: async () => {
-        await invalidate(queryClient, activeOrganizationId, "budgets");
+        await invalidate(queryClient, activeOrganizationId, "categoryBudgets");
         onOpenChange(false);
         toastManager.add({
           title: `${category.name} budget saved`,
@@ -451,7 +451,7 @@ export const BudgetsPage = ({
   permissions: BudgetPermissions;
 }) => {
   const budgets = useQuery(
-    householdOrpc(activeOrganizationId).budgets.month.queryOptions({
+    householdOrpc(activeOrganizationId).categoryBudgets.month.queryOptions({
       input: { month },
       meta: { suppressErrorToast: true },
       placeholderData: keepPreviousData,

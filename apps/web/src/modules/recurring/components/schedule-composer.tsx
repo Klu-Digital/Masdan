@@ -216,17 +216,21 @@ export const ScheduleComposer = ({
   const defaultAccountId =
     activeAccounts.length === 1 ? (activeAccounts[0]?.id ?? "") : "";
 
-  const { recurring } = householdOrpc(activeOrganizationId);
+  const { recurringSchedules } = householdOrpc(activeOrganizationId);
   const onSuccess = async (_: unknown, { name }: { name: string }) => {
-    await invalidate(queryClient, activeOrganizationId, "recurring");
+    await invalidate(queryClient, activeOrganizationId, "recurringSchedules");
     onOpenChange(false);
     toastManager.add({
       title: editing ? "Schedule updated" : `${name} scheduled`,
       type: "success",
     });
   };
-  const create = useMutation(recurring.create.mutationOptions({ onSuccess }));
-  const update = useMutation(recurring.update.mutationOptions({ onSuccess }));
+  const create = useMutation(
+    recurringSchedules.create.mutationOptions({ onSuccess })
+  );
+  const update = useMutation(
+    recurringSchedules.update.mutationOptions({ onSuccess })
+  );
 
   const form = useForm({
     defaultValues: toFormValues(today, defaultAccountId, schedule),

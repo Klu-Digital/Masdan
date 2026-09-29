@@ -10,9 +10,9 @@ type Router = keyof AppRouterClient;
 const LEDGER = [
   "accounts",
   "bills",
-  "budgets",
+  "categoryBudgets",
   "goals",
-  "recurring",
+  "recurringSchedules",
   "reminders",
   "reports",
   "rules",
@@ -28,16 +28,16 @@ const LEDGER = [
  */
 const STALE_AFTER = {
   accounts: [...LEDGER, "exchangeRates"],
-  budgets: ["budgets", "reports"],
   categories: ["categories", ...LEDGER],
-  chat: ["chat"],
+  categoryBudgets: ["categoryBudgets", "reports"],
+  chatIntegrations: ["chatIntegrations"],
   exchangeRates: ["exchangeRates", ...LEDGER],
   goals: ["goals"],
   households: ["households", ...LEDGER],
   imports: ["imports", "suggestions"],
   ledger: LEDGER,
   // Schedules post transactions.
-  recurring: LEDGER,
+  recurringSchedules: LEDGER,
   reminders: ["reminders"],
   rules: ["rules"],
   tags: ["tags", "transactions", "rules"],

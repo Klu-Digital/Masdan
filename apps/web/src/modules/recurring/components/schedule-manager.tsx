@@ -106,7 +106,9 @@ const PostedTransactions = ({
   schedule: Schedule;
 }) => {
   const postings = useQuery(
-    householdOrpc(activeOrganizationId).recurring.postings.queryOptions({
+    householdOrpc(
+      activeOrganizationId
+    ).recurringSchedules.postings.queryOptions({
       input: { scheduleId: schedule.id },
     })
   );
@@ -287,7 +289,7 @@ export const ScheduleManager = ({
 }) => {
   const queryClient = useQueryClient();
   const orpc = householdOrpc(activeOrganizationId);
-  const schedules = useQuery(orpc.recurring.list.queryOptions());
+  const schedules = useQuery(orpc.recurringSchedules.list.queryOptions());
   const accounts = useQuery(
     orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
   );
@@ -306,10 +308,10 @@ export const ScheduleManager = ({
   const [stopping, setStopping] = useState<Schedule | null>(null);
 
   const refresh = () =>
-    invalidate(queryClient, activeOrganizationId, "recurring");
+    invalidate(queryClient, activeOrganizationId, "recurringSchedules");
 
   const pause = useMutation(
-    orpc.recurring.pause.mutationOptions({
+    orpc.recurringSchedules.pause.mutationOptions({
       onSuccess: async (schedule) => {
         await refresh();
         toastManager.add({ title: `${schedule.name} paused`, type: "success" });
@@ -317,7 +319,7 @@ export const ScheduleManager = ({
     })
   );
   const resume = useMutation(
-    orpc.recurring.resume.mutationOptions({
+    orpc.recurringSchedules.resume.mutationOptions({
       onSuccess: async (schedule) => {
         await refresh();
         toastManager.add({
@@ -330,7 +332,7 @@ export const ScheduleManager = ({
     })
   );
   const stop = useMutation(
-    orpc.recurring.stop.mutationOptions({
+    orpc.recurringSchedules.stop.mutationOptions({
       onSuccess: async (schedule) => {
         setStopping(null);
         await refresh();

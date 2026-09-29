@@ -182,7 +182,7 @@ describe("invalidate", () => {
       householdOrpc("household-1").accounts.list.queryKey({ input: {} })
     );
     const budgets = seed(
-      householdOrpc("household-1").budgets.month.queryKey({ input: {} })
+      householdOrpc("household-1").categoryBudgets.month.queryKey({ input: {} })
     );
     const otherAccounts = seed(
       householdOrpc("household-2").accounts.list.queryKey({ input: {} })

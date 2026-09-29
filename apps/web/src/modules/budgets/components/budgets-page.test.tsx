@@ -22,7 +22,7 @@ vi.mock("@/utils/client", async () => {
   const { mockClient } = await import("@/test/client");
   return {
     client: mockClient({
-      budgets: { clear: rpc.clear, month: rpc.month, set: rpc.set },
+      categoryBudgets: { clear: rpc.clear, month: rpc.month, set: rpc.set },
     }),
   };
 });

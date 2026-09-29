@@ -133,9 +133,9 @@ const ChatApps = ({
     return () => clearTimeout(timer);
   }, [pendingCode]);
 
-  const { chat } = householdOrpc(activeOrganizationId);
+  const { chatIntegrations } = householdOrpc(activeOrganizationId);
   const channels = useQuery(
-    chat.status.queryOptions({
+    chatIntegrations.status.queryOptions({
       // The link completes in the chat app, not in this tab.
       refetchInterval: pendingCode === null ? false : LINK_POLL_MS,
     })
@@ -145,16 +145,16 @@ const ChatApps = ({
   const showCode = pendingCode && linked.length <= pendingCode.linkedBefore;
 
   const createCode = useMutation(
-    chat.createLinkCode.mutationOptions({
+    chatIntegrations.createLinkCode.mutationOptions({
       onSuccess: (created) =>
         setPendingCode({ ...created, linkedBefore: linked.length }),
     })
   );
   const unlink = useMutation(
-    chat.unlink.mutationOptions({
+    chatIntegrations.unlink.mutationOptions({
       onSuccess: async () => {
         setPendingCode(null);
-        await invalidate(queryClient, activeOrganizationId, "chat");
+        await invalidate(queryClient, activeOrganizationId, "chatIntegrations");
         toastManager.add({ title: "Unlinked", type: "success" });
       },
     })

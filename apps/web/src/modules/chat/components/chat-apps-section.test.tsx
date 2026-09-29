@@ -19,7 +19,7 @@ const rpc = vi.hoisted(() => ({
 
 vi.mock("@/utils/client", async () => {
   const { mockClient } = await import("@/test/client");
-  return { client: mockClient({ chat: rpc }) };
+  return { client: mockClient({ chatIntegrations: rpc }) };
 });
 
 const { ChatAppsSection } = await import("./chat-apps-section");

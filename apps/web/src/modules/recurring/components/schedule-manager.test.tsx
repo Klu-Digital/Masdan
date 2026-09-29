@@ -28,7 +28,7 @@ vi.mock("@/utils/client", async () => {
     client: mockClient({
       accounts: { list: rpc.accounts },
       categories: { list: rpc.categories },
-      recurring: {
+      recurringSchedules: {
         create: rpc.create,
         list: rpc.list,
         pause: rpc.pause,
