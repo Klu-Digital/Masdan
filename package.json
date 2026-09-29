@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "pnpm dev:infra && mprocs",
     "build": "vp run -r build",
-    "check-types": "vp run -r check-types && tsc --noEmit -p scripts/tsconfig.json",
+    "check-types": "vp run -r --parallel check-types && tsc --noEmit -p scripts/tsconfig.json",
     "check": "ultracite check",
     "fix": "ultracite fix",
     "lint": "vp lint",

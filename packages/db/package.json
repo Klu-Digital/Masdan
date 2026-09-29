@@ -22,7 +22,8 @@
     "post-migrate:status": "tsx src/dev-scripts/post-migrate/cli.ts status",
     "purge": "tsx src/dev-scripts/purge/cli.ts",
     "reset-password": "tsx src/dev-scripts/reset-password/cli.ts",
-    "seed": "tsx src/dev-scripts/seed/cli.ts"
+    "seed": "tsx src/dev-scripts/seed/cli.ts",
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@masdan/env": "workspace:*",

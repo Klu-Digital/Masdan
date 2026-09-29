@@ -59,7 +59,7 @@ describe("households.profile", () => {
     );
 
     expect(error).toBeInstanceOf(ORPCError);
-    expect((error as ORPCError).code).toBe("UNAUTHORIZED");
+    expect((error as ORPCError<string, unknown>).code).toBe("UNAUTHORIZED");
   });
 
   it("returns defaults for the active household and follows active-household changes", async () => {
@@ -180,7 +180,7 @@ describe("households.updateProfile", () => {
     );
 
     expect(error).toBeInstanceOf(ORPCError);
-    expect((error as ORPCError).code).toBe("FORBIDDEN");
+    expect((error as ORPCError<string, unknown>).code).toBe("FORBIDDEN");
   });
 
   it("rejects invalid finance settings", async () => {
@@ -200,7 +200,7 @@ describe("households.updateProfile", () => {
       );
 
       expect(error).toBeInstanceOf(ORPCError);
-      expect((error as ORPCError).code).toBe("BAD_REQUEST");
+      expect((error as ORPCError<string, unknown>).code).toBe("BAD_REQUEST");
     }
   });
 
@@ -221,7 +221,7 @@ describe("households.updateProfile", () => {
       );
 
       expect(error).toBeInstanceOf(ORPCError);
-      expect((error as ORPCError).code).toBe("BAD_REQUEST");
+      expect((error as ORPCError<string, unknown>).code).toBe("BAD_REQUEST");
     } finally {
       // `currency` is held back from the per-test truncation, so put it back.
       await getTestDb()

@@ -152,9 +152,12 @@ describe("transactions.parseQuickEntry", () => {
     // Parsing is read-only; creating is the client's separate, validated call.
     expect(await transactionCount(home.organizationId)).toBe(0);
 
+    if (!parsed.input) {
+      throw new Error("expected parsed input");
+    }
     const created = await call(
       transactionsRouter.create,
-      parsed.input ?? {},
+      parsed.input,
       home.context
     );
     expect(created).toMatchObject({

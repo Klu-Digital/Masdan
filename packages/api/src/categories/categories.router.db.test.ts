@@ -249,6 +249,7 @@ describe("categories mutations", () => {
       await codeOf(
         call(
           categoriesRouter.create,
+          // @ts-expect-error deliberately outside the palette
           { color: "not-a-color", icon: "🎵", name: "Bad", type: "expense" },
           context
         )

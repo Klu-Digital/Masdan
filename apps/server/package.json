@@ -9,7 +9,7 @@
     "admin:grant": "node dist/admin/grant.mjs",
     "admin:reset-password": "node dist/admin/reset-password.mjs",
     "build": "tsdown",
-    "check-types": "tsc -b",
+    "check-types": "tsc --noEmit",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.mjs"

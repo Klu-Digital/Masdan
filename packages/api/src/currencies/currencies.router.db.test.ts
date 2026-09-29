@@ -34,7 +34,7 @@ describe("currencies.list", () => {
     );
 
     expect(error).toBeInstanceOf(ORPCError);
-    expect((error as ORPCError).code).toBe("UNAUTHORIZED");
+    expect((error as ORPCError<string, unknown>).code).toBe("UNAUTHORIZED");
   });
 
   it("serves the seeded reference data with ICU minor units", async () => {

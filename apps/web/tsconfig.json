@@ -1,12 +1,8 @@
 {
+  "extends": "@masdan/config/tsconfig.base.json",
   "compilerOptions": {
-    "strict": true,
-    "esModuleInterop": true,
     "jsx": "react-jsx",
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "skipLibCheck": true,
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "types": ["vite/client", "@testing-library/jest-dom"],
     "rootDirs": ["."],
     "paths": {

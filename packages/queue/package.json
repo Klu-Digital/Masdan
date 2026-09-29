@@ -10,7 +10,8 @@
     }
   },
   "scripts": {
-    "queue:migrate": "tsx src/cli/migrate.ts"
+    "queue:migrate": "tsx src/cli/migrate.ts",
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@masdan/env": "workspace:*",

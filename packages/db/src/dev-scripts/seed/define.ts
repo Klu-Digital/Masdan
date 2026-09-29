@@ -24,7 +24,7 @@ export interface Seeder<TPlan> {
   /** Shown in conflict/summary output and as the log prefix. */
   name: string;
   /** Build everything this seeder intends to create. Must not touch the database. */
-  plan: (ctx: SeedContext) => Promise<TPlan>;
+  plan: (ctx: SeedContext) => Promise<TPlan> | TPlan;
   /**
    * Rows that already exist and would collide with `plan`, as human-readable
    * keys. Empty means `apply` is safe.

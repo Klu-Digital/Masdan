@@ -267,12 +267,24 @@ describe("tenant isolation", () => {
   });
 
   it.each([
-    ["getDownloadUrl", appRouter.files.getDownloadUrl],
-    ["confirmUpload", appRouter.files.confirmUpload],
-    ["deleteFile", appRouter.files.deleteFile],
-  ] as const)(
+    [
+      "getDownloadUrl",
+      (fileId: string, context: Context) =>
+        call(appRouter.files.getDownloadUrl, { fileId }, { context }),
+    ],
+    [
+      "confirmUpload",
+      (fileId: string, context: Context) =>
+        call(appRouter.files.confirmUpload, { fileId }, { context }),
+    ],
+    [
+      "deleteFile",
+      (fileId: string, context: Context) =>
+        call(appRouter.files.deleteFile, { fileId }, { context }),
+    ],
+  ])(
     "returns NOT_FOUND from %s for another organization's fileId",
-    async (_name, procedure) => {
+    async (_name, run) => {
       const ownerUser = await signUpTestUser();
       const owner = await contextFor(ownerUser.headers);
       const strangerUser = await signUpTestUser();
@@ -283,9 +295,7 @@ describe("tenant isolation", () => {
       });
       putIntoBucket(key);
 
-      const error = await caught(
-        call(procedure, { fileId }, { context: stranger })
-      );
+      const error = await caught(run(fileId, stranger));
 
       expect(error).toBeInstanceOf(ORPCError);
       expect((error as ORPCError<string, unknown>).code).toBe("NOT_FOUND");

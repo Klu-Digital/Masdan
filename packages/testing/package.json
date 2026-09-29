@@ -10,7 +10,9 @@
       "default": "./src/*.ts"
     }
   },
-  "scripts": {},
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
   "dependencies": {
     "@faker-js/faker": "^10.6.0",
     "@masdan/auth": "workspace:*",

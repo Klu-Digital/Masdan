@@ -144,7 +144,7 @@ export const hasPermission = (input: {
  */
 export const PLATFORM_ADMIN_ROLE = "admin";
 
-export const isPlatformAdmin = (role: string | null | undefined): boolean =>
+export const isPlatformAdmin = (role?: string | null): boolean =>
   (role ?? "")
     .split(",")
     .map((name) => name.trim())

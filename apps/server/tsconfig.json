@@ -1,8 +1,6 @@
 {
   "extends": "@masdan/config/tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
-    "outDir": "dist",
     "paths": {
       "@/*": ["./src/*"]
     },

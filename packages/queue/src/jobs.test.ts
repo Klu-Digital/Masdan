@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
+import type { JobDefinition } from "./jobs";
 import { jobNames, jobs } from "./jobs";
 
 describe("job registry", () => {
@@ -7,7 +8,7 @@ describe("job registry", () => {
   // cron fires, so a typo surfaces minutes after deploy on an unwatched queue.
   it("declares cron payloads that satisfy their own job's schema", () => {
     for (const name of jobNames) {
-      const definition = jobs[name];
+      const definition: JobDefinition = jobs[name];
       if (!definition.cron) {
         continue;
       }

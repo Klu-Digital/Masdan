@@ -103,6 +103,7 @@ describe("tags", () => {
       await codeOf(
         call(
           tagsRouter.create,
+          // @ts-expect-error deliberately outside the palette
           { color: "not-a-color", name: "Invalid" },
           context
         )
