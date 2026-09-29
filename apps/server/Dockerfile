@@ -21,9 +21,9 @@ RUN cd apps/server && SKIP_ENV_VALIDATION=1 NODE_ENV=production pnpm run build
 
 # Production dependencies and the bundle only. `@masdan/*` are devDependencies
 # because tsdown inlines them; as dependencies they would drag their own deps
-# (react-native via @better-auth/expo, drizzle-kit) in here. pnpm 10 deploys a
-# workspace package only when workspace packages are injected; enabling that
-# just for this command leaves local dev linking alone.
+# (drizzle-kit) in here. pnpm 10 deploys a workspace package only when workspace
+# packages are injected; enabling that just for this command leaves local dev
+# linking alone.
 RUN --mount=type=cache,target=/pnpm-store pnpm --config.inject-workspace-packages=true deploy --filter=server --prod --store-dir /pnpm-store /prod/server
 
 # Migrations and post-migration scripts need drizzle-kit, tsx and the pg-boss

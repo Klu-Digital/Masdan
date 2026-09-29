@@ -9,10 +9,14 @@ import {
 
 /**
  * Spreading `defaultStatements` keeps better-auth's own endpoints gated. Keep
- * this file dependency-free: the web and native clients import it too.
+ * this file dependency-free: the web client imports it too.
  */
 export const statement = {
   ...defaultStatements,
+  // Stored files: receipts, transaction attachments and CSV imports, through
+  // `@masdan/api`'s files router. `:any` is the convention for "act on rows you
+  // do not own".
+  attachment: ["create", "read", "delete", "delete:any"],
   // The bill calendar. `confirm` covers marking an occurrence paid and undoing
   // it; subscribing to the feed only needs `read`.
   bill: ["read", "confirm"],
@@ -20,9 +24,6 @@ export const statement = {
   // permanent, so it is graded like archive.
   budget: ["read", "update", "delete"],
   category: ["create", "read", "update", "archive", "restore"],
-  // Example resource, wired up in `@masdan/api`'s storage router. `:any` is the
-  // convention for "act on rows you do not own".
-  file: ["create", "read", "delete", "delete:any"],
   financialAccount: ["create", "read", "update", "archive", "restore"],
   // Recurring schedules. `update` covers edit, pause and resume; stopping is
   // permanent, so it is graded like archive.
@@ -50,10 +51,10 @@ export const ac = createAccessControl(statement);
 export const roles = {
   admin: ac.newRole({
     ...adminAc.statements,
+    attachment: ["create", "read", "delete", "delete:any"],
     bill: ["read", "confirm"],
     budget: ["read", "update", "delete"],
     category: ["create", "read", "update", "archive", "restore"],
-    file: ["create", "read", "delete", "delete:any"],
     financialAccount: ["create", "read", "update", "archive", "restore"],
     recurringTransaction: ["create", "read", "update", "stop"],
     reminder: ["read", "dismiss"],
@@ -64,10 +65,10 @@ export const roles = {
   }),
   member: ac.newRole({
     ...memberAc.statements,
+    attachment: ["create", "read", "delete"],
     bill: ["read", "confirm"],
     budget: ["read", "update"],
     category: ["create", "read", "update"],
-    file: ["create", "read", "delete"],
     financialAccount: ["create", "read", "update"],
     recurringTransaction: ["create", "read", "update"],
     reminder: ["read", "dismiss"],
@@ -78,10 +79,10 @@ export const roles = {
   }),
   owner: ac.newRole({
     ...ownerAc.statements,
+    attachment: ["create", "read", "delete", "delete:any"],
     bill: ["read", "confirm"],
     budget: ["read", "update", "delete"],
     category: ["create", "read", "update", "archive", "restore"],
-    file: ["create", "read", "delete", "delete:any"],
     financialAccount: ["create", "read", "update", "archive", "restore"],
     recurringTransaction: ["create", "read", "update", "stop"],
     reminder: ["read", "dismiss"],
@@ -92,10 +93,10 @@ export const roles = {
   }),
   viewer: ac.newRole({
     ...memberAc.statements,
+    attachment: ["read"],
     bill: ["read"],
     budget: ["read"],
     category: ["read"],
-    file: ["read"],
     financialAccount: ["read"],
     recurringTransaction: ["read"],
     reminder: ["read"],
@@ -113,7 +114,7 @@ export const APP_ROLES = Object.keys(roles) as AppRole[];
 export const isAppRole = (value: string): value is AppRole =>
   Object.hasOwn(roles, value);
 
-/** A request to check, e.g. `{ file: ["delete"] }` or `{ member: ["create", "delete"] }`. */
+/** A request to check, e.g. `{ attachment: ["delete"] }` or `{ member: ["create", "delete"] }`. */
 export type PermissionRequest = {
   [K in keyof Statement]?: readonly Statement[K][number][];
 };

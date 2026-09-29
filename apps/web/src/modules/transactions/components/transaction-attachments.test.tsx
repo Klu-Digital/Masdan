@@ -36,7 +36,7 @@ const uploadFile = vi.hoisted(() =>
 );
 vi.mock("@/lib/upload", () => ({ uploadFile }));
 
-/** Grants by permission key, e.g. `file:delete:any`; everything else is denied. */
+/** Grants by permission key, e.g. `attachment:delete:any`; everything else is denied. */
 const household = vi.hoisted(() => ({ grants: new Set<string>() }));
 vi.mock("@/hooks/use-household", () => ({
   useHousehold: () => ({
@@ -54,21 +54,21 @@ const { TransactionAttachments } = await import("./transaction-attachments");
 const TRANSACTION = "00000000-0000-4000-8000-000000000001";
 
 const OWNER_GRANTS = [
-  "file:create",
-  "file:read",
-  "file:delete",
-  "file:delete:any",
+  "attachment:create",
+  "attachment:read",
+  "attachment:delete",
+  "attachment:delete:any",
   "transaction:read",
   "transaction:update",
 ];
 const MEMBER_GRANTS = [
-  "file:create",
-  "file:read",
-  "file:delete",
+  "attachment:create",
+  "attachment:read",
+  "attachment:delete",
   "transaction:read",
   "transaction:update",
 ];
-const VIEWER_GRANTS = ["file:read", "transaction:read"];
+const VIEWER_GRANTS = ["attachment:read", "transaction:read"];
 
 const attachment = (overrides: Record<string, unknown> = {}) => ({
   contentType: "application/pdf",

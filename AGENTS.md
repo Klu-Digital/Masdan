@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Masdan is a self-hosted household finance tracker: accounts, an income/expense ledger, budgets, bills, credit-card statements and reports, shared by the members of a household. It sends no email. Stack: React/TanStack Router web, Expo native, Hono + oRPC API, background workers, Postgres/Drizzle, better-auth. pnpm workspace, `@masdan/*` package scope.
+Masdan is a self-hosted household finance tracker: accounts, an income/expense ledger, budgets, bills, credit-card statements and reports, shared by the members of a household. It sends no email. Stack: React/TanStack Router web, Hono + oRPC API, background workers, Postgres/Drizzle, better-auth. pnpm workspace, `@masdan/*` package scope.
 
 Vocabulary is in [CONTEXT.md](CONTEXT.md): a **household** is better-auth's `organization`, and the **ledger** is transactions and transfers, from which balances are derived. Use those words in code and comments. The reasoning behind the decisions that surprise people is in [docs/adr/](docs/adr/).
 
@@ -8,14 +8,13 @@ Vocabulary is in [CONTEXT.md](CONTEXT.md): a **household** is better-auth's `org
 
 ```
 apps/web       React SPA (TanStack Router, Tailwind, coss ui via packages/ui)
-apps/native    Expo app
 apps/server    Hono HTTP server — mounts auth, oRPC, metrics. Queue PRODUCER only
 apps/workers   pg-boss consumer — runs jobs, cron, queue maintenance
 packages/api   oRPC procedure ladder, middleware, routers. The business logic
 packages/card-catalog  Real credit-card looks as data, one folder per country. Adding cards: its CONTRIBUTING.md
 packages/auth  better-auth config, RBAC role definitions
 packages/db    Drizzle schema, migrations, post-migration scripts, dev scripts
-packages/env   Validated env schemas (server/web/native) + the feature-flag registry
+packages/env   Validated env schemas (server/web/workers) + the feature-flag registry
 packages/queue Typed pg-boss job registry
 packages/redis Client, cache, rate-limit primitives — all optional
 packages/storage        S3-compatible presigned uploads
@@ -27,7 +26,7 @@ packages/ui    Shared coss ui primitives (Base UI + Tailwind)
 ## Commands
 
 ```bash
-pnpm dev                # everything; also dev:web / dev:server / dev:workers / dev:native
+pnpm dev                # everything; also dev:web / dev:server / dev:workers
 pnpm check              # ultracite check — oxlint + oxfmt with the Ultracite preset
 pnpm fix                # ultracite fix — autofix lint + format (pre-commit runs this on staged files)
 pnpm check-types        # tsc across the workspace — NOT part of `check`, run it separately
@@ -92,9 +91,9 @@ These are the ones that cost real time to rediscover. The README carries the ful
 
 **Logging.** Reach for `log` from `@masdan/observability`, never `console`. Every call carries an `action` — a dotted, snake_cased event name that is the thing you will later grep and alert on (`redis.error`, `queue.start_failed`, `featureflags.read.failed`). Spread `parseError(error)` into the payload rather than stringifying the error yourself.
 
-**Styling.** The `shadcn/*` oxlint rules are errors in app code: no raw colors, no inline styles, no arbitrary values, no unknown classes, and class names must be static strings (no `` `text-${tone}-500` ``). Colors come from the theme in `packages/ui/src/styles/globals.css`. `layout` is the one allowed arbitrary-value escape. Two exemptions are configured deliberately in `oxlint.config.ts`: `packages/ui/src/**` may style itself because it _is_ the design system, and `apps/native/**` is off entirely because it is heroui-native with no shared theme. Import primitives as `@masdan/ui/components/button`; add more with `npx shadcn@latest add @coss/<name> -c packages/ui`.
+**Styling.** The `shadcn/*` oxlint rules are errors in app code: no raw colors, no inline styles, no arbitrary values, no unknown classes, and class names must be static strings (no `` `text-${tone}-500` ``). Colors come from the theme in `packages/ui/src/styles/globals.css`. `layout` is the one allowed arbitrary-value escape. One exemption is configured deliberately in `oxlint.config.ts`: `packages/ui/src/**` may style itself because it _is_ the design system. Import primitives as `@masdan/ui/components/button`; add more with `npx shadcn@latest add @coss/<name> -c packages/ui`.
 
-**Lint deltas from the Ultracite preset.** `no-await-in-loop` is off — plenty of loops here are deliberately sequential (ordered migrations, retry backoff, cursor walks) and the rule's suggested fix is a bug. `react/no-unstable-nested-components` allows render props, for expo-router's `tabBarIcon` and friends. Everything else is the preset, and `pnpm fix` autofixes most of it.
+**Lint deltas from the Ultracite preset.** `no-await-in-loop` is off — plenty of loops here are deliberately sequential (ordered migrations, retry backoff, cursor walks) and the rule's suggested fix is a bug. `react/no-unstable-nested-components` allows render props. Everything else is the preset, and `pnpm fix` autofixes most of it.
 
 **Comments.** One line, naming the bug the line prevents. [TERSE.md](TERSE.md) has the budget, what earns more than a line, and the directive and template-literal gotchas.
 

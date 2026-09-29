@@ -48,7 +48,7 @@ In [`src/permissions.ts`](./src/permissions.ts):
 ```ts
 export const statement = {
   ...defaultStatements,
-  file: ["create", "read", "delete", "delete:any"],
+  attachment: ["create", "read", "delete", "delete:any"],
   invoice: ["read", "create", "void"], // ← new resource
 } as const;
 ```
@@ -59,12 +59,12 @@ Then grant it to whichever roles should have it:
 export const roles = {
   owner: ac.newRole({
     ...ownerAc.statements,
-    file: ["create", "read", "delete", "delete:any"],
+    attachment: ["create", "read", "delete", "delete:any"],
     invoice: ["read", "create", "void"],
   }),
   member: ac.newRole({
     ...memberAc.statements,
-    file: ["create", "read", "delete"],
+    attachment: ["create", "read", "delete"],
     invoice: ["read"],
   }),
   // ...
@@ -111,7 +111,7 @@ This is a **rendering decision, not an authorization decision.** The server midd
 
 ```ts
 requirePermission({ invoice: ["read", "void"] }); // needs BOTH actions
-requirePermission({ invoice: ["read"], file: ["read"] }); // needs both resources
+requirePermission({ invoice: ["read"], attachment: ["read"] }); // needs both resources
 requirePermission({}); // ← denies EVERYONE, including owners
 ```
 
@@ -151,14 +151,14 @@ RBAC answers "may this role do this at all." It cannot express "…to their own 
 
 ```ts
 deleteFile: orgMutationProcedure
-  .use(requirePermission({ file: ["delete"] }))   // may delete files at all
+  .use(requirePermission({ attachment: ["delete"] }))   // may delete files at all
   .input(fileIdInput)
   .handler(async ({ context, input }) => {
     const [target] = await context.db.select({ userId: file.userId })/* ... */;
     if (!target) throw new ORPCError("NOT_FOUND", { message: "File not found" });
 
     if (target.userId !== context.session.user.id) {
-      assertPermission(context, { file: ["delete:any"] });   // ...someone else's
+      assertPermission(context, { attachment: ["delete:any"] });   // ...someone else's
     }
     // ...
   }),
@@ -189,7 +189,7 @@ or use the plugin's own single-role helper, which is wired to the same `ac` and 
 ```ts
 authClient.organization.checkRolePermission({
   role: "member",
-  permissions: { file: ["delete:any"] },
+  permissions: { attachment: ["delete:any"] },
 });
 ```
 
@@ -252,6 +252,5 @@ better-auth's built-in rate limiter counts through `countHit` from `@masdan/redi
 | `packages/auth/src/index.ts` | Passes `ac` / `roles` into `organization()`. |
 | `packages/api/src/procedures.ts` | `requireOrganization`, `requirePermission`, `assertPermission`. |
 | `apps/web/src/lib/auth-client.ts` | Client mirror (web). |
-| `apps/native/lib/auth-client.ts` | Client mirror (native). |
 
-`permissions.ts` is imported by the browser and by React Native. Keep it free of `@masdan/db`, `@masdan/env`, and anything else server-only.
+`permissions.ts` is imported by the browser. Keep it free of `@masdan/db`, `@masdan/env`, and anything else server-only.

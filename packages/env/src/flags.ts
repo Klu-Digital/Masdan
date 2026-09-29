@@ -29,11 +29,6 @@ export const featureFlagRegistry = {
     description:
       "Chat entry: link a chat app (Telegram, …) and add transactions by message.",
   },
-  /** Placeholder so the types aren't `never`. Delete once a real flag exists. */
-  FF__EXAMPLE: {
-    defaultEnabled: false,
-    description: "Example flag. Replace with a real one.",
-  },
 } as const satisfies Record<string, FeatureFlagDefinition>;
 
 export type FeatureFlagName = keyof typeof featureFlagRegistry;

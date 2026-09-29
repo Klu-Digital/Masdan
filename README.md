@@ -10,7 +10,7 @@ A self-hosted household finance tracker. Members of a household share accounts, 
 - **Reports** - Cash flow, category spending, savings-rate trends and budget performance
 - **Assistance** - Quick entry from free text, receipt photos and chat (Telegram), AI categorization suggestions and Ask Masdan, all optional and capped per household
 - **Households** - Roles and permissions, link-based invitations, an admin console and feature flags
-- **Web and native** - React with TanStack Router, and an Expo app, sharing a Hono + oRPC API
+- **Web** - React with TanStack Router, on a Hono + oRPC API
 - **Postgres and Drizzle** - The system of record, including sessions and the job queue; Redis and S3-compatible storage are optional
 
 See [CONTEXT.md](CONTEXT.md) for what the product's terms mean (household, ledger, posting, statement) and [docs/adr/](docs/adr/) for why the non-obvious decisions were made.
@@ -60,7 +60,7 @@ Then, run the development server:
 pnpm run dev
 ```
 
-`pnpm run dev` brings up the infrastructure containers and then opens [mprocs](https://github.com/pvolok/mprocs), a small terminal UI that gives each process its own pane and its own scrollback rather than interleaving everything into one stream. `web`, `server` and `workers` start automatically; `native` and `infra` (container logs) are listed but idle — select one and press `s` to start it.
+`pnpm run dev` brings up the infrastructure containers and then opens [mprocs](https://github.com/pvolok/mprocs), a small terminal UI that gives each process its own pane and its own scrollback rather than interleaving everything into one stream. `web`, `server` and `workers` start automatically; `infra` (container logs) is listed but idle — select it and press `s` to start it.
 
 | Key |  |
 | --- | --- |
@@ -69,9 +69,9 @@ pnpm run dev
 | `s` / `x` / `r` | start / stop / restart the selected process |
 | `q` | quit everything |
 
-The panes are configured in [`mprocs.yaml`](mprocs.yaml). `C-a` is what lets you type into a process — that is how you reach Expo's keypress menu once `native` is running.
+The panes are configured in [`mprocs.yaml`](mprocs.yaml). `C-a` is what lets you type into a process.
 
-Open [http://localhost:2600](http://localhost:2600) in your browser to see the web application. The API is running at [http://localhost:1900](http://localhost:1900). For the mobile application, start the `native` pane and open it with the Expo Go app.
+Open [http://localhost:2600](http://localhost:2600) in your browser to see the web application. The API is running at [http://localhost:1900](http://localhost:1900).
 
 ### Ports
 
@@ -207,7 +207,7 @@ Both tiers set their own, because they serve different things and a header that 
 
 Two departures from Hono's defaults are worth knowing:
 
-- **`Cross-Origin-Resource-Policy` is `cross-origin`, not the default `same-origin`.** This server exists to be read from another origin — the web app on `CORS_ORIGIN`, the Expo app on a custom scheme. Leaving the default would be a same-origin restriction sitting directly behind a CORS config that exists to allow the opposite.
+- **`Cross-Origin-Resource-Policy` is `cross-origin`, not the default `same-origin`.** This server exists to be read from another origin — the web app on `CORS_ORIGIN`. Leaving the default would be a same-origin restriction sitting directly behind a CORS config that exists to allow the opposite.
 - **`X-Frame-Options` is `DENY` rather than `SAMEORIGIN`.** Nothing here is ever meant to be framed, including by itself.
 
 `Strict-Transport-Security` keeps Hono's default. Browsers ignore it entirely over plain HTTP, so it costs local development nothing and needs no `NODE_ENV` branch.
@@ -319,9 +319,9 @@ Flags are _declared_ in code and _valued_ in the database, so turning one on is 
 
 ```ts
 export const featureFlagRegistry = {
-  FF__EXAMPLE: {
+  FF__NEW_THING: {
     defaultEnabled: false,
-    description: "Example flag. Replace with a real one.",
+    description: "What turning it on does, shown in the admin UI.",
   },
 } as const satisfies Record<string, FeatureFlagDefinition>;
 ```
@@ -331,7 +331,7 @@ That is the whole setup — no migration, no seed, no env var. A flag with no ro
 In an authenticated web route:
 
 ```tsx
-const showExample = useFeatureFlag("FF__EXAMPLE");
+const showNewThing = useFeatureFlag("FF__NEW_THING");
 ```
 
 On the server, read through the resolver in `@masdan/api/feature-flags` — it needs a `db` because the value lives in a table, and it is cached per process so this is a map lookup on all but one call in thirty:
@@ -339,7 +339,7 @@ On the server, read through the resolver in `@masdan/api/feature-flags` — it n
 ```ts
 import { isFeatureEnabled } from "@masdan/api/feature-flags";
 
-if (await isFeatureEnabled(context.db, "FF__EXAMPLE")) {
+if (await isFeatureEnabled(context.db, "FF__NEW_THING")) {
   /* ... */
 }
 ```
@@ -350,7 +350,7 @@ To make a procedure unreachable rather than merely invisible:
 
 ```ts
 newThing: protectedProcedure
-  .use(requireFlag("FF__EXAMPLE"))
+  .use(requireFlag("FF__NEW_THING"))
   .handler(async ({ context }) => { /* ... */ }),
 ```
 
@@ -362,7 +362,7 @@ Things to know:
 
 - **A toggle takes up to 30 seconds to reach every server.** Each process caches the table read for `FEATURE_FLAG_TTL_MS`; the instance that handled the toggle invalidates its own cache once the transaction commits, the rest catch up within the TTL. The web client mirrors the same window, so an open tab picks a change up without a reload.
 - **Reading is for anyone signed in; writing is platform-admin only.** `featureFlags.all` is a `protectedProcedure` — the web app needs it to decide what to render — while `admin.featureFlags.set` / `.reset` sit behind `adminMutationProcedure` on the global `user.role`.
-- **Adding a flag is still a deploy.** Only its value moved to the database. Declaring a flag is a code change on purpose: it is what keeps `FeatureFlagName` a typed union and `rg FF__EXAMPLE` a complete answer.
+- **Adding a flag is still a deploy.** Only its value moved to the database. Declaring a flag is a code change on purpose: it is what keeps `FeatureFlagName` a typed union and `rg FF__NEW_THING` a complete answer.
 - **Flags are global.** No per-user targeting and no percentage rollouts. If you need either, replace this with a real flag platform rather than extending it.
 - **`useFeatureFlag` only works signed in.** `featureFlags.all` is a `protectedProcedure`, so calling the hook outside `src/routes/_auth/*` fails with `UNAUTHORIZED` and toasts at the user.
 - **Only declared flags are returned.** Reads walk the registry rather than returning whatever rows the table holds, so deleting a flag from code leaves an orphan row that nothing resurrects.
@@ -380,7 +380,7 @@ listInvoices: orgProcedure
   .handler(async ({ context }) => { /* ... */ }),
 ```
 
-This is better-auth's `access` module rather than a hand-rolled permissions schema, so there are **no role tables and no migration** — `member.role` already exists, and roles are typed data that the web and native clients import unchanged.
+This is better-auth's `access` module rather than a hand-rolled permissions schema, so there are **no role tables and no migration** — `member.role` already exists, and roles are typed data that the web client imports unchanged.
 
 Things to know:
 
@@ -463,7 +463,6 @@ Things that bite:
 masdan/
 ├── apps/
 │   ├── web/         # React SPA (TanStack Router)
-│   ├── native/      # Expo app
 │   ├── server/      # Hono HTTP server: auth, oRPC, metrics; queue producer only
 │   └── workers/     # pg-boss consumer: jobs, cron, queue maintenance
 ├── packages/
@@ -484,13 +483,12 @@ masdan/
 
 ## Available Scripts
 
-- `pnpm run dev`: Start the infrastructure containers, then the web application, the server and the workers in an mprocs pane each. The native app and the container logs are available as panes but do not start on their own
+- `pnpm run dev`: Start the infrastructure containers, then the web application, the server and the workers in an mprocs pane each. The container logs are available as a pane but do not start on their own
 - `pnpm run build`: Build all applications
 - `pnpm run dev:web`: Start only the web application
 - `pnpm run dev:server`: Start only the server
 - `pnpm run dev:workers`: Start only the background job workers
 - `pnpm run check-types`: Check TypeScript types across all apps
-- `pnpm run dev:native`: Start the React Native/Expo development server
 - `pnpm run db:push`: Push schema changes to database (local iteration; use migrations for anything committed)
 - `pnpm run db:generate --name <snake_case_description>`: Generate a new migration from schema changes; always name it for what it does
 - `pnpm run db:migrate`: Run database migrations

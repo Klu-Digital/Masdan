@@ -1,7 +1,6 @@
 # prod
 dist/
 /build
-/out/
 
 # dev
 .yarn/
@@ -15,12 +14,6 @@ dist/
 .idea/workspace.xml
 .idea/usage.statistics.xml
 .idea/shelf
-.wrangler
-.alchemy
-/.next/
-.vercel
-prisma/generated/
-
 
 # deps
 node_modules/
@@ -32,7 +25,6 @@ node_modules/
 .env*
 .env.production
 !.env.example
-.dev.vars
 
 # logs
 logs/
@@ -54,4 +46,3 @@ lerna-debug.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts

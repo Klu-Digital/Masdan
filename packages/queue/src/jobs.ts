@@ -76,19 +76,6 @@ export const jobs = defineJobs({
       }),
     }),
   },
-  /** Reference job. Delete once real jobs exist — nothing depends on it. */
-  "example.echo": {
-    queue: { retryBackoff: true, retryDelay: 1, retryLimit: 3 },
-    schema: z.object({ message: z.string().min(1) }),
-  },
-  /** Reference schedule. Proves cron registration and survives an idle system. */
-  "example.heartbeat": {
-    cron: { data: { source: "cron" }, expression: "*/5 * * * *" },
-    // `singleton` so a slow tick can't stack up behind the next. No retries: the
-    // next tick replaces a missed heartbeat, and a retry would log stale news.
-    queue: { policy: "singleton", retryLimit: 0 },
-    schema: z.object({ source: z.enum(["cron", "manual"]) }),
-  },
   /**
    * Fetches ECB rates via Frankfurter after the weekday publication window
    * (16:00 UTC). Retries and duplicate ticks are safe: rows upsert on

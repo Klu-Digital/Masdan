@@ -13,7 +13,6 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@better-auth/expo": "catalog:",
     "@masdan/db": "workspace:*",
     "@masdan/env": "workspace:*",
     "@masdan/observability": "workspace:*",

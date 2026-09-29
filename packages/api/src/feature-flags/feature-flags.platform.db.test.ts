@@ -50,25 +50,25 @@ describe("admin.featureFlags.list", () => {
     const before = await call(featureFlagsPlatformRouter.list, undefined, {
       context,
     });
-    const example = before.find((flag) => flag.name === "FF__EXAMPLE");
+    const example = before.find((flag) => flag.name === "FF__ASK_MASDAN");
 
     expect(example).toMatchObject({
-      defaultEnabled: featureFlagRegistry.FF__EXAMPLE.defaultEnabled,
-      enabled: featureFlagRegistry.FF__EXAMPLE.defaultEnabled,
+      defaultEnabled: featureFlagRegistry.FF__ASK_MASDAN.defaultEnabled,
+      enabled: featureFlagRegistry.FF__ASK_MASDAN.defaultEnabled,
       overridden: false,
       updatedAt: null,
     });
 
     await call(
       featureFlagsPlatformRouter.set,
-      { enabled: true, name: "FF__EXAMPLE" },
+      { enabled: true, name: "FF__ASK_MASDAN" },
       { context }
     );
 
     const after = await call(featureFlagsPlatformRouter.list, undefined, {
       context,
     });
-    const overridden = after.find((flag) => flag.name === "FF__EXAMPLE");
+    const overridden = after.find((flag) => flag.name === "FF__ASK_MASDAN");
 
     expect(overridden?.enabled).toBe(true);
     expect(overridden?.overridden).toBe(true);
@@ -83,12 +83,12 @@ describe("admin.featureFlags.set", () => {
 
     await call(
       featureFlagsPlatformRouter.set,
-      { enabled: true, name: "FF__EXAMPLE" },
+      { enabled: true, name: "FF__ASK_MASDAN" },
       { context }
     );
     await call(
       featureFlagsPlatformRouter.set,
-      { enabled: false, name: "FF__EXAMPLE" },
+      { enabled: false, name: "FF__ASK_MASDAN" },
       { context }
     );
 
@@ -102,16 +102,16 @@ describe("admin.featureFlags.set", () => {
     // cache was warm and false, and nothing here drops it by hand.
     const context = await adminContext();
     const warm = await getFeatureFlags(getTestDb());
-    expect(warm.FF__EXAMPLE).toBe(false);
+    expect(warm.FF__ASK_MASDAN).toBe(false);
 
     await call(
       featureFlagsPlatformRouter.set,
-      { enabled: true, name: "FF__EXAMPLE" },
+      { enabled: true, name: "FF__ASK_MASDAN" },
       { context }
     );
 
     const afterSet = await getFeatureFlags(getTestDb());
-    expect(afterSet.FF__EXAMPLE).toBe(true);
+    expect(afterSet.FF__ASK_MASDAN).toBe(true);
   });
 
   it("rejects a flag name that is not in the registry", async () => {
@@ -137,7 +137,7 @@ describe("admin.featureFlags.set", () => {
       await codeOf(
         call(
           featureFlagsPlatformRouter.set,
-          { enabled: true, name: "FF__EXAMPLE" },
+          { enabled: true, name: "FF__ASK_MASDAN" },
           { context }
         )
       )
@@ -151,22 +151,24 @@ describe("admin.featureFlags.reset", () => {
     const context = await adminContext();
     await call(
       featureFlagsPlatformRouter.set,
-      { enabled: true, name: "FF__EXAMPLE" },
+      { enabled: true, name: "FF__ASK_MASDAN" },
       { context }
     );
 
     const result = await call(
       featureFlagsPlatformRouter.reset,
-      { name: "FF__EXAMPLE" },
+      { name: "FF__ASK_MASDAN" },
       { context }
     );
 
-    expect(result.enabled).toBe(featureFlagRegistry.FF__EXAMPLE.defaultEnabled);
+    expect(result.enabled).toBe(
+      featureFlagRegistry.FF__ASK_MASDAN.defaultEnabled
+    );
     expect(await getTestDb().select().from(featureFlag)).toHaveLength(0);
 
     const afterReset = await getFeatureFlags(getTestDb());
-    expect(afterReset.FF__EXAMPLE).toBe(
-      featureFlagRegistry.FF__EXAMPLE.defaultEnabled
+    expect(afterReset.FF__ASK_MASDAN).toBe(
+      featureFlagRegistry.FF__ASK_MASDAN.defaultEnabled
     );
   });
 });

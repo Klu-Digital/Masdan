@@ -59,12 +59,15 @@ describe("admin.jobs.enqueue", () => {
 
     const result = await call(
       appRouter.admin.jobs.enqueue,
-      { name: "example.echo", payload: { message: "from admin panel" } },
+      {
+        name: "recurring.generate",
+        payload: { scheduleId: crypto.randomUUID() },
+      },
       { context }
     );
 
     expect(result.jobId).toEqual(expect.any(String));
-    const queued = await getQueuedJobs("example.echo");
+    const queued = await getQueuedJobs("recurring.generate");
     expect(queued.some((job) => job.id === result.jobId)).toBe(true);
   });
 
@@ -74,7 +77,7 @@ describe("admin.jobs.enqueue", () => {
     await expect(
       call(
         appRouter.admin.jobs.enqueue,
-        { name: "example.echo", payload: { message: 42 } },
+        { name: "recurring.generate", payload: { scheduleId: 42 } },
         { context }
       )
     ).rejects.toThrow();
@@ -87,7 +90,10 @@ describe("admin.jobs.counts", () => {
 
     await call(
       appRouter.admin.jobs.enqueue,
-      { name: "example.echo", payload: { message: "counted" } },
+      {
+        name: "recurring.generate",
+        payload: { scheduleId: crypto.randomUUID() },
+      },
       { context }
     );
 
@@ -95,11 +101,13 @@ describe("admin.jobs.counts", () => {
       context,
     });
 
-    const echoCounts = counts.filter((row) => row.name === "example.echo");
-    expect(echoCounts.length).toBeGreaterThan(0);
-    expect(echoCounts.reduce((sum, row) => sum + row.count, 0)).toBeGreaterThan(
-      0
+    const generateCounts = counts.filter(
+      (row) => row.name === "recurring.generate"
     );
+    expect(generateCounts.length).toBeGreaterThan(0);
+    expect(
+      generateCounts.reduce((sum, row) => sum + row.count, 0)
+    ).toBeGreaterThan(0);
   });
 });
 
@@ -109,15 +117,17 @@ describe("admin.jobs.schedules", () => {
     const { queue } = await import("@masdan/queue");
     const boss = queue.raw();
 
-    // `example.echo` is a real queue but declares no `cron`, so scheduling it
+    // `recurring.generate` is a real queue but declares no `cron`, so scheduling it
     // by hand reproduces exactly the drift `schedules` exists to surface.
-    await boss.schedule("example.echo", "0 0 * * *", { message: "manual" });
+    await boss.schedule("recurring.generate", "0 0 * * *", {
+      scheduleId: crypto.randomUUID(),
+    });
 
     const schedules = await call(appRouter.admin.jobs.schedules, undefined, {
       context,
     });
 
-    const drifted = schedules.find((s) => s.name === "example.echo");
+    const drifted = schedules.find((s) => s.name === "recurring.generate");
     expect(drifted?.inRegistry).toBe(false);
   });
 });

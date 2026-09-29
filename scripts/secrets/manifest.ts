@@ -4,7 +4,6 @@ export type ConfigTarget =
   | "local-server"
   | "local-workers"
   | "local-web"
-  | "local-native"
   | "github-repository"
   | "github-staging"
   | "github-production"
@@ -212,13 +211,6 @@ export const configManifest = [
     name: "DOKPLOY_WORKERS_APPLICATION_ID",
     required: true,
     targets: ["github-staging", "github-production"],
-  },
-  {
-    description: "API origin used by the native app",
-    kind: "config",
-    name: "EXPO_PUBLIC_SERVER_URL",
-    required: true,
-    targets: ["local-native"],
   },
   {
     description: "Runtime environment name",

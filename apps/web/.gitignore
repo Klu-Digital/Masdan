@@ -12,21 +12,9 @@
 /coverage
 
 # Build outputs
-/.next/
-/out/
 /build/
 /dist/
-.vinxi
-.output
-.react-router/
 .tanstack/
-.nitro/
-
-# Deployment
-.vercel
-.netlify
-.wrangler
-.alchemy
 
 # Environment & local files
 .env*
@@ -44,17 +32,9 @@ yarn-error.log*
 
 # TypeScript
 *.tsbuildinfo
-next-env.d.ts
 
 # IDE
 .vscode/*
 !.vscode/extensions.json
 .idea
 
-# Other
-dev-dist
-
-.wrangler
-.dev.vars*
-
-.open-next

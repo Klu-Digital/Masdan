@@ -1,4 +1,3 @@
-import { expo } from "@better-auth/expo";
 import { createDb } from "@masdan/db";
 import { DEFAULT_CATEGORIES } from "@masdan/db/reference/categories";
 import * as schema from "@masdan/db/schema/index";
@@ -55,18 +54,6 @@ export const defaultCookieAttributes = (
     sameSite: deployed && crossSite ? ("none" as const) : ("lax" as const),
     secure: deployed,
   };
-};
-
-/**
- * Origins allowed to call auth with credentials. The Expo dev client and Metro
- * are development-only: `exp://` trusted in production lets any Expo Go project
- * post to sign-in with a user's cookies.
- */
-export const trustedOrigins = (nodeEnv: string, webOrigin: string) => {
-  const deployed = nodeEnv === "production" || nodeEnv === "staging";
-  return deployed
-    ? [webOrigin, "masdan://"]
-    : [webOrigin, "masdan://", "exp://", "http://localhost:8081"];
 };
 
 /**
@@ -219,7 +206,6 @@ export const createAuth = () => {
       }),
     },
     plugins: [
-      expo(),
       admin(),
       organization({
         ac,
@@ -253,7 +239,7 @@ export const createAuth = () => {
     },
     secret: env.BETTER_AUTH_SECRET,
     session: SESSION,
-    trustedOrigins: trustedOrigins(env.NODE_ENV, env.CORS_ORIGIN),
+    trustedOrigins: [env.CORS_ORIGIN],
   });
 
   const personalOrgSlug = async (user: {

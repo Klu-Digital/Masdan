@@ -48,7 +48,7 @@ const wrapper = () => {
 };
 
 const renderFlag = () =>
-  renderHook(() => useFeatureFlag("FF__EXAMPLE"), { wrapper: wrapper() });
+  renderHook(() => useFeatureFlag("FF__ASK_MASDAN"), { wrapper: wrapper() });
 
 beforeEach(() => {
   response.current = () => Promise.resolve({});
@@ -66,7 +66,7 @@ describe("useFeatureFlag", () => {
   });
 
   it("returns the server's value once the flags resolve", async () => {
-    response.current = () => Promise.resolve({ FF__EXAMPLE: true });
+    response.current = () => Promise.resolve({ FF__ASK_MASDAN: true });
 
     const { result } = renderFlag();
 

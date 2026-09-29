@@ -122,7 +122,7 @@ const findAttachment = async (
  */
 export const attachmentsRouter = {
   attach: orgMutationProcedure
-    .use(requirePermission({ file: ["create"], transaction: ["update"] }))
+    .use(requirePermission({ attachment: ["create"], transaction: ["update"] }))
     .input(attachmentInput)
     .handler(async ({ context, input }) => {
       const transaction = await householdTransaction(
@@ -196,7 +196,7 @@ export const attachmentsRouter = {
     }),
 
   downloadUrl: orgProcedure
-    .use(requirePermission({ file: ["read"], transaction: ["read"] }))
+    .use(requirePermission({ attachment: ["read"], transaction: ["read"] }))
     .input(attachmentInput)
     .handler(async ({ context, input }) =>
       presignFileDownload(
@@ -205,7 +205,7 @@ export const attachmentsRouter = {
     ),
 
   list: orgProcedure
-    .use(requirePermission({ file: ["read"], transaction: ["read"] }))
+    .use(requirePermission({ attachment: ["read"], transaction: ["read"] }))
     .input(transactionIdInput)
     .handler(async ({ context, input }) => {
       const transaction = await householdTransaction(
@@ -228,7 +228,7 @@ export const attachmentsRouter = {
     }),
 
   remove: orgMutationProcedure
-    .use(requirePermission({ file: ["delete"], transaction: ["update"] }))
+    .use(requirePermission({ attachment: ["delete"], transaction: ["update"] }))
     .input(attachmentInput)
     .handler(async ({ context, input }) => {
       const transaction = await householdTransaction(

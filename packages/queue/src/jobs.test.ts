@@ -23,7 +23,7 @@ describe("job registry", () => {
 
   it("names every queue with a dot-separated prefix", () => {
     // Queue names end up in metric labels and log lines, where the prefix is
-    // what makes `example.*` filterable.
+    // what makes `recurring.*` filterable.
     for (const name of jobNames) {
       expect(name).toMatch(/^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$/u);
     }

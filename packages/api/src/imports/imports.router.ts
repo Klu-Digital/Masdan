@@ -123,7 +123,7 @@ export const importsRouter = {
     }),
 
   create: orgMutationProcedure
-    .use(requirePermission({ file: ["create"], transaction: ["create"] }))
+    .use(requirePermission({ attachment: ["create"], transaction: ["create"] }))
     .input(importConfigValues.extend({ fileId: z.uuid() }))
     .handler(async ({ context, input }) => {
       const [source] = await context.db

@@ -9,8 +9,7 @@
     "./server": "./src/server.ts",
     "./shared-server": "./src/shared-server.ts",
     "./workers": "./src/workers.ts",
-    "./web": "./src/web.ts",
-    "./native": "./src/native.ts"
+    "./web": "./src/web.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"

@@ -35,7 +35,7 @@ const CANARY = "THIS_MUST_NEVER_APPEAR";
 
 const makeFixture = (): string => {
   const root = mkdtempSync(path.join(os.tmpdir(), "masdan-secrets-"));
-  for (const app of ["native", "server", "web", "workers"]) {
+  for (const app of ["server", "web", "workers"]) {
     const directory = path.join(root, "apps", app);
     mkdirSync(directory, { recursive: true });
     cpSync(
@@ -169,7 +169,6 @@ describe("manifest", () => {
       "server.ts",
       "workers.ts",
       "web.ts",
-      "native.ts",
     ];
     const declared = new Set<string>();
     for (const file of schemaFiles) {
@@ -246,13 +245,12 @@ describe("manifest", () => {
     expect(project?.targets).not.toContain("github-repository");
   });
 
-  it("does not expose secrets to browser or native builds", () => {
+  it("does not expose secrets to browser builds", () => {
     for (const entry of configManifest) {
       if (entry.kind === "config") {
         continue;
       }
       expect(entry.targets, entry.name).not.toContain("local-web");
-      expect(entry.targets, entry.name).not.toContain("local-native");
     }
   });
 });

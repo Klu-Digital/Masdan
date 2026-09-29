@@ -74,13 +74,13 @@ describe("featureFlags.all", () => {
 
   it("reflects a row that overrides the default", async () => {
     const { headers } = await signUpTestUser();
-    await setFlagRow("FF__EXAMPLE", true);
+    await setFlagRow("FF__ASK_MASDAN", true);
 
     const result = await call(featureFlagsRouter.all, undefined, {
       context: await contextFor(headers),
     });
 
-    expect(result.FF__EXAMPLE).toBe(true);
+    expect(result.FF__ASK_MASDAN).toBe(true);
   });
 
   it("ignores rows for flags no longer declared in the registry", async () => {
@@ -103,21 +103,21 @@ describe("featureFlags.all", () => {
     const context = await contextFor(headers);
 
     await call(featureFlagsRouter.all, undefined, { context });
-    await setFlagRow("FF__EXAMPLE", true);
+    await setFlagRow("FF__ASK_MASDAN", true);
 
     const stale = await call(featureFlagsRouter.all, undefined, { context });
-    expect(stale.FF__EXAMPLE).toBe(false);
+    expect(stale.FF__ASK_MASDAN).toBe(false);
 
     invalidateFeatureFlags();
 
     const fresh = await call(featureFlagsRouter.all, undefined, { context });
-    expect(fresh.FF__EXAMPLE).toBe(true);
+    expect(fresh.FF__ASK_MASDAN).toBe(true);
   });
 });
 
 describe("requireFlag", () => {
   const gated = publicProcedure
-    .use(requireFlag("FF__EXAMPLE"))
+    .use(requireFlag("FF__ASK_MASDAN"))
     .handler(() => "reached");
 
   it("throws NOT_FOUND when the flag is off", async () => {
@@ -133,7 +133,7 @@ describe("requireFlag", () => {
   });
 
   it("runs the handler when the flag is on", async () => {
-    await setFlagRow("FF__EXAMPLE", true);
+    await setFlagRow("FF__ASK_MASDAN", true);
 
     await expect(
       call(gated, undefined, { context: await contextFor() })
@@ -144,9 +144,9 @@ describe("requireFlag", () => {
     // Auth must fail before the flag check, or an anonymous probe can tell a
     // flagged-off procedure from a flagged-on one.
     const authed = protectedProcedure
-      .use(requireFlag("FF__EXAMPLE"))
+      .use(requireFlag("FF__ASK_MASDAN"))
       .handler(() => "reached");
-    await setFlagRow("FF__EXAMPLE", true);
+    await setFlagRow("FF__ASK_MASDAN", true);
 
     const error = await caught(
       call(authed, undefined, { context: await contextFor() })

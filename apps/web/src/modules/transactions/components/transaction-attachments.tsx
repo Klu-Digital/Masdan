@@ -158,10 +158,10 @@ export const TransactionAttachments = ({
   const [removing, setRemoving] = useState<TransactionAttachment | null>(null);
 
   const canAttach =
-    editable && can({ file: ["create"], transaction: ["update"] });
+    editable && can({ attachment: ["create"], transaction: ["update"] });
   const canDelete =
-    editable && can({ file: ["delete"], transaction: ["update"] });
-  const canDeleteAny = can({ file: ["delete:any"] });
+    editable && can({ attachment: ["delete"], transaction: ["update"] });
+  const canDeleteAny = can({ attachment: ["delete:any"] });
   const canRemove = (attachment: TransactionAttachment) =>
     canDelete && (attachment.userId === session.user.id || canDeleteAny);
 

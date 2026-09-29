@@ -53,8 +53,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-workspace
       # Deliberately separate from `pnpm check` — ultracite runs with
-      # typeAware/typeCheck off, so nothing else in CI reads a type error. This
-      # covers apps/native too, which has no other job.
+      # typeAware/typeCheck off, so nothing else in CI reads a type error.
       - run: pnpm check-types
 
   deps:

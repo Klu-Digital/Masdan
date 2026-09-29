@@ -66,7 +66,7 @@ In `apps/workers/src/register.ts`:
 
 ```ts
 const handlers: Handlers = {
-  "example.echo": handleEcho,
+  "chat.process": handleChatProcess,
   "file.process": handleFileProcess, // ← new
 };
 ```
@@ -206,8 +206,6 @@ pnpm dev:workers     # consumer
 
 `apps/workers` needs its own `.env` — run `pnpm secrets:setup` or copy [`apps/workers/.env.example`](../../apps/workers/.env.example). Workers use the shared backend schema and do not need Better Auth or CORS configuration.
 
-To exercise the round trip, call `jobs.enqueueExample` and watch the worker log the echo within about a second. `packages/api/src/routers/jobs.ts` and the `example.*` registry entries exist only for this — delete them once real jobs replace them.
-
 ---
 
 ## Testing
@@ -228,12 +226,16 @@ afterAll(stopTestQueue);
 it("discards the job when the transaction rolls back", async () => {
   await expect(
     getTestDb().transaction(async (tx) => {
-      await queue.enqueue("example.echo", { message: "nope" }, { tx });
+      await queue.enqueue(
+        "recurring.generate",
+        { scheduleId: crypto.randomUUID() },
+        { tx }
+      );
       throw new Error("boom");
     })
   ).rejects.toThrow("boom");
 
-  expect(await getQueuedJobs("example.echo")).toHaveLength(0);
+  expect(await getQueuedJobs("recurring.generate")).toHaveLength(0);
 });
 ```
 

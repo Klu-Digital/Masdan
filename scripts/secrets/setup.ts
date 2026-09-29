@@ -14,7 +14,6 @@ import {
 export { generateSecret } from "./generate";
 
 export const LOCAL_FILES = {
-  "local-native": "apps/native/.env",
   "local-server": "apps/server/.env",
   "local-web": "apps/web/.env",
   "local-workers": "apps/workers/.env",

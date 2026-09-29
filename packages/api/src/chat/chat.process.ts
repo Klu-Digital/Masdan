@@ -305,7 +305,7 @@ const addReceipt = async (
   }
   if (
     !(await householdAccess(db, link.userId, link.organizationId, {
-      file: ["create"],
+      attachment: ["create"],
       transaction: ["create"],
     }))
   ) {

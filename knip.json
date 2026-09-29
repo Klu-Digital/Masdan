@@ -7,9 +7,6 @@
       "entry": ["scripts/**/*.ts"],
       "ignoreDependencies": ["lefthook", "rolldown"]
     },
-    "apps/native": {
-      "ignore": ["**"]
-    },
     "apps/web": {
       "entry": ["src/**/*.test.{ts,tsx}"],
       "ignoreDependencies": ["tailwindcss"]

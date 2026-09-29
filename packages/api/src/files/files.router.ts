@@ -35,7 +35,7 @@ export const filesRouter = {
    * then throws, which a transaction would roll straight back.
    */
   confirmUpload: orgProcedure
-    .use(requirePermission({ file: ["create"] }))
+    .use(requirePermission({ attachment: ["create"] }))
     .input(fileIdInput)
     .handler(async ({ context, input }) => {
       const [row] = await context.db
@@ -86,7 +86,7 @@ export const filesRouter = {
    * `pending` row.
    */
   createUpload: orgMutationProcedure
-    .use(requirePermission({ file: ["create"] }))
+    .use(requirePermission({ attachment: ["create"] }))
     .input(createUploadInput)
     .handler(async ({ context, input }) => {
       // Sanitized, not raw: `name` is echoed back in the download's
@@ -129,14 +129,14 @@ export const filesRouter = {
     }),
 
   deleteFile: orgMutationProcedure
-    .use(requirePermission({ file: ["delete"] }))
+    .use(requirePermission({ attachment: ["delete"] }))
     .input(fileIdInput)
     .handler(({ context, input }) =>
       deleteHouseholdFile(context, input.fileId)
     ),
 
   getDownloadUrl: orgProcedure
-    .use(requirePermission({ file: ["read"] }))
+    .use(requirePermission({ attachment: ["read"] }))
     .input(fileIdInput)
     .handler(async ({ context, input }) => {
       const [row] = await context.db
@@ -158,7 +158,7 @@ export const filesRouter = {
     }),
 
   listFiles: orgProcedure
-    .use(requirePermission({ file: ["read"] }))
+    .use(requirePermission({ attachment: ["read"] }))
     .input(
       z
         .object({ limit: z.number().int().min(1).max(100).default(50) })

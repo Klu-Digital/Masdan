@@ -55,7 +55,7 @@ export const deleteHouseholdFile = async (
   // The route check established "may delete files at all"; ownership decides
   // whose. Roles can't express that, hence `delete:any` and a check on the row.
   if (target.userId !== context.session.user.id) {
-    assertPermission(context, { file: ["delete:any"] });
+    assertPermission(context, { attachment: ["delete:any"] });
   }
 
   const [row] = await context.db

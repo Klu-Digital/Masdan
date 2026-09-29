@@ -4,8 +4,7 @@ packages:
 overrides:
   vite: npm:@voidzero-dev/vite-plus-core@0.3.0
   vitest: 4.1.11
-# Phantom imports must fail: nothing is hoisted into a package's reach. Private
-# hoisting stays on because expo/react-native type resolution relies on it.
+# Phantom imports must fail: nothing is hoisted into a package's reach.
 publicHoistPattern: []
 strictPeerDependencies: true
 # `vite` is aliased to vite-plus-core (0.3.0), which no upstream peer range accepts.
@@ -38,7 +37,6 @@ catalog:
   "@types/react-dom": ^19.2.3
   tailwindcss: ^4.3.3
   tailwind-merge: ^3.6.0
-  "@better-auth/expo": 1.7.1
   "drizzle-orm": 1.0.0-rc.4
   "drizzle-kit": 1.0.0-rc.4
   "@aws-sdk/client-s3": ^3.1125.0

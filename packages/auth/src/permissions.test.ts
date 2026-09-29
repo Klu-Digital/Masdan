@@ -187,21 +187,27 @@ describe("roles", () => {
 
   it("grades file access across the ladder", () => {
     expect(
-      hasPermission({ permissions: { file: ["read"] }, role: "viewer" })
+      hasPermission({ permissions: { attachment: ["read"] }, role: "viewer" })
     ).toBe(true);
     expect(
-      hasPermission({ permissions: { file: ["create"] }, role: "viewer" })
+      hasPermission({ permissions: { attachment: ["create"] }, role: "viewer" })
     ).toBe(false);
 
     expect(
-      hasPermission({ permissions: { file: ["delete"] }, role: "member" })
+      hasPermission({ permissions: { attachment: ["delete"] }, role: "member" })
     ).toBe(true);
     // A member may delete their own files; reaching someone else's needs `:any`.
     expect(
-      hasPermission({ permissions: { file: ["delete:any"] }, role: "member" })
+      hasPermission({
+        permissions: { attachment: ["delete:any"] },
+        role: "member",
+      })
     ).toBe(false);
     expect(
-      hasPermission({ permissions: { file: ["delete:any"] }, role: "admin" })
+      hasPermission({
+        permissions: { attachment: ["delete:any"] },
+        role: "admin",
+      })
     ).toBe(true);
   });
 });
@@ -210,13 +216,13 @@ describe("hasPermission", () => {
   it("ANDs every action listed for a resource", () => {
     expect(
       hasPermission({
-        permissions: { file: ["read", "create"] },
+        permissions: { attachment: ["read", "create"] },
         role: "member",
       })
     ).toBe(true);
     expect(
       hasPermission({
-        permissions: { file: ["read", "create"] },
+        permissions: { attachment: ["read", "create"] },
         role: "viewer",
       })
     ).toBe(false);
@@ -226,7 +232,7 @@ describe("hasPermission", () => {
     // better-auth stores multiple roles this way; `parseRoles` joins them.
     expect(
       hasPermission({
-        permissions: { file: ["delete:any"] },
+        permissions: { attachment: ["delete:any"] },
         role: "viewer,admin",
       })
     ).toBe(true);
@@ -235,11 +241,14 @@ describe("hasPermission", () => {
   it("denies an unknown role rather than throwing", () => {
     expect(isAppRole("auditor")).toBe(false);
     expect(
-      hasPermission({ permissions: { file: ["read"] }, role: "auditor" })
+      hasPermission({ permissions: { attachment: ["read"] }, role: "auditor" })
     ).toBe(false);
     // ...including when it sits alongside a real one.
     expect(
-      hasPermission({ permissions: { file: ["read"] }, role: "auditor,viewer" })
+      hasPermission({
+        permissions: { attachment: ["read"] },
+        role: "auditor,viewer",
+      })
     ).toBe(true);
   });
 
@@ -252,9 +261,9 @@ describe("hasPermission", () => {
         hasPermission({ permissions: {}, role })
       )
     ).toBe(false);
-    expect(hasPermission({ permissions: { file: [] }, role: "owner" })).toBe(
-      false
-    );
+    expect(
+      hasPermission({ permissions: { attachment: [] }, role: "owner" })
+    ).toBe(false);
   });
 
   it("denies a resource the role has no statement for at all", () => {

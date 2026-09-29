@@ -16,8 +16,6 @@ import { goalsRouter } from "../goals/goals.router";
 import { householdsRouter } from "../households/households.router";
 import { importsRouter } from "../imports/imports.router";
 import { invitationsRouter } from "../invitations/invitations.router";
-import { jobsRouter } from "../jobs/jobs.router";
-import { protectedProcedure, publicProcedure } from "../procedures";
 import { recurringRouter } from "../recurring/recurring.router";
 import { remindersRouter } from "../reminders/reminders.router";
 import { reportsRouter } from "../reports/reports.router";
@@ -50,15 +48,9 @@ export const appRouter = {
   featureFlags: featureFlagsRouter,
   files: filesRouter,
   goals: goalsRouter,
-  healthCheck: publicProcedure.handler(() => "OK"),
   households: householdsRouter,
   imports: importsRouter,
   invitations: invitationsRouter,
-  jobs: jobsRouter,
-  privateData: protectedProcedure.handler(({ context }) => ({
-    message: "This is private",
-    user: context.session?.user,
-  })),
   recurring: recurringRouter,
   reminders: remindersRouter,
   reports: reportsRouter,

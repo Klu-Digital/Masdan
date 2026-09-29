@@ -43,19 +43,9 @@ describe("GET /", () => {
   });
 });
 
-describe("POST /rpc/healthCheck", () => {
-  it("returns OK over real HTTP through the RPC handler", async () => {
-    const client = clientWithHeaders();
-
-    const result = await client.healthCheck();
-
-    expect(result).toBe("OK");
-  });
-});
-
 describe("POST /rpc body limit", () => {
   it("rejects a body over 1MiB with 413 before the handler runs", async () => {
-    const response = await app.request("/rpc/healthCheck", {
+    const response = await app.request("/rpc/currencies/list", {
       body: JSON.stringify({ json: "x".repeat(1024 * 1024) }),
       headers: { "Content-Type": "application/json" },
       method: "POST",
@@ -83,21 +73,21 @@ describe("/api-reference", () => {
   });
 });
 
-describe("POST /rpc/privateData", () => {
+describe("POST /rpc/currencies/list", () => {
   it("returns 401 without auth", async () => {
     const client = clientWithHeaders();
 
-    await expect(client.privateData()).rejects.toMatchObject({
+    await expect(client.currencies.list()).rejects.toMatchObject({
       code: "UNAUTHORIZED",
     });
   });
 
-  it("returns the signed-up user's email when authenticated", async () => {
-    const { user, headers } = await signUpTestUser();
+  it("returns the reference currencies over real HTTP when authenticated", async () => {
+    const { headers } = await signUpTestUser();
     const client = clientWithHeaders(headers);
 
-    const result = await client.privateData();
+    const result = await client.currencies.list();
 
-    expect(result.user?.email).toBe(user.email);
+    expect(result.length).toBeGreaterThan(0);
   });
 });
