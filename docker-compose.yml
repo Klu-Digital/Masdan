@@ -96,7 +96,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:18
+    image: postgres:18@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722
     container_name: masdan-postgres
     environment:
       POSTGRES_DB: masdan
@@ -114,7 +114,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:8-alpine
+    image: redis:8-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0
     container_name: masdan-redis
     init: true
     # `--save 60 1` is one snapshot a minute if at least one key changed. Nothing
@@ -135,7 +135,7 @@ services:
     restart: unless-stopped
 
   minio:
-    image: quay.io/minio/minio:latest
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     container_name: masdan-minio
     init: true
     command: server /data --console-address ":9001"
@@ -160,7 +160,7 @@ services:
 
   # One-shot: creates the bucket. CORS is configured on the minio service above.
   minio-init:
-    image: quay.io/minio/mc:latest
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
     init: true
     depends_on:
       minio:

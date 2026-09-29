@@ -14,6 +14,7 @@
   "dependencies": {
     "@hono/node-server": "^2.0.12",
     "@hono/prometheus": "catalog:",
+    "drizzle-orm": "catalog:",
     "hono": "catalog:",
     "prom-client": "catalog:",
     "zod": "catalog:"
@@ -28,7 +29,6 @@
     "@masdan/storage": "workspace:*",
     "@masdan/testing": "workspace:*",
     "@types/node": "catalog:",
-    "drizzle-orm": "catalog:",
     "tsdown": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",

@@ -255,7 +255,10 @@ export const createAuth = () => {
         return candidate;
       } catch (error) {
         // Only better-auth's own "slug taken" answer means try the next one.
-        if (!(error instanceof APIError)) {
+        if (
+          !(error instanceof APIError) ||
+          error.body?.code !== "ORGANIZATION_SLUG_ALREADY_TAKEN"
+        ) {
           throw error;
         }
       }

@@ -5,7 +5,7 @@
 # readable tag alongside the digest; refresh both together with
 # `docker buildx imagetools inspect <tag>`. The Node major must stay in step with
 # .github/actions/setup-workspace/action.yml.
-FROM node:24@sha256:6dac556d980b7f0e5498d08f08cee0ca67798b4ad6c23964a9214920e67758d0 AS builder
+FROM node:24-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553 AS builder
 WORKDIR /app
 # The pnpm version comes from `packageManager`, so package.json stays the one
 # place it is bumped — the same one CI's pnpm/action-setup reads.

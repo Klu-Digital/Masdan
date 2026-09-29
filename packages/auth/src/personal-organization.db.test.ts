@@ -1,7 +1,9 @@
+import { auth } from "@masdan/auth";
 import { member, organization } from "@masdan/db/schema/auth";
 import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
+import { APIError } from "better-auth/api";
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 /** Fetches the org created by the `user.create.after` databaseHook for `userId`. */
 const personalOrgFor = async (userId: string) => {
@@ -44,6 +46,25 @@ describe("personal household creation on sign-up", () => {
     expect(firstOrg?.slug).toBe("grace-hopper");
     expect(secondOrg?.slug).toBe("grace-hopper-2");
     expect(secondOrg?.slug).not.toBe(firstOrg?.slug);
+  });
+
+  it("does not retry a failed slug check as if the slug were taken", async () => {
+    const checkSlug = vi
+      .spyOn(auth.api, "checkOrganizationSlug")
+      .mockRejectedValueOnce(
+        new APIError("BAD_REQUEST", { code: "INVALID_SLUG" })
+      );
+
+    try {
+      await expect(
+        signUpTestUser({ name: "Failure Case" })
+      ).rejects.toMatchObject({
+        body: { code: "INVALID_SLUG" },
+      });
+      expect(checkSlug).toHaveBeenCalledTimes(1);
+    } finally {
+      checkSlug.mockRestore();
+    }
   });
 
   it("sets the new session's activeOrganizationId to the personal household", async () => {
