@@ -48,7 +48,7 @@ import { useAppActions } from "@/components/app-actions";
 import { NewMenu } from "@/components/shell/new-menu";
 import type { Household } from "@/hooks/use-household";
 import { householdToday } from "@/lib/household-date";
-import { householdOrpc } from "@/utils/orpc";
+import { ledgerQueries } from "@/modules/transactions/queries";
 
 import type { TransactionSearch } from "../search";
 import type { Transaction } from "../types";
@@ -86,23 +86,10 @@ const TotalsStrip = ({
   currency: string;
   search: TransactionSearch;
 }) => {
-  const input = {
-    accountIds: search.accountIds,
-    categoryIds: search.categoryIds,
-    dateFrom: search.dateFrom,
-    dateTo: search.dateTo,
-    includeArchived: search.includeArchived,
-    paidStatuses: search.paidStatuses,
-    search: search.search,
-    tagIds: search.tagIds,
-    types: search.types,
-  };
-  const totals = useQuery(
-    householdOrpc(activeOrganizationId).transactions.totals.queryOptions({
-      input,
-      placeholderData: keepPreviousData,
-    })
-  );
+  const totals = useQuery({
+    ...ledgerQueries(activeOrganizationId, search).totals,
+    placeholderData: keepPreviousData,
+  });
 
   if (totals.isPending) {
     return <Skeleton className="h-19 w-full" radius="2xl" />;
@@ -184,23 +171,15 @@ export const TransactionsPage = ({
   const navigate = useNavigate();
   const { compose } = useAppActions();
   const ledgerActions = useLedgerActions(activeOrganizationId);
-  const orpc = householdOrpc(activeOrganizationId);
-  const accounts = useQuery(
-    orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
-  );
-  const categories = useQuery(
-    orpc.categories.list.queryOptions({ input: { includeArchived: true } })
-  );
-  const tags = useQuery(
-    orpc.tags.list.queryOptions({ input: { includeArchived: true } })
-  );
-  const transactions = useQuery(
-    orpc.transactions.list.queryOptions({
-      input: search,
-      // Filter changes keep the current rows on screen until the next page lands.
-      placeholderData: keepPreviousData,
-    })
-  );
+  const queries = ledgerQueries(activeOrganizationId, search);
+  const accounts = useQuery(queries.accounts);
+  const categories = useQuery(queries.categories);
+  const tags = useQuery(queries.tags);
+  const transactions = useQuery({
+    ...queries.transactions,
+    // Filter changes keep the current rows on screen until the next page lands.
+    placeholderData: keepPreviousData,
+  });
   const today = householdToday(timezone);
   const { clearSelection, selectedIds, toggleAll, toggleSelection } =
     useLedgerSelection(search);

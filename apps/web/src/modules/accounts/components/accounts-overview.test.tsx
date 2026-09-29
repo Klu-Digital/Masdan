@@ -7,7 +7,7 @@ import { renderWithProviders } from "@/test/render";
 import { createQueryClient } from "@/utils/orpc";
 
 const accountsList = vi.hoisted(() => vi.fn());
-const listStatements = vi.hoisted(() => vi.fn());
+const statementsSummary = vi.hoisted(() => vi.fn());
 const netWorth = vi.hoisted(() => vi.fn());
 const consolidatedNetWorth = vi.hoisted(() => vi.fn());
 const currenciesList = vi.hoisted(() => vi.fn());
@@ -17,7 +17,7 @@ vi.mock("@/utils/client", async () => {
   const { mockClient } = await import("@/test/client");
   return {
     client: mockClient({
-      accounts: { list: accountsList, listStatements },
+      accounts: { list: accountsList, statementsSummary },
       currencies: { list: currenciesList },
       exchangeRates: { list: exchangeRatesList },
       reports: { consolidatedNetWorth, netWorth },
@@ -105,7 +105,7 @@ it("shows per-currency group and account shares but none for excluded or archive
       utilization: "42",
     }),
   ]);
-  listStatements.mockResolvedValue([]);
+  statementsSummary.mockResolvedValue([]);
   netWorth.mockResolvedValue({
     byType: [],
     defaultCurrency: "PHP",
@@ -153,7 +153,7 @@ it("places groups in asset and liability sections with separate currency totals"
       accountType: "credit_card",
     }),
   ]);
-  listStatements.mockResolvedValue([]);
+  statementsSummary.mockResolvedValue([]);
   netWorth.mockResolvedValue({
     byType: [],
     defaultCurrency: "PHP",
@@ -195,7 +195,7 @@ it("shows consolidated net worth, dated sources, and one converted allocation fo
       accountType: "credit_card",
     }),
   ]);
-  listStatements.mockResolvedValue([]);
+  statementsSummary.mockResolvedValue([]);
   netWorth.mockResolvedValue({
     byType: [],
     defaultCurrency: "PHP",

@@ -32,7 +32,7 @@ import {
   incomeTotal,
 } from "../reports/reports.queries";
 import { notFound } from "../shared/errors";
-import { getTransfer } from "../transfers/transfers.queries";
+import { listTransfers } from "../transfers/transfers.queries";
 import type { TransactionFilterInput, TransactionListInput } from "./schema";
 
 export const transactionFields = {
@@ -63,7 +63,12 @@ interface TransactionRow {
   [key: string]: unknown;
 }
 
-export const transactionSplits = (db: Database, transactionId: string) =>
+/** Splits of every transaction in `transactionIds`, in display order. */
+export const transactionSplits = (
+  db: Database,
+  organizationId: string,
+  transactionIds: string[]
+) =>
   db
     .select({
       amount: financialTransactionSplit.amount,
@@ -74,49 +79,107 @@ export const transactionSplits = (db: Database, transactionId: string) =>
       categoryType: category.type,
       id: financialTransactionSplit.id,
       sortOrder: financialTransactionSplit.sortOrder,
+      transactionId: financialTransactionSplit.transactionId,
     })
     .from(financialTransactionSplit)
     .innerJoin(category, eq(category.id, financialTransactionSplit.categoryId))
-    .where(eq(financialTransactionSplit.transactionId, transactionId))
+    .where(
+      and(
+        eq(financialTransactionSplit.organizationId, organizationId),
+        inArray(financialTransactionSplit.transactionId, transactionIds)
+      )
+    )
     .orderBy(
       asc(financialTransactionSplit.sortOrder),
       asc(financialTransactionSplit.id)
     );
 
+const transactionTags = (
+  db: Database,
+  organizationId: string,
+  transactionIds: string[]
+) =>
+  db
+    .select({
+      archivedAt: tag.archivedAt,
+      color: tag.color,
+      id: tag.id,
+      name: tag.name,
+      transactionId: financialTransactionTag.transactionId,
+    })
+    .from(financialTransactionTag)
+    .innerJoin(tag, eq(tag.id, financialTransactionTag.tagId))
+    .where(
+      and(
+        eq(financialTransactionTag.organizationId, organizationId),
+        inArray(financialTransactionTag.transactionId, transactionIds)
+      )
+    )
+    .orderBy(asc(tag.name));
+
+const groupBy = <T, K>(items: T[], key: (item: T) => K): Map<K, T[]> => {
+  const groups = new Map<K, T[]>();
+  for (const item of items) {
+    const group = groups.get(key(item));
+    if (group) {
+      group.push(item);
+    } else {
+      groups.set(key(item), [item]);
+    }
+  }
+  return groups;
+};
+
+/**
+ * Tags, splits and transfers for a page of rows: one query each, so a list
+ * costs the same few round trips at 10 rows as at 100.
+ */
+export const withDetailsList = async <T extends TransactionRow>(
+  db: Database,
+  organizationId: string,
+  rows: T[]
+) => {
+  const ids = rows.map((row) => row.id);
+  const transferIds = [
+    ...new Set(rows.flatMap((row) => (row.transferId ? [row.transferId] : []))),
+  ];
+  const [tags, splits, transfers] =
+    ids.length === 0
+      ? [[], [], []]
+      : await Promise.all([
+          transactionTags(db, organizationId, ids),
+          transactionSplits(db, organizationId, ids),
+          listTransfers(db, organizationId, transferIds),
+        ]);
+  const tagsByTransaction = groupBy(tags, (row) => row.transactionId);
+  const splitsByTransaction = groupBy(splits, (row) => row.transactionId);
+  const transferById = new Map(
+    transfers.map((transfer) => [transfer.id, transfer])
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    splits: (splitsByTransaction.get(row.id) ?? []).map(
+      ({ transactionId: _transactionId, ...split }) => split
+    ),
+    tags: (tagsByTransaction.get(row.id) ?? []).map(
+      ({ transactionId: _transactionId, ...rowTag }) => rowTag
+    ),
+    transfer: row.transferId
+      ? (transferById.get(row.transferId) ?? null)
+      : null,
+  }));
+};
+
 export const withDetails = async <T extends TransactionRow>(
   db: Database,
   row: T
-): Promise<
-  T & {
-    splits: Awaited<ReturnType<typeof transactionSplits>>;
-    tags: {
-      archivedAt: Date | null;
-      color: string;
-      id: string;
-      name: string;
-    }[];
-    transfer: Awaited<ReturnType<typeof getTransfer>> | null;
+) => {
+  const [detailed] = await withDetailsList(db, row.organizationId, [row]);
+  if (!detailed) {
+    throw notFound("Transaction");
   }
-> => {
-  const [tags, splits, transfer] = await Promise.all([
-    db
-      .select({
-        archivedAt: tag.archivedAt,
-        color: tag.color,
-        id: tag.id,
-        name: tag.name,
-      })
-      .from(financialTransactionTag)
-      .innerJoin(tag, eq(tag.id, financialTransactionTag.tagId))
-      .where(eq(financialTransactionTag.transactionId, row.id))
-      .orderBy(asc(tag.name)),
-    transactionSplits(db, row.id),
-    row.transferId
-      ? getTransfer(db, row.organizationId, row.transferId)
-      : Promise.resolve(null),
-  ]);
-
-  return { ...row, splits, tags, transfer };
+  return detailed;
 };
 
 export const transactionQuery = (db: Database) =>
@@ -383,7 +446,7 @@ export const listTransactions = async (
   const total = countRows[0]?.total ?? 0;
 
   return {
-    items: await Promise.all(rows.map((row) => withDetails(db, row))),
+    items: await withDetailsList(db, organizationId, rows),
     page: input.page,
     pageSize: input.pageSize,
     total,

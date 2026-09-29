@@ -1,13 +1,23 @@
+import { relations } from "@masdan/db/relations";
 import { category, member, session } from "@masdan/db/schema/index";
-import { getSessionFor, getTestDb, signUpTestUser } from "@masdan/testing";
+import {
+  getSessionFor,
+  getTestDb,
+  getTestPool,
+  signUpTestUser,
+} from "@masdan/testing";
 import { call, ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { describe, expect, it } from "vite-plus/test";
 
 import { accountsRouter } from "../accounts/accounts.router";
 import { categoriesRouter } from "../categories/categories.router";
 import type { Context } from "../context";
 import { tagsRouter } from "../tags/tags.router";
+import { transfersRouter } from "../transfers/transfers.router";
+import { transactionListValues } from "./schema";
+import { listTransactions } from "./transactions.queries";
 import { transactionsRouter } from "./transactions.router";
 
 const caught = async (promise: Promise<unknown>): Promise<unknown> => {
@@ -623,6 +633,103 @@ describe("transaction list", () => {
         ...secondPage.items.map(({ id }) => id),
       ]).size
     ).toBe(3);
+  });
+
+  it("loads a page's tags, splits and transfers in a fixed number of queries", async () => {
+    const user = await signUpTestUser();
+    const context = { context: await contextFor(user.headers) };
+    const organizationId = await activeOrganizationId(user.headers);
+    const account = await call(accountsRouter.create, accountInput, context);
+    const wallet = await call(
+      accountsRouter.create,
+      { ...accountInput, name: "Wallet" },
+      context
+    );
+    const groceriesId = await categoryIdFor(organizationId, "Groceries");
+    const foodId = await categoryIdFor(organizationId, "Food & Dining");
+    const tracked = await call(
+      tagsRouter.create,
+      { color: "green", name: "Tracked" },
+      context
+    );
+
+    for (const day of ["01", "02", "03"]) {
+      await call(
+        transactionsRouter.create,
+        {
+          accountId: account.id,
+          amount: "30",
+          categoryId: groceriesId,
+          paidStatus: "paid",
+          splits: [
+            { amount: "20", categoryId: groceriesId },
+            { amount: "10", categoryId: foodId },
+          ],
+          tagIds: [tracked.id],
+          transactionDate: `2026-03-${day}`,
+        },
+        context
+      );
+    }
+    const transfer = await call(
+      transfersRouter.create,
+      {
+        destinationAccountId: wallet.id,
+        destinationAmount: "50",
+        sourceAccountId: account.id,
+        sourceAmount: "50",
+        transactionDate: "2026-03-04",
+      },
+      context
+    );
+
+    let queries = 0;
+    const countingDb = drizzle({
+      client: getTestPool(),
+      logger: {
+        logQuery: () => {
+          queries += 1;
+        },
+      },
+      relations,
+    });
+    const listed = async (pageSize: number) => {
+      queries = 0;
+      const page = await listTransactions(
+        countingDb,
+        organizationId,
+        transactionListValues.parse({ pageSize })
+      );
+      return { page, queries };
+    };
+
+    const one = await listed(1);
+    const all = await listed(100);
+    // Rows and count, then one query each for tags, splits and transfers.
+    expect(one.queries).toBe(5);
+    expect(all.queries).toBe(5);
+
+    expect(all.page.items).toHaveLength(4);
+    const [transferRow, ...entries] = all.page.items;
+    expect(transferRow).toMatchObject({
+      splits: [],
+      tags: [],
+      transfer: {
+        destinationAccount: { id: wallet.id, name: "Wallet" },
+        id: transfer.id,
+        sourceAccount: { id: account.id, name: "BPI Savings" },
+      },
+    });
+    for (const entry of entries) {
+      expect(entry.transfer).toBeNull();
+      expect(entry.tags).toEqual([
+        { archivedAt: null, color: "green", id: tracked.id, name: "Tracked" },
+      ]);
+      expect(entry.splits).toMatchObject([
+        { amount: "20.000000", categoryId: groceriesId, sortOrder: 0 },
+        { amount: "10.000000", categoryId: foodId, sortOrder: 1 },
+      ]);
+    }
   });
 });
 

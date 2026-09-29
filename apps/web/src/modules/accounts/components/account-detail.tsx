@@ -238,7 +238,7 @@ const CreditCardPanel = ({
   );
   const [recording, setRecording] = useState(false);
   const history = statements.data ?? [];
-  const due = nextPaymentDue(account, history, today);
+  const due = nextPaymentDue(account, history[0], today);
   const utilization =
     account.utilization === null ? null : toNumber(account.utilization);
   const archived = account.archivedAt !== null;

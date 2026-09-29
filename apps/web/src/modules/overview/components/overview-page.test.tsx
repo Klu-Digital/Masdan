@@ -12,7 +12,7 @@ vi.mock("@masdan/ui/components/toast", () => ({
 }));
 
 const accountsList = vi.hoisted(() => vi.fn());
-const listStatements = vi.hoisted(() => vi.fn());
+const statementsSummary = vi.hoisted(() => vi.fn());
 const netWorth = vi.hoisted(() => vi.fn());
 const netWorthHistory = vi.hoisted(() => vi.fn());
 const cashFlow = vi.hoisted(() => vi.fn());
@@ -29,7 +29,7 @@ vi.mock("@/utils/client", async () => {
   const { mockClient } = await import("@/test/client");
   return {
     client: mockClient({
-      accounts: { list: accountsList, listStatements },
+      accounts: { list: accountsList, statementsSummary },
       reports: { cashFlow, netWorth, netWorthHistory, spendingByCategory },
       transactions: { list: transactionsList },
     }),
@@ -113,6 +113,16 @@ const entry = (id: string, notes: string) => ({
   transferSide: null,
   type: "expense",
   updatedAt: new Date(),
+});
+
+const statement = (accountId: string, statementBalance: string) => ({
+  accountId,
+  dueDate: "2099-01-15",
+  minimumAmountDue: null,
+  periodEnd: "2098-12-20",
+  periodStart: "2098-11-21",
+  statementBalance,
+  statementDate: "2098-12-20",
 });
 
 const page = (items: unknown[]) => ({
@@ -252,7 +262,7 @@ beforeEach(() => {
   server.active = "household-a";
   for (const mock of [
     accountsList,
-    listStatements,
+    statementsSummary,
     netWorth,
     netWorthHistory,
     cashFlow,
@@ -262,7 +272,7 @@ beforeEach(() => {
   ]) {
     mock.mockReset();
   }
-  listStatements.mockResolvedValue([]);
+  statementsSummary.mockResolvedValue([]);
   serveLedger();
 });
 
@@ -331,6 +341,35 @@ describe("OverviewPage", () => {
     expect(transactionsList).toHaveBeenCalledWith(
       expect.objectContaining({ page: 1, pageSize: 8, paidStatuses: [] })
     );
+  });
+
+  it("reads every card's payment due from one statements call", async () => {
+    const card = (id: string, name: string) => ({
+      ...account(id, name, "credit_card"),
+      accountClass: "liability",
+      cardLastFour: null,
+      cardNetwork: null,
+      cardProductKey: null,
+      institution: null,
+    });
+    accountsList.mockResolvedValue([
+      card("card-1", "BPI Visa"),
+      card("card-2", "Metrobank Amex"),
+    ]);
+    statementsSummary.mockResolvedValue([
+      statement("card-1", "4200.000000"),
+      statement("card-2", "780.000000"),
+    ]);
+    renderWithProviders(<OverviewPage household={HOUSEHOLD_A} />);
+
+    const upcoming = await screen.findByRole("region", { name: "Coming up" });
+    expect(
+      await within(upcoming).findByRole("link", { name: /BPI Visa/u })
+    ).toHaveTextContent("₱4,200.00");
+    expect(
+      within(upcoming).getByRole("link", { name: /Metrobank Amex/u })
+    ).toHaveTextContent("₱780.00");
+    expect(statementsSummary).toHaveBeenCalledTimes(1);
   });
 
   it("shows a skeleton per section while each report loads", async () => {

@@ -33,16 +33,14 @@ describe("credit cards", () => {
   it("prefers an issued statement's due date", () => {
     const due = nextPaymentDue(
       { balance: "5000", paymentDueDay: 20 },
-      [
-        {
-          dueDate: "2026-10-06",
-          minimumAmountDue: "500",
-          periodEnd: "2026-09-18",
-          periodStart: "2026-08-19",
-          statementBalance: "4200",
-          statementDate: "2026-09-18",
-        },
-      ],
+      {
+        dueDate: "2026-10-06",
+        minimumAmountDue: "500",
+        periodEnd: "2026-09-18",
+        periodStart: "2026-08-19",
+        statementBalance: "4200",
+        statementDate: "2026-09-18",
+      },
       "2026-09-24"
     );
     expect(due).toMatchObject({
@@ -54,13 +52,21 @@ describe("credit cards", () => {
 
   it("projects from the due day when nothing was issued, and only if money is owed", () => {
     expect(
-      nextPaymentDue({ balance: "5000", paymentDueDay: 6 }, [], "2026-09-24")
+      nextPaymentDue(
+        { balance: "5000", paymentDueDay: 6 },
+        undefined,
+        "2026-09-24"
+      )
     ).toMatchObject({
       dueDate: "2026-10-06",
       source: "schedule",
     });
     expect(
-      nextPaymentDue({ balance: "0", paymentDueDay: 6 }, [], "2026-09-24")
+      nextPaymentDue(
+        { balance: "0", paymentDueDay: 6 },
+        undefined,
+        "2026-09-24"
+      )
     ).toBeNull();
   });
 });

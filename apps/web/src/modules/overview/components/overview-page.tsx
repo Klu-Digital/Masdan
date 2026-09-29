@@ -61,20 +61,19 @@ import { householdToday } from "@/lib/household-date";
 import { AccountCardThumb } from "@/modules/accounts/components/account-card";
 import { AccountTile } from "@/modules/accounts/components/account-row";
 import { nextPaymentDue } from "@/modules/accounts/credit";
+import type { CardStatement } from "@/modules/accounts/credit";
 import { ACCOUNT_GROUPS } from "@/modules/accounts/kinds";
 import { groupOf, groupTotal } from "@/modules/accounts/net-worth";
+import { overviewQueries } from "@/modules/overview/queries";
 import { NetWorthHistoryChart } from "@/modules/reports/components/report-sections";
 import type {
   CashFlowReport,
-  LedgerReportInput,
-  NetWorthHistoryInput,
   NetWorthReport,
   SpendingReport,
 } from "@/modules/reports/types";
 import { TransactionTile } from "@/modules/transactions/components/transaction-tile";
 import { describeTransaction } from "@/modules/transactions/presentation";
 import { DEFAULT_TRANSACTION_SEARCH } from "@/modules/transactions/search";
-import { householdOrpc } from "@/utils/orpc";
 import type { RouterOutputs } from "@/utils/orpc";
 
 type Account = RouterOutputs["accounts"]["list"];
@@ -88,17 +87,7 @@ export interface OverviewHousehold extends Pick<
   session: { user: { name: string } };
 }
 
-const THIS_MONTH = {
-  preset: "this_month",
-} as const satisfies LedgerReportInput;
-const NET_WORTH_TREND = {
-  granularity: "month",
-  preset: "last_6_months",
-} as const satisfies NetWorthHistoryInput;
-
 const TOP_CATEGORIES = 5;
-const RECENT_COUNT = 8;
-const UPCOMING_BILLS = 5;
 
 const greeting = (now: Date): string => {
   const hour = now.getHours();
@@ -463,19 +452,14 @@ const SpendingHighlights = ({
 
 const CardDueRow = ({
   account,
-  organizationId,
+  statement,
   today,
 }: {
   account: Account[number];
-  organizationId: string;
+  statement: CardStatement | undefined;
   today: string;
 }) => {
-  const statements = useQuery(
-    householdOrpc(organizationId).accounts.listStatements.queryOptions({
-      input: { accountId: account.id },
-    })
-  );
-  const due = nextPaymentDue(account, statements.data ?? [], today);
+  const due = nextPaymentDue(account, statement, today);
   if (!due) {
     return null;
   }
@@ -525,16 +509,10 @@ const Upcoming = ({
   const cards = accounts.filter(
     (account) => account.accountType === "credit_card"
   );
-  const unpaid = useQuery(
-    householdOrpc(organizationId).transactions.list.queryOptions({
-      input: {
-        ...DEFAULT_TRANSACTION_SEARCH,
-        pageSize: UPCOMING_BILLS,
-        paidStatuses: ["unpaid"],
-        sortDirection: "asc",
-      },
-    })
-  );
+  const queries = overviewQueries(organizationId);
+  const unpaid = useQuery(queries.unpaid);
+  // One call for every card's latest statement, not one per card.
+  const statements = useQuery(queries.statements);
   const bills = unpaid.data?.items ?? [];
   const hasCards = cards.some(
     (card) => card.paymentDueDay !== null || toNumber(card.balance) > 0
@@ -570,7 +548,9 @@ const Upcoming = ({
             <CardDueRow
               account={card}
               key={card.id}
-              organizationId={organizationId}
+              statement={statements.data?.find(
+                (statement) => statement.accountId === card.id
+              )}
               today={today}
             />
           ))}
@@ -718,11 +698,7 @@ const RecentActivity = ({
   organizationId: string;
   today: string;
 }) => {
-  const recent = useQuery(
-    householdOrpc(organizationId).transactions.list.queryOptions({
-      input: { ...DEFAULT_TRANSACTION_SEARCH, pageSize: RECENT_COUNT },
-    })
-  );
+  const recent = useQuery(overviewQueries(organizationId).recent);
   const items = recent.data?.items ?? [];
   return (
     <Section aria-busy={recent.isPending} aria-label="Recent activity">
@@ -877,22 +853,12 @@ const Welcome = ({ household }: { household: OverviewHousehold }) => {
 const Overview = ({ household }: { household: OverviewHousehold }) => {
   const { activeOrganizationId, can, session, timezone } = household;
   const today = householdToday(timezone);
-  const orpc = householdOrpc(activeOrganizationId);
-  const accounts = useQuery(
-    orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
-  );
-  // Each section renders its own failure state.
-  const meta = { suppressErrorToast: true };
-  const netWorth = useQuery(orpc.reports.netWorth.queryOptions({ meta }));
-  const month = useQuery(
-    orpc.reports.cashFlow.queryOptions({ input: THIS_MONTH, meta })
-  );
-  const spending = useQuery(
-    orpc.reports.spendingByCategory.queryOptions({ input: THIS_MONTH, meta })
-  );
-  const trend = useQuery(
-    orpc.reports.netWorthHistory.queryOptions({ input: NET_WORTH_TREND, meta })
-  );
+  const queries = overviewQueries(activeOrganizationId);
+  const accounts = useQuery(queries.accounts);
+  const netWorth = useQuery(queries.netWorth);
+  const month = useQuery(queries.month);
+  const spending = useQuery(queries.spending);
+  const trend = useQuery(queries.trend);
   const currency =
     household.currency ?? netWorth.data?.defaultCurrency ?? "PHP";
   const firstName = session.user.name.split(" ")[0] ?? session.user.name;

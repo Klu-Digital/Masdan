@@ -82,7 +82,7 @@ export const updateTransaction = async (
       .select({ tagId: financialTransactionTag.tagId })
       .from(financialTransactionTag)
       .where(eq(financialTransactionTag.transactionId, existing.id)),
-    transactionSplits(db, existing.id),
+    transactionSplits(db, organizationId, [existing.id]),
   ]);
   const existingTagIds = new Set(currentTags.map(({ tagId }) => tagId));
   const existingSplitCategoryIds = new Set(

@@ -16,6 +16,7 @@ import {
   getAccount,
   listAccounts,
   listSnapshots,
+  latestStatements,
   listStatements,
 } from "./accounts.queries";
 import { accountValues, snapshotValues, statementValues } from "./schema";
@@ -98,6 +99,12 @@ export const accountsRouter = {
     .input(snapshotValues)
     .handler(({ context, input }) =>
       saveSnapshot(context.db, context.organizationId, input)
+    ),
+
+  statementsSummary: orgProcedure
+    .use(requirePermission({ financialAccount: ["read"] }))
+    .handler(({ context }) =>
+      latestStatements(context.db, context.organizationId)
     ),
 
   update: orgMutationProcedure

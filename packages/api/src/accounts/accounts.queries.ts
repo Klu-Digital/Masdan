@@ -234,3 +234,15 @@ export const listStatements = async (
       desc(creditCardStatement.createdAt)
     );
 };
+
+/** Each card's latest statement, for due dates across every card in one call. */
+export const latestStatements = (db: Database, organizationId: string) =>
+  db
+    .selectDistinctOn([creditCardStatement.accountId], statementFields)
+    .from(creditCardStatement)
+    .where(eq(creditCardStatement.organizationId, organizationId))
+    .orderBy(
+      asc(creditCardStatement.accountId),
+      desc(creditCardStatement.statementDate),
+      desc(creditCardStatement.createdAt)
+    );

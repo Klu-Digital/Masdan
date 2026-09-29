@@ -78,12 +78,15 @@ export const CardContext = ({
   organizationId: string;
   today: string;
 }) => {
+  // Every card row shares one summary call rather than asking per card.
   const statements = useQuery(
-    householdOrpc(organizationId).accounts.listStatements.queryOptions({
-      input: { accountId: account.id },
-    })
+    householdOrpc(organizationId).accounts.statementsSummary.queryOptions()
   );
-  const due = nextPaymentDue(account, statements.data ?? [], today);
+  const due = nextPaymentDue(
+    account,
+    statements.data?.find((statement) => statement.accountId === account.id),
+    today
+  );
   const utilization =
     account.utilization === null ? null : toNumber(account.utilization);
 

@@ -32,6 +32,7 @@ import { useState } from "react";
 import { useAppActions } from "@/components/app-actions";
 import type { ActiveHousehold } from "@/components/household-gate";
 import { householdToday } from "@/lib/household-date";
+import { accountsQueries } from "@/modules/accounts/queries";
 import type {
   ConsolidatedNetWorthReport,
   NetWorthReport,
@@ -283,12 +284,9 @@ export const AccountsOverview = ({
   const { activeOrganizationId, can, currency, timezone } = household;
   const { composeAccount } = useAppActions();
   const orpc = householdOrpc(activeOrganizationId);
-  const accounts = useQuery(
-    orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
-  );
-  const netWorth = useQuery(
-    orpc.reports.netWorth.queryOptions({ meta: { suppressErrorToast: true } })
-  );
+  const queries = accountsQueries(activeOrganizationId);
+  const accounts = useQuery(queries.accounts);
+  const netWorth = useQuery(queries.netWorth);
   const multiCurrency =
     new Set(
       accounts.data

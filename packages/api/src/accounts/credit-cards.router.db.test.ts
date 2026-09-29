@@ -247,4 +247,61 @@ describe("credit card statements", () => {
       )
     ).toBe("NOT_FOUND");
   });
+
+  it("summarizes each card's latest statement, and only this household's", async () => {
+    const user = await signUpTestUser();
+    const context = { context: await contextFor(user.headers) };
+    const visa = await call(accountsRouter.create, cardInput, context);
+    const amex = await call(
+      accountsRouter.create,
+      { ...cardInput, name: "Amex" },
+      context
+    );
+    const statementFor = (
+      accountId: string,
+      statementDate: string,
+      statementBalance: string
+    ) =>
+      call(
+        accountsRouter.createStatement,
+        {
+          accountId,
+          dueDate: null,
+          minimumAmountDue: null,
+          periodEnd: statementDate,
+          periodStart: "2025-12-01",
+          statementBalance,
+          statementDate,
+        },
+        context
+      );
+    await statementFor(visa.id, "2026-01-25", "100");
+    const latestVisa = await statementFor(visa.id, "2026-02-25", "200");
+    const latestAmex = await statementFor(amex.id, "2026-02-10", "300");
+
+    const other = await signUpTestUser();
+    const otherContext = { context: await contextFor(other.headers) };
+    const otherCard = await call(
+      accountsRouter.create,
+      cardInput,
+      otherContext
+    );
+    await call(
+      accountsRouter.createStatement,
+      {
+        accountId: otherCard.id,
+        dueDate: null,
+        minimumAmountDue: null,
+        periodEnd: "2026-02-25",
+        periodStart: "2026-01-26",
+        statementBalance: "999",
+        statementDate: "2026-02-25",
+      },
+      otherContext
+    );
+
+    const summary = await call(accountsRouter.statementsSummary, {}, context);
+    expect(summary).toHaveLength(2);
+    expect(summary).toEqual(expect.arrayContaining([latestVisa, latestAmex]));
+  });
 });

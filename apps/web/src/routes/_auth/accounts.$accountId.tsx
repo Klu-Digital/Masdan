@@ -22,12 +22,23 @@ export const Route = createFileRoute("/_auth/accounts/$accountId")({
   component: AccountPage,
   // A missing account renders its own not-found state instead of the error page.
   loader: async ({ context, params }) => {
+    const orpc = householdOrpc(context.activeOrganizationId);
     try {
-      return await context.queryClient.ensureQueryData(
-        householdOrpc(context.activeOrganizationId).accounts.get.queryOptions({
+      const account = await context.queryClient.ensureQueryData(
+        orpc.accounts.get.queryOptions({
           input: { accountId: params.accountId },
         })
       );
+      // Started here rather than when the card panel mounts; only cards have
+      // statements, so it cannot start alongside the account read.
+      if (account.accountType === "credit_card") {
+        void context.queryClient.prefetchQuery(
+          orpc.accounts.listStatements.queryOptions({
+            input: { accountId: account.id },
+          })
+        );
+      }
+      return account;
     } catch {
       return null;
     }

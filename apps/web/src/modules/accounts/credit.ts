@@ -34,15 +34,14 @@ export interface PaymentDue {
 }
 
 /**
- * The next payment a card needs. An issued statement with a future (or very
- * recent) due date wins; otherwise the card's due day projects one.
+ * The next payment a card needs. Its latest statement wins when that is due in
+ * the future (or very recently); otherwise the card's due day projects one.
  */
 export const nextPaymentDue = (
   card: { balance: string; paymentDueDay: number | null },
-  statements: CardStatement[],
+  latest: CardStatement | undefined,
   today: string
 ): PaymentDue | null => {
-  const [latest] = statements;
   if (latest?.dueDate && daysBetween(today, latest.dueDate) >= -7) {
     return {
       daysLeft: daysBetween(today, latest.dueDate),
