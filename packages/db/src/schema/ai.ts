@@ -5,11 +5,11 @@ import {
   pgTable,
   primaryKey,
   text,
-  timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
 
 import { organization, user } from "./auth";
+import { timestamptz } from "./columns";
 
 /**
  * AI tokens a household spent per UTC day, checked against
@@ -38,7 +38,7 @@ export const aiUsage = pgTable(
 export const aiTokenCap = pgTable("ai_token_cap", {
   feature: text("feature").primaryKey(),
   maxTokens: integer("max_tokens").notNull(),
-  updatedAt: timestamp("updated_at")
+  updatedAt: timestamptz("updated_at")
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),

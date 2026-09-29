@@ -16,7 +16,7 @@ export const overviewPlatformRouter = {
    */
   signupsLast30Days: adminProcedure.handler(async ({ context }) => {
     const rows = await context.db.execute<{ day: string; count: string }>(
-      sql`select date_trunc('day', ${user.createdAt})::date as day, count(*) as count
+      sql`select (${user.createdAt} at time zone 'UTC')::date as day, count(*) as count
           from ${user}
           where ${user.createdAt} > now() - interval '30 days'
           group by 1

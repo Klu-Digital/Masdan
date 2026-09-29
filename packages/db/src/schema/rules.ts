@@ -4,16 +4,15 @@ import {
   check,
   index,
   integer,
-  numeric,
   pgTable,
   primaryKey,
   text,
-  timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
 
 import { organization } from "./auth";
 import { category } from "./categories";
+import { money, timestamps } from "./columns";
 import { financialAccount } from "./financial-accounts";
 import { tag } from "./tags";
 
@@ -49,8 +48,6 @@ export interface TransactionRuleApplication {
   tagIds: string[];
 }
 
-const money = (name: string) => numeric(name, { precision: 30, scale: 6 });
-
 /**
  * A household's categorization rule. Rules run in `position` order and the
  * first enabled match wins; `id` breaks ties so order never depends on the
@@ -59,7 +56,7 @@ const money = (name: string) => numeric(name, { precision: 30, scale: 6 });
 export const transactionRule = pgTable(
   "transaction_rule",
   {
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    ...timestamps(),
     enabled: boolean("enabled").default(true).notNull(),
     id: uuid("id")
       .primaryKey()
@@ -83,10 +80,6 @@ export const transactionRule = pgTable(
     setCategoryId: uuid("set_category_id").references(() => category.id, {
       onDelete: "cascade",
     }),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
   },
   (table) => [
     index("transaction_rule_organization_position_idx").on(

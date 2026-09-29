@@ -4,16 +4,15 @@ import {
   index,
   integer,
   jsonb,
-  numeric,
   pgTable,
   text,
-  timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
 import { organization, user } from "./auth";
 import { category } from "./categories";
+import { money, timestamps, timestamptz } from "./columns";
 import { financialAccount } from "./financial-accounts";
 import type { TransactionRuleApplication } from "./rules";
 import { file } from "./storage";
@@ -57,8 +56,8 @@ export const transactionImport = pgTable(
       .references(() => financialAccount.id, { onDelete: "cascade" }),
     /** sha256 of the source bytes, set when the worker first reads the file. */
     checksum: text("checksum"),
-    committedAt: timestamp("committed_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    committedAt: timestamptz("committed_at"),
+    ...timestamps(),
     createdByUserId: uuid("created_by_user_id").references(() => user.id, {
       onDelete: "set null",
     }),
@@ -94,12 +93,8 @@ export const transactionImport = pgTable(
     }),
     status: text("status", { enum: transactionImportStatuses }).notNull(),
     totalRows: integer("total_rows").default(0).notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
     validRows: integer("valid_rows").default(0).notNull(),
-    validatedAt: timestamp("validated_at"),
+    validatedAt: timestamptz("validated_at"),
   },
   (table) => [
     index("transaction_import_organization_idx").on(
@@ -116,7 +111,7 @@ export const transactionImport = pgTable(
 export const transactionImportRow = pgTable(
   "transaction_import_row",
   {
-    amount: numeric("amount", { precision: 30, scale: 6 }),
+    amount: money("amount"),
     categoryId: uuid("category_id").references(() => category.id, {
       onDelete: "set null",
     }),

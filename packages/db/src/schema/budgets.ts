@@ -3,16 +3,15 @@ import {
   check,
   date,
   index,
-  numeric,
   pgTable,
   text,
-  timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
 import { organization } from "./auth";
 import { category } from "./categories";
+import { money, timestamps } from "./columns";
 import { currency } from "./finance";
 
 /**
@@ -23,7 +22,7 @@ import { currency } from "./finance";
 export const categoryBudget = pgTable(
   "category_budget",
   {
-    amount: numeric("amount", { precision: 30, scale: 6 }).notNull(),
+    amount: money("amount").notNull(),
     /**
      * No `onDelete`: categories are archived, never deleted, so a month's plan
      * outlives the category it was made for.
@@ -31,7 +30,7 @@ export const categoryBudget = pgTable(
     categoryId: uuid("category_id")
       .notNull()
       .references(() => category.id),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    ...timestamps(),
     /** The household currency when the budget was set; actuals match it. */
     currencyCode: text("currency_code")
       .notNull()
@@ -43,10 +42,6 @@ export const categoryBudget = pgTable(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
   },
   (table) => [
     check("category_budget_positive_amount_chk", sql`${table.amount} > 0`),

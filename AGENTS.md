@@ -97,6 +97,8 @@ These are the ones that cost real time to rediscover. The README carries the ful
 
 **Comments.** One line, naming the bug the line prevents. [TERSE.md](TERSE.md) has the budget, what earns more than a line, and the directive and template-literal gotchas.
 
+**Columns.** Instants, amounts and rates come from `packages/db/src/schema/columns.ts`: `timestamptz()` (never bare `timestamp()`), `timestamps()` for the usual `createdAt`/`updatedAt` pair, `money()` and `rate()`. Timestamp columns are `timestamptz`, so turn one into a household-local day with `(col at time zone ${timezone})::date`. Don't add an `at time zone 'UTC'` first, because that shifts the value by the household's offset.
+
 **Migrations and backfills.** `pnpm db:push` is for local iteration only; anything committed gets a migration. Generate it with `pnpm db:generate --name <snake_case_description>` (`add_budget_month_index`, not drizzle's random `normal_ben_parker`), so the folder name says what the migration does. Start from what `drizzle-kit generate` wrote; hand-edit the SQL only when it cannot express the change safely, e.g. composite foreign keys added `NOT VALID` and then `VALIDATE`d ([ADR 0002](docs/adr/0002-tenant-integrity-in-the-database.md)), or a `USING` cast on a column type. Validate a hand-edited migration on a scratch database, since `db:deploy` fails on the push-built local one. Data backfills and reference rows (like `currency`) go in `packages/db/src/post-migration-scripts/`, so a database that has only been migrated cannot create a household until they run: use `db:deploy`, never `db:migrate` alone.
 
 **Generated files stay untouched:** `apps/web/src/routeTree.gen.ts` and migration `snapshot.json`.

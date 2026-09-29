@@ -50,7 +50,7 @@ export const loadGoals = async (
   goalId?: string
 ): Promise<Goal[]> => {
   const { timezone } = await householdSettings(db, organizationId);
-  const measuredOn = sql`(${closedAt} at time zone 'UTC' at time zone ${timezone})::date`;
+  const measuredOn = sql`(${closedAt} at time zone ${timezone})::date`;
   const postings =
     balancePostings(sql`coalesce(${measuredOn}, 'infinity'::date)`) ??
     sql`false`;

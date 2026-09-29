@@ -1,12 +1,7 @@
 import { sql } from "drizzle-orm";
-import {
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { index, integer, pgTable, text, uuid } from "drizzle-orm/pg-core";
+
+import { timestamps, timestamptz } from "./columns";
 
 const uuidv7 = sql`uuidv7()`;
 
@@ -22,19 +17,15 @@ export const postMigration = pgTable(
   {
     appliedBy: text("applied_by").notNull(),
     checksum: text("checksum").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    ...timestamps(),
     description: text("description").notNull(),
     durationMs: integer("duration_ms"),
     error: text("error"),
-    finishedAt: timestamp("finished_at"),
+    finishedAt: timestamptz("finished_at"),
     id: uuid("id").primaryKey().default(uuidv7),
     name: text("name").notNull().unique(),
-    startedAt: timestamp("started_at").notNull(),
+    startedAt: timestamptz("started_at").notNull(),
     status: text("status", { enum: postMigrationStatuses }).notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
   },
   (table) => [index("post_migration_status_idx").on(table.status)]
 );

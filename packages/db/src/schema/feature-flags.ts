@@ -1,7 +1,8 @@
 import { sql } from "drizzle-orm";
-import { boolean, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, uuid } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
+import { timestamps } from "./columns";
 
 /** Postgres 18+ native time-ordered UUID, used as the default for every id column. */
 const uuidv7 = sql`uuidv7()`;
@@ -14,7 +15,7 @@ const uuidv7 = sql`uuidv7()`;
  * `organizationId`, no per-user targeting.
  */
 export const featureFlag = pgTable("feature_flag", {
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  ...timestamps(),
   enabled: boolean("enabled").notNull(),
   id: uuid("id").primaryKey().default(uuidv7),
   /**
@@ -23,10 +24,6 @@ export const featureFlag = pgTable("feature_flag", {
    * can ship.
    */
   name: text("name").notNull().unique(),
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
   /** Audit only. `set null` so removing an admin doesn't erase the toggle. */
   updatedBy: uuid("updated_by").references(() => user.id, {
     onDelete: "set null",

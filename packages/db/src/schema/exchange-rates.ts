@@ -2,15 +2,14 @@ import { sql } from "drizzle-orm";
 import {
   check,
   date,
-  numeric,
   pgTable,
   text,
-  timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
 import { organization, user } from "./auth";
+import { rate, timestamps, timestamptz } from "./columns";
 import { currency } from "./finance";
 
 /** Public feed reference data, not tenant data: no organizationId. */
@@ -20,11 +19,11 @@ export const exchangeRate = pgTable(
     baseCurrency: text("base_currency")
       .notNull()
       .references(() => currency.code),
-    fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+    fetchedAt: timestamptz("fetched_at").defaultNow().notNull(),
     quoteCurrency: text("quote_currency")
       .notNull()
       .references(() => currency.code),
-    rate: numeric("rate", { precision: 30, scale: 12 }).notNull(),
+    rate: rate("rate").notNull(),
     rateDate: date("rate_date", { mode: "string" }).notNull(),
     source: text("source").notNull(),
   },
@@ -43,7 +42,7 @@ export const exchangeRate = pgTable(
 export const householdExchangeRate = pgTable(
   "household_exchange_rate",
   {
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    ...timestamps(),
     createdByUserId: uuid("created_by_user_id").references(() => user.id, {
       onDelete: "set null",
     }),
@@ -56,15 +55,11 @@ export const householdExchangeRate = pgTable(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
-    rate: numeric("rate", { precision: 30, scale: 12 }).notNull(),
+    rate: rate("rate").notNull(),
     rateDate: date("rate_date", { mode: "string" }).notNull(),
     toCurrency: text("to_currency")
       .notNull()
       .references(() => currency.code),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
   },
   (table) => [
     check("household_exchange_rate_positive_chk", sql`${table.rate} > 0`),

@@ -5,12 +5,12 @@ import {
   index,
   pgTable,
   text,
-  timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
 import { organization, user } from "./auth";
+import { timestamptz } from "./columns";
 import { financialAccount } from "./financial-accounts";
 import { financialTransaction, recurringSchedule } from "./transactions";
 
@@ -33,7 +33,7 @@ export const billPayment = pgTable(
     confirmedByUserId: uuid("confirmed_by_user_id").references(() => user.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamptz("created_at").defaultNow().notNull(),
     /** The occurrence's due date, a household calendar day. */
     dueDate: date("due_date", { mode: "string" }).notNull(),
     id: uuid("id")
@@ -84,11 +84,11 @@ export const billPayment = pgTable(
 export const billCalendarFeed = pgTable(
   "bill_calendar_feed",
   {
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamptz("created_at").defaultNow().notNull(),
     id: uuid("id")
       .primaryKey()
       .default(sql`uuidv7()`),
-    lastUsedAt: timestamp("last_used_at"),
+    lastUsedAt: timestamptz("last_used_at"),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),

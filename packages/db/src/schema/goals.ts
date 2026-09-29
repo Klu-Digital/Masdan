@@ -1,16 +1,8 @@
 import { sql } from "drizzle-orm";
-import {
-  check,
-  date,
-  index,
-  numeric,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { check, date, index, pgTable, text, uuid } from "drizzle-orm/pg-core";
 
 import { organization } from "./auth";
+import { money, timestamps, timestamptz } from "./columns";
 import { financialAccount } from "./financial-accounts";
 
 /**
@@ -27,9 +19,9 @@ export const savingsGoal = pgTable(
     accountId: uuid("account_id")
       .notNull()
       .references(() => financialAccount.id),
-    archivedAt: timestamp("archived_at"),
-    completedAt: timestamp("completed_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    archivedAt: timestamptz("archived_at"),
+    completedAt: timestamptz("completed_at"),
+    ...timestamps(),
     id: uuid("id")
       .primaryKey()
       .default(sql`uuidv7()`),
@@ -38,15 +30,8 @@ export const savingsGoal = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     /** In the tracking account's currency. */
-    targetAmount: numeric("target_amount", {
-      precision: 30,
-      scale: 6,
-    }).notNull(),
+    targetAmount: money("target_amount").notNull(),
     targetDate: date("target_date", { mode: "string" }),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
   },
   (table) => [
     check("savings_goal_positive_target_chk", sql`${table.targetAmount} > 0`),

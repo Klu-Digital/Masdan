@@ -6,26 +6,23 @@ import {
   index,
   integer,
   jsonb,
-  numeric,
   pgEnum,
   pgTable,
   primaryKey,
   text,
-  timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
 import { organization } from "./auth";
 import { category } from "./categories";
+import { money, timestamps, timestamptz } from "./columns";
 import { currency } from "./finance";
 import { financialAccount } from "./financial-accounts";
 import type { TransactionRuleApplication } from "./rules";
 import { file } from "./storage";
 import type { TransactionSuggestionApplication } from "./suggestions";
 import { tag } from "./tags";
-
-const money = (name: string) => numeric(name, { precision: 30, scale: 6 });
 
 export const paidStatusEnum = pgEnum("paid_status", ["paid", "unpaid"]);
 export const transferSideEnum = pgEnum("transfer_side", [
@@ -62,7 +59,7 @@ export const recurringSchedule = pgTable(
     categoryId: uuid("category_id")
       .notNull()
       .references(() => category.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    ...timestamps(),
     frequency: text("frequency", { enum: recurringFrequencies }).notNull(),
     id: uuid("id")
       .primaryKey()
@@ -77,16 +74,12 @@ export const recurringSchedule = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     paidStatus: paidStatusEnum("paid_status").default("paid").notNull(),
-    pausedAt: timestamp("paused_at"),
+    pausedAt: timestamptz("paused_at"),
     startDate: date("start_date", { mode: "string" }).notNull(),
     status: text("status", { enum: recurringScheduleStatuses })
       .default("active")
       .notNull(),
-    stoppedAt: timestamp("stopped_at"),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
+    stoppedAt: timestamptz("stopped_at"),
   },
   (table) => [
     check("recurring_schedule_positive_amount_chk", sql`${table.amount} > 0`),
@@ -131,7 +124,7 @@ export const recurringScheduleTag = pgTable(
 export const financialTransfer = pgTable(
   "financial_transfer",
   {
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    ...timestamps(),
     destinationAccountId: uuid("destination_account_id")
       .notNull()
       .references(() => financialAccount.id, { onDelete: "cascade" }),
@@ -148,10 +141,6 @@ export const financialTransfer = pgTable(
       .references(() => financialAccount.id, { onDelete: "cascade" }),
     sourceAmount: money("source_amount").notNull(),
     transactionDate: date("transaction_date", { mode: "string" }).notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
   },
   (table) => [
     check(
@@ -187,11 +176,11 @@ export const financialTransaction = pgTable(
       .notNull()
       .references(() => financialAccount.id, { onDelete: "cascade" }),
     amount: money("amount").notNull(),
-    archivedAt: timestamp("archived_at"),
+    archivedAt: timestamptz("archived_at"),
     categoryId: uuid("category_id").references(() => category.id, {
       onDelete: "cascade",
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    ...timestamps(),
     currencyCode: text("currency_code")
       .notNull()
       .references(() => currency.code, { onDelete: "restrict" }),
@@ -225,10 +214,6 @@ export const financialTransaction = pgTable(
       onDelete: "cascade",
     }),
     transferSide: transferSideEnum("transfer_side"),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
   },
   (table) => [
     index("financial_transaction_organization_date_idx").on(
@@ -307,7 +292,7 @@ export const financialTransactionSplit = pgTable(
 export const financialTransactionAttachment = pgTable(
   "financial_transaction_attachment",
   {
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamptz("created_at").defaultNow().notNull(),
     fileId: uuid("file_id")
       .notNull()
       .references(() => file.id, { onDelete: "cascade" }),

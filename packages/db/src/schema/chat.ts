@@ -4,12 +4,12 @@ import {
   pgTable,
   primaryKey,
   text,
-  timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
 import { organization, user } from "./auth";
+import { timestamptz } from "./columns";
 import { financialTransaction } from "./transactions";
 
 /**
@@ -29,9 +29,9 @@ export const chatLinkCode = pgTable(
   "chat_link_code",
   {
     codeHash: text("code_hash").notNull(),
-    consumedAt: timestamp("consumed_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
+    consumedAt: timestamptz("consumed_at"),
+    createdAt: timestamptz("created_at").defaultNow().notNull(),
+    expiresAt: timestamptz("expires_at").notNull(),
     id: uuid("id")
       .primaryKey()
       .default(sql`uuidv7()`),
@@ -61,7 +61,7 @@ export const chatLink = pgTable(
   "chat_link",
   {
     channel: text("channel", { enum: chatChannels }).notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamptz("created_at").defaultNow().notNull(),
     /** Display only, as of linking, e.g. `@mj`; names change. */
     externalName: text("external_name"),
     /** Text, not a number: Discord snowflakes overflow a JS number. */
@@ -99,8 +99,8 @@ export const chatInboundMessage = pgTable(
     channel: text("channel", { enum: chatChannels }).notNull(),
     /** The channel's own id for the delivery, e.g. Telegram's `update_id`. */
     messageId: text("message_id").notNull(),
-    processedAt: timestamp("processed_at"),
-    receivedAt: timestamp("received_at").defaultNow().notNull(),
+    processedAt: timestamptz("processed_at"),
+    receivedAt: timestamptz("received_at").defaultNow().notNull(),
     transactionId: uuid("transaction_id").references(
       () => financialTransaction.id,
       { onDelete: "set null" }

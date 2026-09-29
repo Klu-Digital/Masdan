@@ -315,7 +315,7 @@ export const getNetWorthHistory = async (
 
   const pointDate = sql`points.point_date`;
   const interval = BUCKET_INTERVALS[granularity];
-  const archivedLocalDate = sql`(${financialAccount.archivedAt} at time zone 'UTC' at time zone ${period.timezone})::date`;
+  const archivedLocalDate = sql`(${financialAccount.archivedAt} at time zone ${period.timezone})::date`;
   const postings = balancePostings(pointDate) ?? sql`false`;
   const accountFilter =
     and(

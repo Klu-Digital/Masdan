@@ -4,20 +4,20 @@ import {
   integer,
   pgTable,
   text,
-  timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
 import { organization } from "./auth";
+import { timestamps, timestamptz } from "./columns";
 
 /** Household-owned transaction classification; archive instead of delete. */
 export const category = pgTable(
   "category",
   {
-    archivedAt: timestamp("archived_at"),
+    archivedAt: timestamptz("archived_at"),
     color: text("color").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    ...timestamps(),
     icon: text("icon").notNull(),
     id: uuid("id")
       .primaryKey()
@@ -28,10 +28,6 @@ export const category = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     sortOrder: integer("sort_order").default(0).notNull(),
     type: text("type").notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
   },
   (table) => [
     index("category_organization_archived_idx").on(

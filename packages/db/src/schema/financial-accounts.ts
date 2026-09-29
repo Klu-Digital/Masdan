@@ -4,32 +4,29 @@ import {
   check,
   date,
   index,
-  numeric,
   pgTable,
   smallint,
   text,
-  timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
 import { member, organization } from "./auth";
+import { money, timestamps, timestamptz } from "./columns";
 import { currency } from "./finance";
-
-const money = (name: string) => numeric(name, { precision: 30, scale: 6 });
 
 export const financialAccount = pgTable(
   "financial_account",
   {
     accountClass: text("account_class").notNull(),
     accountType: text("account_type").notNull(),
-    archivedAt: timestamp("archived_at"),
+    archivedAt: timestamptz("archived_at"),
     cardLastFour: text("card_last_four"),
     cardNetwork: text("card_network"),
     // A catalog key, not a foreign key: catalog edits never need a migration.
     cardProductKey: text("card_product_key"),
     color: text("color"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    ...timestamps(),
     creditLimit: money("credit_limit"),
     currencyCode: text("currency_code")
       .notNull()
@@ -52,10 +49,6 @@ export const financialAccount = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     paymentDueDay: smallint("payment_due_day"),
     statementClosingDay: smallint("statement_closing_day"),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
   },
   (table) => [
     index("financial_account_organization_archived_idx").on(
@@ -76,7 +69,7 @@ export const creditCardStatement = pgTable(
     accountId: uuid("account_id")
       .notNull()
       .references(() => financialAccount.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    ...timestamps(),
     dueDate: date("due_date", { mode: "string" }),
     id: uuid("id")
       .primaryKey()
@@ -89,10 +82,6 @@ export const creditCardStatement = pgTable(
     periodStart: date("period_start", { mode: "string" }).notNull(),
     statementBalance: money("statement_balance").notNull(),
     statementDate: date("statement_date", { mode: "string" }).notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
   },
   (table) => [
     check(
@@ -117,7 +106,7 @@ export const creditCardStatement = pgTable(
 export const financialAccountOwner = pgTable(
   "financial_account_owner",
   {
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamptz("created_at").defaultNow().notNull(),
     financialAccountId: uuid("financial_account_id")
       .notNull()
       .references(() => financialAccount.id, { onDelete: "cascade" }),
@@ -144,7 +133,7 @@ export const financialAccountBalanceSnapshot = pgTable(
       .notNull()
       .references(() => financialAccount.id, { onDelete: "cascade" }),
     balance: money("balance").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamptz("created_at").defaultNow().notNull(),
     effectiveDate: date("effective_date", { mode: "string" }).notNull(),
     id: uuid("id")
       .primaryKey()
