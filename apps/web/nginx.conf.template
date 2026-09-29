@@ -4,7 +4,7 @@
 # untouched — do not add a plain `${...}` here expecting it to stay literal.
 
 server {
-    listen 80;
+    listen 8080;
     server_name _;
     root /usr/share/nginx/html;
     index index.html;
@@ -30,12 +30,9 @@ server {
     add_header Cross-Origin-Opener-Policy "same-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()" always;
 
-    # HSTS is only meaningful over TLS and browsers ignore it over plain HTTP, so
-    # it is safe to send unconditionally. It is commented out regardless: this
-    # container is normally behind a proxy that terminates TLS and should own the
-    # header, and a stray `includeSubDomains` on an apex domain is a painful,
-    # slow thing to undo. Uncomment when nginx is the edge.
-    # add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
+    # The same value the API sends on /api/auth and /rpc (Hono's default), so the
+    # origin carries one policy. Browsers ignore it over plain HTTP.
+    add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
 
     # CSP_CONNECT_SRC (spelled without braces here so envsubst leaves the comment
     # alone) carries the origins the SPA talks to that are not its own. Since the
@@ -97,10 +94,10 @@ server {
         # payload.
         proxy_buffering off;
 
-        # Above STORAGE_MAX_UPLOAD_BYTES' 25MiB default. File *contents* never
-        # come through here — presigned PUTs go straight to the bucket — but the
-        # default 1m is low enough to bite an ordinary large mutation.
-        client_max_body_size 32m;
+        # Just above the server's own 1MiB limit (RPC_MAX_BODY_BYTES in
+        # apps/server/src/orpc.ts), so the client gets the server's 413 rather
+        # than nginx's HTML one. File contents never come through here.
+        client_max_body_size 2m;
 
         add_header X-Content-Type-Options "nosniff" always;
     }
@@ -122,6 +119,7 @@ server {
 
     location /assets/ {
         add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-Frame-Options "DENY" always;
         add_header Referrer-Policy "strict-origin-when-cross-origin" always;

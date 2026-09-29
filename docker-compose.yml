@@ -7,7 +7,8 @@ services:
       dockerfile: apps/web/Dockerfile
     init: true
     ports:
-      - "${WEB_PORT:-2600}:80"
+      # 8080 inside: the unprivileged nginx image cannot bind 80.
+      - "${WEB_PORT:-2600}:8080"
     env_file:
       - path: apps/web/.env
         required: false
@@ -23,15 +24,10 @@ services:
       # Note the port is ${SERVER_PORT}, not a fixed 1900: the server binds
       # PORT to that same variable, so it moves the container-internal port too.
       SERVER_UPSTREAM: http://server:${SERVER_PORT:-1900}
+    # Healthchecks for web, server and workers live in their Dockerfiles.
     depends_on:
       server:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:80/"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
     restart: unless-stopped
 
   server:
@@ -39,14 +35,15 @@ services:
       context: .
       dockerfile: apps/server/Dockerfile
     init: true
-    ports:
-      - "${SERVER_PORT:-1900}:${SERVER_PORT:-1900}"
+    # No published port: as in production, the API is reached only through the
+    # web container's proxy.
     env_file:
       - path: apps/server/.env
         required: false
     environment:
       PORT: ${SERVER_PORT:-1900}
-      BETTER_AUTH_URL: http://localhost:${SERVER_PORT:-1900}
+      # The browser's origin, since auth goes through the web proxy.
+      BETTER_AUTH_URL: http://localhost:${WEB_PORT:-2600}
       CORS_ORIGIN: http://localhost:${WEB_PORT:-2600}
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/masdan
       # Server -> bucket, over the compose network.
@@ -62,18 +59,6 @@ services:
       # public-endpoint twin here — nothing about Redis is ever handed to a
       # browser, so no client-reachable host needs to be baked into anything.
       REDIS_URL: redis://redis:6379
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://localhost:${SERVER_PORT:-1900}/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,7 +69,7 @@ services:
     restart: unless-stopped
 
   # Consumes the job queue. No ports published: the HTTP server it runs exists
-  # only for the healthcheck below and for Prometheus to scrape from inside the
+  # only for the image's healthcheck and for Prometheus to scrape from inside the
   # compose network.
   workers:
     build:
@@ -105,18 +90,6 @@ services:
       S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
       S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       S3_FORCE_PATH_STYLE: "true"
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://localhost:${WORKERS_PORT:-1901}/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
     depends_on:
       postgres:
         condition: service_healthy

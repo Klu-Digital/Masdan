@@ -19,8 +19,8 @@ On a terminal it prompts for the password (leave it empty to generate one).
 Without one, e.g. \`docker exec\` without -t, it generates a password and prints
 it once.
 
-Inside the server image, which has no pnpm:
-  cd /app/packages/db && ./node_modules/.bin/tsx src/dev-scripts/reset-password/cli.ts <email>
+Inside the server image (Dokploy's terminal or \`docker exec\`), the same
+command runs the bundled copy.
 `;
 
 const generatePassword = (): string => randomBytes(18).toString("base64url");

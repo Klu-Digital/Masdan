@@ -6,11 +6,14 @@
 # `docker buildx imagetools inspect <tag>`. The Node major must stay in step with
 # .github/actions/setup-workspace/action.yml.
 FROM node:24@sha256:6dac556d980b7f0e5498d08f08cee0ca67798b4ad6c23964a9214920e67758d0 AS builder
-RUN npm install -g pnpm@11
 WORKDIR /app
+# The pnpm version comes from `packageManager`, so package.json stays the one
+# place it is bumped — the same one CI's pnpm/action-setup reads.
+COPY package.json ./
+RUN npm install -g "pnpm@$(node -p "require('./package.json').packageManager.split('@')[1]")"
 
 COPY . .
-RUN --mount=type=cache,target=/pnpm-store pnpm install --store-dir /pnpm-store
+RUN --mount=type=cache,target=/pnpm-store pnpm install --frozen-lockfile --store-dir /pnpm-store
 
 # Defaults to same-origin, which is what makes this image environment-agnostic:
 # "/" resolves against window.location.origin at runtime, so one build promotes
@@ -21,7 +24,8 @@ ENV VITE_SERVER_URL=${VITE_SERVER_URL}
 ENV NODE_ENV=production
 RUN cd apps/web && pnpm run build
 
-FROM nginx:alpine@sha256:72ba65eb42c10344912a84ff42408db7d34f2feb642204570ab8fc5ffd29f1d3 AS runner
+# The unprivileged variant runs as uid 101 and so listens on 8080, not 80.
+FROM nginxinc/nginx-unprivileged:alpine@sha256:26b0bf6fbf07297983cb341998d79c831508787de26627dd2a112321b9c3a4af AS runner
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 # Not conf.d: the nginx image renders everything in /etc/nginx/templates through
 # envsubst into /etc/nginx/conf.d on startup, which is how ${CSP_CONNECT_SRC}
@@ -37,5 +41,9 @@ ENV CSP_CONNECT_SRC=""
 # CSP an empty upstream is simply a broken proxy, so the default is the compose
 # service name rather than "".
 ENV SERVER_UPSTREAM="http://server:1900"
-EXPOSE 80
+EXPOSE 8080
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
+  CMD ["wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+
 CMD ["nginx", "-g", "daemon off;"]

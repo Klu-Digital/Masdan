@@ -14,6 +14,10 @@ import type {
   Hono,
   MiddlewareHandler,
 } from "hono";
+import { bodyLimit } from "hono/body-limit";
+
+/** Every RPC input is small: file contents go straight to the bucket. */
+const RPC_MAX_BODY_BYTES = 1024 * 1024;
 
 const logOrpcError = (error: unknown) => {
   const { message, code, status } = parseError(error);
@@ -33,15 +37,6 @@ const remoteAddressOf = (
     return undefined;
   }
 };
-
-const apiHandler = new OpenAPIHandler(appRouter, {
-  interceptors: [onError(logOrpcError)],
-  plugins: [
-    new OpenAPIReferencePlugin({
-      schemaConverters: [new ZodToJsonSchemaConverter()],
-    }),
-  ],
-});
 
 const rpcHandler = new RPCHandler(appRouter, {
   interceptors: [onError(logOrpcError)],
@@ -81,7 +76,32 @@ const mount = (
   app.use(`${prefix}/*`, middleware);
 };
 
-export const mountOrpc = (app: Hono<EvlogVariables>) => {
+const rpcBodyLimit = bodyLimit({
+  maxSize: RPC_MAX_BODY_BYTES,
+  onError: (c) => c.json({ message: "Request body too large" }, 413),
+});
+
+export const mountOrpc = (
+  app: Hono<EvlogVariables>,
+  options: { apiReference: boolean }
+) => {
+  app.use("/rpc", rpcBodyLimit);
+  app.use("/rpc/*", rpcBodyLimit);
   mount(app, "/rpc", rpcHandler);
-  mount(app, "/api-reference", apiHandler);
+
+  // A full REST surface over every procedure, so production does not get one.
+  if (options.apiReference) {
+    mount(
+      app,
+      "/api-reference",
+      new OpenAPIHandler(appRouter, {
+        interceptors: [onError(logOrpcError)],
+        plugins: [
+          new OpenAPIReferencePlugin({
+            schemaConverters: [new ZodToJsonSchemaConverter()],
+          }),
+        ],
+      })
+    );
+  }
 };

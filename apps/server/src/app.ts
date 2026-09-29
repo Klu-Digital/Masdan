@@ -56,7 +56,7 @@ export const createApp = () => {
 
   app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
-  mountOrpc(app);
+  mountOrpc(app, { apiReference: env.NODE_ENV !== "production" });
 
   return app;
 };

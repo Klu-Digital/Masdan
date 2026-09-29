@@ -14,6 +14,8 @@ for turning an existing account into the first platform admin.
 
 The local seeder (packages/db/src/dev-scripts/seed/seeders/users.ts) already
 creates an admin account, so a freshly seeded database needs no run of this.
+
+Inside the server image, the same command runs the bundled copy.
 `;
 
 const main = async (): Promise<void> => {

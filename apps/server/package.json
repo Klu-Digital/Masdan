@@ -1,8 +1,13 @@
 {
   "name": "server",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
+    "admin:grant": "node dist/admin/grant.mjs",
+    "admin:reset-password": "node dist/admin/reset-password.mjs",
     "build": "tsdown",
     "check-types": "tsc -b",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
@@ -12,13 +17,6 @@
   "dependencies": {
     "@hono/node-server": "^2.0.12",
     "@hono/prometheus": "catalog:",
-    "@masdan/api": "workspace:*",
-    "@masdan/auth": "workspace:*",
-    "@masdan/db": "workspace:*",
-    "@masdan/env": "workspace:*",
-    "@masdan/observability": "workspace:*",
-    "@masdan/queue": "workspace:*",
-    "@masdan/redis": "workspace:*",
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
@@ -30,7 +28,14 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@masdan/api": "workspace:*",
+    "@masdan/auth": "workspace:*",
     "@masdan/config": "workspace:*",
+    "@masdan/db": "workspace:*",
+    "@masdan/env": "workspace:*",
+    "@masdan/observability": "workspace:*",
+    "@masdan/queue": "workspace:*",
+    "@masdan/redis": "workspace:*",
     "@masdan/testing": "workspace:*",
     "@orpc/client": "catalog:",
     "@types/node": "catalog:",

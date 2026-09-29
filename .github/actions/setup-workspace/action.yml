@@ -7,11 +7,11 @@ runs:
     # No `version` input on purpose: the action reads `packageManager` out of
     # package.json, so the pnpm version CI uses is the one the repo pins and
     # there is no second place to bump.
-    - uses: pnpm/action-setup@v6
+    - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
     # Must come after pnpm/action-setup — `cache: pnpm` needs the pnpm binary on
     # PATH to resolve the store directory.
-    - uses: actions/setup-node@v7
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
         node-version: 24
         cache: pnpm

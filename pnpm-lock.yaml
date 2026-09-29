@@ -314,27 +314,6 @@ importers:
       '@hono/prometheus':
         specifier: 'catalog:'
         version: 1.0.3(hono@4.13.5)(prom-client@15.1.3)
-      '@masdan/api':
-        specifier: workspace:*
-        version: link:../../packages/api
-      '@masdan/auth':
-        specifier: workspace:*
-        version: link:../../packages/auth
-      '@masdan/db':
-        specifier: workspace:*
-        version: link:../../packages/db
-      '@masdan/env':
-        specifier: workspace:*
-        version: link:../../packages/env
-      '@masdan/observability':
-        specifier: workspace:*
-        version: link:../../packages/observability
-      '@masdan/queue':
-        specifier: workspace:*
-        version: link:../../packages/queue
-      '@masdan/redis':
-        specifier: workspace:*
-        version: link:../../packages/redis
       '@orpc/openapi':
         specifier: 'catalog:'
         version: 1.15.0(@opentelemetry/api@1.9.1)(ws@8.21.3)
@@ -363,9 +342,30 @@ importers:
         specifier: 'catalog:'
         version: 4.5.4
     devDependencies:
+      '@masdan/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@masdan/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@masdan/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@masdan/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@masdan/env':
+        specifier: workspace:*
+        version: link:../../packages/env
+      '@masdan/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@masdan/queue':
+        specifier: workspace:*
+        version: link:../../packages/queue
+      '@masdan/redis':
+        specifier: workspace:*
+        version: link:../../packages/redis
       '@masdan/testing':
         specifier: workspace:*
         version: link:../../packages/testing
@@ -499,24 +499,6 @@ importers:
       '@hono/prometheus':
         specifier: 'catalog:'
         version: 1.0.3(hono@4.13.5)(prom-client@15.1.3)
-      '@masdan/api':
-        specifier: workspace:*
-        version: link:../../packages/api
-      '@masdan/db':
-        specifier: workspace:*
-        version: link:../../packages/db
-      '@masdan/env':
-        specifier: workspace:*
-        version: link:../../packages/env
-      '@masdan/observability':
-        specifier: workspace:*
-        version: link:../../packages/observability
-      '@masdan/queue':
-        specifier: workspace:*
-        version: link:../../packages/queue
-      '@masdan/storage':
-        specifier: workspace:*
-        version: link:../../packages/storage
       dotenv:
         specifier: 'catalog:'
         version: 17.4.2
@@ -533,9 +515,27 @@ importers:
         specifier: 'catalog:'
         version: 4.5.4
     devDependencies:
+      '@masdan/api':
+        specifier: workspace:*
+        version: link:../../packages/api
       '@masdan/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@masdan/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@masdan/env':
+        specifier: workspace:*
+        version: link:../../packages/env
+      '@masdan/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@masdan/queue':
+        specifier: workspace:*
+        version: link:../../packages/queue
+      '@masdan/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@masdan/testing':
         specifier: workspace:*
         version: link:../../packages/testing

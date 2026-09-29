@@ -51,7 +51,7 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Turn an input SHA into three verified image references. Read-only, and
+  # Turn an input SHA into four verified image references. Read-only, and
   # deliberately NOT environment-scoped so that a bad input fails before a
   # production reviewer is asked to approve anything.
   # ---------------------------------------------------------------------------
@@ -68,6 +68,7 @@ jobs:
       web: ${{ steps.resolve.outputs.web }}
       server: ${{ steps.resolve.outputs.server }}
       workers: ${{ steps.resolve.outputs.workers }}
+      migrate: ${{ steps.resolve.outputs.migrate }}
       digests: ${{ steps.resolve.outputs.digests }}
     steps:
       - name: Log in to Container Registry
@@ -99,7 +100,7 @@ jobs:
           repo=$(echo "$REPOSITORY" | tr '[:upper:]' '[:lower:]')
 
           digests=""
-          for app in web server workers; do
+          for app in web server workers migrate; do
             ref="${REGISTRY}/${repo}/${app}:${tag}"
             # The verification that makes promotion safe: if this SHA was never
             # built (wrong branch, a force-push that orphaned the commit, a
@@ -155,16 +156,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Run the migrations out of the image being deployed, not out of a fresh
-      # checkout. apps/server/Dockerfile does `COPY --from=builder /app /app` —
-      # the whole workspace, dev dependencies included — so drizzle-kit, tsx and
-      # packages/db/src/migrations are all already inside the artifact. Using
-      # them makes it structurally impossible to apply a migration set from a
-      # different commit than the code that expects it.
-      #
-      # Binaries are invoked directly because the runner stage has no pnpm:
-      # `npm install -g pnpm` happens in the builder stage, which writes to
-      # /usr/local, and only /app is copied forward.
+      # Run the migrations out of the release's migrate image, not out of a
+      # fresh checkout. It is the server Dockerfile's `migrate` target: the whole
+      # workspace from the same build, dev dependencies included, so drizzle-kit,
+      # tsx and packages/db/src/migrations are all inside it. That makes it
+      # structurally impossible to apply a migration set from a different commit
+      # than the code that expects it. The server image itself carries production
+      # dependencies only and cannot run these.
       #
       # Consider putting a lock timeout on the migration connection so a DDL
       # statement queued behind a long-running transaction fails fast instead of
@@ -172,28 +170,27 @@ jobs:
       #   DATABASE_URL=postgres://...?options=-c%20lock_timeout%3D15s
       - name: Apply Drizzle migrations
         env:
-          SERVER_IMAGE: ${{ needs.resolve.outputs.server }}
+          MIGRATE_IMAGE: ${{ needs.resolve.outputs.migrate }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail
           docker run --rm --network host \
             --workdir /app/packages/db \
             -e DATABASE_URL \
-            "$SERVER_IMAGE" \
+            "$MIGRATE_IMAGE" \
             node_modules/.bin/drizzle-kit migrate
 
       # pg-boss owns its own schema (PGBOSS_SCHEMA, default "pgboss") and
       # migrates it separately. Calling pg-boss's binary directly rather than
-      # `queue:migrate`, because that script shells out to `pnpm exec pg-boss`
-      # and pnpm is not in the runner image — its only other job is to set the
-      # two variables below out of the validated env.
+      # `queue:migrate`, whose only other job is to set the two variables below
+      # out of the validated env.
       #
       # Worth sequencing deliberately: apps/workers holds long-lived connections
       # to this schema. A pg-boss schema migration with old workers still
       # attached is the one step here that benefits from draining them first.
       - name: Apply pg-boss schema migrations
         env:
-          SERVER_IMAGE: ${{ needs.resolve.outputs.server }}
+          MIGRATE_IMAGE: ${{ needs.resolve.outputs.migrate }}
           PGBOSS_DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PGBOSS_SCHEMA: ${{ vars.PGBOSS_SCHEMA || 'pgboss' }}
         run: |
@@ -201,7 +198,7 @@ jobs:
           docker run --rm --network host \
             --workdir /app/packages/queue \
             -e PGBOSS_DATABASE_URL -e PGBOSS_SCHEMA \
-            "$SERVER_IMAGE" \
+            "$MIGRATE_IMAGE" \
             node_modules/.bin/pg-boss migrate
 
   # ---------------------------------------------------------------------------
@@ -346,7 +343,7 @@ jobs:
       # server's Better Auth or CORS settings.
       - name: Run pending post-migration scripts
         env:
-          SERVER_IMAGE: ${{ needs.resolve.outputs.server }}
+          MIGRATE_IMAGE: ${{ needs.resolve.outputs.migrate }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PGBOSS_SCHEMA: ${{ vars.PGBOSS_SCHEMA || 'pgboss' }}
           SERVICE_NAME: masdan-post-migrate
@@ -356,7 +353,7 @@ jobs:
             --workdir /app/packages/db \
             -e NODE_ENV=production \
             -e DATABASE_URL -e PGBOSS_SCHEMA -e SERVICE_NAME \
-            "$SERVER_IMAGE" \
+            "$MIGRATE_IMAGE" \
             node_modules/.bin/tsx src/dev-scripts/post-migrate/cli.ts run
 
   # ---------------------------------------------------------------------------

@@ -74,6 +74,8 @@ These are the ones that cost real time to rediscover. The README carries the ful
 
 **A route's `head()` title is its breadcrumb.** `AppBreadcrumbs` builds the trail from the matched routes' `head()` meta titles, so naming a screen for the tab names it in the breadcrumb too, and there is no second table of paths to keep in sync. A route with no title contributes no crumb; the root's title is the product name and is skipped. For a dynamic segment, `head({ loaderData })` reads the record — which means the route needs a `loader`, and **`loader` must be written above `head`** or TypeScript infers `loaderData` as `never`. That ordering is why `users.$userId.tsx` and `organizations.$organizationId.tsx` carry an `oxlint-disable sort-keys`.
 
+**The runtime images carry production dependencies only.** The server and workers images are `pnpm deploy --prod` output plus the bundle, so there is no tsx, drizzle-kit or workspace source in them. Migrations and post-migration scripts run from the server Dockerfile's `migrate` target; the admin CLIs are bundled into `apps/server/dist/admin/` for the same reason. A new operational command that needs a dev dependency belongs in the migrate image, not the runtime one.
+
 **Presigned uploads bypass the server's CORS config.** The browser PUTs straight to the bucket, so the _bucket_ must allow the web origin, and the SPA's CSP `connect-src` must include the storage endpoint (`CSP_CONNECT_SRC` in `apps/web/nginx.conf.template`). `S3_ENDPOINT` and `S3_PUBLIC_ENDPOINT` are not the same thing.
 
 ## Writing code here

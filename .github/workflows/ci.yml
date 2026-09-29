@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-workspace
       # lefthook runs ultracite over *staged* files only, so this is the only
       # thing that ever looks at the whole repo.
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-workspace
       # Deliberately separate from `pnpm check` — ultracite runs with
       # typeAware/typeCheck off, so nothing else in CI reads a type error. This
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-workspace
       # Two steps rather than one so a failure names the vitest project. Both are
       # I/O-free (node + jsdom), which is why they run apart from test-db below.
@@ -80,7 +80,7 @@ jobs:
     # drizzle-kit migrate against the template database before the first test.
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-workspace
       # Note: no TESTCONTAINERS_REUSE_ENABLE. Runners are ephemeral, so reuse
       # buys nothing, and the setup files' unconditional container.stop()
@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-workspace
       # `tsc -b` type-checks apps/server and apps/workers but never bundles
       # them, so a tsdown/rolldown failure would otherwise surface for the first
@@ -108,7 +108,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-workspace
       # Offline: `generate` diffs the schema against the committed snapshots and
       # never opens a connection, so no DATABASE_URL is needed. stdin is closed

@@ -1,7 +1,7 @@
 name: Release
 run-name: Release • ${{ github.sha }}
 
-# Builds the three deployable images once, then hands the resulting commit SHA to
+# Builds the deployable images once, then hands the resulting commit SHA to
 # deploy.yml for staging. Production is the SAME artifact, deployed later by
 # dispatching deploy.yml with this SHA — nothing is ever rebuilt for an
 # environment. That is only legal because the images are environment-agnostic:
@@ -38,10 +38,23 @@ jobs:
       contents: read
       packages: write
     strategy:
-      # All three are independent; one failing should not hide the other two.
+      # The builds are independent; one failing should not hide the others.
       fail-fast: false
       matrix:
-        app: [web, server, workers]
+        # `migrate` is the server Dockerfile's migrate target: the full
+        # workspace, dev tools included, that deploy.yml runs migrations from.
+        # The runtime images carry production dependencies only.
+        include:
+          - app: web
+            dockerfile: apps/web/Dockerfile
+          - app: server
+            dockerfile: apps/server/Dockerfile
+            target: runner
+          - app: workers
+            dockerfile: apps/workers/Dockerfile
+          - app: migrate
+            dockerfile: apps/server/Dockerfile
+            target: migrate
     env:
       # Read at step level to decide whether the source-map upload runs. A
       # job-level `if:` cannot see `secrets`, and a step-level `if:` cannot
@@ -92,7 +105,8 @@ jobs:
         uses: useblacksmith/build-push-action@9b0579bbec7a6cad2f171596c57e7ac1e7658850 # v2.3.0
         with:
           context: .
-          file: ./apps/${{ matrix.app }}/Dockerfile
+          file: ./${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -122,7 +136,7 @@ jobs:
           ref="${IMAGE}:sha-${GITHUB_SHA::7}"
           docker pull "$ref"
           cid=$(docker create "$ref")
-          docker cp "$cid:/app/apps/server/dist" ./server-dist
+          docker cp "$cid:/app/dist" ./server-dist
           docker rm "$cid" >/dev/null
           if compgen -G "./server-dist/*.map" > /dev/null; then
             echo "found=true" >> "$GITHUB_OUTPUT"

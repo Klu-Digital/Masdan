@@ -1,5 +1,8 @@
 {
   "name": "workers",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
@@ -11,12 +14,6 @@
   "dependencies": {
     "@hono/node-server": "^2.0.12",
     "@hono/prometheus": "catalog:",
-    "@masdan/api": "workspace:*",
-    "@masdan/db": "workspace:*",
-    "@masdan/env": "workspace:*",
-    "@masdan/observability": "workspace:*",
-    "@masdan/queue": "workspace:*",
-    "@masdan/storage": "workspace:*",
     "dotenv": "catalog:",
     "evlog": "catalog:",
     "hono": "catalog:",
@@ -24,7 +21,13 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@masdan/api": "workspace:*",
     "@masdan/config": "workspace:*",
+    "@masdan/db": "workspace:*",
+    "@masdan/env": "workspace:*",
+    "@masdan/observability": "workspace:*",
+    "@masdan/queue": "workspace:*",
+    "@masdan/storage": "workspace:*",
     "@masdan/testing": "workspace:*",
     "@types/node": "catalog:",
     "drizzle-orm": "catalog:",

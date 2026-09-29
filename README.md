@@ -189,6 +189,10 @@ If you want to add app-specific blocks instead of shared primitives, run the sha
 
 Environment variables are read from each app's `.env` file (baked into web builds for public variables) and overridden in `docker-compose.yml` for container networking.
 
+The stack mirrors production: only the web container publishes a port (`WEB_PORT`, container port 8080, because the unprivileged nginx image cannot bind 80), and the API is reached through its proxy. All three images run as non-root users and declare their own `HEALTHCHECK`.
+
+The server and workers images hold only production dependencies and the bundle. Migrations and post-migration scripts need drizzle-kit and tsx, so `deploy.yml` runs them from the server Dockerfile's `migrate` target, which `release.yml` builds and pushes as a fourth image.
+
 The web image serves the SPA through nginx using `apps/web/nginx.conf.template`, which is rendered at container start so the CSP can name this deployment's storage origin — see [Security headers](#security-headers).
 
 ### The web image is environment-agnostic
@@ -197,7 +201,7 @@ The web image serves the SPA through nginx using `apps/web/nginx.conf.template`,
 
 Three consequences worth knowing:
 
-- **The API needs no public hostname.** It is reachable only through the web origin. `/api-reference` and the Prometheus metrics path are deliberately _not_ proxied, so they stay private.
+- **The API needs no public hostname.** It is reachable only through the web origin. `/api-reference` and the Prometheus metrics path are deliberately _not_ proxied, so they stay private. `/api-reference` is not mounted at all when `NODE_ENV=production`.
 - **Set `TRUST_PROXY_HEADERS=true` wherever a proxy sits in front.** `packages/api/src/client-ip.ts` reads the first hop of `x-forwarded-for` for rate limiting; without the flag every caller is identified by the proxy's address instead. nginx appends to the chain rather than replacing it, so an upstream proxy's value survives.
 - **`SERVER_UPSTREAM` goes through a resolver on purpose.** A hostname written literally into `proxy_pass` is resolved once at nginx startup and cached for the process's life, so recreating the API container would leave nginx posting at an address nothing answers on. The variable-plus-`resolver` form re-resolves per request.
 
@@ -227,7 +231,7 @@ Two things that bite:
 - **`connect-src` needs the object storage endpoint.** The API is same-origin — `'self'` covers it — but uploads go straight from the browser to a presigned URL, so omitting the bucket breaks uploads and nothing else, a confusing way to find out. `docker-compose.yml` sets it for the local stack.
 - **Unsetting `CSP_CONNECT_SRC` is not the same as setting it empty.** envsubst only substitutes variables that exist in the environment, so an unset one stays literal, and nginx then reads `$CSP_CONNECT_SRC` as one of its own variables and refuses to start: `unknown "csp_connect_src" variable`. The Dockerfile's `ENV CSP_CONNECT_SRC=""` is what keeps that from happening. Failing loudly at boot beats shipping a policy with a hole in it.
 
-HSTS is commented out in the nginx config on purpose: this container normally sits behind a proxy that terminates TLS and should own the header, and a stray `includeSubDomains` on an apex domain is slow and painful to undo. Uncomment it when nginx is the edge.
+nginx sends the same `Strict-Transport-Security` value as the API (`max-age=15552000; includeSubDomains`), so the origin has one policy whether a response came from nginx or was proxied. Mind `includeSubDomains` before serving Masdan on an apex domain whose subdomains are not all on HTTPS: it is slow and painful to undo.
 
 ### Session cookie attributes
 
@@ -406,7 +410,7 @@ Masdan is self-hosted and **sends no email**. Recovery is admin-driven, with she
 - **Sign-up is closed by default.** The first account on an empty database bootstraps the instance and becomes platform admin (`user.role = "admin"`). After that, only someone holding a household invite link can create an account. Set `ALLOW_SIGNUP=true` to open it.
 - **Invitations are links.** An invitation's email is only a label. The inviter copies the link from household settings and sends it themselves, and whoever holds it can join with the invited role until it expires or is cancelled. Accepting goes through `invitations.accept`; better-auth's email-matched invitation endpoints are blocked.
 - **A platform admin resets passwords** from `/admin/users/<id>` → Password. That creates a one-time link, valid for 24 hours, which the admin hands over out of band. Completing it signs the user out everywhere.
-- **A locked-out lone admin uses the CLI:** `pnpm admin:reset-password <email>` prompts for a new password (empty generates one) and revokes the account's sessions. The server image has no pnpm, so inside the container run `cd /app/packages/db && ./node_modules/.bin/tsx src/dev-scripts/reset-password/cli.ts <email>`. `pnpm admin:grant <email>` makes an existing account platform admin the same way.
+- **A locked-out lone admin uses the CLI:** `pnpm admin:reset-password <email>` prompts for a new password (empty generates one) and revokes the account's sessions. The same command works inside the server container (Dokploy's terminal or `docker exec`), where it runs a bundled copy. `pnpm admin:grant <email>` makes an existing account platform admin the same way, locally or in the container.
 - **Forgot password** still works as a fallback for whoever runs the server: the reset link is written to the server's raw stdout (`docker logs`), never to the structured logger.
 
 Things that bite:
