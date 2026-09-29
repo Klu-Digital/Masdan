@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
 import { env } from "@masdan/env/integrations";
-import { log } from "@masdan/observability";
+import { log, parseError } from "@masdan/observability";
 import { z } from "zod";
 
 import type { ChatChannelAdapter, InboundChatMessage } from "../chat.channel";
@@ -140,7 +140,15 @@ export const callTelegram = async (
       signal: AbortSignal.timeout(TELEGRAM_TIMEOUT_MS),
     }
   );
-  const json = (await response.json().catch(() => null)) as {
+  const json = (await response.json().catch((error: unknown) => {
+    log.warn({
+      action: "chat.telegram.response_unreadable",
+      method,
+      ...parseError(error),
+      httpStatus: response.status,
+    });
+    return null;
+  })) as {
     description?: string;
     ok?: boolean;
     result?: unknown;
@@ -231,7 +239,15 @@ export const telegramChannel: ChatChannelAdapter = {
       return Response.json({}, { status: 401 });
     }
 
-    const update = readTelegramUpdate(await request.json().catch(() => null));
+    const body: unknown = await request.json().catch((error: unknown) => {
+      log.warn({
+        action: "chat.webhook.unreadable",
+        channel: "telegram",
+        ...parseError(error),
+      });
+      return null;
+    });
+    const update = readTelegramUpdate(body);
     if (update.kind !== "message") {
       return Response.json({});
     }

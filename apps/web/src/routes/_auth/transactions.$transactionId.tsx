@@ -5,7 +5,7 @@ import { useAppActions } from "@/components/app-actions";
 import { useHousehold } from "@/hooks/use-household";
 import { TransactionInspector } from "@/modules/transactions/components/inspector";
 import { useLedgerActions } from "@/modules/transactions/use-ledger-actions";
-import { householdOrpc } from "@/utils/orpc";
+import { householdOrpc, orNullIfMissing } from "@/utils/orpc";
 
 const routeApi = getRouteApi("/_auth/transactions/$transactionId");
 
@@ -61,19 +61,16 @@ const TransactionDetailRoute = () => {
 export const Route = createFileRoute("/_auth/transactions/$transactionId")({
   component: TransactionDetailRoute,
   // A missing transaction renders its own state inside the inspector.
-  loader: async ({ context, params }) => {
-    try {
-      return await context.queryClient.ensureQueryData(
+  loader: ({ context, params }) =>
+    orNullIfMissing(
+      context.queryClient.ensureQueryData(
         householdOrpc(
           context.activeOrganizationId
         ).transactions.get.queryOptions({
           input: { transactionId: params.transactionId },
         })
-      );
-    } catch {
-      return null;
-    }
-  },
+      )
+    ),
   head: ({ loaderData }) => {
     let title = "Transaction";
     if (loaderData?.transfer) {

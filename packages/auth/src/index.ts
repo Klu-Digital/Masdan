@@ -253,8 +253,11 @@ export const createAuth = () => {
       try {
         await auth.api.checkOrganizationSlug({ body: { slug: candidate } });
         return candidate;
-      } catch {
-        // taken — try the next candidate
+      } catch (error) {
+        // Only better-auth's own "slug taken" answer means try the next one.
+        if (!(error instanceof APIError)) {
+          throw error;
+        }
       }
     }
 

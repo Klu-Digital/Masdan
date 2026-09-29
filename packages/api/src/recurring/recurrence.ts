@@ -1,4 +1,5 @@
 import type { RecurringFrequency } from "@masdan/db/schema/transactions";
+import { ORPCError } from "@orpc/server";
 
 import { householdToday } from "../reports/periods";
 
@@ -214,7 +215,9 @@ export const describeRecurrence = (recurrence: Recurrence): string => {
     }
     default: {
       const unknown: never = recurrence.frequency;
-      throw new Error(`Unknown frequency ${String(unknown)}`);
+      throw new ORPCError("INTERNAL_SERVER_ERROR", {
+        message: `Unknown frequency ${String(unknown)}`,
+      });
     }
   }
 };

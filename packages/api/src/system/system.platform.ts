@@ -1,4 +1,5 @@
 import { env } from "@masdan/env/server";
+import { log, parseError } from "@masdan/observability";
 import { queue } from "@masdan/queue";
 import { redis } from "@masdan/redis";
 import { resolveStorageConfig } from "@masdan/storage";
@@ -42,7 +43,8 @@ export const systemPlatformRouter = {
     try {
       await context.db.execute(sql`select 1`);
       dbLatencyMs = performance.now() - dbStart;
-    } catch {
+    } catch (error) {
+      log.warn({ action: "system.db_ping_failed", ...parseError(error) });
       dbLatencyMs = null;
     }
 
@@ -54,7 +56,8 @@ export const systemPlatformRouter = {
         // never a thrown error.
         const pong = await redis.client()?.ping();
         redisReachable = pong === "PONG";
-      } catch {
+      } catch (error) {
+        log.warn({ action: "system.redis_ping_failed", ...parseError(error) });
         redisReachable = false;
       }
     }

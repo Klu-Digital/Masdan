@@ -34,6 +34,7 @@ const remoteAddressOf = (
   try {
     return getConnInfo(c).remote.address;
   } catch {
+    // No socket to read (tests); the caller treats the address as unknown.
     return undefined;
   }
 };

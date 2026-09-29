@@ -1,4 +1,3 @@
-import { Button } from "@masdan/ui/components/button";
 import { ToastProvider } from "@masdan/ui/components/toast";
 import { TooltipProvider } from "@masdan/ui/components/tooltip";
 import type { QueryClient } from "@tanstack/react-query";
@@ -10,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
+import { RouteError } from "@/components/route-error";
 import { ThemeProvider } from "@/components/theme-provider";
 import { sessionQueryOptions } from "@/lib/session";
 import type { orpc } from "@/utils/orpc";
@@ -41,18 +41,6 @@ const RootComponent = () => (
   </>
 );
 
-const RootErrorComponent = ({ reset }: { reset: () => void }) => (
-  <div className="animate-enter flex min-h-svh flex-col items-center justify-center gap-5 p-6 text-center">
-    <div className="flex max-w-sm flex-col gap-1.5">
-      <h1 className="text-xl font-semibold">Masdan can’t reach the server</h1>
-      <p className="text-muted-foreground text-sm">
-        Check your connection. Nothing you entered has been lost.
-      </p>
-    </div>
-    <Button onClick={reset}>Try again</Button>
-  </div>
-);
-
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   /**
    * Resolved once here: three guards need this answer on a single navigation.
@@ -67,7 +55,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
     }),
   }),
   component: RootComponent,
-  errorComponent: RootErrorComponent,
+  errorComponent: RouteError,
   head: () => ({
     links: [
       {

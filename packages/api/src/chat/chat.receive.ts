@@ -5,6 +5,7 @@ import { env } from "@masdan/env/integrations";
 import { log, parseError } from "@masdan/observability";
 import { queue } from "@masdan/queue";
 import { countHit } from "@masdan/redis";
+import { ORPCError } from "@orpc/server";
 
 import { isFeatureEnabled } from "../feature-flags/feature-flags.cache";
 import { RECEIPT_CONTENT_TYPES } from "../transactions/receipt-entry";
@@ -133,7 +134,9 @@ export const receiveChatMessage = async (
         { tx }
       );
       if (!jobId) {
-        throw new Error("The queue accepted no job");
+        throw new ORPCError("INTERNAL_SERVER_ERROR", {
+          message: "The queue accepted no job",
+        });
       }
       return "enqueued";
     });

@@ -57,6 +57,42 @@ export const errorMessage = (error: unknown): string => {
   return GENERIC_ERROR;
 };
 
+export type FailureKind =
+  | "forbidden"
+  | "not_found"
+  | "unexpected"
+  | "unreachable";
+
+/** Which screen a failed load deserves; decided from the oRPC error code. */
+export const failureKind = (error: unknown): FailureKind => {
+  if (error instanceof ORPCError) {
+    if (error.code === "FORBIDDEN") {
+      return "forbidden";
+    }
+    return error.code === "NOT_FOUND" ? "not_found" : "unexpected";
+  }
+  // `fetch` rejects with a TypeError when the server is unreachable.
+  return error instanceof TypeError ? "unreachable" : "unexpected";
+};
+
+/**
+ * For loaders whose screen renders its own not-found state: only a missing
+ * record becomes `null`, so a 403 or a dead network reaches the error page
+ * instead of reading as "not found".
+ */
+export const orNullIfMissing = async <T>(
+  load: Promise<T>
+): Promise<T | null> => {
+  try {
+    return await load;
+  } catch (error) {
+    if (failureKind(error) === "not_found") {
+      return null;
+    }
+    throw error;
+  }
+};
+
 export const createQueryClient = () =>
   new QueryClient({
     defaultOptions: {

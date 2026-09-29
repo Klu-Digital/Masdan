@@ -1,3 +1,4 @@
+import { ORPCError } from "@orpc/server";
 /**
  * Report periods are calendar days in the household's timezone. Everything
  * here is pure string/UTC arithmetic so the web client can import it too.
@@ -123,7 +124,9 @@ export const presetRange = (
     }
     default: {
       const unknown: never = preset;
-      throw new Error(`Unknown report preset ${String(unknown)}`);
+      throw new ORPCError("INTERNAL_SERVER_ERROR", {
+        message: `Unknown report preset ${String(unknown)}`,
+      });
     }
   }
 };

@@ -3,7 +3,13 @@ import { ORPCError } from "@orpc/client";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { invalidate } from "@/utils/invalidate";
-import { createQueryClient, errorMessage, householdOrpc } from "@/utils/orpc";
+import {
+  createQueryClient,
+  errorMessage,
+  failureKind,
+  householdOrpc,
+  orNullIfMissing,
+} from "@/utils/orpc";
 
 vi.mock("@masdan/ui/components/toast", () => ({
   toastManager: {
@@ -54,6 +60,28 @@ describe("errorMessage", () => {
     expect(errorMessage(new TypeError("Failed to fetch"))).toBe(
       "Can’t reach Masdan. Check your connection."
     );
+  });
+});
+
+describe("failureKind", () => {
+  it("reads the screen from the error code", () => {
+    expect(failureKind(new ORPCError("FORBIDDEN"))).toBe("forbidden");
+    expect(failureKind(new ORPCError("NOT_FOUND"))).toBe("not_found");
+    expect(failureKind(new ORPCError("INTERNAL_SERVER_ERROR"))).toBe(
+      "unexpected"
+    );
+    expect(failureKind(new TypeError("Failed to fetch"))).toBe("unreachable");
+  });
+});
+
+describe("orNullIfMissing", () => {
+  it("turns only a missing record into null", async () => {
+    await expect(
+      orNullIfMissing(Promise.reject(new ORPCError("NOT_FOUND")))
+    ).resolves.toBeNull();
+    await expect(
+      orNullIfMissing(Promise.reject(new ORPCError("FORBIDDEN")))
+    ).rejects.toThrow();
   });
 });
 

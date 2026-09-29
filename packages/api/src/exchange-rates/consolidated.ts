@@ -7,6 +7,7 @@ import {
   financialTransaction,
   householdExchangeRate,
 } from "@masdan/db/schema/index";
+import { ORPCError } from "@orpc/server";
 import { and, eq, inArray, isNull, lte } from "drizzle-orm";
 
 import {
@@ -66,7 +67,9 @@ export const getConsolidatedNetWorth = async (
   ]);
   const minorUnits = currencies[0]?.minorUnits;
   if (minorUnits === undefined) {
-    throw new Error("Household default currency is missing");
+    throw new ORPCError("INTERNAL_SERVER_ERROR", {
+      message: "Household default currency is missing",
+    });
   }
   const codes = [...new Set(balances.map((row) => row.currencyCode))].toSorted(
     (a, b) => {

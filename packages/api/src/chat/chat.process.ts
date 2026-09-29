@@ -336,9 +336,12 @@ const addReceipt = async (
   let bytes: Uint8Array;
   try {
     bytes = await download(source.ref, env.STORAGE_MAX_UPLOAD_BYTES);
-  } catch {
+  } catch (error) {
     await claimMessage(db, job);
-    log.warn({ action: "chat.receipt.download_failed" });
+    log.warn({
+      action: "chat.receipt.download_failed",
+      ...parseError(error),
+    });
     return chatReplies.receiptDownloadFailed;
   }
   if (bytes.byteLength > env.STORAGE_MAX_UPLOAD_BYTES) {
@@ -381,16 +384,22 @@ const addReceipt = async (
   const cleanup = async () => {
     try {
       await storage.deleteObject({ key });
-    } catch {
-      log.warn({ action: "chat.receipt.cleanup_failed" });
+    } catch (error) {
+      log.warn({
+        action: "chat.receipt.cleanup_failed",
+        ...parseError(error),
+      });
     }
   };
   try {
     await storage.putObject({ body: bytes, contentType, key });
-  } catch {
+  } catch (error) {
     await cleanup();
     await claimMessage(db, job);
-    log.warn({ action: "chat.receipt.attach_failed" });
+    log.warn({
+      action: "chat.receipt.attach_failed",
+      ...parseError(error),
+    });
     return chatReplies.receiptAttachFailed;
   }
   try {
