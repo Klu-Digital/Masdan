@@ -11,12 +11,7 @@ import type {
 } from "@masdan/api/imports/mapping";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
-import {
-  Field,
-  FieldError,
-  FieldItem,
-  FieldLabel,
-} from "@masdan/ui/components/field";
+import { Field, FieldItem, FieldLabel } from "@masdan/ui/components/field";
 import { Radio, RadioGroup } from "@masdan/ui/components/radio-group";
 import {
   Select,
@@ -38,6 +33,7 @@ import { useForm, useStore } from "@tanstack/react-form";
 import { useMemo } from "react";
 import { z } from "zod";
 
+import { FieldErrors as Errors } from "@/components/field-errors";
 import { Amount } from "@/components/finance/amount";
 import { AccountPicker } from "@/modules/accounts/components/account-picker";
 import type { PickerAccount } from "@/modules/accounts/components/account-picker";
@@ -184,19 +180,6 @@ const required = {
   expense: z.string().min(1, "Choose a category for money out"),
   income: z.string().min(1, "Choose a category for money in"),
 };
-
-const Errors = ({ errors }: { errors: unknown[] }) =>
-  errors.map((error) => {
-    const message =
-      typeof error === "object" && error !== null && "message" in error
-        ? String(error.message)
-        : String(error);
-    return (
-      <FieldError key={message} match>
-        {message}
-      </FieldError>
-    );
-  });
 
 interface Option {
   label: string;

@@ -1,4 +1,6 @@
-import type { SearchSchemaInput } from "@tanstack/react-router";
+import { z } from "zod";
+
+import { optionalSearchString } from "./search";
 
 /** Where an authenticated user belongs when nothing more specific is known. */
 export const DEFAULT_AUTHENTICATED_PATH = "/dashboard";
@@ -46,21 +48,8 @@ export const safeRedirect = (
   return `${url.pathname}${url.search}${url.hash}`;
 };
 
-/**
- * A repeated key arrives as an array; coercing here means a mangled link
- * renders the route's empty state instead of a router parse error.
- */
-export const asOptionalString = (value: unknown): string | undefined =>
-  typeof value === "string" ? value : undefined;
-
-/**
- * `SearchSchemaInput` takes the parameter type as the caller's contract, so
- * every `<Link to="/login">` need not pass a `search` prop.
- */
-export const redirectSearch = (
-  search: { redirect?: string } & SearchSchemaInput
-) => ({
-  redirect: asOptionalString(search.redirect),
+export const redirectSearch = z.object({
+  redirect: optionalSearchString,
 });
 
 /**

@@ -2,7 +2,7 @@ import { RECURRING_FREQUENCIES } from "@masdan/api/recurring/recurrence";
 import { positiveAmount } from "@masdan/api/shared/money";
 import { TRANSACTION_PAID_STATUSES } from "@masdan/api/transactions/constants";
 import { Button } from "@masdan/ui/components/button";
-import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
+import { Field, FieldLabel } from "@masdan/ui/components/field";
 import { ColorDot } from "@masdan/ui/components/icon-tile";
 import { Input } from "@masdan/ui/components/input";
 import { ResponsiveSheet } from "@masdan/ui/components/responsive-sheet";
@@ -22,6 +22,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
+import { FieldErrors } from "@/components/field-errors";
 import { AmountInput } from "@/components/finance/amount-input";
 import { moneyParts } from "@/components/finance/money";
 import { formatLongDate } from "@/lib/dates";
@@ -134,17 +135,6 @@ const toInput = (values: ScheduleFormValues): ScheduleInput => ({
   startDate: values.startDate,
   tagIds: values.tagIds,
 });
-
-const FieldErrors = ({
-  errors,
-}: {
-  errors: ({ message?: string } | undefined)[];
-}) =>
-  errors.map((error) => (
-    <FieldError key={error?.message} match>
-      {error?.message}
-    </FieldError>
-  ));
 
 const isFrequency = (
   value: unknown

@@ -27,6 +27,7 @@ import type { UseMutationResult, UseQueryResult } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
+import { formatDateTime } from "@/lib/dates";
 import { orpc } from "@/utils/orpc";
 import type { RouterOutputs } from "@/utils/orpc";
 
@@ -46,7 +47,7 @@ const changedBy = (flag: Flag): string => {
     return "—";
   }
   const who = flag.updatedByName ?? flag.updatedByEmail ?? "unknown";
-  return `${new Date(flag.updatedAt).toLocaleString()} · ${who}`;
+  return `${formatDateTime(flag.updatedAt)} · ${who}`;
 };
 
 const FlagsTable = ({

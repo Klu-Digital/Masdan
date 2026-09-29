@@ -23,6 +23,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import { formatDateTime } from "@/lib/dates";
 import type { RouterOutputs } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -85,12 +86,12 @@ const SessionsList = ({
               </TableCell>
               <TableCell>
                 <span className="text-xs">
-                  {new Date(session.createdAt).toLocaleString()}
+                  {formatDateTime(session.createdAt)}
                 </span>
               </TableCell>
               <TableCell>
                 <span className="text-xs">
-                  {new Date(session.expiresAt).toLocaleString()}
+                  {formatDateTime(session.expiresAt)}
                 </span>
               </TableCell>
               <TableCell>

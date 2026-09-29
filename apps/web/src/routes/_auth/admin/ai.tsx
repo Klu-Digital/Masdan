@@ -23,6 +23,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { formatDateTime } from "@/lib/dates";
 import { orpc } from "@/utils/orpc";
 import type { RouterOutputs } from "@/utils/orpc";
 
@@ -42,7 +43,7 @@ const changedBy = (cap: Cap): string => {
     return "—";
   }
   const who = cap.updatedByName ?? cap.updatedByEmail ?? "unknown";
-  return `${new Date(cap.updatedAt).toLocaleString()} · ${who}`;
+  return `${formatDateTime(cap.updatedAt)} · ${who}`;
 };
 
 const CapRow = ({

@@ -23,6 +23,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, getRouteApi } from "@tanstack/react-router";
 
+import { formatDate } from "@/lib/dates";
 import { orpc } from "@/utils/orpc";
 
 const routeApi = getRouteApi("/_auth/admin/organizations/$organizationId");
@@ -127,7 +128,7 @@ const RouteComponent = () => {
                     <TableCell>{invitation.status}</TableCell>
                     <TableCell>
                       <span className="text-xs">
-                        {new Date(invitation.expiresAt).toLocaleDateString()}
+                        {formatDate(invitation.expiresAt)}
                       </span>
                     </TableCell>
                   </TableRow>

@@ -41,6 +41,7 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { authClient } from "@/lib/auth-client";
+import { formatDate } from "@/lib/dates";
 
 const PAGE_SIZE = 50;
 
@@ -288,9 +289,7 @@ const UsersList = ({
               </TableCell>
               <TableCell>{userStatusBadge(user)}</TableCell>
               <TableCell>
-                <span className="text-xs">
-                  {new Date(user.createdAt).toLocaleDateString()}
-                </span>
+                <span className="text-xs">{formatDate(user.createdAt)}</span>
               </TableCell>
             </TableRow>
           ))}

@@ -17,6 +17,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
+import { formatDate, formatTime } from "@/lib/dates";
 import { invalidate } from "@/utils/invalidate";
 import { householdOrpc } from "@/utils/orpc";
 
@@ -24,9 +25,6 @@ import type { ChatChannelStatus } from "../types";
 
 /** Polled while a code is showing. */
 const LINK_POLL_MS = 3000;
-
-const timeFormat = new Intl.DateTimeFormat(undefined, { timeStyle: "short" });
-const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 
 const listFormat = new Intl.ListFormat(undefined, {
   style: "long",
@@ -54,7 +52,7 @@ const ChannelRow = ({
       <ListItemTitle>{channel.label}</ListItemTitle>
       <ListItemDescription>
         {channel.link
-          ? `${channel.link.externalName ?? "Linked"} · since ${dateFormat.format(new Date(channel.link.linkedAt))}`
+          ? `${channel.link.externalName ?? "Linked"} · since ${formatDate(channel.link.linkedAt)}`
           : "Not linked"}
       </ListItemDescription>
     </ListItemContent>
@@ -90,8 +88,7 @@ const LinkCode = ({
       </ListItemTitle>
       <ListItemDescription>
         Send <span className="font-mono">/link {code}</span> to Masdan on{" "}
-        {listFormat.format(labels)}. Works once, until{" "}
-        {timeFormat.format(expiresAt)}.
+        {listFormat.format(labels)}. Works once, until {formatTime(expiresAt)}.
       </ListItemDescription>
     </ListItemContent>
     <ListItemTrailing>

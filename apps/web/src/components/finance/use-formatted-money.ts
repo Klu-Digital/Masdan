@@ -8,8 +8,10 @@ import {
 
 type FormatMoney = typeof formatMoney;
 
+const formatMasked: FormatMoney = () => PRIVACY_MASK;
+
 /** `formatMoney` for text that can't be an `<Amount>`; masked while privacy mode is on. */
 export const useFormattedMoney = (): FormatMoney => {
   const [privacyOn] = usePrivacyMode();
-  return privacyOn ? () => PRIVACY_MASK : formatMoney;
+  return privacyOn ? formatMasked : formatMoney;
 };

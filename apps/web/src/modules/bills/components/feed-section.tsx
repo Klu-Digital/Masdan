@@ -18,10 +18,9 @@ import { toastManager } from "@masdan/ui/components/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { formatDate } from "@/lib/dates";
 import { getServerUrl } from "@/lib/server-url";
 import { householdOrpc } from "@/utils/orpc";
-
-const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 
 const feedUrl = (path: string): string =>
   `${getServerUrl(env.VITE_SERVER_URL)}${path}`;
@@ -103,9 +102,9 @@ export const FeedSection = ({
         <ListItemContent>
           <ListItemTitle>Calendar link is on</ListItemTitle>
           <ListItemDescription>
-            {`Made ${dateFormat.format(new Date(feed.createdAt))} · ${
+            {`Made ${formatDate(feed.createdAt)} · ${
               feed.lastUsedAt
-                ? `last synced ${dateFormat.format(new Date(feed.lastUsedAt))}`
+                ? `last synced ${formatDate(feed.lastUsedAt)}`
                 : "not synced yet"
             }`}
           </ListItemDescription>

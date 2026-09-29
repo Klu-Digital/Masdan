@@ -1,6 +1,6 @@
 import { positiveAmount } from "@masdan/api/shared/money";
 import { Button } from "@masdan/ui/components/button";
-import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
+import { Field, FieldLabel } from "@masdan/ui/components/field";
 import { Input } from "@masdan/ui/components/input";
 import { ResponsiveSheet } from "@masdan/ui/components/responsive-sheet";
 import { toastManager } from "@masdan/ui/components/toast";
@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
+import { FieldErrors } from "@/components/field-errors";
 import { AmountInput } from "@/components/finance/amount-input";
 import { moneyParts } from "@/components/finance/money";
 import { AccountPicker } from "@/modules/accounts/components/account-picker";
@@ -57,17 +58,6 @@ const toInput = (values: GoalFormValues): GoalInput => ({
   targetAmount: values.targetAmount.trim(),
   targetDate: values.targetDate || null,
 });
-
-const FieldErrors = ({
-  errors,
-}: {
-  errors: ({ message?: string } | undefined)[];
-}) =>
-  errors.map((error) => (
-    <FieldError key={error?.message} match>
-      {error?.message}
-    </FieldError>
-  ));
 
 /** Create or edit a goal: what it is, how much, and which account holds it. */
 export const GoalComposer = ({

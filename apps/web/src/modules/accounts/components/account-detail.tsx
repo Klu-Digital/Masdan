@@ -9,7 +9,6 @@ import {
   PlusSignIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { resolveCardNetwork } from "@masdan/card-catalog/catalog";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import {
@@ -54,13 +53,11 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { useAppActions } from "@/components/app-actions";
 import { Amount } from "@/components/finance/amount";
 import { toNumber } from "@/components/finance/money";
-import { NetworkMark } from "@/components/finance/network-mark";
 import {
   Stat,
   StatGroup,
@@ -75,7 +72,6 @@ import {
   formatRelativeDays,
   formatShortDate,
   nextDayOfMonth,
-  startOfMonth,
 } from "@/lib/dates";
 import { householdToday } from "@/lib/household-date";
 import { Ledger } from "@/modules/transactions/components/ledger";
@@ -84,116 +80,17 @@ import { useLedgerActions } from "@/modules/transactions/use-ledger-actions";
 import { invalidate } from "@/utils/invalidate";
 import { householdOrpc } from "@/utils/orpc";
 
-import { networkMarkOf } from "../card-art";
 import { cardCountriesOf, useCardCatalog } from "../card-catalog";
 import { cardProductLabel, nextPaymentDue, utilizationTone } from "../credit";
 import type { CardStatement } from "../credit";
-import { accountKind } from "../kinds";
+import { LIQUIDITY_LABELS, accountKind } from "../kinds";
 import { AccountCard } from "./account-card";
 import type { AccountDetail as Account } from "./account-composer";
+import { DetailRow, MonthFlow, NetworkValue } from "./account-detail-parts";
 import { AccountTile, accountSubtitle } from "./account-row";
 import { StatementComposer } from "./statement-composer";
 
 const ACTIVITY_PAGE_SIZE = 15;
-
-const LIQUIDITY_LABELS: Record<string, string> = {
-  illiquid: "Illiquid",
-  liquid: "Liquid",
-  semi_liquid: "Semi-liquid",
-};
-
-const NetworkValue = ({ network }: { network: string | null }) => {
-  const mark = networkMarkOf(resolveCardNetwork(network));
-  if (!mark) {
-    return network ?? "Not set";
-  }
-  return (
-    <span className="inline-flex items-center gap-2">
-      <NetworkMark
-        className={mark === "mastercard" ? "h-4" : "h-3"}
-        network={mark}
-      />
-      {network}
-    </span>
-  );
-};
-
-const DetailRow = ({
-  children,
-  label,
-}: {
-  children: ReactNode;
-  label: string;
-}) => (
-  <ListItem className="min-h-11">
-    <ListItemContent className="flex-none">
-      <span className="text-muted-foreground text-sm">{label}</span>
-    </ListItemContent>
-    <ListItemTrailing className="min-w-0 flex-1 shrink justify-end text-right">
-      {children}
-    </ListItemTrailing>
-  </ListItem>
-);
-
-/** Money in and out of this account this month — context for the balance. */
-const MonthFlow = ({
-  account,
-  organizationId,
-  today,
-}: {
-  account: Account;
-  organizationId: string;
-  today: string;
-}) => {
-  const summary = useQuery(
-    householdOrpc(organizationId).transactions.summary.queryOptions({
-      input: {
-        accountIds: [account.id],
-        dateFrom: startOfMonth(today),
-        dateTo: today,
-      },
-      placeholderData: keepPreviousData,
-    })
-  );
-  const month = summary.data?.cashFlow.find(
-    (entry) => entry.currencyCode === account.currencyCode
-  );
-  const income = toNumber(month?.income ?? 0);
-  const expense = toNumber(month?.expense ?? 0);
-  return (
-    <StatGroup className="sm:max-w-md">
-      <Stat>
-        <StatLabel>In this month</StatLabel>
-        <StatValue>
-          {summary.isPending ? (
-            <Skeleton className="h-5 w-20" />
-          ) : (
-            <Amount
-              currency={account.currencyCode}
-              sign={income > 0 ? "in" : "none"}
-              tone="auto"
-              value={income}
-            />
-          )}
-        </StatValue>
-      </Stat>
-      <Stat>
-        <StatLabel>Out this month</StatLabel>
-        <StatValue>
-          {summary.isPending ? (
-            <Skeleton className="h-5 w-20" />
-          ) : (
-            <Amount
-              currency={account.currencyCode}
-              sign={expense > 0 ? "out" : "none"}
-              value={expense}
-            />
-          )}
-        </StatValue>
-      </Stat>
-    </StatGroup>
-  );
-};
 
 const paymentSuggestions = (
   account: Account,

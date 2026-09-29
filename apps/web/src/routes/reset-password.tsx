@@ -3,7 +3,6 @@ import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
 import { Input } from "@masdan/ui/components/input";
 import { toastManager } from "@masdan/ui/components/toast";
 import { useForm } from "@tanstack/react-form";
-import type { SearchSchemaInput } from "@tanstack/react-router";
 import {
   Link,
   createFileRoute,
@@ -14,7 +13,7 @@ import { z } from "zod";
 
 import AuthShell from "@/components/auth-shell";
 import { authClient } from "@/lib/auth-client";
-import { asOptionalString } from "@/lib/redirect";
+import { optionalSearchString } from "@/lib/search";
 
 // `getRouteApi` rather than `Route.useSearch()` so the component does not have
 // to reference `Route`, which is declared below it.
@@ -186,10 +185,8 @@ const RouteComponent = () => {
 export const Route = createFileRoute("/reset-password")({
   component: RouteComponent,
   head: () => ({ meta: [{ title: "Reset password" }] }),
-  validateSearch: (
-    search: { error?: string; token?: string } & SearchSchemaInput
-  ) => ({
-    error: asOptionalString(search.error),
-    token: asOptionalString(search.token),
+  validateSearch: z.object({
+    error: optionalSearchString,
+    token: optionalSearchString,
   }),
 });

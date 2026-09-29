@@ -21,6 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { formatDate } from "@/lib/dates";
 import type { RouterOutputs } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -85,9 +86,7 @@ const OrganizationsList = ({
               <TableCell>{org.pendingInvitationCount}</TableCell>
               <TableCell>{org.fileCount}</TableCell>
               <TableCell>
-                <span className="text-xs">
-                  {new Date(org.createdAt).toLocaleDateString()}
-                </span>
+                <span className="text-xs">{formatDate(org.createdAt)}</span>
               </TableCell>
             </TableRow>
           ))}

@@ -26,9 +26,11 @@ import {
   TableRow,
 } from "@masdan/ui/components/table";
 import { Link } from "@tanstack/react-router";
+import { useMemo } from "react";
 import type { ReactNode } from "react";
 
 import { Amount } from "@/components/finance/amount";
+import { EmptyNote } from "@/components/finance/empty-note";
 import { toNumber } from "@/components/finance/money";
 import { usePrivacyMode } from "@/components/finance/privacy-mode";
 import { Sensitive } from "@/components/finance/sensitive";
@@ -54,12 +56,6 @@ import type {
   NetWorthReport,
   SpendingReport,
 } from "../types";
-
-const EmptyNote = ({ children }: { children: ReactNode }) => (
-  <p className="bg-card text-muted-foreground dark:ring-hairline rounded-3xl px-5 py-8 text-center text-sm dark:ring-1">
-    {children}
-  </p>
-);
 
 const Card = ({ children }: { children: ReactNode }) => (
   <div className="bg-card dark:ring-hairline rounded-3xl p-5 sm:p-6 dark:ring-1">
@@ -244,23 +240,33 @@ export const NetWorthHistoryChart = ({
   history: NetWorthHistory | undefined;
 }) => {
   const money = useFormattedMoney();
-  const points = history?.points ?? [];
-  const today = history?.period.today ?? "";
-  const data = points.map((point) => {
-    const position = point.positions.find(
-      (item) => item.currencyCode === currency
-    );
-    return {
-      assets: toNumber(position?.assets ?? 0),
-      label:
-        history?.granularity === "month"
-          ? formatMonth(point.date)
-          : formatShortDate(point.date, today),
-      liabilities: toNumber(position?.liabilities ?? 0),
-      netWorth: toNumber(position?.netWorth ?? 0),
-      period: formatLongDate(point.date),
-    };
-  });
+  const data = useMemo(() => {
+    const today = history?.period.today ?? "";
+    return (history?.points ?? []).map((point) => {
+      const position = point.positions.find(
+        (item) => item.currencyCode === currency
+      );
+      return {
+        assets: toNumber(position?.assets ?? 0),
+        label:
+          history?.granularity === "month"
+            ? formatMonth(point.date)
+            : formatShortDate(point.date, today),
+        liabilities: toNumber(position?.liabilities ?? 0),
+        netWorth: toNumber(position?.netWorth ?? 0),
+        period: formatLongDate(point.date),
+      };
+    });
+  }, [currency, history]);
+  const xAxis = useMemo(
+    () => (_: unknown, index: number) => data[index]?.label ?? "",
+    [data]
+  );
+  const yAxis = useMemo(() => compactAxis(money, currency), [currency, money]);
+  const tooltip = useMemo(
+    () => (value: number) => money(value, currency),
+    [currency, money]
+  );
 
   return (
     <Section aria-busy={history === undefined} aria-label="Net worth history">
@@ -289,16 +295,10 @@ export const NetWorthHistoryChart = ({
             xDataKey="period"
           >
             <EChartsComposedChart.Grid />
-            <EChartsComposedChart.XAxis
-              tickFormatter={(_, index) => data[index]?.label ?? ""}
-            />
-            <EChartsComposedChart.YAxis
-              tickFormatter={compactAxis(money, currency)}
-            />
+            <EChartsComposedChart.XAxis tickFormatter={xAxis} />
+            <EChartsComposedChart.YAxis tickFormatter={yAxis} />
             <EChartsComposedChart.Legend align="left" />
-            <EChartsComposedChart.Tooltip
-              valueFormatter={(value) => money(value, currency)}
-            />
+            <EChartsComposedChart.Tooltip valueFormatter={tooltip} />
             <EChartsComposedChart.Bar dataKey="assets" />
             <EChartsComposedChart.Bar dataKey="liabilities" />
             <EChartsComposedChart.Line dataKey="netWorth">
@@ -334,18 +334,31 @@ export const CashFlowSection = ({
 }) => {
   const money = useFormattedMoney();
   const total = report?.totals.find((item) => item.currencyCode === currency);
-  const data = (report?.months ?? []).map((month) => {
-    const flow = report?.monthly.find(
-      (item) => item.month === month && item.currencyCode === currency
-    );
-    return {
-      expense: toNumber(flow?.expense ?? 0),
-      income: toNumber(flow?.income ?? 0),
-      label: formatMonth(month),
-      period: formatMonthYear(month),
-      savingsRate: flow?.savingsRate ?? null,
-    };
-  });
+  const data = useMemo(
+    () =>
+      (report?.months ?? []).map((month) => {
+        const flow = report?.monthly.find(
+          (item) => item.month === month && item.currencyCode === currency
+        );
+        return {
+          expense: toNumber(flow?.expense ?? 0),
+          income: toNumber(flow?.income ?? 0),
+          label: formatMonth(month),
+          period: formatMonthYear(month),
+          savingsRate: flow?.savingsRate ?? null,
+        };
+      }),
+    [currency, report]
+  );
+  const xAxis = useMemo(
+    () => (_: unknown, index: number) => data[index]?.label ?? "",
+    [data]
+  );
+  const yAxis = useMemo(() => compactAxis(money, currency), [currency, money]);
+  const tooltip = useMemo(
+    () => (value: number) => money(value, currency),
+    [currency, money]
+  );
   const net = toNumber(total?.net ?? 0);
 
   return (
@@ -400,16 +413,10 @@ export const CashFlowSection = ({
               xDataKey="period"
             >
               <EChartsComposedChart.Grid />
-              <EChartsComposedChart.XAxis
-                tickFormatter={(_, index) => data[index]?.label ?? ""}
-              />
-              <EChartsComposedChart.YAxis
-                tickFormatter={compactAxis(money, currency)}
-              />
+              <EChartsComposedChart.XAxis tickFormatter={xAxis} />
+              <EChartsComposedChart.YAxis tickFormatter={yAxis} />
               <EChartsComposedChart.Legend align="left" />
-              <EChartsComposedChart.Tooltip
-                valueFormatter={(value) => money(value, currency)}
-              />
+              <EChartsComposedChart.Tooltip valueFormatter={tooltip} />
               <EChartsComposedChart.Bar dataKey="income" />
               <EChartsComposedChart.Bar dataKey="expense" />
             </EChartsComposedChart>

@@ -35,6 +35,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { formatDateTime } from "@/lib/dates";
+import { formatBytes } from "@/lib/format";
 import { orpc } from "@/utils/orpc";
 import type { RouterOutputs } from "@/utils/orpc";
 
@@ -51,16 +53,6 @@ type StatusFilter = (typeof STATUS_OPTIONS)[number]["value"];
 
 type FilesResult = RouterOutputs["admin"]["files"]["list"];
 type StuckFilesResult = RouterOutputs["admin"]["files"]["pendingOlderThan"];
-
-const formatBytes = (bytes: number | null) => {
-  if (bytes === null) {
-    return "—";
-  }
-  const megabytes = bytes / (1024 * 1024);
-  return megabytes >= 1
-    ? `${megabytes.toFixed(1)} MB`
-    : `${(bytes / 1024).toFixed(1)} KB`;
-};
 
 const fileStatusBadgeVariant = (status: string) => {
   if (status === "ready") {
@@ -303,9 +295,7 @@ const StuckPendingList = ({
               </span>
             </TableCell>
             <TableCell>
-              <span className="text-xs">
-                {new Date(file.createdAt).toLocaleString()}
-              </span>
+              <span className="text-xs">{formatDateTime(file.createdAt)}</span>
             </TableCell>
           </TableRow>
         ))}

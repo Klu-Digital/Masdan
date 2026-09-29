@@ -5,7 +5,7 @@ import {
 import type { RuleTextOperator } from "@masdan/api/rules/engine";
 import { positiveAmount, scaledAmount } from "@masdan/api/shared/money";
 import { Button } from "@masdan/ui/components/button";
-import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
+import { Field, FieldLabel } from "@masdan/ui/components/field";
 import { ColorDot } from "@masdan/ui/components/icon-tile";
 import { Input } from "@masdan/ui/components/input";
 import { ResponsiveSheet } from "@masdan/ui/components/responsive-sheet";
@@ -22,6 +22,7 @@ import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
+import { FieldErrors } from "@/components/field-errors";
 import { CategoryPicker } from "@/modules/categories/components/category-picker";
 import { FormActions } from "@/modules/transactions/components/transaction-form";
 import { invalidate } from "@/utils/invalidate";
@@ -206,17 +207,6 @@ const OptionSelect = ({
     </SelectPopup>
   </Select>
 );
-
-const FieldErrors = ({
-  errors,
-}: {
-  errors: ({ message?: string } | undefined)[];
-}) =>
-  errors.map((error) => (
-    <FieldError key={error?.message} match>
-      {error?.message}
-    </FieldError>
-  ));
 
 /** Create or edit one rule: what it matches, then what it sets. */
 // One form with a field per condition and action.

@@ -15,7 +15,19 @@ import {
   SmartPhone01Icon,
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
-import type { AccountType } from "@masdan/api/accounts/constants";
+import type {
+  LIQUIDITY_TYPES,
+  AccountType,
+} from "@masdan/api/accounts/constants";
+
+export const LIQUIDITY_LABELS: Record<
+  (typeof LIQUIDITY_TYPES)[number],
+  string
+> = {
+  illiquid: "Illiquid",
+  liquid: "Liquid",
+  semi_liquid: "Semi-liquid",
+};
 
 export type AccountGroup =
   | "cash"

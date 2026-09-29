@@ -1,44 +1,82 @@
-import type { SearchSchemaInput } from "@tanstack/react-router";
+import { z } from "zod";
 
 export type TransactionSortBy = "amount" | "date";
 export type TransactionSortDirection = "asc" | "desc";
 
-export interface TransactionSearch extends Record<string, unknown> {
-  accountIds: string[];
-  categoryIds: string[];
-  dateFrom?: string;
-  dateTo?: string;
-  includeArchived: boolean;
-  page: number;
-  pageSize: number;
-  paidStatuses: ("paid" | "unpaid")[];
-  /** Text to rerun through quick entry, from a chat reply's "finish it in Masdan" link. */
-  quickEntry?: string;
-  search: string;
-  sortBy: TransactionSortBy;
-  sortDirection: TransactionSortDirection;
-  tagIds: string[];
-  types: ("expense" | "income")[];
-}
+const optionalString = z
+  .preprocess(
+    (value) =>
+      typeof value === "string" && value.length > 0 ? value : undefined,
+    z.string().optional()
+  )
+  .optional();
 
-const asString = (value: unknown): string | undefined =>
-  typeof value === "string" && value.length > 0 ? value : undefined;
+const stringArray = z
+  .preprocess(
+    (value) => (Array.isArray(value) ? value : [value]),
+    z.array(z.unknown()).transform((values) =>
+      values
+        .flatMap((value) => (typeof value === "string" ? value.split(",") : []))
+        .map((value) => value.trim())
+        .filter(Boolean)
+    )
+  )
+  .optional()
+  .default([]);
 
-const asStringArray = (value: unknown): string[] => {
-  const values = Array.isArray(value) ? value : [value];
-  return values
-    .flatMap((item) => (typeof item === "string" ? item.split(",") : []))
-    .map((item) => item.trim())
-    .filter(Boolean);
-};
+const positiveInteger = (fallback: number) =>
+  z
+    .preprocess(
+      Number,
+      z
+        .number()
+        .int()
+        .positive()
+        .or(z.unknown().transform(() => fallback))
+    )
+    .optional()
+    .default(fallback);
 
-const asPositiveInteger = (value: unknown, fallback: number): number => {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
-};
+export const transactionSearch = z.object({
+  accountIds: stringArray,
+  categoryIds: stringArray,
+  dateFrom: optionalString,
+  dateTo: optionalString,
+  includeArchived: z
+    .preprocess((value) => value === true || value === "true", z.boolean())
+    .optional()
+    .default(false),
+  page: positiveInteger(1),
+  pageSize: positiveInteger(25).transform((value) => Math.min(value, 100)),
+  paidStatuses: stringArray.transform((values) =>
+    values.filter(
+      (value): value is "paid" | "unpaid" =>
+        value === "paid" || value === "unpaid"
+    )
+  ),
+  quickEntry: optionalString.transform((value) => value?.slice(0, 300)),
+  search: optionalString.transform((value) => value?.slice(0, 120) ?? ""),
+  sortBy: z
+    .enum(["amount", "date"])
+    .or(z.unknown().transform(() => "date" as const))
+    .optional()
+    .default("date"),
+  sortDirection: z
+    .enum(["asc", "desc"])
+    .or(z.unknown().transform(() => "desc" as const))
+    .optional()
+    .default("desc"),
+  tagIds: stringArray,
+  types: stringArray.transform((values) =>
+    values.filter(
+      (value): value is "expense" | "income" =>
+        value === "expense" || value === "income"
+    )
+  ),
+});
 
-const asBoolean = (value: unknown): boolean =>
-  value === true || value === "true";
+export type TransactionSearch = z.output<typeof transactionSearch> &
+  Record<string, unknown>;
 
 export const DEFAULT_TRANSACTION_SEARCH: TransactionSearch = {
   accountIds: [],
@@ -47,41 +85,10 @@ export const DEFAULT_TRANSACTION_SEARCH: TransactionSearch = {
   page: 1,
   pageSize: 25,
   paidStatuses: [],
+  quickEntry: undefined,
   search: "",
   sortBy: "date",
   sortDirection: "desc",
   tagIds: [],
   types: [],
-};
-
-export const transactionSearch = (
-  search: Record<string, unknown> & SearchSchemaInput
-): TransactionSearch => {
-  const sortBy = asString(search.sortBy);
-  const sortDirection = asString(search.sortDirection);
-  const types = asStringArray(search.types).filter(
-    (value): value is "expense" | "income" =>
-      value === "expense" || value === "income"
-  );
-  const paidStatuses = asStringArray(search.paidStatuses).filter(
-    (value): value is "paid" | "unpaid" =>
-      value === "paid" || value === "unpaid"
-  );
-
-  return {
-    accountIds: asStringArray(search.accountIds),
-    categoryIds: asStringArray(search.categoryIds),
-    dateFrom: asString(search.dateFrom),
-    dateTo: asString(search.dateTo),
-    includeArchived: asBoolean(search.includeArchived),
-    page: asPositiveInteger(search.page, 1),
-    pageSize: Math.min(asPositiveInteger(search.pageSize, 25), 100),
-    paidStatuses,
-    quickEntry: asString(search.quickEntry)?.slice(0, 300),
-    search: asString(search.search)?.slice(0, 120) ?? "",
-    sortBy: sortBy === "amount" ? "amount" : "date",
-    sortDirection: sortDirection === "asc" ? "asc" : "desc",
-    tagIds: asStringArray(search.tagIds),
-    types,
-  };
 };

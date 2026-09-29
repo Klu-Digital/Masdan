@@ -2,7 +2,6 @@ import { Button } from "@masdan/ui/components/button";
 import { Spinner } from "@masdan/ui/components/spinner";
 import { toastManager } from "@masdan/ui/components/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { SearchSchemaInput } from "@tanstack/react-router";
 import {
   Link,
   createFileRoute,
@@ -10,6 +9,7 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router";
+import { z } from "zod";
 
 import AuthShell from "@/components/auth-shell";
 import { authClient } from "@/lib/auth-client";
@@ -17,7 +17,7 @@ import {
   acceptHouseholdInvitation,
   rejectHouseholdInvitation,
 } from "@/lib/organization";
-import { asOptionalString } from "@/lib/redirect";
+import { optionalSearchString } from "@/lib/search";
 import { invalidateSession } from "@/lib/session";
 import { orpc } from "@/utils/orpc";
 
@@ -157,7 +157,5 @@ export const Route = createFileRoute("/accept-invite")({
   },
   component: RouteComponent,
   head: () => ({ meta: [{ title: "Accept invitation" }] }),
-  validateSearch: (search: { invitation?: string } & SearchSchemaInput) => ({
-    invitation: asOptionalString(search.invitation),
-  }),
+  validateSearch: z.object({ invitation: optionalSearchString }),
 });

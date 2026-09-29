@@ -1,5 +1,5 @@
 import { Button } from "@masdan/ui/components/button";
-import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
+import { Field, FieldLabel } from "@masdan/ui/components/field";
 import { Input } from "@masdan/ui/components/input";
 import { ResponsiveSheet } from "@masdan/ui/components/responsive-sheet";
 import { toastManager } from "@masdan/ui/components/toast";
@@ -8,6 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
+import { FieldErrors as Errors } from "@/components/field-errors";
 import { useHousehold } from "@/hooks/use-household";
 import { addDays, nextDayOfMonth, previousDayOfMonth } from "@/lib/dates";
 import { FormActions } from "@/modules/transactions/components/transaction-form";
@@ -61,13 +62,6 @@ const defaultCycle = (
     statementDate,
   };
 };
-
-const Errors = ({ errors }: { errors: ({ message?: string } | undefined)[] }) =>
-  errors.map((error) => (
-    <FieldError key={error?.message} match>
-      {error?.message}
-    </FieldError>
-  ));
 
 export const StatementComposer = ({
   card,

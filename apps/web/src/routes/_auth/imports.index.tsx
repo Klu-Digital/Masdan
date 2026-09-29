@@ -1,6 +1,8 @@
 import { createFileRoute, getRouteApi } from "@tanstack/react-router";
+import { z } from "zod";
 
 import { HouseholdGate } from "@/components/household-gate";
+import { optionalSearchString } from "@/lib/search";
 import { NewImportPage } from "@/modules/imports/components/new-import-page";
 
 const routeApi = getRouteApi("/_auth/imports/");
@@ -22,6 +24,5 @@ const ImportsPage = () => {
 export const Route = createFileRoute("/_auth/imports/")({
   component: ImportsPage,
   head: () => ({ meta: [{ title: "Import" }] }),
-  validateSearch: (search: Record<string, unknown>): { accountId?: string } =>
-    typeof search.accountId === "string" ? { accountId: search.accountId } : {},
+  validateSearch: z.object({ accountId: optionalSearchString }),
 });
