@@ -150,154 +150,162 @@ const CreditCardPanel = ({
 
   return (
     <>
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <span className="text-muted-foreground text-xs font-medium">
-              Balance owed
-            </span>
-            <Amount
-              animate
-              currency={account.currencyCode}
-              size="display"
-              value={account.balance}
-            />
-          </div>
-          <StatGroup>
-            <Stat>
-              <StatLabel>Available</StatLabel>
-              <StatValue>
-                {account.availableCredit === null ? (
-                  <span className="text-muted-foreground">—</span>
-                ) : (
-                  <Amount
-                    currency={account.currencyCode}
-                    value={account.availableCredit}
-                  />
-                )}
-              </StatValue>
-            </Stat>
-            <Stat>
-              <StatLabel>Credit limit</StatLabel>
-              <StatValue>
-                {account.creditLimit === null ? (
-                  <span className="text-muted-foreground">Not set</span>
-                ) : (
-                  <Amount
-                    currency={account.currencyCode}
-                    value={account.creditLimit}
-                  />
-                )}
-              </StatValue>
-            </Stat>
-            <Stat className="col-span-2 sm:col-span-1">
-              <StatLabel>Utilization</StatLabel>
-              {utilization === null ? (
-                <StatValue>
-                  <span className="text-muted-foreground">—</span>
-                </StatValue>
-              ) : (
-                <>
-                  <StatValue>{utilization.toFixed(0)}%</StatValue>
-                  <Meter
-                    aria-label="Credit utilization"
-                    max={100}
-                    value={Math.min(utilization, 100)}
-                  >
-                    <MeterTrack>
-                      <MeterIndicator tone={utilizationTone(utilization)} />
-                    </MeterTrack>
-                  </Meter>
-                </>
-              )}
-            </Stat>
-          </StatGroup>
-        </div>
-        <AccountCard
-          account={account}
-          className="max-lg:order-first max-lg:max-w-sm"
-          interactive
-        />
-      </div>
-
-      {archived ? null : (
-        <Section aria-label="Next payment">
-          <div className="bg-card dark:ring-hairline flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:items-center sm:justify-between dark:ring-1">
+      <section
+        aria-label="Card overview"
+        className="bg-card dark:ring-hairline flex flex-col gap-6 rounded-2xl p-5 sm:p-6 dark:ring-1"
+      >
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
+          <div className="flex min-w-0 flex-col gap-6">
             <div className="flex flex-col gap-1">
               <span className="text-muted-foreground text-xs font-medium">
-                {due?.source === "statement"
-                  ? "Statement payment"
-                  : "Next payment"}
+                Balance owed
               </span>
-              {due ? (
-                <>
-                  <span className="flex flex-wrap items-baseline gap-x-2 text-xl font-semibold">
-                    {due.statement ? (
-                      <Amount
-                        currency={account.currencyCode}
-                        value={due.statement.statementBalance}
-                      />
-                    ) : null}
-                    <span
-                      className={
-                        dueTone === "danger"
-                          ? "text-destructive-foreground text-base font-semibold"
-                          : "text-base font-semibold"
-                      }
-                    >
-                      {due.daysLeft < 0 ? "was due " : "due "}
-                      {formatShortDate(due.dueDate, today)} ·{" "}
-                      {formatRelativeDays(due.dueDate, today)}
-                    </span>
-                  </span>
-                  {due.statement?.minimumAmountDue ? (
-                    <span className="text-muted-foreground text-xs">
-                      Minimum{" "}
-                      {money(
-                        due.statement.minimumAmountDue,
-                        account.currencyCode
-                      )}
-                    </span>
-                  ) : null}
-                  {due.source === "schedule" ? (
-                    <span className="text-muted-foreground text-xs">
-                      Based on the card’s due day. Record the statement for
-                      exact amounts.
-                    </span>
-                  ) : null}
-                </>
-              ) : (
-                <span className="text-sm">
-                  {toNumber(account.balance) > 0
-                    ? "Set the card’s due day or record a statement to see when payment is due."
-                    : "Nothing owed right now."}
-                </span>
-              )}
+              <Amount
+                animate
+                currency={account.currencyCode}
+                size="display"
+                value={account.balance}
+              />
             </div>
-            {canPay ? (
-              <Button
-                className="shrink-0"
-                onClick={() =>
-                  compose({
-                    destinationAccountId: account.id,
-                    payCard: {
-                      name: account.name,
-                      suggestions: paymentSuggestions(
-                        account,
-                        due?.statement ?? null
-                      ),
-                    },
-                    type: "transfer",
-                  })
-                }
-                variant={dueTone === "default" ? "secondary" : "default"}
-              >
-                Pay card
-              </Button>
-            ) : null}
+            <StatGroup className="rounded-none bg-transparent dark:ring-0">
+              <Stat>
+                <StatLabel>Available</StatLabel>
+                <StatValue>
+                  {account.availableCredit === null ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    <Amount
+                      currency={account.currencyCode}
+                      value={account.availableCredit}
+                    />
+                  )}
+                </StatValue>
+              </Stat>
+              <Stat>
+                <StatLabel>Credit limit</StatLabel>
+                <StatValue>
+                  {account.creditLimit === null ? (
+                    <span className="text-muted-foreground">Not set</span>
+                  ) : (
+                    <Amount
+                      currency={account.currencyCode}
+                      value={account.creditLimit}
+                    />
+                  )}
+                </StatValue>
+              </Stat>
+              <Stat className="col-span-2 sm:col-span-1">
+                <StatLabel>Utilization</StatLabel>
+                {utilization === null ? (
+                  <StatValue>
+                    <span className="text-muted-foreground">—</span>
+                  </StatValue>
+                ) : (
+                  <>
+                    <StatValue>{utilization.toFixed(0)}%</StatValue>
+                    <Meter
+                      aria-label="Credit utilization"
+                      max={100}
+                      value={Math.min(utilization, 100)}
+                    >
+                      <MeterTrack>
+                        <MeterIndicator tone={utilizationTone(utilization)} />
+                      </MeterTrack>
+                    </Meter>
+                  </>
+                )}
+              </Stat>
+            </StatGroup>
           </div>
-        </Section>
-      )}
+          <AccountCard
+            account={account}
+            className="w-full max-w-64 justify-self-start lg:justify-self-end"
+            interactive
+          />
+        </div>
+
+        {archived ? null : (
+          <section
+            aria-label="Next payment"
+            className="border-hairline border-t pt-5"
+          >
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground text-xs font-medium">
+                  {due?.source === "statement"
+                    ? "Statement payment"
+                    : "Next payment"}
+                </span>
+                {due ? (
+                  <>
+                    <span className="flex flex-wrap items-baseline gap-x-2 text-xl font-semibold">
+                      {due.statement ? (
+                        <Amount
+                          currency={account.currencyCode}
+                          value={due.statement.statementBalance}
+                        />
+                      ) : null}
+                      <span
+                        className={
+                          dueTone === "danger"
+                            ? "text-destructive-foreground text-base font-semibold"
+                            : "text-base font-semibold"
+                        }
+                      >
+                        {due.daysLeft < 0 ? "was due " : "due "}
+                        {formatShortDate(due.dueDate, today)} ·{" "}
+                        {formatRelativeDays(due.dueDate, today)}
+                      </span>
+                    </span>
+                    {due.statement?.minimumAmountDue ? (
+                      <span className="text-muted-foreground text-xs">
+                        Minimum{" "}
+                        {money(
+                          due.statement.minimumAmountDue,
+                          account.currencyCode
+                        )}
+                      </span>
+                    ) : null}
+                    {due.source === "schedule" ? (
+                      <span className="text-muted-foreground text-xs">
+                        Based on the card’s due day. Record the statement for
+                        exact amounts.
+                      </span>
+                    ) : null}
+                  </>
+                ) : (
+                  <span className="text-sm">
+                    {toNumber(account.balance) > 0
+                      ? "Set the card’s due day or record a statement to see when payment is due."
+                      : "Nothing owed right now."}
+                  </span>
+                )}
+              </div>
+              {canPay ? (
+                <Button
+                  className="shrink-0"
+                  onClick={() =>
+                    compose({
+                      destinationAccountId: account.id,
+                      payCard: {
+                        name: account.name,
+                        suggestions: paymentSuggestions(
+                          account,
+                          due?.statement ?? null
+                        ),
+                      },
+                      type: "transfer",
+                    })
+                  }
+                  variant={dueTone === "default" ? "secondary" : "default"}
+                >
+                  Pay card
+                </Button>
+              ) : null}
+            </div>
+          </section>
+        )}
+      </section>
 
       <Section aria-label="Statements">
         <SectionHeader>
@@ -431,8 +439,8 @@ export const AccountDetailPage = ({
           <Skeleton className="size-12" radius="2xl" />
           <Skeleton className="h-7 w-48" />
         </div>
-        <Skeleton className="h-10 w-56" />
-        <Skeleton className="h-64 w-full" radius="2xl" />
+        <Skeleton className="h-56 w-full" radius="2xl" />
+        <Skeleton className="h-48 w-full" radius="2xl" />
       </Page>
     );
   }
@@ -466,14 +474,14 @@ export const AccountDetailPage = ({
 
   return (
     <Page>
-      <PageHeader>
+      <PageHeader className="items-center">
         <PageHeading>
           <div className="flex items-center gap-3.5">
             <AccountTile account={data} size="lg" />
-            <div className="flex min-w-0 flex-col">
+            <div className="flex min-w-0 flex-col gap-1">
               <PageTitle>{data.name}</PageTitle>
               <PageDescription>
-                <span className="flex items-center gap-2">
+                <span className="flex flex-wrap items-center gap-2">
                   {accountSubtitle(data)}
                   {archived ? <Badge variant="outline">Archived</Badge> : null}
                 </span>
@@ -491,7 +499,7 @@ export const AccountDetailPage = ({
                   type: "transaction",
                 })
               }
-              variant={isCard ? "secondary" : "default"}
+              variant="default"
             >
               <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
               Add transaction
@@ -511,16 +519,7 @@ export const AccountDetailPage = ({
               Transfer
             </Button>
           ) : null}
-          {canTransact && !archived ? (
-            <Button
-              render={<Link search={{ accountId: data.id }} to="/imports" />}
-              variant="secondary"
-            >
-              <HugeiconsIcon icon={FileImportIcon} strokeWidth={1.8} />
-              Import CSV
-            </Button>
-          ) : null}
-          {canUpdate || canArchive || canRestore ? (
+          {canTransact || canUpdate || canArchive || canRestore ? (
             <Menu>
               <MenuTrigger
                 aria-label="More actions"
@@ -529,13 +528,23 @@ export const AccountDetailPage = ({
                 <HugeiconsIcon icon={MoreHorizontalIcon} strokeWidth={2} />
               </MenuTrigger>
               <MenuPopup align="end" className="min-w-48">
+                {canTransact ? (
+                  <MenuItem
+                    render={
+                      <Link search={{ accountId: data.id }} to="/imports" />
+                    }
+                  >
+                    <HugeiconsIcon icon={FileImportIcon} strokeWidth={1.8} />
+                    Import CSV
+                  </MenuItem>
+                ) : null}
                 {canUpdate && !archived ? (
                   <MenuItem onClick={() => composeAccount({ account: data })}>
                     <HugeiconsIcon icon={PencilEdit02Icon} strokeWidth={1.8} />
                     Edit account
                   </MenuItem>
                 ) : null}
-                {canUpdate && canArchive && !archived ? (
+                {(canTransact || canUpdate) && canArchive && !archived ? (
                   <MenuSeparator />
                 ) : null}
                 {archived && canRestore ? (
@@ -567,8 +576,11 @@ export const AccountDetailPage = ({
           today={today}
         />
       ) : (
-        <section aria-label="Balance" className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
+        <section
+          aria-label="Balance"
+          className="bg-card dark:ring-hairline grid items-center gap-6 rounded-2xl p-5 sm:p-6 lg:grid-cols-2 dark:ring-1"
+        >
+          <div className="flex min-w-0 flex-col gap-1">
             <span className="text-muted-foreground text-xs font-medium">
               {kind.accountClass === "liability" ? "Amount owed" : "Balance"}
             </span>
@@ -579,11 +591,13 @@ export const AccountDetailPage = ({
               value={data.balance}
             />
           </div>
-          <MonthFlow
-            account={data}
-            organizationId={activeOrganizationId}
-            today={today}
-          />
+          <div className="border-hairline border-t pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+            <MonthFlow
+              account={data}
+              organizationId={activeOrganizationId}
+              today={today}
+            />
+          </div>
         </section>
       )}
 
