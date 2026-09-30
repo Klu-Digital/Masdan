@@ -47,10 +47,10 @@ jobs:
 
   types:
     name: Types
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: useblacksmith/checkout@v1 # v7.0.1
       - uses: ./.github/actions/setup-workspace
       # Deliberately separate from `pnpm check` — ultracite runs with
       # typeAware/typeCheck off, so nothing else in CI reads a type error.
@@ -74,10 +74,10 @@ jobs:
 
   test-unit:
     name: Unit & web tests
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: useblacksmith/checkout@v1 # v7.0.1
       - uses: ./.github/actions/setup-workspace
       # Two steps rather than one so a failure names the vitest project. Both are
       # I/O-free (node + jsdom), which is why they run apart from test-db below.
@@ -90,12 +90,12 @@ jobs:
 
   test-db:
     name: Database tests
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     # Boots postgres:18 and redis:8-alpine through testcontainers and runs
     # drizzle-kit migrate against the template database before the first test.
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: useblacksmith/checkout@v1 # v7.0.1
       - uses: ./.github/actions/setup-workspace
       # Note: no TESTCONTAINERS_REUSE_ENABLE. Runners are ephemeral, so reuse
       # buys nothing, and the setup files' unconditional container.stop()
