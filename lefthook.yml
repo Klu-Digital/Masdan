@@ -6,3 +6,5 @@ pre-commit:
     - name: ultracite
       run: pnpm exec ultracite fix {staged_files}
       stage_fixed: true
+    - name: knip
+      run: pnpm knip

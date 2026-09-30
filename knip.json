@@ -9,7 +9,7 @@
     },
     "apps/web": {
       "entry": ["src/**/*.test.{ts,tsx}"],
-      "ignoreDependencies": ["tailwindcss"],
+      "ignoreDependencies": ["tailwindcss", "emojibase-data"],
       "ignoreIssues": {
         "src/routes/**": ["exports"]
       }
