@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -17,6 +18,7 @@ import { Composer } from "@/modules/transactions/components/composer";
 import type { ComposerRequest } from "@/modules/transactions/components/composer";
 import { TransactionInspector } from "@/modules/transactions/components/inspector";
 import { useLedgerActions } from "@/modules/transactions/use-ledger-actions";
+import { useQuickEntry } from "@/modules/transactions/use-quick-entry";
 
 interface AppActions {
   /** Open the ledger composer (new or edit). */
@@ -26,6 +28,10 @@ interface AppActions {
   /** Show a transaction's detail over the current page. */
   inspect: (transactionId: string) => void;
   openCommandMenu: () => void;
+  /** Create from one line of text, or open the prefilled form if it is unclear. */
+  quickAdd: (text: string) => void;
+  /** Read a line of text into the prefilled form. Never creates. */
+  quickReview: (text: string) => void;
 }
 
 const AppActionsContext = createContext<AppActions | null>(null);
@@ -83,6 +89,23 @@ export const AppActionsProvider = ({ children }: { children: ReactNode }) => {
   }, []);
   const openCommandMenu = useCallback(() => setCommandOpen(true), []);
 
+  const quickEntry = useQuickEntry({
+    activeOrganizationId,
+    canArchive: can({ transaction: ["archive"] }),
+    compose,
+  });
+  // Stable callbacks over the latest hook, so pages can call them from effects.
+  const quickEntryRef = useRef(quickEntry);
+  useEffect(() => {
+    quickEntryRef.current = quickEntry;
+  });
+  const quickAdd = useCallback((text: string) => {
+    quickEntryRef.current.add(text);
+  }, []);
+  const quickReview = useCallback((text: string) => {
+    quickEntryRef.current.review(text);
+  }, []);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -106,8 +129,15 @@ export const AppActionsProvider = ({ children }: { children: ReactNode }) => {
   }, [activeOrganizationId, canCreate, compose]);
 
   const value = useMemo(
-    () => ({ compose, composeAccount, inspect, openCommandMenu }),
-    [compose, composeAccount, inspect, openCommandMenu]
+    () => ({
+      compose,
+      composeAccount,
+      inspect,
+      openCommandMenu,
+      quickAdd,
+      quickReview,
+    }),
+    [compose, composeAccount, inspect, openCommandMenu, quickAdd, quickReview]
   );
 
   const permissions = {
@@ -182,6 +212,7 @@ export const AppActionsProvider = ({ children }: { children: ReactNode }) => {
         composeAccount={composeAccount}
         onOpenChange={setCommandOpen}
         open={commandOpen}
+        quickAdd={quickAdd}
       />
     </AppActionsContext.Provider>
   );

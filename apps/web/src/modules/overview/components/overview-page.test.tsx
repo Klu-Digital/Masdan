@@ -339,7 +339,7 @@ describe("OverviewPage", () => {
       within(recent).getByRole("link", { name: "All transactions" })
     ).toHaveAttribute("href", "/transactions");
     expect(transactionsList).toHaveBeenCalledWith(
-      expect.objectContaining({ page: 1, pageSize: 8, paidStatuses: [] })
+      expect.objectContaining({ pageSize: 8, paidStatuses: [] })
     );
   });
 

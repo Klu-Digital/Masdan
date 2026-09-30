@@ -221,7 +221,7 @@ const useVirtualLedger = <T extends HTMLElement>(
   const [scroller, setScroller] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {
     const node = listRef.current;
-    const root = node?.closest<HTMLElement>('[data-slot="app-scroll"]') ?? null;
+    const root = node?.closest<HTMLElement>("#main") ?? null;
     setScroller(root);
     if (!node || !root) {
       return;

@@ -1,4 +1,5 @@
 import {
+  AiMagicIcon,
   Analytics01Icon,
   ArrowDataTransferHorizontalIcon,
   FileImportIcon,
@@ -36,7 +37,7 @@ import {
 import { Kbd } from "@masdan/ui/components/kbd";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { usePrivacyMode } from "@/components/finance/privacy-mode";
 import { useTheme } from "@/components/theme-provider";
@@ -44,6 +45,7 @@ import { useHousehold } from "@/hooks/use-household";
 import type { AccountComposerRequest } from "@/modules/accounts/components/account-composer";
 import { accountKind } from "@/modules/accounts/kinds";
 import type { ComposerRequest } from "@/modules/transactions/components/composer";
+import { QUICK_ENTRY_MAX_LENGTH } from "@/modules/transactions/use-quick-entry";
 import { householdOrpc } from "@/utils/orpc";
 
 interface CommandEntry {
@@ -60,20 +62,39 @@ interface CommandSection {
 }
 
 /**
+ * Only text that reads like an entry (a few words and an amount) is offered
+ * as one, so Enter on "acc" still goes to Accounts and never creates anything.
+ */
+const looksLikeEntry = (text: string): boolean =>
+  /\d/u.test(text) && text.split(/\s+/u).filter(Boolean).length >= 2;
+
+/**
  * ⌘K: every destination and every "new" action, plus a jump to any account.
- * Filtering matches the label and a few synonyms.
+ * Filtering matches the label and a few synonyms. Typing a line such as
+ * "lunch 250 gcash" offers to add it as a transaction, ahead of everything else.
  */
 export const CommandMenu = ({
   compose,
   composeAccount,
   onOpenChange,
   open,
+  quickAdd,
 }: {
   compose: (request: ComposerRequest) => void;
   composeAccount: (request?: AccountComposerRequest) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
+  quickAdd: (text: string) => void;
 }) => {
+  const [query, setQuery] = useState("");
+  // Each opening starts with an empty line.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    if (!open) {
+      setQuery("");
+    }
+  }
   const navigate = useNavigate();
   const { setTheme } = useTheme();
   const [privacyOn, setPrivacyOn] = usePrivacyMode();
@@ -154,6 +175,22 @@ export const CommandMenu = ({
     }
 
     const result: CommandSection[] = [];
+    const line = query.trim().slice(0, QUICK_ENTRY_MAX_LENGTH);
+    if (can({ transaction: ["create"] }) && looksLikeEntry(line)) {
+      result.push({
+        items: [
+          {
+            handleSelect: done(() => quickAdd(line)),
+            icon: AiMagicIcon,
+            id: "quick-add",
+            // The filter matches on this, so the row stays while typing.
+            keywords: line,
+            label: `Add “${line}”`,
+          },
+        ],
+        label: "Quick add",
+      });
+    }
     if (create.length > 0) {
       result.push({ items: create, label: "Create" });
     }
@@ -275,6 +312,8 @@ export const CommandMenu = ({
     navigate,
     onOpenChange,
     privacyOn,
+    query,
+    quickAdd,
     setPrivacyOn,
     setTheme,
   ]);
@@ -288,6 +327,8 @@ export const CommandMenu = ({
             return `${entry.label} ${entry.keywords ?? ""}`;
           }}
           items={sections}
+          onValueChange={setQuery}
+          value={query}
         >
           <CommandInput placeholder="Search or jump to…" />
           <CommandPanel>
@@ -324,7 +365,7 @@ export const CommandMenu = ({
               <Kbd>↓</Kbd> to move, <Kbd>↵</Kbd> to choose
             </span>
             <span className="flex items-center gap-1.5">
-              <Kbd>N</Kbd> new expense
+              <Kbd>N</Kbd> new expense · try “lunch 250 gcash”
             </span>
           </CommandFooter>
         </Command>

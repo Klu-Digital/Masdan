@@ -2,9 +2,15 @@
 
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import { SidebarLeft01Icon } from "@hugeicons/core-free-icons";
+import { ArrowDown01Icon, SidebarLeft01Icon } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
 import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@masdan/ui/components/collapsible";
+import { ScrollArea } from "@masdan/ui/components/scroll-area";
 import {
   Tooltip,
   TooltipPopup,
@@ -90,7 +96,7 @@ export const AppFrame = ({
       <div
         className={cn(
           "bg-background flex h-svh w-full overflow-hidden",
-          className
+          className,
         )}
         data-collapsed={collapsed || undefined}
         data-slot="app-frame"
@@ -112,7 +118,7 @@ export const AppSidebar = ({
       className={cn(
         "bg-sidebar text-sidebar-foreground border-sidebar-border ease-spring relative hidden shrink-0 flex-col border-e transition-[width] duration-[420ms] motion-reduce:transition-none md:flex",
         collapsed ? "w-17" : "w-64",
-        className
+        className,
       )}
       data-collapsed={collapsed || undefined}
       data-slot="app-sidebar"
@@ -141,7 +147,7 @@ export const AppSidebarContent = ({
   <nav
     className={cn(
       "flex min-h-0 flex-1 flex-col gap-5 overflow-x-hidden overflow-y-auto px-3 py-2",
-      className
+      className,
     )}
     data-slot="app-sidebar-content"
     {...props}
@@ -162,13 +168,39 @@ export const AppSidebarFooter = ({
 export const AppNavSection = ({
   children,
   className,
+  collapsible,
+  defaultOpen = false,
   label,
 }: {
   children: React.ReactNode;
   className?: string;
+  /** Fold the items under the label. Needs a `label`; the rail shows them flat. */
+  collapsible?: boolean;
+  defaultOpen?: boolean;
   label?: string;
 }): React.ReactElement => {
   const { collapsed } = useAppFrame();
+  if (collapsible && label && !collapsed) {
+    return (
+      <Collapsible
+        className={cn("flex flex-col gap-0.5", className)}
+        data-slot="app-nav-section"
+        defaultOpen={defaultOpen}
+      >
+        <CollapsibleTrigger className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 group/section flex h-7 w-full items-center gap-1 rounded-md px-2.5 pt-1.5 text-xs font-medium outline-none focus-visible:ring-3">
+          <span className="min-w-0 flex-1 truncate text-start">{label}</span>
+          <HugeiconsIcon
+            className="size-3.5 shrink-0 transition-transform duration-200 group-data-panel-open/section:rotate-180"
+            icon={ArrowDown01Icon}
+            strokeWidth={2}
+          />
+        </CollapsibleTrigger>
+        <CollapsiblePanel>
+          <ul className="flex flex-col gap-0.5">{children}</ul>
+        </CollapsiblePanel>
+      </Collapsible>
+    );
+  }
   return (
     <div
       className={cn("flex flex-col gap-0.5", className)}
@@ -179,7 +211,7 @@ export const AppNavSection = ({
           aria-hidden={collapsed || undefined}
           className={cn(
             "text-muted-foreground h-7 truncate px-2.5 pt-1.5 text-xs font-medium transition-opacity duration-200",
-            collapsed && "opacity-0"
+            collapsed && "opacity-0",
           )}
         >
           {label}
@@ -225,7 +257,7 @@ export const AppNavItem = ({
             <span
               className={cn(
                 "min-w-0 flex-1 truncate transition-opacity duration-200",
-                collapsed && "sr-only"
+                collapsed && "sr-only",
               )}
             >
               {label}
@@ -234,7 +266,7 @@ export const AppNavItem = ({
               <span
                 className={cn(
                   "bg-brand text-brand-foreground text-2xs flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 font-semibold tracking-normal tabular-nums",
-                  collapsed && "absolute end-1 top-1 h-4 min-w-4"
+                  collapsed && "absolute end-1 top-1 h-4 min-w-4",
                 )}
               >
                 {badge}
@@ -245,10 +277,10 @@ export const AppNavItem = ({
         className: cn(
           navItemClassName,
           collapsed && "justify-center px-0",
-          className
+          className,
         ),
       },
-      props
+      props,
     ),
     render,
   });
@@ -280,7 +312,7 @@ export const AppSidebarToggle = ({
       aria-pressed={!collapsed}
       className={cn(
         "text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-ring/50 hidden size-8 items-center justify-center rounded-lg transition-colors outline-none focus-visible:ring-3 md:inline-flex [&_svg]:size-4.5",
-        className
+        className,
       )}
       onClick={toggle}
       title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -303,21 +335,22 @@ export const AppMain = ({
 );
 
 /**
- * Scroll container for page content. Its top edge sits under the translucent
- * top bar, so content scrolls beneath the material instead of into a hard line.
+ * Scroll container for page content. It sits below the top bar, so its
+ * scrollbar lives entirely within the main body.
  */
 export const AppScroll = ({
   className,
   ...props
-}: React.ComponentProps<"main">): React.ReactElement => (
-  <main
-    className={cn(
-      "min-h-0 flex-1 [scroll-padding-top:4rem] overflow-x-hidden overflow-y-auto overscroll-contain focus:outline-none",
-      className
-    )}
-    data-slot="app-scroll"
-    id="main"
-    tabIndex={-1}
+}: React.ComponentProps<typeof ScrollArea>): React.ReactElement => (
+  <ScrollArea
+    className={cn("flex-1", className)}
+    overscrollContain
+    viewportProps={{
+      className: "focus:outline-none",
+      id: "main",
+      role: "main",
+      tabIndex: -1,
+    }}
     {...props}
   />
 );
@@ -328,17 +361,12 @@ export const AppTopBar = ({
 }: React.ComponentProps<"header">): React.ReactElement => (
   <header
     className={cn(
-      "bg-material border-hairline absolute inset-x-0 top-0 z-30 flex h-13 items-center gap-2 border-b px-3 pt-[env(safe-area-inset-top)] supports-[backdrop-filter]:backdrop-blur-xl supports-[backdrop-filter]:backdrop-saturate-150 sm:px-4",
-      className
+      "bg-material border-hairline z-30 flex h-13 shrink-0 items-center gap-2 border-b px-3 pt-[env(safe-area-inset-top)] supports-[backdrop-filter]:backdrop-blur-xl supports-[backdrop-filter]:backdrop-saturate-150 sm:px-4",
+      className,
     )}
     data-slot="app-top-bar"
     {...props}
   />
-);
-
-/** Keeps content clear of the absolutely positioned top bar. */
-export const AppTopBarSpacer = (): React.ReactElement => (
-  <div aria-hidden="true" className="h-13 shrink-0" />
 );
 
 export const AppTabBar = ({
@@ -348,7 +376,7 @@ export const AppTabBar = ({
   <nav
     className={cn(
       "bg-material border-hairline fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 items-stretch border-t pb-[env(safe-area-inset-bottom)] supports-[backdrop-filter]:backdrop-blur-xl supports-[backdrop-filter]:backdrop-saturate-150 md:hidden",
-      className
+      className,
     )}
     data-slot="app-tab-bar"
     {...props}
@@ -380,7 +408,7 @@ export const AppTabBarItem = ({
         ),
         className: cn(tabItemClassName, className),
       },
-      props
+      props,
     ),
     render,
   });
@@ -394,7 +422,7 @@ export const AppTabBarAction = ({
   <button
     className={cn(
       "focus-visible:[&>span]:ring-ring/50 flex h-14 items-center justify-center outline-none focus-visible:[&>span]:ring-3",
-      className
+      className,
     )}
     type="button"
     {...props}

@@ -13,7 +13,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@masdan/ui/components/empty";
-import { IconTile } from "@masdan/ui/components/icon-tile";
+import { ColorDot, IconTile } from "@masdan/ui/components/icon-tile";
 import {
   Page,
   PageActions,
@@ -28,7 +28,7 @@ import {
   useQuery,
 } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 
 import { useAppActions } from "@/components/app-actions";
@@ -43,6 +43,7 @@ import {
 import { NewMenu } from "@/components/shell/new-menu";
 import type { Household } from "@/hooks/use-household";
 import { householdToday } from "@/lib/household-date";
+import { AccountCardThumb } from "@/modules/accounts/components/account-card";
 import {
   ledgerInfiniteQuery,
   ledgerQueries,
@@ -56,7 +57,6 @@ import { BulkActionBar } from "./bulk-action-bar";
 import { BulkEditDialog } from "./bulk-edit-dialog";
 import { Ledger } from "./ledger";
 import { LedgerFilters, LedgerSearch } from "./ledger-filters";
-import { QuickEntry } from "./quick-entry";
 
 const LedgerSkeleton = () => (
   <div aria-hidden="true" className="flex flex-col gap-1 pt-4">
@@ -150,19 +150,22 @@ export const TransactionsPage = ({
   household,
   onClearFilters,
   onSearchChange,
+  restoredFilters = false,
   search,
   selectedId,
 }: {
   household: Household & { activeOrganizationId: string };
   onClearFilters: () => void;
   onSearchChange: (updates: Partial<TransactionSearch>) => void;
+  /** The filters came from the last visit, not from the link. */
+  restoredFilters?: boolean;
   search: TransactionSearch;
   selectedId?: string;
 }) => {
   const { activeOrganizationId, can, timezone } = household;
   const canBulkEdit = can({ transaction: ["update"] });
   const navigate = useNavigate();
-  const { compose } = useAppActions();
+  const { compose, quickReview } = useAppActions();
   const ledgerActions = useLedgerActions(activeOrganizationId);
   const queries = ledgerQueries(activeOrganizationId, search);
   const accounts = useQuery(queries.accounts);
@@ -204,6 +207,10 @@ export const TransactionsPage = ({
     () =>
       (accounts.data ?? []).map((account) => ({
         label: account.archivedAt ? `${account.name} (archived)` : account.name,
+        leading:
+          account.accountType === "credit_card" ? (
+            <AccountCardThumb account={account} size="xs" />
+          ) : undefined,
         value: account.id,
       })),
     [accounts.data]
@@ -213,7 +220,7 @@ export const TransactionsPage = ({
       (categories.data ?? []).map((category) => ({
         label: category.name,
         leading: (
-          <IconTile size="xs" tint={category.color}>
+          <IconTile className="rounded-sm" size="xs" tint={category.color}>
             {category.icon}
           </IconTile>
         ),
@@ -222,7 +229,12 @@ export const TransactionsPage = ({
     [categories.data]
   );
   const tagOptions = useMemo(
-    () => (tags.data ?? []).map((tag) => ({ label: tag.name, value: tag.id })),
+    () =>
+      (tags.data ?? []).map((tag) => ({
+        label: tag.name,
+        leading: <ColorDot className="size-2.5" tint={tag.color} />,
+        value: tag.id,
+      })),
     [tags.data]
   );
 
@@ -237,10 +249,49 @@ export const TransactionsPage = ({
     search.tagIds.length > 0 ||
     search.types.length > 0;
 
-  const clearLinkedText = useCallback(
-    () => onSearchChange({ quickEntry: undefined }),
-    [onSearchChange]
-  );
+  // Restored filters can name things deleted since: drop them rather than
+  // show an empty ledger the filter chips cannot explain.
+  useEffect(() => {
+    if (!restoredFilters || !accounts.data || !categories.data || !tags.data) {
+      return;
+    }
+    const known = (ids: string[], options: { id: string }[]) =>
+      ids.filter((id) => options.some((option) => option.id === id));
+    const accountIds = known(search.accountIds, accounts.data);
+    const categoryIds = known(search.categoryIds, categories.data);
+    const tagIds = known(search.tagIds, tags.data);
+    if (
+      accountIds.length !== search.accountIds.length ||
+      categoryIds.length !== search.categoryIds.length ||
+      tagIds.length !== search.tagIds.length
+    ) {
+      onSearchChange({ accountIds, categoryIds, tagIds });
+    }
+  }, [
+    accounts.data,
+    categories.data,
+    onSearchChange,
+    restoredFilters,
+    search.accountIds,
+    search.categoryIds,
+    search.tagIds,
+    tags.data,
+  ]);
+
+  // A link (from chat) carries a line of text. It is read into the form once,
+  // and never creates: following a link is not a create intent.
+  const linkedText = search.quickEntry;
+  const readLinkedText = useRef<string | null>(null);
+  useEffect(() => {
+    if (!linkedText || readLinkedText.current === linkedText) {
+      return;
+    }
+    readLinkedText.current = linkedText;
+    if (can({ transaction: ["create"] })) {
+      quickReview(linkedText);
+    }
+    onSearchChange({ quickEntry: undefined });
+  }, [can, linkedText, onSearchChange, quickReview]);
 
   const openTransaction = (transaction: Transaction) =>
     navigate({
@@ -413,15 +464,6 @@ export const TransactionsPage = ({
         </PageActions>
       </PageHeader>
 
-      {can({ transaction: ["create"] }) ? (
-        <QuickEntry
-          activeOrganizationId={activeOrganizationId}
-          canArchive={can({ transaction: ["archive"] })}
-          linkedText={search.quickEntry}
-          onLinkedTextRead={clearLinkedText}
-        />
-      ) : null}
-
       <TotalsStrip
         activeOrganizationId={activeOrganizationId}
         currency={household.currency ?? "PHP"}
@@ -453,6 +495,14 @@ export const TransactionsPage = ({
             today={today}
           />
         </div>
+        {restoredFilters && hasFilters ? (
+          <p className="text-muted-foreground flex items-center gap-2 text-xs">
+            Showing the filters you used last time.
+            <Button onClick={onClearFilters} size="xs" variant="ghost">
+              Reset
+            </Button>
+          </p>
+        ) : null}
         {content}
       </section>
       {canBulkEdit ? (

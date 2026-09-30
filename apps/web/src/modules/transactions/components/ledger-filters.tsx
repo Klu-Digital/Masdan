@@ -1,5 +1,14 @@
-import { Search01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowDownLeft01Icon,
+  ArrowUpRight01Icon,
+  CheckmarkCircle02Icon,
+  Clock01Icon,
+  ListViewIcon,
+  Search01Icon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import type { IconSvgElement } from "@hugeicons/react";
 import { Button } from "@masdan/ui/components/button";
 import { Input } from "@masdan/ui/components/input";
 import { Kbd } from "@masdan/ui/components/kbd";
@@ -45,6 +54,25 @@ export interface FilterOption {
 }
 
 const SEARCH_DEBOUNCE_MS = 250;
+
+const OptionLabel = ({
+  children,
+  className,
+  icon,
+}: {
+  children: ReactNode;
+  className?: string;
+  icon: IconSvgElement;
+}) => (
+  <span className="flex items-center gap-2">
+    <HugeiconsIcon
+      className={cn("text-muted-foreground", className)}
+      icon={icon}
+      strokeWidth={1.8}
+    />
+    {children}
+  </span>
+);
 
 /**
  * Search that updates the URL as you type (debounced) and answers "/" from
@@ -390,9 +418,15 @@ export const LedgerFilters = ({
             }
             value={type ?? ""}
           >
-            <MenuRadioItem value="">All types</MenuRadioItem>
-            <MenuRadioItem value="expense">Expenses</MenuRadioItem>
-            <MenuRadioItem value="income">Income</MenuRadioItem>
+            <MenuRadioItem value="">
+              <OptionLabel icon={ListViewIcon}>All types</OptionLabel>
+            </MenuRadioItem>
+            <MenuRadioItem value="expense">
+              <OptionLabel icon={ArrowUpRight01Icon}>Expenses</OptionLabel>
+            </MenuRadioItem>
+            <MenuRadioItem value="income">
+              <OptionLabel icon={ArrowDownLeft01Icon}>Income</OptionLabel>
+            </MenuRadioItem>
           </MenuRadioGroup>
         </MenuPopup>
       </Menu>
@@ -445,9 +479,15 @@ export const LedgerFilters = ({
             }
             value={status ?? ""}
           >
-            <MenuRadioItem value="">Paid and unpaid</MenuRadioItem>
-            <MenuRadioItem value="paid">Paid only</MenuRadioItem>
-            <MenuRadioItem value="unpaid">Unpaid only</MenuRadioItem>
+            <MenuRadioItem value="">
+              <OptionLabel icon={ListViewIcon}>Paid and unpaid</OptionLabel>
+            </MenuRadioItem>
+            <MenuRadioItem value="paid">
+              <OptionLabel icon={CheckmarkCircle02Icon}>Paid only</OptionLabel>
+            </MenuRadioItem>
+            <MenuRadioItem value="unpaid">
+              <OptionLabel icon={Clock01Icon}>Unpaid only</OptionLabel>
+            </MenuRadioItem>
           </MenuRadioGroup>
           <MenuSeparator />
           <MenuCheckboxItem

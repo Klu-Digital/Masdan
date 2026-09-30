@@ -25,7 +25,7 @@ export const AlertDialogBackdrop = ({
 }: AlertDialogPrimitive.Backdrop.Props): React.ReactElement => (
   <AlertDialogPrimitive.Backdrop
     className={cn(
-      "bg-scrim fixed inset-0 z-50 transition-opacity duration-300 ease-out data-ending-style:opacity-0 data-ending-style:duration-200 data-starting-style:opacity-0",
+      "bg-scrim fixed inset-0 z-50 backdrop-blur-xs transition-opacity duration-300 ease-out data-ending-style:opacity-0 data-ending-style:duration-200 data-starting-style:opacity-0",
       className
     )}
     data-slot="alert-dialog-backdrop"

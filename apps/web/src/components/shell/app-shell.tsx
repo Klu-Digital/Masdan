@@ -22,7 +22,6 @@ import {
   AppTabBarAction,
   AppTabBarItem,
   AppTopBar,
-  AppTopBarSpacer,
   useAppFrame,
 } from "@masdan/ui/components/app-frame";
 import { Button } from "@masdan/ui/components/button";
@@ -67,6 +66,9 @@ const Sidebar = ({
   isPlatformAdmin: boolean;
 }) => {
   const { collapsed } = useAppFrame();
+  const onAdminRoute = useRouterState({
+    select: (state) => state.location.pathname.startsWith("/admin"),
+  });
   return (
     <AppSidebar aria-label="Main">
       <AppSidebarHeader>
@@ -110,7 +112,7 @@ const Sidebar = ({
           ))}
         </AppNavSection>
         {isPlatformAdmin ? (
-          <AppNavSection label="Admin">
+          <AppNavSection collapsible defaultOpen={onAdminRoute} label="Admin">
             {ADMIN_NAV.map((item) => (
               <AppNavItem
                 icon={item.icon}
@@ -326,7 +328,7 @@ const TabBar = ({ onMore }: { onMore: () => void }) => {
             label={item.label}
             render={<Link to={item.to} />}
           />
-        ) : null
+        ) : null,
       )}
       <NewMenu
         side="top"
@@ -405,7 +407,6 @@ export const AppShell = ({
         <div className="relative flex min-h-0 flex-1 flex-col">
           <TopBar />
           <AppScroll>
-            <AppTopBarSpacer />
             <ScrollReset />
             {children}
           </AppScroll>
