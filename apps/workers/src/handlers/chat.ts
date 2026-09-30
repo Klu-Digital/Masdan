@@ -27,7 +27,7 @@ export const handleChatProcess = async (
     return;
   }
   const adapter = chatChannelAdapters[channel];
-  if (!adapter.isConfigured()) {
+  if (!adapter.canSend()) {
     log.warn({ action: "chat.process.unconfigured", channel, jobId: job.id });
     return;
   }

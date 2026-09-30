@@ -168,6 +168,7 @@ const callTelegram = async (
  * a Bot API call Telegram performs, so the server needs no outbound request.
  */
 export const telegramChannel: ChatChannelAdapter = {
+  canSend: () => Boolean(env.TELEGRAM_BOT_TOKEN),
   download: async (ref, maxBytes) => {
     const token = env.TELEGRAM_BOT_TOKEN;
     if (!token) {

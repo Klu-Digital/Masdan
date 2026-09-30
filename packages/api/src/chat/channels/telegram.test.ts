@@ -236,6 +236,17 @@ describe("telegramChannel.handleWebhook", () => {
     expect(telegramChannel.isConfigured()).toBe(false);
   });
 
+  it("can send with the token alone, as apps/workers has no webhook secret", () => {
+    mockEnv.TELEGRAM_WEBHOOK_SECRET = undefined;
+
+    expect(telegramChannel.canSend()).toBe(true);
+    expect(telegramChannel.isConfigured()).toBe(false);
+
+    mockEnv.TELEGRAM_BOT_TOKEN = undefined;
+
+    expect(telegramChannel.canSend()).toBe(false);
+  });
+
   it("answers 200 to ignored updates and bodies that are not JSON", async () => {
     const group = await telegramChannel.handleWebhook(
       webhook(

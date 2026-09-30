@@ -43,6 +43,11 @@ export interface ChatChannelAdapter {
   download?: (ref: string, maxBytes: number) => Promise<Uint8Array>;
   /** Shown in Masdan, e.g. "Telegram". */
   label: string;
+  /**
+   * Whether `send` has what it needs. Narrower than `isConfigured`: apps/workers
+   * holds the send credential but never the webhook secret.
+   */
+  canSend: () => boolean;
   /** Without its credentials a channel is off: no webhook, not offered in settings. */
   isConfigured: () => boolean;
   /**
