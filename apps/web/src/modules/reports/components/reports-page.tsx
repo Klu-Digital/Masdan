@@ -162,10 +162,9 @@ export const ReportsPage = ({
               </SelectPopup>
             </Select>
           ) : null}
+          {ask}
         </PageActions>
       </PageHeader>
-
-      {ask}
 
       {failed ? (
         <Empty size="compact">

@@ -59,6 +59,7 @@ const spending = {
 const submit = async (text: string) => {
   const user = userEvent.setup();
   renderWithProviders(<AskMasdan />);
+  await user.click(await screen.findByRole("button", { name: "Ask Masdan" }));
   await user.type(await screen.findByLabelText("Question"), text);
   await user.click(screen.getByRole("button", { name: "Ask" }));
 };
@@ -68,6 +69,40 @@ beforeEach(() => {
 });
 
 describe("AskMasdan", () => {
+  it("opens on demand, fills an example, and preserves the answer after closing", async () => {
+    const user = userEvent.setup();
+    question.mockResolvedValue(spending);
+    renderWithProviders(<AskMasdan />);
+
+    const trigger = await screen.findByRole("button", { name: "Ask Masdan" });
+    expect(screen.queryByLabelText("Question")).toBeNull();
+    await user.click(trigger);
+    expect(
+      await screen.findByRole("dialog", { name: "Ask Masdan" })
+    ).toBeVisible();
+    await user.click(
+      screen.getByRole("button", {
+        name: "How much did we spend on dining last month?",
+      })
+    );
+    expect(screen.getByLabelText("Question")).toHaveValue(
+      "How much did we spend on dining last month?"
+    );
+    expect(question).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Ask" }));
+    expect(await screen.findByText(spending.answer.headline)).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.getByRole("button", { name: "Ask Masdan" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Ask Masdan" }));
+    expect(await screen.findByLabelText("Question")).toHaveValue(
+      "How much did we spend on dining last month?"
+    );
+    expect(screen.getByText(spending.answer.headline)).toBeVisible();
+    expect(question).toHaveBeenCalledTimes(1);
+  });
+
   it("shows the answer with the period and filters it was computed over", async () => {
     question.mockResolvedValue(spending);
 
@@ -133,5 +168,11 @@ describe("AskMasdan", () => {
       ).toBeInTheDocument()
     );
     expect(screen.getByLabelText("Question")).toHaveValue("net worth");
+    question.mockResolvedValue(spending);
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText(spending.answer.headline)).toBeVisible();
+    expect(question).toHaveBeenLastCalledWith({ question: "net worth" });
   });
 });

@@ -13,11 +13,14 @@ import {
   ListItemTrailing,
 } from "@masdan/ui/components/list";
 import {
-  Section,
-  SectionDescription,
-  SectionHeader,
-  SectionTitle,
-} from "@masdan/ui/components/page";
+  Sheet,
+  SheetDescription,
+  SheetHeader,
+  SheetPanel,
+  SheetPopup,
+  SheetTitle,
+  SheetTrigger,
+} from "@masdan/ui/components/sheet";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -40,6 +43,11 @@ type AskAnswer = Extract<AskResult, { status: "answered" }>["answer"];
 
 /** Matches the API's limit, so an overlong question never costs a round trip. */
 const MAX_LENGTH = 300;
+const EXAMPLE_QUESTIONS = [
+  "How much did we spend on dining last month?",
+  "What was our cash flow last month?",
+  "What is our net worth?",
+];
 
 const amountsText = (
   amounts: AskAnswer["figures"][number]["amounts"],
@@ -184,6 +192,7 @@ const Reply = ({ result }: { result: AskResult }) => {
  */
 export const AskMasdan = () => {
   const [question, setQuestion] = useState("");
+  const [open, setOpen] = useState(false);
   const ask = useMutation(
     orpc.ask.question.mutationOptions({
       // The answer panel shows the failure.
@@ -193,42 +202,98 @@ export const AskMasdan = () => {
   const text = question.trim();
 
   return (
-    <Section aria-label="Ask Masdan">
-      <SectionHeader>
-        <SectionTitle>Ask Masdan</SectionTitle>
-        <SectionDescription>
-          Ask about spending, income, cash flow, net worth or balances.
-        </SectionDescription>
-      </SectionHeader>
-      <form
-        className="flex items-center gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (text && !ask.isPending) {
-            ask.mutate({ question: text });
-          }
-        }}
+    <Sheet onOpenChange={setOpen} open={open}>
+      <SheetTrigger
+        render={<Button className="h-10 sm:h-9" variant="secondary" />}
       >
-        <Input
-          aria-label="Question"
-          maxLength={MAX_LENGTH}
-          onChange={(event) => setQuestion(event.target.value)}
-          placeholder="How much did we spend on dining last month?"
-          start={<HugeiconsIcon icon={AiSearch02Icon} strokeWidth={1.8} />}
-          value={question}
-        />
-        <Button disabled={text === ""} loading={ask.isPending} type="submit">
-          Ask
-        </Button>
-      </form>
-      {ask.isError ? (
-        <Alert variant="error">
-          <AlertDescription>
-            Couldn’t get an answer. Try again in a moment.
-          </AlertDescription>
-        </Alert>
-      ) : null}
-      {ask.data ? <Reply result={ask.data} /> : null}
-    </Section>
+        <HugeiconsIcon icon={AiSearch02Icon} strokeWidth={1.8} />
+        Ask Masdan
+      </SheetTrigger>
+      <SheetPopup className="h-full w-full max-w-none md:max-w-xl" side="right">
+        <SheetHeader>
+          <SheetTitle>Ask Masdan</SheetTitle>
+          <SheetDescription>
+            Ask about spending, income, cash flow, net worth or balances.
+            Include a period in your question; report filters don’t apply here.
+          </SheetDescription>
+        </SheetHeader>
+        <SheetPanel>
+          <div className="flex flex-col gap-4">
+            <form
+              className="flex items-center gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (text && !ask.isPending) {
+                  ask.mutate({ question: text });
+                }
+              }}
+            >
+              <Input
+                aria-label="Question"
+                disabled={ask.isPending}
+                maxLength={MAX_LENGTH}
+                onChange={(event) => setQuestion(event.target.value)}
+                placeholder="How much did we spend on dining last month?"
+                start={
+                  <HugeiconsIcon icon={AiSearch02Icon} strokeWidth={1.8} />
+                }
+                value={question}
+              />
+              <Button
+                disabled={text === "" || ask.isPending}
+                loading={ask.isPending}
+                type="submit"
+              >
+                Ask
+              </Button>
+            </form>
+            {!ask.data && !ask.isError ? (
+              <div className="flex flex-col items-start gap-2">
+                <p className="text-muted-foreground text-sm">Try a question</p>
+                {EXAMPLE_QUESTIONS.map((example) => (
+                  <Button
+                    className="h-auto text-left whitespace-normal"
+                    disabled={ask.isPending}
+                    key={example}
+                    onClick={() => setQuestion(example)}
+                    size="sm"
+                    variant="outline"
+                  >
+                    {example}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
+            {ask.isPending ? (
+              <output
+                aria-live="polite"
+                className="text-muted-foreground text-sm"
+              >
+                Checking your household’s finances…
+              </output>
+            ) : null}
+            {ask.isError ? (
+              <Alert variant="error">
+                <AlertDescription>
+                  Couldn’t get an answer. Try again in a moment.
+                  <Button
+                    className="mt-2"
+                    disabled={ask.isPending}
+                    onClick={() =>
+                      ask.mutate({ question: ask.variables?.question ?? text })
+                    }
+                    size="sm"
+                    variant="secondary"
+                  >
+                    Try again
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            {ask.data && !ask.isPending ? <Reply result={ask.data} /> : null}
+          </div>
+        </SheetPanel>
+      </SheetPopup>
+    </Sheet>
   );
 };
