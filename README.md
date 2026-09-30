@@ -185,7 +185,7 @@ The web image serves the SPA through nginx using `apps/web/nginx.conf.template`,
 
 ### The web image is environment-agnostic
 
-`VITE_SERVER_URL` defaults to `/`, meaning "the origin that served this page". nginx forwards the prefixes the API mounts — `/api/auth`, `/rpc` and `/feeds/` — to `SERVER_UPSTREAM`, so the browser only ever talks to one origin. Nothing environment-specific is inlined at build time, which is what lets a single built image be promoted from staging to production rather than rebuilt per environment. `apps/web/vite.config.ts` proxies the same prefixes so `pnpm dev` runs the same topology.
+`VITE_SERVER_URL` defaults to `/`, meaning "the origin that served this page". nginx forwards the prefixes the API mounts — `/api/auth`, `/rpc`, `/feeds/` and the chat webhook path `/chat/<channel>/webhook` — to `SERVER_UPSTREAM`, so the browser only ever talks to one origin. Nothing environment-specific is inlined at build time, which is what lets a single built image be promoted from staging to production rather than rebuilt per environment. `apps/web/vite.config.ts` proxies the same prefixes so `pnpm dev` runs the same topology.
 
 Three consequences worth knowing:
 
