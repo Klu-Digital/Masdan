@@ -143,6 +143,7 @@ describe("completeJson", () => {
     expect(body).toMatchObject({
       max_tokens: 500,
       model: "workers-ai/@cf/meta/llama-3.1-8b",
+      reasoning_effort: "none",
       response_format: {
         json_schema: { name: "quick_transaction", strict: true },
         type: "json_schema",

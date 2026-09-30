@@ -95,6 +95,7 @@ export const completeJson = async <Schema extends z.ZodType>({
       max_tokens: maxTokens,
       messages,
       model,
+      reasoning_effort: AI_FEATURES[feature].reasoningEffort,
       response_format: {
         json_schema: {
           name,
