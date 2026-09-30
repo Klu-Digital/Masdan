@@ -5,7 +5,7 @@
   "workspaces": {
     ".": {
       "entry": ["scripts/**/*.ts"],
-      "ignoreDependencies": ["lefthook", "rolldown"]
+      "ignoreDependencies": ["rolldown"]
     },
     "apps/web": {
       "entry": ["src/**/*.test.{ts,tsx}"],

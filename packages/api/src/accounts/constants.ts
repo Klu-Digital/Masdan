@@ -4,6 +4,5 @@ export {
   ASSET_ACCOUNT_TYPES,
   LIABILITY_ACCOUNT_TYPES,
   LIQUIDITY_TYPES,
-  SNAPSHOT_SOURCES,
 } from "@masdan/db/reference/accounts";
 export type { AccountType } from "@masdan/db/reference/accounts";
