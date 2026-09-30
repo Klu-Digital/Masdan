@@ -26,9 +26,6 @@
     "packages/storage": {
       "includeEntryExports": true
     },
-    "packages/db": {
-      "ignoreDependencies": ["fishery"]
-    },
     "packages/ui": {
       "ignoreDependencies": ["shadcn"]
     }

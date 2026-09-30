@@ -328,7 +328,7 @@ const TabBar = ({ onMore }: { onMore: () => void }) => {
             label={item.label}
             render={<Link to={item.to} />}
           />
-        ) : null,
+        ) : null
       )}
       <NewMenu
         side="top"

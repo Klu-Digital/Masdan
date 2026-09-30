@@ -220,7 +220,7 @@ export const TransactionsPage = ({
       (categories.data ?? []).map((category) => ({
         label: category.name,
         leading: (
-          <IconTile className="rounded-sm" size="xs" tint={category.color}>
+          <IconTile size="xs" tint={category.color}>
             {category.icon}
           </IconTile>
         ),

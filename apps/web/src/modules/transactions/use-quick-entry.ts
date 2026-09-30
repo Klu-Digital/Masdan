@@ -11,7 +11,7 @@ import type { ComposerRequest } from "./components/composer";
 import type { ReviewField } from "./components/transaction-form";
 import type { TransactionDetail } from "./types";
 
-export type QuickEntryParse = RouterOutputs["transactions"]["parseQuickEntry"];
+type QuickEntryParse = RouterOutputs["transactions"]["parseQuickEntry"];
 
 /** Matches the API's limit, so an overlong line never costs a round trip. */
 export const QUICK_ENTRY_MAX_LENGTH = 300;
@@ -21,7 +21,7 @@ const reviewField = (field: QuickEntryParse["issues"][number]["field"]) =>
   (field === "kind" ? "categoryId" : field) satisfies ReviewField;
 
 /** What a parse resolved, as the composer request that lets you finish it. */
-export const quickEntryRequest = (
+const quickEntryRequest = (
   parsed: QuickEntryParse,
   source: string
 ): Extract<ComposerRequest, { type: "transaction" }> => ({

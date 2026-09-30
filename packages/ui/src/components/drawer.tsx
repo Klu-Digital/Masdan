@@ -100,7 +100,7 @@ export const DrawerBackdrop = ({
 }: DrawerPrimitive.Backdrop.Props): React.ReactElement => (
   <DrawerPrimitive.Backdrop
     className={cn(
-      "bg-scrim fixed inset-0 z-50 backdrop-blur-xs opacity-[calc(1-var(--drawer-swipe-progress))] transition-opacity duration-450 ease-[cubic-bezier(0.32,0.72,0,1)] data-ending-style:opacity-0 data-ending-style:duration-[calc(var(--drawer-swipe-strength)*400ms)] data-starting-style:opacity-0 data-swiping:duration-0 supports-[-webkit-touch-callout:none]:absolute",
+      "bg-scrim fixed inset-0 z-50 opacity-[calc(1-var(--drawer-swipe-progress))] backdrop-blur-xs transition-opacity duration-450 ease-[cubic-bezier(0.32,0.72,0,1)] data-ending-style:opacity-0 data-ending-style:duration-[calc(var(--drawer-swipe-strength)*400ms)] data-starting-style:opacity-0 data-swiping:duration-0 supports-[-webkit-touch-callout:none]:absolute",
       className
     )}
     data-slot="drawer-backdrop"

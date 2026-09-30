@@ -54,6 +54,9 @@ jobs:
       - uses: ./.github/actions/setup-workspace
       # Deliberately separate from `pnpm check` — ultracite runs with
       # typeAware/typeCheck off, so nothing else in CI reads a type error.
+      # routeTree.gen.ts is gitignored; the Vite plugin writes it on dev/build,
+      # so a bare checkout has none and every route's types collapse to never.
+      - run: pnpm --filter web routes:generate
       - run: pnpm check-types
 
   deps:
@@ -64,6 +67,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-workspace
       # Unused, unlisted and unresolved dependencies only; dead exports are #66's.
+      # routeTree.gen.ts is gitignored; the Vite plugin writes it on dev/build,
+      # so a bare checkout has none and every route's types collapse to never.
+      - run: pnpm --filter web routes:generate
       - run: pnpm knip
 
   test-unit:
