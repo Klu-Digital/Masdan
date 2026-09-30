@@ -3,17 +3,21 @@ import type React from "react";
 
 /**
  * A strip of related figures separated by hairlines — limit, balance,
- * available. Wraps to a 2-up grid on narrow screens.
+ * available. Wraps to a 2-up grid on narrow screens; `grid` keeps that 2-up
+ * layout at every width, for figures too wide to share one row.
  */
 export const StatGroup = ({
   className,
+  grid = false,
   ...props
-}: React.ComponentProps<"dl">): React.ReactElement => (
+}: React.ComponentProps<"dl"> & { grid?: boolean }): React.ReactElement => (
   <dl
     className={cn(
-      "bg-card sm:divide-hairline dark:ring-hairline grid grid-cols-2 overflow-hidden rounded-2xl sm:flex sm:divide-x dark:ring-1",
+      "bg-card dark:ring-hairline grid grid-cols-2 overflow-hidden rounded-2xl dark:ring-1",
+      !grid && "sm:divide-hairline sm:flex sm:divide-x",
       className
     )}
+    data-layout={grid ? "grid" : "row"}
     data-slot="stat-group"
     {...props}
   />
@@ -25,7 +29,7 @@ export const Stat = ({
 }: React.ComponentProps<"div">): React.ReactElement => (
   <div
     className={cn(
-      "in-data-[slot=stat-group]:max-sm:border-hairline flex min-w-0 flex-1 flex-col gap-1 px-4 py-3.5 in-data-[slot=stat-group]:max-sm:not-nth-[-n+2]:border-t in-data-[slot=stat-group]:max-sm:odd:border-e",
+      "in-data-[slot=stat-group]:max-sm:border-hairline in-data-[layout=grid]:border-hairline flex min-w-0 flex-1 flex-col gap-1 px-4 py-3.5 in-data-[layout=grid]:not-nth-[-n+2]:border-t in-data-[layout=grid]:odd:border-e in-data-[slot=stat-group]:max-sm:not-nth-[-n+2]:border-t in-data-[slot=stat-group]:max-sm:odd:border-e",
       className
     )}
     data-slot="stat"

@@ -9,19 +9,13 @@ import {
   DialogTitle,
 } from "@masdan/ui/components/dialog";
 import { Field, FieldLabel } from "@masdan/ui/components/field";
-import {
-  Select,
-  SelectItem,
-  SelectPopup,
-  SelectTrigger,
-  SelectValue,
-} from "@masdan/ui/components/select";
 import { useState } from "react";
 
 import { errorMessage as messageFor } from "@/utils/orpc";
 
+import { CategoryPicker } from "../../categories/components/category-picker";
+import { TagPicker } from "../../tags/components/tag-picker";
 import { useBulkUpdate } from "../use-ledger-actions";
-import { MultiSelectFilter } from "./ledger-filters";
 
 export const BulkEditDialog = ({
   activeOrganizationId,
@@ -33,8 +27,19 @@ export const BulkEditDialog = ({
   onSaved,
 }: {
   activeOrganizationId: string;
-  categories: { id: string; name: string; archivedAt: Date | null }[];
-  tags: { id: string; name: string; archivedAt: Date | null }[];
+  categories: {
+    archivedAt: Date | null;
+    color: string;
+    icon: string;
+    id: string;
+    name: string;
+  }[];
+  tags: {
+    archivedAt: Date | null;
+    color: string;
+    id: string;
+    name: string;
+  }[];
   transactionIds: string[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -46,10 +51,13 @@ export const BulkEditDialog = ({
   const [confirming, setConfirming] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const mutation = useBulkUpdate(activeOrganizationId);
-  const tagOptions = tags
-    .filter((tag) => tag.archivedAt === null)
-    .map((tag) => ({ label: tag.name, value: tag.id }));
-  const removeOptions = tags.map((tag) => ({ label: tag.name, value: tag.id }));
+  const activeCategories = categories.filter(
+    (category) => category.archivedAt === null
+  );
+  const addOptions = tags.filter(
+    (tag) => tag.archivedAt === null && !removeTagIds.includes(tag.id)
+  );
+  const removeOptions = tags.filter((tag) => !addTagIds.includes(tag.id));
   const reset = () => {
     setConfirming(false);
     setCategoryId("");
@@ -101,47 +109,35 @@ export const BulkEditDialog = ({
           <DialogPanel>
             <div className="flex flex-col gap-4">
               <Field>
-                <FieldLabel htmlFor="bulk-category">Category</FieldLabel>
-                <Select
-                  onValueChange={(value) => setCategoryId(value ?? "")}
+                <FieldLabel>Category</FieldLabel>
+                <CategoryPicker
+                  categories={activeCategories}
+                  onValueChange={setCategoryId}
+                  placeholder="Keep current"
+                  showClear
                   value={categoryId}
-                >
-                  <SelectTrigger id="bulk-category">
-                    <SelectValue>
-                      {categories.find((item) => item.id === categoryId)
-                        ?.name ?? "Keep current"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectPopup>
-                    <SelectItem value="">Keep current</SelectItem>
-                    {categories
-                      .filter((item) => item.archivedAt === null)
-                      .map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.name}
-                        </SelectItem>
-                      ))}
-                  </SelectPopup>
-                </Select>
+                />
               </Field>
-              <div className="flex flex-wrap gap-2">
-                <MultiSelectFilter
-                  label="Add tags"
-                  selected={addTagIds}
-                  options={tagOptions.filter(
-                    (item) => !removeTagIds.includes(item.value)
-                  )}
-                  onChange={setAddTagIds}
+              <Field>
+                <FieldLabel>Add tags</FieldLabel>
+                <TagPicker
+                  ariaLabel="Add tags"
+                  onValueChange={setAddTagIds}
+                  placeholder="Search tags"
+                  tags={addOptions}
+                  value={addTagIds}
                 />
-                <MultiSelectFilter
-                  label="Remove tags"
-                  selected={removeTagIds}
-                  options={removeOptions.filter(
-                    (item) => !addTagIds.includes(item.value)
-                  )}
-                  onChange={setRemoveTagIds}
+              </Field>
+              <Field>
+                <FieldLabel>Remove tags</FieldLabel>
+                <TagPicker
+                  ariaLabel="Remove tags"
+                  onValueChange={setRemoveTagIds}
+                  placeholder="Search tags"
+                  tags={removeOptions}
+                  value={removeTagIds}
                 />
-              </div>
+              </Field>
             </div>
           </DialogPanel>
         )}

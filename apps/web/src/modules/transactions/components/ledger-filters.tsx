@@ -142,7 +142,7 @@ export const LedgerSearch = ({
 };
 
 /** A chip that opens a searchable, multi-select list. */
-export const MultiSelectFilter = ({
+const MultiSelectFilter = ({
   label,
   onChange,
   options,
@@ -178,8 +178,8 @@ export const MultiSelectFilter = ({
       >
         {summary}
       </PopoverTrigger>
-      <PopoverPopup align="start" className="w-72" inset="none">
-        <div className="flex flex-col">
+      <PopoverPopup align="start" className="w-72" inset="list">
+        <div className="flex min-h-0 flex-1 flex-col">
           {options.length > 8 ? (
             <div className="p-2">
               <Input
@@ -192,7 +192,7 @@ export const MultiSelectFilter = ({
               />
             </div>
           ) : null}
-          <fieldset className="flex max-h-72 flex-col overflow-y-auto p-1.5">
+          <fieldset className="flex max-h-72 min-h-0 flex-col overflow-y-auto p-1.5">
             <legend className="sr-only">{label}</legend>
             {visible.length === 0 ? (
               <p className="text-muted-foreground px-2 py-4 text-center text-xs">

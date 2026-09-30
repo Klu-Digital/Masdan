@@ -30,7 +30,15 @@ const openDialog = (transactionIds = [ID]) => {
   render(
     <BulkEditDialog
       activeOrganizationId="household"
-      categories={[{ archivedAt: null, id: CATEGORY, name: "Groceries" }]}
+      categories={[
+        {
+          archivedAt: null,
+          color: "green",
+          icon: "🛒",
+          id: CATEGORY,
+          name: "Groceries",
+        },
+      ]}
       tags={[]}
       transactionIds={transactionIds}
       open
@@ -52,14 +60,11 @@ describe("BulkEditDialog", () => {
     const { onSaved } = openDialog();
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
     await user.click(screen.getByRole("combobox", { name: "Category" }));
-    await user.click(await screen.findByRole("option", { name: "Groceries" }));
-    await user.click(screen.getByRole("combobox", { name: "Category" }));
-    await user.click(
-      await screen.findByRole("option", { name: "Keep current" })
-    );
+    await user.click(await screen.findByRole("option", { name: /Groceries/u }));
+    await user.click(screen.getByRole("button", { name: "Clear category" }));
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
     await user.click(screen.getByRole("combobox", { name: "Category" }));
-    await user.click(await screen.findByRole("option", { name: "Groceries" }));
+    await user.click(await screen.findByRole("option", { name: /Groceries/u }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.getByText("Update 1 transaction?")).toBeInTheDocument();
     expect(bulkUpdate).not.toHaveBeenCalled();
@@ -89,7 +94,7 @@ describe("BulkEditDialog", () => {
     const user = userEvent.setup();
     openDialog();
     await user.click(screen.getByRole("combobox", { name: "Category" }));
-    await user.click(await screen.findByRole("option", { name: "Groceries" }));
+    await user.click(await screen.findByRole("option", { name: /Groceries/u }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     bulkUpdate.mockResolvedValue({
       categoryKept: [],
@@ -111,7 +116,7 @@ describe("BulkEditDialog", () => {
     const user = userEvent.setup();
     openDialog([ID, SECOND_ID]);
     await user.click(screen.getByRole("combobox", { name: "Category" }));
-    await user.click(await screen.findByRole("option", { name: "Groceries" }));
+    await user.click(await screen.findByRole("option", { name: /Groceries/u }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.getByText("Update 2 transactions?")).toBeInTheDocument();
     bulkUpdate.mockResolvedValue({
@@ -135,7 +140,7 @@ describe("BulkEditDialog", () => {
     const user = userEvent.setup();
     const { onOpenChange, onSaved } = openDialog([ID, SECOND_ID]);
     await user.click(screen.getByRole("combobox", { name: "Category" }));
-    await user.click(await screen.findByRole("option", { name: "Groceries" }));
+    await user.click(await screen.findByRole("option", { name: /Groceries/u }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     bulkUpdate.mockResolvedValue({
       categoryKept: [ID, SECOND_ID],
@@ -161,7 +166,7 @@ describe("BulkEditDialog", () => {
     const user = userEvent.setup();
     openDialog();
     await user.click(screen.getByRole("combobox", { name: "Category" }));
-    await user.click(await screen.findByRole("option", { name: "Groceries" }));
+    await user.click(await screen.findByRole("option", { name: /Groceries/u }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     bulkUpdate.mockRejectedValue(new Error("Connection lost"));
     await user.click(screen.getByRole("button", { name: "Confirm update" }));

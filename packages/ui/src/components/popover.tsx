@@ -36,8 +36,11 @@ export const PopoverPopup = ({
   portalProps,
   ...props
 }: PopoverPrimitive.Popup.Props & {
-  /** Content padding: `none` for lists that manage their own edges. */
-  inset?: "default" | "tight" | "none";
+  /**
+   * Content padding: `none` for lists that manage their own edges; `list` is
+   * `none` for a list that scrolls itself, so the popup doesn't scroll too.
+   */
+  inset?: "default" | "tight" | "none" | "list";
   portalProps?: PopoverPrimitive.Portal.Props;
   side?: PopoverPrimitive.Positioner.Props["side"];
   align?: PopoverPrimitive.Positioner.Props["align"];
@@ -74,7 +77,9 @@ export const PopoverPopup = ({
               : "not-data-transitioning:overflow-y-auto",
             inset === "tight" &&
               "py-2 [--viewport-inline-padding:--spacing(2)]",
-            inset === "none" && "py-0 [--viewport-inline-padding:0px]"
+            inset === "none" && "py-0 [--viewport-inline-padding:0px]",
+            inset === "list" &&
+              "flex flex-col py-0 [--viewport-inline-padding:0px] not-data-transitioning:overflow-y-hidden"
           )}
           data-slot="popover-viewport"
         >

@@ -375,7 +375,7 @@ export const CashFlowSection = ({
       ) : null}
       {total ? (
         <>
-          <StatGroup>
+          <StatGroup grid>
             <Stat>
               <StatLabel>Money in</StatLabel>
               <StatValue>

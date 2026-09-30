@@ -22,12 +22,16 @@ export const CategoryPicker = <T extends PickerCategory>({
   ariaLabel = "Category",
   categories,
   onValueChange,
+  placeholder = "Choose a category",
+  showClear = false,
   value,
 }: {
   "aria-invalid"?: boolean;
   ariaLabel?: string;
   categories: T[];
   onValueChange: (value: string) => void;
+  placeholder?: string;
+  showClear?: boolean;
   value: string;
 }) => {
   const selected = categories.find((category) => category.id === value) ?? null;
@@ -42,7 +46,9 @@ export const CategoryPicker = <T extends PickerCategory>({
       <ComboboxInput
         aria-invalid={ariaInvalid || undefined}
         aria-label={ariaLabel}
-        placeholder="Choose a category"
+        clearProps={{ "aria-label": "Clear category" }}
+        placeholder={placeholder}
+        showClear={showClear}
         startAddon={
           selected ? (
             <IconTile tint={selected.color} size="xs">
