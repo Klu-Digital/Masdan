@@ -13,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@masdan/ui/components/select";
-import { Switch } from "@masdan/ui/components/switch";
 import { Tabs, TabsList, TabsTab } from "@masdan/ui/components/tabs";
 import { Textarea } from "@masdan/ui/components/textarea";
 import { toastManager } from "@masdan/ui/components/toast";
@@ -105,7 +104,7 @@ const toFormValues = (
         kind: schedule.type === "income" ? "income" : "expense",
         name: schedule.name,
         notes: schedule.notes ?? "",
-        paidStatus: schedule.paidStatus,
+        paidStatus: "paid",
         startDate: schedule.startDate,
         tagIds: schedule.tags.map(({ id }) => id),
       }
@@ -131,7 +130,7 @@ const toInput = (values: ScheduleFormValues): ScheduleInput => ({
   interval: Number(values.interval),
   name: values.name.trim(),
   notes: values.notes.trim() || null,
-  paidStatus: values.paidStatus,
+  paidStatus: "paid",
   startDate: values.startDate,
   tagIds: values.tagIds,
 });
@@ -253,7 +252,7 @@ export const ScheduleComposer = ({
       description={
         editing
           ? "Changes apply to future transactions only. Ones already posted stay as they are."
-          : "Posts a normal transaction on each date, from today on."
+          : "Automatically posts income or expenses as settled on each date, from today on."
       }
       onOpenChange={onOpenChange}
       open={open}
@@ -490,29 +489,6 @@ export const ScheduleComposer = ({
               />
               <FieldErrors errors={field.state.meta.errors} />
             </Field>
-          )}
-        </form.Field>
-
-        <form.Field name="paidStatus">
-          {(field) => (
-            <label
-              className="bg-card flex items-center justify-between gap-4 rounded-xl px-4 py-3"
-              htmlFor="schedule-paid-status"
-            >
-              <span className="flex flex-col">
-                <span className="text-sm font-medium">Post as paid</span>
-                <span className="text-muted-foreground text-xs">
-                  Turn off for bills you settle later.
-                </span>
-              </span>
-              <Switch
-                checked={field.state.value === "paid"}
-                id="schedule-paid-status"
-                onCheckedChange={(checked) =>
-                  field.handleChange(checked ? "paid" : "unpaid")
-                }
-              />
-            </label>
           )}
         </form.Field>
 

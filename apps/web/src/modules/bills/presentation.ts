@@ -96,6 +96,9 @@ export const paidReason = (bill: Bill): string | null => {
     case "payment": {
       return "Paid with a linked payment";
     }
+    case "posting": {
+      return "Posted automatically by this schedule";
+    }
     case "transfers": {
       return "Paid by transfers into the card";
     }
@@ -105,6 +108,13 @@ export const paidReason = (bill: Bill): string | null => {
   }
 };
 
+export const calendarEventType = (bill: Bill): string => {
+  if (bill.kind === "card") {
+    return "Card bill";
+  }
+  return bill.transactionType === "income" ? "Income" : "Expense";
+};
+
 export const billSourceLabel = (bill: Bill): string => {
   if (bill.source === "statement") {
     return "Statement due date";
@@ -112,7 +122,11 @@ export const billSourceLabel = (bill: Bill): string => {
   if (bill.source === "projected") {
     return "Card due day · amount comes with the statement";
   }
+  const label =
+    bill.transactionType === "income"
+      ? "Recurring income"
+      : "Recurring expense";
   return bill.scheduleStatus === "active"
-    ? "Recurring"
-    : `Recurring · ${bill.scheduleStatus ?? "stopped"}`;
+    ? label
+    : `${label} · ${bill.scheduleStatus ?? "stopped"}`;
 };

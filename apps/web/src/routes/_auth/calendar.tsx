@@ -4,7 +4,7 @@ import { HouseholdGate } from "@/components/household-gate";
 import { monthSearch } from "@/lib/search";
 import { BillsPage } from "@/modules/bills/components/bills-page";
 
-const routeApi = getRouteApi("/_auth/bills");
+const routeApi = getRouteApi("/_auth/calendar");
 
 const BillsRoute = () => {
   const { month } = routeApi.useSearch();
@@ -28,8 +28,8 @@ const BillsRoute = () => {
   );
 };
 
-export const Route = createFileRoute("/_auth/bills")({
+export const Route = createFileRoute("/_auth/calendar")({
   component: BillsRoute,
-  head: () => ({ meta: [{ title: "Bills" }] }),
+  head: () => ({ meta: [{ title: "Calendar" }] }),
   validateSearch: monthSearch,
 });

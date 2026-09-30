@@ -105,7 +105,7 @@ const Candidates = ({
   );
 };
 
-/** Link a payment or confirm outright; the posting counts only once chosen. */
+/** Card bills may also be settled with an explicit payment link. */
 const ConfirmSection = ({
   activeOrganizationId,
   bill,
@@ -137,9 +137,8 @@ const ConfirmSection = ({
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-medium">Link the payment</h3>
         <p className="text-muted-foreground text-xs">
-          {bill.kind === "recurring"
-            ? "A transaction the schedule posts on its own doesn’t count as paid until you link or confirm it."
-            : "Transfers into the card after the statement closed count automatically."}
+          Transfers into the card after the statement closed count
+          automatically.
         </p>
         <Candidates
           activeOrganizationId={activeOrganizationId}
@@ -223,7 +222,9 @@ export const BillSheet = ({
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col items-start gap-1">
             <Badge variant={statusBadgeVariant(bill.status)}>
-              {STATUS_LABELS[bill.status]}
+              {bill.kind === "recurring" && bill.status === "paid"
+                ? "Posted"
+                : STATUS_LABELS[bill.status]}
             </Badge>
             <p className="text-muted-foreground text-sm">
               {`${billSourceLabel(bill)} · ${bill.account.name}`}
@@ -250,6 +251,26 @@ export const BillSheet = ({
 
         <CardPaid bill={bill} />
 
+        {bill.kind === "recurring" ? (
+          <p className="text-muted-foreground text-sm">
+            Income and expenses are posted automatically on their scheduled
+            date. No payment confirmation is needed.
+          </p>
+        ) : null}
+        {bill.postedTransactionId ? (
+          <Button
+            render={
+              <Link
+                params={{ transactionId: bill.postedTransactionId }}
+                to="/transactions/$transactionId"
+              />
+            }
+            variant="secondary"
+          >
+            View transaction
+          </Button>
+        ) : null}
+
         {payment?.transaction ? (
           <Button
             render={
@@ -264,7 +285,7 @@ export const BillSheet = ({
           </Button>
         ) : null}
 
-        {canConfirm && payment ? (
+        {bill.kind === "card" && canConfirm && payment ? (
           <Button
             loading={unconfirm.isPending}
             onClick={() => unconfirm.mutate(payment.id)}
@@ -274,7 +295,10 @@ export const BillSheet = ({
           </Button>
         ) : null}
 
-        {canConfirm && !payment && bill.status !== "paid" ? (
+        {bill.kind === "card" &&
+        canConfirm &&
+        !payment &&
+        bill.status !== "paid" ? (
           <ConfirmSection
             activeOrganizationId={activeOrganizationId}
             bill={bill}

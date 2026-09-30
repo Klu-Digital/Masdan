@@ -161,7 +161,7 @@ describe("generateDueOccurrences", () => {
         id: expect.any(String),
         notes: "PLDT fiber",
         occurrenceDate: "2026-10-01",
-        paidStatus: "unpaid",
+        paidStatus: "paid",
         transactionDate: "2026-10-01",
       },
     ]);
@@ -179,6 +179,36 @@ describe("generateDueOccurrences", () => {
         fixture.accountId
       )
     ).toBe("8500.000000");
+  });
+
+  it("automatically settles recurring income even from an old unpaid template", async () => {
+    const fixture = await signUpHousehold();
+    const [income] = await getTestDb()
+      .select({ id: category.id })
+      .from(category)
+      .where(
+        and(
+          eq(category.organizationId, fixture.organizationId),
+          eq(category.type, "income")
+        )
+      )
+      .limit(1);
+    const scheduleId = await createSchedule(fixture, {
+      amount: "50000",
+      categoryId: income?.id ?? "",
+      name: "Salary",
+    });
+    await generateDueOccurrences(getTestDb(), scheduleId, MANILA_OCT_1);
+    expect(await postedFor(scheduleId)).toEqual([
+      expect.objectContaining({ amount: "50000.000000", paidStatus: "paid" }),
+    ]);
+    expect(
+      await getAccountBalance(
+        getTestDb(),
+        fixture.organizationId,
+        fixture.accountId
+      )
+    ).toBe("60000.000000");
   });
 
   it("waits for local midnight in the household's timezone", async () => {

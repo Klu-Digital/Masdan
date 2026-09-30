@@ -48,13 +48,21 @@ const STATUS_LABELS: Record<Bill["status"], string> = {
  * balances and account details stay out.
  */
 const feedEvents = (bills: readonly Bill[]): CalendarEvent[] =>
-  bills.map((bill) => ({
-    date: bill.dueDate,
-    description: `${STATUS_LABELS[bill.status]}. Open Masdan for the amount.`,
-    summary:
-      bill.status === "paid" ? `${bill.name} (paid)` : `${bill.name} due`,
-    uid: `${bill.key.replaceAll(":", "-")}@masdan`,
-  }));
+  bills.map((bill) => {
+    let summary =
+      bill.status === "paid" ? `${bill.name} (paid)` : `${bill.name} due`;
+    let status = STATUS_LABELS[bill.status];
+    if (bill.kind === "recurring") {
+      status = bill.status === "paid" ? "Posted automatically" : "Scheduled";
+      summary = `${bill.name} (${bill.transactionType}, ${status.toLowerCase()})`;
+    }
+    return {
+      date: bill.dueDate,
+      description: `${status}. Open Masdan for the amount.`,
+      summary,
+      uid: `${bill.key.replaceAll(":", "-")}@masdan`,
+    };
+  });
 
 /**
  * The iCal text for a feed token, or null for any token that does not resolve
@@ -115,5 +123,5 @@ export const renderBillFeed = async (
     to: monthEnd(today, FEED_MONTHS_AHEAD),
     today,
   });
-  return renderCalendar("Masdan bills", feedEvents(bills), now);
+  return renderCalendar("Masdan calendar", feedEvents(bills), now);
 };

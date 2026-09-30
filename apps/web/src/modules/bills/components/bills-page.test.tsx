@@ -45,7 +45,6 @@ const RENT = "00000000-0000-4000-8000-000000000001";
 const VISA = "00000000-0000-4000-8000-000000000002";
 const POSTING = "00000000-0000-4000-8000-000000000003";
 const PAYMENT = "00000000-0000-4000-8000-000000000004";
-
 const account = { color: "blue", icon: null, id: "bank", name: "BPI Savings" };
 
 const rent = {
@@ -59,43 +58,44 @@ const rent = {
   minimumAmountDue: null,
   name: "Rent",
   paidAmount: null,
-  paidBy: null,
+  paidBy: "posting",
   payment: null,
   postedTransactionId: POSTING,
   scheduleStatus: "active",
   source: "schedule",
   sourceId: RENT,
-  status: "overdue",
+  status: "paid",
+  transactionType: "expense",
 };
-
+const payday = {
+  ...rent,
+  amount: "50000.000000",
+  dueDate: "2026-09-28",
+  key: `recurring:${RENT}:2026-09-28`,
+  name: "Payday",
+  paidBy: null,
+  postedTransactionId: null,
+  status: "expected",
+  transactionType: "income",
+};
 const visa = {
+  ...rent,
   account: { ...account, id: VISA, name: "BPI Visa" },
   amount: "12000.000000",
   category: null,
-  currencyCode: "PHP",
-  dueDate: "2026-09-30",
-  key: `card:${VISA}:2026-09-30`,
+  dueDate: "2026-09-16",
+  key: `card:${VISA}:2026-09-16`,
   kind: "card",
   minimumAmountDue: "500.000000",
   name: "BPI Visa",
-  paidAmount: "12000.000000",
-  paidBy: "transfers",
-  payment: null,
+  paidAmount: "0.000000",
+  paidBy: null,
   postedTransactionId: null,
   scheduleStatus: null,
   source: "statement",
   sourceId: VISA,
-  status: "paid",
-};
-
-const internet = {
-  ...rent,
-  amount: "1699.000000",
-  dueDate: "2026-09-28",
-  key: `recurring:${RENT}:2026-09-28`,
-  name: "Internet",
-  postedTransactionId: null,
-  status: "expected",
+  status: "overdue",
+  transactionType: null,
 };
 
 const monthOf = (month: string, bills: unknown[]) => ({
@@ -106,21 +106,8 @@ const monthOf = (month: string, bills: unknown[]) => ({
   month,
   timezone: "Asia/Manila",
   today: "2026-09-20",
-  totals:
-    bills.length === 0
-      ? []
-      : [
-          {
-            currencyCode: "PHP",
-            due: "31699.000000",
-            expected: "1699.000000",
-            overdue: "18000.000000",
-            paid: "12000.000000",
-            unknownAmountCount: 0,
-          },
-        ],
+  totals: [],
 });
-
 const Harness = ({ canConfirm }: { canConfirm: boolean }) => {
   const [month, setMonth] = useState<string>();
   return (
@@ -128,11 +115,10 @@ const Harness = ({ canConfirm }: { canConfirm: boolean }) => {
       activeOrganizationId="household-1"
       canConfirm={canConfirm}
       month={month}
-      onMonthChange={(next) => setMonth(next)}
+      onMonthChange={setMonth}
     />
   );
 };
-
 const renderPage = (canConfirm = true) =>
   renderWithProviders(
     <Harness canConfirm={canConfirm} />,
@@ -146,21 +132,10 @@ beforeEach(() => {
   rpc.month.mockImplementation((input?: { month?: string }) => {
     const month = input?.month ?? "2026-09";
     return Promise.resolve(
-      monthOf(month, month === "2026-09" ? [rent, internet, visa] : [])
+      monthOf(month, month === "2026-09" ? [rent, visa, payday] : [])
     );
   });
-  rpc.candidates.mockResolvedValue([
-    {
-      accountName: "BPI Savings",
-      amount: "18000.000000",
-      categoryName: "Housing",
-      currencyCode: "PHP",
-      id: POSTING,
-      isPosting: true,
-      notes: null,
-      transactionDate: "2026-09-15",
-    },
-  ]);
+  rpc.candidates.mockResolvedValue([]);
   rpc.confirm.mockResolvedValue({ id: PAYMENT });
   rpc.feedStatus.mockResolvedValue({ feed: null });
   rpc.feedCreate.mockResolvedValue({
@@ -168,48 +143,58 @@ beforeEach(() => {
   });
 });
 
-describe("BillsPage", () => {
-  it("groups the month's bills by state with per-currency totals", async () => {
+describe("Calendar", () => {
+  it("shows recurring income, expenses and card bills inside the calendar", async () => {
     renderPage();
-
-    const overdue = await screen.findByRole("list", { name: "Overdue bills" });
-    expect(overdue).toHaveTextContent("Rent");
-    expect(overdue).toHaveTextContent("₱18,000.00");
+    const calendar = await screen.findByRole("table", {
+      name: "September 2026 calendar",
+    });
     expect(
-      screen.getByRole("list", { name: "Upcoming bills" })
-    ).toHaveTextContent("Internet");
-    expect(screen.getByRole("list", { name: "Paid bills" })).toHaveTextContent(
-      "BPI Visa"
-    );
-    const totals = screen.getByLabelText("PHP totals");
-    expect(totals).toHaveTextContent("₱31,699.00");
-    expect(totals).toHaveTextContent("₱12,000.00");
+      screen.getByRole("heading", { level: 1, name: "Calendar" })
+    ).toBeVisible();
+    expect(calendar).toHaveTextContent("Income · Payday");
+    expect(calendar).toHaveTextContent("Expense · Rent");
+    expect(calendar).toHaveTextContent("Card bill · BPI Visa");
+    expect(
+      within(calendar).getByText("Income · Payday").previousElementSibling
+    ).toHaveClass("bg-positive", "shrink-0");
+    expect(
+      within(calendar).getByText("Expense · Rent").previousElementSibling
+    ).toHaveClass("bg-destructive", "shrink-0");
+    expect(
+      within(calendar).getByText("Card bill · BPI Visa").previousElementSibling
+    ).toHaveClass("bg-info", "shrink-0");
+    expect(
+      screen.getByRole("list", { name: "Completed events" })
+    ).toHaveTextContent("Posted");
+    expect(
+      screen.getByRole("list", { name: "Overdue events" })
+    ).toHaveTextContent("BPI Visa");
     expect(rpc.month).toHaveBeenCalledWith({});
   });
 
-  it("moves between months and shows an empty month plainly", async () => {
+  it("keeps the calendar visible in an empty month and returns to this month", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByRole("list", { name: "Overdue bills" });
-
+    await screen.findByRole("table", { name: "September 2026 calendar" });
     await user.click(screen.getByRole("button", { name: "Next month" }));
-
-    expect(await screen.findByText("No bills in October 2026")).toBeVisible();
+    expect(await screen.findByText("No events in October 2026")).toBeVisible();
+    expect(
+      screen.getByRole("table", { name: "October 2026 calendar" })
+    ).toBeVisible();
     expect(rpc.month).toHaveBeenLastCalledWith({ month: "2026-10" });
     await user.click(screen.getByRole("button", { name: "This month" }));
     expect(
-      await screen.findByRole("list", { name: "Overdue bills" })
+      await screen.findByRole("list", { name: "Completed events" })
     ).toBeVisible();
   });
 
-  it("walks the calendar with the keyboard and filters to the chosen day", async () => {
+  it("supports keyboard day selection and filters the agenda", async () => {
     const user = userEvent.setup();
     renderPage();
     const calendar = await screen.findByRole("table", {
-      name: "September 2026 bills",
+      name: "September 2026 calendar",
     });
-
-    // One tab stop: today's cell.
     const today = within(calendar).getByRole("button", {
       name: /^September 20, 2026/u,
     });
@@ -219,100 +204,114 @@ describe("BillsPage", () => {
       "{ArrowLeft}{ArrowLeft}{ArrowLeft}{ArrowLeft}{ArrowLeft}"
     );
     const rentDay = within(calendar).getByRole("button", {
-      name: "September 15, 2026, 1 bill, all overdue",
+      name: "September 15, 2026, 1 bill, all paid",
     });
     expect(rentDay).toHaveFocus();
-
     await user.keyboard("{Enter}");
-
     expect(rentDay).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText("Due September 15, 2026")).toBeVisible();
     expect(
-      screen.queryByRole("list", { name: "Paid bills" })
+      screen.queryByRole("list", { name: "Overdue events" })
     ).not.toBeInTheDocument();
     await user.click(
       screen.getByRole("button", { name: "Show the whole month" })
     );
-    expect(screen.getByRole("list", { name: "Paid bills" })).toBeVisible();
+    expect(screen.getByRole("list", { name: "Overdue events" })).toBeVisible();
   });
 
-  it("links the schedule's posting as the payment", async () => {
+  it("shows automatic recurring posting without any confirmation actions", async () => {
     const user = userEvent.setup();
     renderPage();
-
     await user.click(
       within(
-        await screen.findByRole("list", { name: "Overdue bills" })
+        await screen.findByRole("list", { name: "Completed events" })
       ).getByRole("button", { name: /Rent/u })
     );
-    expect(await screen.findByText("Posted by this schedule")).toBeVisible();
-    await user.click(
-      screen.getByRole("button", { name: /^Link payment from/u })
-    );
-
-    await waitFor(() =>
-      expect(rpc.confirm).toHaveBeenCalledWith({
-        dueDate: "2026-09-15",
-        kind: "recurring",
-        sourceId: RENT,
-        transactionId: POSTING,
-      })
-    );
-    expect(rpc.candidates).toHaveBeenCalledWith({
-      dueDate: "2026-09-15",
-      kind: "recurring",
-      sourceId: RENT,
-    });
+    expect(
+      await screen.findByText("Posted automatically by this schedule")
+    ).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: "View transaction" })
+    ).toHaveAttribute("href", `/transactions/${POSTING}`);
+    expect(
+      screen.queryByRole("button", { name: "Mark paid without a payment" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Mark unpaid" })
+    ).not.toBeInTheDocument();
+    expect(rpc.candidates).not.toHaveBeenCalled();
+    expect(rpc.confirm).not.toHaveBeenCalled();
   });
 
-  it("confirms a bill with no payment attached", async () => {
+  it("does not ask to confirm future recurring income either", async () => {
     const user = userEvent.setup();
     renderPage();
-
     await user.click(
       within(
-        await screen.findByRole("list", { name: "Upcoming bills" })
-      ).getByRole("button", { name: /Internet/u })
+        await screen.findByRole("list", { name: "Upcoming events" })
+      ).getByRole("button", { name: /Payday/u })
     );
-    await user.click(
-      await screen.findByRole("button", { name: "Mark paid without a payment" })
-    );
-
-    await waitFor(() =>
-      expect(rpc.confirm).toHaveBeenCalledWith(
-        expect.objectContaining({ transactionId: null })
-      )
-    );
-  });
-
-  it("offers a viewer the details but nothing to change", async () => {
-    const user = userEvent.setup();
-    renderPage(false);
-
-    await user.click(
-      within(
-        await screen.findByRole("list", { name: "Overdue bills" })
-      ).getByRole("button", { name: /Rent/u })
-    );
-
-    expect(await screen.findByText("Recurring · BPI Savings")).toBeVisible();
+    expect(
+      await screen.findByText("Recurring income · BPI Savings")
+    ).toBeVisible();
     expect(
       screen.queryByRole("button", { name: "Mark paid without a payment" })
     ).not.toBeInTheDocument();
     expect(rpc.candidates).not.toHaveBeenCalled();
   });
 
-  it("shows a new calendar link once, on the page's own origin", async () => {
+  it("still allows card bills to be confirmed", async () => {
     const user = userEvent.setup();
     renderPage();
+    await user.click(
+      within(
+        await screen.findByRole("list", { name: "Overdue events" })
+      ).getByRole("button", { name: /BPI Visa/u })
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "Mark paid without a payment" })
+    );
+    await waitFor(() =>
+      expect(rpc.confirm).toHaveBeenCalledWith({
+        dueDate: "2026-09-16",
+        kind: "card",
+        sourceId: VISA,
+        transactionId: null,
+      })
+    );
+  });
 
+  it("offers viewers details without card payment controls", async () => {
+    const user = userEvent.setup();
+    renderPage(false);
+    await user.click(
+      within(
+        await screen.findByRole("list", { name: "Overdue events" })
+      ).getByRole("button", { name: /BPI Visa/u })
+    );
+    expect(
+      await screen.findByText("Statement due date · BPI Visa")
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "Mark paid without a payment" })
+    ).not.toBeInTheDocument();
+    expect(rpc.candidates).not.toHaveBeenCalled();
+  });
+
+  it("shows a recoverable calendar loading error", async () => {
+    rpc.month.mockRejectedValue(new Error("offline"));
+    renderPage();
+    expect(await screen.findByText("Couldn’t load calendar")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeVisible();
+  });
+
+  it("shows the subscription link on the page's origin", async () => {
+    const user = userEvent.setup();
+    renderPage();
     await user.click(
       await screen.findByRole("button", { name: "Get calendar link" })
     );
-
     expect(await screen.findByLabelText("Calendar link")).toHaveValue(
       `${window.location.origin}/feeds/bills/${"a".repeat(43)}.ics`
     );
-    expect(screen.getByRole("button", { name: "Turn off" })).toBeVisible();
   });
 });

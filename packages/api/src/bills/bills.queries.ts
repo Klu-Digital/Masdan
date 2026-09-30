@@ -65,7 +65,7 @@ export interface Bill {
   /** Card bills: transfers into the card counted toward this bill. */
   paidAmount: string | null;
   /** What makes it paid; null while it is not. */
-  paidBy: "confirmation" | "payment" | "transfers" | null;
+  paidBy: "confirmation" | "payment" | "posting" | "transfers" | null;
   payment: BillPaymentRecord | null;
   /** Recurring bills: the transaction the schedule posted for this day. */
   postedTransactionId: string | null;
@@ -73,6 +73,7 @@ export interface Bill {
   source: BillSource;
   sourceId: string;
   status: BillStatus;
+  transactionType: "expense" | "income" | null;
 }
 
 const loadSchedules = (db: Database, organizationId: string) =>
@@ -94,6 +95,7 @@ const loadSchedules = (db: Database, organizationId: string) =>
       nextOccurrenceDate: recurringSchedule.nextOccurrenceDate,
       startDate: recurringSchedule.startDate,
       status: recurringSchedule.status,
+      transactionType: category.type,
     })
     .from(recurringSchedule)
     .innerJoin(
@@ -101,13 +103,7 @@ const loadSchedules = (db: Database, organizationId: string) =>
       eq(financialAccount.id, recurringSchedule.accountId)
     )
     .innerJoin(category, eq(category.id, recurringSchedule.categoryId))
-    .where(
-      and(
-        eq(recurringSchedule.organizationId, organizationId),
-        // Income schedules are not bills.
-        eq(category.type, "expense")
-      )
-    );
+    .where(eq(recurringSchedule.organizationId, organizationId));
 
 const loadPostings = (
   db: Database,
@@ -293,14 +289,14 @@ const paymentHolds = (payment: BillPaymentRecord | null): boolean =>
   (payment.transaction === null ||
     (payment.transaction.paid && !payment.transaction.archived));
 
-const paymentKind = (payment: BillPaymentRecord): "confirmation" | "payment" =>
-  payment.transaction ? "payment" : "confirmation";
+const paymentKind = (payment: BillPaymentRecord | null): Bill["paidBy"] => {
+  if (!payment || !paymentHolds(payment)) {
+    return null;
+  }
+  return payment.transaction ? "payment" : "confirmation";
+};
 
-/**
- * Every bill due in `[from, to]`, soonest first. Paid means a recorded
- * payment or a member's confirmation — a schedule posting its own transaction
- * is never taken as proof.
- */
+/** Recurring postings settle automatically; card bills track payments. */
 export const loadBills = async (
   db: Database,
   organizationId: string,
@@ -340,7 +336,7 @@ export const loadBills = async (
       const key = billKey("recurring", schedule.id, dueDate);
       const posting = posted.get(dueDate) ?? null;
       const payment = payments.get(key) ?? null;
-      const paid = paymentHolds(payment);
+      const paidBy = posting ? "posting" : paymentKind(payment);
       bills.push({
         account: {
           color: schedule.accountColor,
@@ -361,13 +357,14 @@ export const loadBills = async (
         minimumAmountDue: null,
         name: schedule.name,
         paidAmount: null,
-        paidBy: paid && payment ? paymentKind(payment) : null,
+        paidBy,
         payment,
         postedTransactionId: posting?.id ?? null,
         scheduleStatus: schedule.status,
         source: "schedule",
         sourceId: schedule.id,
-        status: billStatus(dueDate, today, paid),
+        status: paidBy === null ? "expected" : "paid",
+        transactionType: schedule.transactionType,
       });
     }
   }
@@ -427,6 +424,7 @@ export const loadBills = async (
         source: date.source,
         sourceId: card.id,
         status: billStatus(date.dueDate, today, paidBy !== null),
+        transactionType: null,
       });
     }
   }

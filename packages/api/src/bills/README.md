@@ -1,6 +1,6 @@
 # Bill calendar
 
-A month view of what the household owes: expense schedules from `recurring` and credit-card due dates from `reminders`' card data. It is computed live on every read. There is no bill table to keep in step, and no worker or cron of its own. The web screen is `/bills`, and calendar apps subscribe through `GET /feeds/bills/<token>.ics`.
+A month calendar of recurring income, expenses, and credit-card due dates. It is computed live on every read, with no calendar table or scheduler of its own. The web screen is `/calendar`; existing subscriptions still use `GET /feeds/bills/<token>.ics`.
 
 ## Procedures
 
@@ -18,7 +18,7 @@ Viewers can read bills and subscribe. Owners, admins and members can also confir
 
 ## What is a bill
 
-- **Recurring**: every occurrence an expense schedule posted, plus every occurrence an active schedule is still due to post. Days that were skipped by a pause or a re-timing were never owed, so they are not bills. Income schedules are left out.
+- **Recurring**: every income or expense occurrence already posted, plus every occurrence an active schedule is still due to post. Days skipped by a pause or re-timing are omitted.
 - **Card, statement**: a recorded statement with a positive balance, on its due date.
 - **Card, projected**: the card's `payment_due_day`, while the card owes something and no statement is within 15 days of that date. Projections start 30 days before today and never go further back. A projection has no amount, so the totals count it separately.
 
@@ -30,11 +30,11 @@ A bill is **paid** when one of these holds:
 - A member confirmed it explicitly (a `bill_payment` row with no transaction).
 - For a card, transfers into the card cover it. For a statement, that means transfers dated after `period_end` and on or before the next statement's `period_end` add up to the balance. For a projection, it means any transfer after the previous due day and on or before this one.
 
-An unpaid bill is **overdue** from the day after its due date, judged by the household's timezone. Until then it is **expected**.
+An unpaid card bill is **overdue** from the day after its due date, judged by the household's timezone. Until then it is **expected**.
 
-A schedule posting its own transaction is **never** proof of payment. It only means the schedule ran. The posting is offered as the first candidate, so a member can link it with one click. Choosing it is the confirmation.
+Recurring income and expenses post as settled automatically, including future occurrences from older unpaid templates. Posted occurrences appear as **Posted** in the calendar; unposted occurrences remain scheduled, not overdue payments. No receipt or payment confirmation is needed. The calendar offers payment actions only for cards; legacy recurring confirmations remain readable by the API.
 
-Totals are per currency and are never combined.
+API totals are per currency, never combined, and exclude income. The calendar itself shows events rather than bill totals.
 
 ## The feed
 

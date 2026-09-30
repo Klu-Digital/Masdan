@@ -153,7 +153,7 @@ export const FeedSection = ({
           <ListItem>
             <ListItemContent>
               <ListItemDescription>
-                Anyone with the link can see bill names and due dates — never
+                Anyone with the link can see event names and dates — never
                 amounts. Replacing or turning it off stops the old link at once.
               </ListItemDescription>
             </ListItemContent>

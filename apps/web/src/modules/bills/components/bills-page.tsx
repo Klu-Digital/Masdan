@@ -43,13 +43,6 @@ import { useRef, useState } from "react";
 
 import { Amount } from "@/components/finance/amount";
 import {
-  Stat,
-  StatDetail,
-  StatGroup,
-  StatLabel,
-  StatValue,
-} from "@/components/finance/stat";
-import {
   addMonths,
   formatLongDate,
   formatMonthYear,
@@ -64,9 +57,10 @@ import {
   daySummary,
   moveWithinMonth,
   statusBadgeVariant,
+  calendarEventType,
 } from "../presentation";
 import type { BillStatus } from "../presentation";
-import type { Bill, BillTotals, BillsMonth } from "../types";
+import type { Bill, BillsMonth } from "../types";
 import { BillSheet } from "./bill-sheet";
 import { FeedSection } from "./feed-section";
 
@@ -75,58 +69,14 @@ const shiftMonth = (month: string, offset: number): string =>
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
-const dotClassName = (status: BillStatus): string => {
-  if (status === "overdue") {
-    return "bg-destructive size-1.5 rounded-full";
+const dotClassName = (bill: Bill): string => {
+  if (bill.kind === "card") {
+    return "bg-info size-1.5 shrink-0 rounded-full";
   }
-  if (status === "paid") {
-    return "bg-positive size-1.5 rounded-full";
+  if (bill.transactionType === "income") {
+    return "bg-positive size-1.5 shrink-0 rounded-full";
   }
-  return "bg-brand size-1.5 rounded-full";
-};
-
-const Totals = ({ totals }: { totals: BillTotals }) => {
-  const overdue = Number(totals.overdue) > 0;
-  return (
-    <StatGroup aria-label={`${totals.currencyCode} totals`}>
-      <Stat>
-        <StatLabel>Due this month</StatLabel>
-        <StatValue>
-          <Amount currency={totals.currencyCode} value={totals.due} />
-        </StatValue>
-        <StatDetail>
-          {totals.unknownAmountCount > 0
-            ? `+ ${totals.unknownAmountCount} without an amount yet`
-            : "Every bill with an amount"}
-        </StatDetail>
-      </Stat>
-      <Stat>
-        <StatLabel>Paid</StatLabel>
-        <StatValue>
-          <Amount currency={totals.currencyCode} value={totals.paid} />
-        </StatValue>
-        <StatDetail>Recorded or confirmed</StatDetail>
-      </Stat>
-      <Stat>
-        <StatLabel>Overdue</StatLabel>
-        <StatValue>
-          <Amount
-            currency={totals.currencyCode}
-            tone={overdue ? "negative" : "default"}
-            value={totals.overdue}
-          />
-        </StatValue>
-        <StatDetail>Past due, not paid</StatDetail>
-      </Stat>
-      <Stat>
-        <StatLabel>Upcoming</StatLabel>
-        <StatValue>
-          <Amount currency={totals.currencyCode} value={totals.expected} />
-        </StatValue>
-        <StatDetail>Still expected</StatDetail>
-      </Stat>
-    </StatGroup>
-  );
+  return "bg-destructive size-1.5 shrink-0 rounded-full";
 };
 
 /**
@@ -169,7 +119,7 @@ const MonthGrid = ({
 
   return (
     <table
-      aria-label={`${formatMonthYear(month)} bills`}
+      aria-label={`${formatMonthYear(month)} calendar`}
       className="w-full table-fixed border-separate border-spacing-1"
     >
       <thead>
@@ -200,7 +150,7 @@ const MonthGrid = ({
                     aria-label={`${formatLongDate(day)}, ${daySummary(dayBills)}`}
                     aria-pressed={isSelected}
                     className={cn(
-                      "hover:bg-accent focus-visible:ring-ring/50 flex h-12 w-full flex-col items-center justify-start gap-1 rounded-lg pt-1.5 text-sm tabular-nums outline-none focus-visible:ring-3 sm:h-16",
+                      "border-border hover:bg-accent focus-visible:ring-ring/50 flex min-h-24 w-full flex-col items-start gap-1 rounded-lg border p-1 text-sm tabular-nums outline-none focus-visible:ring-3 sm:min-h-36 sm:p-2",
                       isSelected && "bg-accent font-semibold",
                       day === today && "text-brand-text font-semibold",
                       dayBills.length === 0 && "text-muted-foreground"
@@ -228,13 +178,26 @@ const MonthGrid = ({
                   >
                     {parseIsoDate(day).getDate()}
                     {dayBills.length > 0 ? (
-                      <span aria-hidden="true" className="flex gap-0.5">
+                      <span
+                        aria-hidden="true"
+                        className="flex w-full flex-col gap-1"
+                      >
                         {dayBills.slice(0, 3).map((bill) => (
                           <span
-                            className={dotClassName(bill.status)}
+                            className="bg-secondary flex min-w-0 items-center gap-1 rounded px-1 py-0.5 text-xs"
                             key={bill.key}
-                          />
+                          >
+                            <span className={dotClassName(bill)} />
+                            <span className="truncate">
+                              {calendarEventType(bill)} · {bill.name}
+                            </span>
+                          </span>
                         ))}
+                        {dayBills.length > 3 ? (
+                          <span className="text-muted-foreground text-xs">
+                            +{dayBills.length - 3} more
+                          </span>
+                        ) : null}
                       </span>
                     ) : null}
                   </button>
@@ -273,11 +236,13 @@ const BillRow = ({
       <ListItemTitle>
         {bill.name}
         <Badge variant={statusBadgeVariant(bill.status)}>
-          {STATUS_LABELS[bill.status]}
+          {bill.kind === "recurring" && bill.status === "paid"
+            ? "Posted"
+            : STATUS_LABELS[bill.status]}
         </Badge>
       </ListItemTitle>
       <ListItemDescription>
-        {`${formatShortDate(bill.dueDate, today)} · ${bill.account.name}`}
+        {`${formatShortDate(bill.dueDate, today)} · ${calendarEventType(bill)} · ${bill.account.name}`}
       </ListItemDescription>
     </ListItemContent>
     <ListItemTrailing>
@@ -286,7 +251,7 @@ const BillRow = ({
       ) : (
         <Amount
           currency={bill.currencyCode}
-          tone={bill.status === "overdue" ? "negative" : "default"}
+          tone={bill.transactionType === "income" ? "positive" : "negative"}
           value={bill.amount}
           weight="semibold"
         />
@@ -298,7 +263,7 @@ const BillRow = ({
 const GROUPS: { status: BillStatus; title: string }[] = [
   { status: "overdue", title: "Overdue" },
   { status: "expected", title: "Upcoming" },
-  { status: "paid", title: "Paid" },
+  { status: "paid", title: "Completed" },
 ];
 
 const Agenda = ({
@@ -322,7 +287,7 @@ const Agenda = ({
       {selected ? (
         <div className="flex items-center justify-between gap-2 px-1">
           <p aria-live="polite" className="text-sm font-medium">
-            {`Due ${formatLongDate(selected)}`}
+            {formatLongDate(selected)}
           </p>
           <Button onClick={onClearDay} size="sm" variant="ghost">
             Show the whole month
@@ -344,7 +309,7 @@ const Agenda = ({
             <SectionHeader>
               <SectionTitle>{`${title} · ${group.length}`}</SectionTitle>
             </SectionHeader>
-            <List aria-label={`${title} bills`}>
+            <List aria-label={`${title} events`}>
               {group.map((bill) => (
                 <BillRow
                   bill={bill}
@@ -375,30 +340,8 @@ const MonthBody = ({
   const openBill = data.bills.find((bill) => bill.key === open?.key);
   const day = selected?.startsWith(data.month) ? selected : null;
 
-  if (data.bills.length === 0) {
-    return (
-      <Empty>
-        <EmptyMedia>
-          <HugeiconsIcon icon={Calendar03Icon} strokeWidth={1.8} />
-        </EmptyMedia>
-        <EmptyTitle>{`No bills in ${formatMonthYear(data.month)}`}</EmptyTitle>
-        <EmptyDescription>
-          Bills come from recurring expenses and credit-card due dates.
-        </EmptyDescription>
-        <EmptyContent>
-          <Button render={<Link to="/recurring" />} variant="secondary">
-            Manage recurring
-          </Button>
-        </EmptyContent>
-      </Empty>
-    );
-  }
-
   return (
     <>
-      {data.totals.map((totals) => (
-        <Totals key={totals.currencyCode} totals={totals} />
-      ))}
       <MonthGrid
         bills={data.bills}
         key={data.month}
@@ -407,13 +350,31 @@ const MonthBody = ({
         selected={day}
         today={data.today}
       />
-      <Agenda
-        bills={data.bills}
-        onClearDay={() => setSelected(null)}
-        onOpen={(bill) => setOpen({ key: bill.key, open: true })}
-        selected={day}
-        today={data.today}
-      />
+      {data.bills.length === 0 ? (
+        <Empty>
+          <EmptyMedia>
+            <HugeiconsIcon icon={Calendar03Icon} strokeWidth={1.8} />
+          </EmptyMedia>
+          <EmptyTitle>{`No events in ${formatMonthYear(data.month)}`}</EmptyTitle>
+          <EmptyDescription>
+            Add recurring income, expenses, or credit-card due dates to see them
+            here.
+          </EmptyDescription>
+          <EmptyContent>
+            <Button render={<Link to="/recurring" />} variant="secondary">
+              Manage recurring
+            </Button>
+          </EmptyContent>
+        </Empty>
+      ) : (
+        <Agenda
+          bills={data.bills}
+          onClearDay={() => setSelected(null)}
+          onOpen={(bill) => setOpen({ key: bill.key, open: true })}
+          selected={day}
+          today={data.today}
+        />
+      )}
       {open && openBill ? (
         <BillSheet
           activeOrganizationId={activeOrganizationId}
@@ -431,10 +392,7 @@ const MonthBody = ({
   );
 };
 
-/**
- * The bill calendar: recurring expenses and card due dates for one month.
- * The server decides every status and total; this screen lays them out.
- */
+/** Statuses come from the ledger, not the client's clock. */
 export const BillsPage = ({
   activeOrganizationId,
   canConfirm,
@@ -463,9 +421,10 @@ export const BillsPage = ({
   const header = (
     <PageHeader>
       <PageHeading>
-        <PageTitle>Bills</PageTitle>
+        <PageTitle>Calendar</PageTitle>
         <PageDescription>
-          Recurring expenses and card due dates, and whether each is paid.
+          Recurring income and expenses post automatically. Card bills track
+          payments.
         </PageDescription>
       </PageHeading>
       {shown ? (
@@ -517,7 +476,7 @@ export const BillsPage = ({
   } else if (bills.isError) {
     body = (
       <Empty>
-        <EmptyTitle>Couldn’t load bills</EmptyTitle>
+        <EmptyTitle>Couldn’t load calendar</EmptyTitle>
         <EmptyDescription>
           Check your connection and try again.
         </EmptyDescription>
@@ -541,7 +500,7 @@ export const BillsPage = ({
   return (
     <Page
       aria-busy={bills.isPending || bills.isPlaceholderData || undefined}
-      width="narrow"
+      width="wide"
     >
       {header}
       {body}

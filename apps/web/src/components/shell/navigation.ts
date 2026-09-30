@@ -44,7 +44,7 @@ export const PRIMARY_NAV: NavDestination[] = [
   { icon: PieChart01Icon, label: "Budgets", to: "/budgets" },
   { icon: Target02Icon, label: "Goals", to: "/goals" },
   { icon: RepeatIcon, label: "Recurring", to: "/recurring" },
-  { icon: Calendar03Icon, label: "Bills", to: "/bills" },
+  { icon: Calendar03Icon, label: "Calendar", to: "/calendar" },
 ];
 
 export const ORGANIZE_NAV: NavDestination[] = [

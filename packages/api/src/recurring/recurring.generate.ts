@@ -91,7 +91,7 @@ export const generateDueOccurrences = (
               amount: schedule.amount,
               categoryId: schedule.categoryId,
               notes: schedule.notes,
-              paidStatus: schedule.paidStatus,
+              paidStatus: "paid",
               splits: [],
               tagIds,
               transactionDate: occurrenceDate,

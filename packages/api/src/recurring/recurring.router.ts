@@ -214,7 +214,7 @@ const templateColumns = (values: ScheduleValues) => ({
   interval: values.interval,
   name: values.name,
   notes: values.notes || null,
-  paidStatus: values.paidStatus,
+  paidStatus: "paid" as const,
   startDate: values.startDate,
 });
 

@@ -214,12 +214,7 @@ const feedStatus = async (
   return feed ?? null;
 };
 
-/**
- * The bill calendar: expense schedules and credit-card due dates, with paid
- * state backed by a recorded payment or a member's confirmation. Computed
- * live from #15's schedules and #21's card data — there is no bill table to
- * keep in step and no scheduler of its own.
- */
+/** Household calendar computed from schedules and credit-card due dates. */
 export const billsRouter = {
   /** Transactions that could be a bill's payment, the schedule's own posting first. */
   candidates: orgProcedure
@@ -413,7 +408,9 @@ export const billsRouter = {
         month: shown,
         timezone,
         today,
-        totals: billTotals(bills),
+        totals: billTotals(
+          bills.filter((bill) => bill.transactionType !== "income")
+        ),
       };
     }),
 

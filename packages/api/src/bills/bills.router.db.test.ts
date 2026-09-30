@@ -181,7 +181,7 @@ const PAST_MONTH = "2026-02";
 const PAST_DUE = "2026-02-15";
 
 describe("bill calendar month", () => {
-  it("lists expense schedules and card due dates, never income", async () => {
+  it("lists recurring income, expenses and card due dates", async () => {
     const home = await household();
     const due = addDays(today(), 3);
     await home.schedule("Rent", due);
@@ -213,6 +213,7 @@ describe("bill calendar month", () => {
       ])
     ).toEqual([
       ["BPI Visa", "card", due, "expected"],
+      ["Payday", "recurring", due, "expected"],
       ["Rent", "recurring", due, "expected"],
     ]);
     expect(result.bills[0]).toMatchObject({
@@ -232,6 +233,23 @@ describe("bill calendar month", () => {
     ]);
   });
 
+  it("includes automatically posted income without treating it as money owed", async () => {
+    const home = await household();
+    const salary = await home.schedule("Payday", "2026-01-15", "Salary");
+    await home.postOccurrence(salary.id, PAST_DUE);
+    const result = await home.month(PAST_MONTH);
+    expect(result.bills).toEqual([
+      expect.objectContaining({
+        name: "Payday",
+        paidBy: "posting",
+        payment: null,
+        status: "paid",
+        transactionType: "income",
+      }),
+    ]);
+    expect(result.totals).toEqual([]);
+  });
+
   it("returns an empty month with no totals", async () => {
     const home = await household();
     const result = await home.month("2030-01");
@@ -239,7 +257,7 @@ describe("bill calendar month", () => {
     expect(result.totals).toEqual([]);
   });
 
-  it("does not treat a schedule's own posting as proof of payment", async () => {
+  it("settles a recurring expense automatically when its transaction posts", async () => {
     const home = await household();
     const rent = await home.schedule("Rent", "2026-01-15");
     await home.postOccurrence(rent.id, PAST_DUE);
@@ -248,14 +266,15 @@ describe("bill calendar month", () => {
 
     expect(bill).toMatchObject({
       dueDate: PAST_DUE,
-      paidBy: null,
+      paidBy: "posting",
       payment: null,
-      status: "overdue",
+      status: "paid",
+      transactionType: "expense",
     });
     expect(bill?.postedTransactionId).toEqual(expect.any(String));
   });
 
-  it("marks a bill paid by linking a payment, and unpaid again when it is unlinked", async () => {
+  it("keeps a recurring posting settled after a legacy payment is unlinked", async () => {
     const home = await household();
     const rent = await home.schedule("Rent", "2026-01-15");
     await home.postOccurrence(rent.id, PAST_DUE);
@@ -279,7 +298,7 @@ describe("bill calendar month", () => {
       home.context
     );
     expect(await home.firstBill(PAST_MONTH)).toMatchObject({
-      paidBy: "payment",
+      paidBy: "posting",
       payment: { transaction: { id: posting } },
       status: "paid",
     });
@@ -289,8 +308,8 @@ describe("bill calendar month", () => {
 
     await call(billsRouter.unconfirm, { paymentId: payment.id }, home.context);
     expect(await home.firstBill(PAST_MONTH)).toMatchObject({
-      paidBy: null,
-      status: "overdue",
+      paidBy: "posting",
+      status: "paid",
     });
   });
 
@@ -325,7 +344,7 @@ describe("bill calendar month", () => {
     );
 
     expect(await home.billsIn(PAST_MONTH)).toEqual([
-      expect.objectContaining({ dueDate: PAST_DUE, status: "overdue" }),
+      expect.objectContaining({ dueDate: PAST_DUE, status: "expected" }),
     ]);
   });
 
@@ -348,7 +367,7 @@ describe("bill calendar month", () => {
     await confirm();
 
     expect(await home.firstBill(PAST_MONTH)).toMatchObject({
-      paidBy: "confirmation",
+      paidBy: "posting",
       payment: { confirmedByName: home.user.name, transaction: null },
       status: "paid",
     });
@@ -542,9 +561,19 @@ describe("bill calendar timezones", () => {
 
   it("judges overdue by the household's day, not the server's", async () => {
     const home = await household();
-    const rent = await home.schedule("Rent", "2026-01-15");
-    // 20:00 UTC on the 15th is already the 16th in Manila, still the 15th in Los Angeles.
-    await home.postOccurrence(rent.id, PAST_DUE);
+    const visa = await home.card();
+    await call(
+      accountsRouter.createStatement,
+      {
+        accountId: visa.id,
+        dueDate: PAST_DUE,
+        periodEnd: "2026-01-31",
+        periodStart: "2026-01-01",
+        statementBalance: "12000",
+        statementDate: "2026-02-01",
+      },
+      home.context
+    );
     vi.useFakeTimers({
       now: new Date("2026-02-15T20:00:00Z"),
       toFake: ["Date"],
@@ -580,7 +609,7 @@ describe("bill calendar feed", () => {
     const text = await feedFor(path);
 
     expect(path).toMatch(/^\/feeds\/bills\/[\w-]{43}\.ics$/u);
-    expect(text).toContain("SUMMARY:Rent due");
+    expect(text).toContain("SUMMARY:Rent (expense\\, scheduled)");
     expect(text).not.toContain("18000");
     expect(text).not.toContain("BPI Savings");
     expect(
@@ -603,10 +632,10 @@ describe("bill calendar feed", () => {
 
     const mineText = await feedFor(mine.path);
     const theirText = await feedFor(theirs.path);
-    expect(mineText).toContain("SUMMARY:Rent due");
+    expect(mineText).toContain("SUMMARY:Rent (expense\\, scheduled)");
     expect(mineText).not.toContain("Their rent");
-    expect(theirText).toContain("SUMMARY:Their rent due");
-    expect(theirText).not.toContain("SUMMARY:Rent due");
+    expect(theirText).toContain("SUMMARY:Their rent (expense\\, scheduled)");
+    expect(theirText).not.toContain("SUMMARY:Rent (");
   });
 
   it("stops serving a replaced or revoked link", async () => {

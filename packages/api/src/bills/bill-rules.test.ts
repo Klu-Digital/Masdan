@@ -59,6 +59,22 @@ describe("scheduleBillDates", () => {
     }
   });
 
+  it("shows the saved next posting even when it differs from the anchor day", () => {
+    const schedule: ScheduleTiming = {
+      frequency: "monthly",
+      interval: 1,
+      nextOccurrenceDate: "2026-10-05",
+      startDate: "2025-10-01",
+      status: "active",
+    };
+    expect(scheduleBillDates(schedule, [], "2026-10-01", "2026-11-30")).toEqual(
+      ["2026-10-05", "2026-11-01"]
+    );
+    expect(scheduleBillDates(schedule, [], "2026-09-01", "2026-09-30")).toEqual(
+      []
+    );
+  });
+
   it("does not invent days skipped before the next occurrence", () => {
     expect(
       scheduleBillDates(

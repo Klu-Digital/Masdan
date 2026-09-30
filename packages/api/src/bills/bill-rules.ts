@@ -62,9 +62,11 @@ export const scheduleBillDates = (
     postedDates.filter((date) => date >= from && date <= to)
   );
   if (schedule.status === "active" && schedule.nextOccurrenceDate) {
-    const start =
-      schedule.nextOccurrenceDate > from ? schedule.nextOccurrenceDate : from;
-    let next = firstOccurrenceOnOrAfter(schedule, start);
+    // The worker posts the saved cursor first, even off the anchor's rhythm.
+    let next =
+      schedule.nextOccurrenceDate >= from
+        ? schedule.nextOccurrenceDate
+        : firstOccurrenceOnOrAfter(schedule, from);
     let count = 0;
     while (next <= to && count < MAX_OCCURRENCES_PER_SCHEDULE) {
       dates.add(next);
