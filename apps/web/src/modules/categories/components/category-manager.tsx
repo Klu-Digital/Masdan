@@ -141,6 +141,7 @@ const EmojiField = ({
       </PopoverTrigger>
       <PopoverPopup align="start" inset="tight">
         <EmojiPicker.Root
+          emojibaseUrl="/emojibase-data"
           className="flex h-80 min-h-0 w-72 flex-col gap-2"
           onEmojiSelect={({ emoji }) => {
             onValueChange(emoji);

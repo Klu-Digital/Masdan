@@ -1,7 +1,52 @@
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite-plus";
+import type { Plugin } from "vite-plus";
+
+const require = createRequire(import.meta.url);
+const EMOJIBASE_FILES = ["data", "messages"] as const;
+
+/**
+ * Serves the English Emojibase dataset the emoji picker fetches at
+ * `/emojibase-data/en/*.json`. frimousse defaults to jsDelivr, which the
+ * production CSP (`connect-src 'self'`) blocks and which a self-hosted install
+ * should not depend on anyway. Dev has no CSP, so this only matters in the
+ * built image, but serving it in dev too keeps both topologies identical.
+ */
+const emojibaseData = (): Plugin => {
+  const read = (file: string) =>
+    readFileSync(require.resolve(`emojibase-data/en/${file}.json`), "utf-8");
+  return {
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const match =
+          /^\/emojibase-data\/en\/(?<file>data|messages)\.json$/u.exec(
+            req.url ?? ""
+          );
+        if (!match?.groups?.file) {
+          next();
+          return;
+        }
+        res.setHeader("Content-Type", "application/json");
+        res.end(read(match.groups.file));
+      });
+    },
+    generateBundle() {
+      for (const file of EMOJIBASE_FILES) {
+        this.emitFile({
+          fileName: `emojibase-data/en/${file}.json`,
+          source: read(file),
+          type: "asset",
+        });
+      }
+    },
+    name: "emojibase-data",
+  };
+};
 
 const mode = process.env.NODE_ENV ?? "development";
 const fileEnv = loadEnv(mode, process.cwd(), "");
@@ -20,6 +65,7 @@ export default defineConfig({
       target: "react",
     }),
     react(),
+    emojibaseData(),
   ],
   resolve: {
     tsconfigPaths: true,
