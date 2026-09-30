@@ -93,7 +93,9 @@ export const bulkUpdateTransactions = async (
     const currentCategoryId = row.categoryId;
     if (currentCategoryId === null) {
       skipped.push({
-        message: "Transaction has no category",
+        message: row.reconciliationSnapshotId
+          ? "Reconciliation adjustments cannot be edited"
+          : "Transaction has no category",
         reason: "invalid",
         transactionId,
       });

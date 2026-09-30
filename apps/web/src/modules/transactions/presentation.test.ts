@@ -4,6 +4,7 @@ import { describeTransaction } from "./presentation";
 
 const base = {
   accountName: "BPI Savings",
+  adjustmentDirection: null,
   categoryName: "Groceries",
   notes: null,
   transfer: null,
@@ -41,6 +42,27 @@ describe("describeTransaction", () => {
     ).toMatchObject({
       subtitle: "Groceries · BPI Savings",
       title: "Weekly market",
+    });
+  });
+
+  it("labels reconciliation separately and signs the displayed balance change", () => {
+    expect(
+      describeTransaction({ ...base, adjustmentDirection: "increase" })
+    ).toMatchObject({
+      kind: "reconciliation",
+      sign: "in",
+      title: "Balance reconciliation",
+    });
+    expect(
+      describeTransaction({
+        ...base,
+        adjustmentDirection: "decrease",
+        notes: "Bank statement",
+      })
+    ).toMatchObject({
+      kind: "reconciliation",
+      sign: "out",
+      subtitle: "Bank statement",
     });
   });
 

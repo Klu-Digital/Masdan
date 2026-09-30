@@ -177,6 +177,7 @@ export const financialAccountBalanceSnapshot = pgTable(
   "financial_account_balance_snapshot",
   {
     accountId: uuid("account_id").notNull(),
+    adjustment: money("adjustment"),
     balance: money("balance").notNull(),
     createdAt: timestamptz("created_at").defaultNow().notNull(),
     effectiveDate: date("effective_date", { mode: "string" }).notNull(),
@@ -184,6 +185,7 @@ export const financialAccountBalanceSnapshot = pgTable(
       .primaryKey()
       .default(sql`uuidv7()`),
     importReference: text("import_reference"),
+    notes: text("notes"),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
@@ -195,6 +197,15 @@ export const financialAccountBalanceSnapshot = pgTable(
     check(
       "financial_account_balance_snapshot_source_chk",
       oneOf(table.source, SNAPSHOT_SOURCES)
+    ),
+    check(
+      "balance_snapshot_reconciliation_chk",
+      sql`(${table.source} = 'reconciliation') = (${table.adjustment} IS NOT NULL)`
+    ),
+    unique("balance_snapshot_organization_account_id_key").on(
+      table.organizationId,
+      table.accountId,
+      table.id
     ),
     foreignKey({
       columns: [table.organizationId, table.accountId],

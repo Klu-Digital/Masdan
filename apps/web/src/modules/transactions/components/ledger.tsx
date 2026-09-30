@@ -38,7 +38,9 @@ import { TransactionTile } from "./transaction-tile";
 
 const MAX_INLINE_TAGS = 2;
 const selectable = (transaction: Transaction) =>
-  transaction.transferId === null && transaction.archivedAt === null;
+  transaction.transferId === null &&
+  !transaction.reconciliationSnapshotId &&
+  transaction.archivedAt === null;
 
 const disabledReason = (transaction: Transaction) => {
   if (selectable(transaction)) {

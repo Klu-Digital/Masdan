@@ -30,4 +30,4 @@ export type AccountType = (typeof ACCOUNT_TYPES)[number];
 export const LIQUIDITY_TYPES = ["liquid", "semi_liquid", "illiquid"] as const;
 export type Liquidity = (typeof LIQUIDITY_TYPES)[number];
 
-export const SNAPSHOT_SOURCES = ["manual", "import"] as const;
+export const SNAPSHOT_SOURCES = ["manual", "import", "reconciliation"] as const;

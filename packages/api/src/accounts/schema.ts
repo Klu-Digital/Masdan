@@ -10,7 +10,6 @@ import {
   ASSET_ACCOUNT_TYPES,
   LIABILITY_ACCOUNT_TYPES,
   LIQUIDITY_TYPES,
-  SNAPSHOT_SOURCES,
 } from "./constants";
 
 export const accountValues = z
@@ -138,7 +137,20 @@ export const snapshotValues = z.object({
   balance: signedAmount,
   effectiveDate: isoDate,
   importReference: z.string().trim().max(200).nullable().optional(),
-  source: z.enum(SNAPSHOT_SOURCES).default("manual"),
+  source: z.enum(["manual", "import"]).default("manual"),
 });
 
 export type SnapshotValues = z.output<typeof snapshotValues>;
+
+export const reconciliationPreviewValues = z.object({
+  accountId: z.uuid(),
+  effectiveDate: isoDate,
+});
+
+export const reconciliationValues = reconciliationPreviewValues.extend({
+  balance: signedAmount,
+  expectedBalance: signedAmount,
+  notes: z.string().trim().max(2000).nullable().optional(),
+});
+
+export type ReconciliationValues = z.output<typeof reconciliationValues>;

@@ -37,6 +37,7 @@ import type { TransactionFilterInput, TransactionListInput } from "./schema";
 
 export const transactionFields = {
   accountId: financialTransaction.accountId,
+  adjustmentDirection: financialTransaction.adjustmentDirection,
   amount: financialTransaction.amount,
   archivedAt: financialTransaction.archivedAt,
   categoryId: financialTransaction.categoryId,
@@ -46,6 +47,7 @@ export const transactionFields = {
   notes: financialTransaction.notes,
   organizationId: financialTransaction.organizationId,
   paidStatus: financialTransaction.paidStatus,
+  reconciliationSnapshotId: financialTransaction.reconciliationSnapshotId,
   recurringOccurrenceDate: financialTransaction.recurringOccurrenceDate,
   recurringScheduleId: financialTransaction.recurringScheduleId,
   ruleApplication: financialTransaction.ruleApplication,
@@ -497,7 +499,13 @@ export const transactionTotals = async (
         eq(financialAccount.id, financialTransaction.accountId)
       )
       .leftJoin(category, eq(category.id, financialTransaction.categoryId))
-      .where(and(...conditions, isNull(financialTransaction.transferId)))
+      .where(
+        and(
+          ...conditions,
+          isNull(financialTransaction.transferId),
+          isNull(financialTransaction.reconciliationSnapshotId)
+        )
+      )
       .groupBy(financialTransaction.currencyCode)
       .orderBy(asc(financialTransaction.currencyCode)),
   ]);

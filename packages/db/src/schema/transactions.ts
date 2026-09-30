@@ -19,7 +19,10 @@ import { organization } from "./auth";
 import { category } from "./categories";
 import { money, oneOf, timestamps, timestamptz } from "./columns";
 import { currency } from "./finance";
-import { financialAccount } from "./financial-accounts";
+import {
+  financialAccount,
+  financialAccountBalanceSnapshot,
+} from "./financial-accounts";
 import type { TransactionRuleApplication } from "./rules";
 import { file } from "./storage";
 import type { TransactionSuggestionApplication } from "./suggestions";
@@ -211,7 +214,10 @@ export const financialTransaction = pgTable(
   "financial_transaction",
   {
     accountId: uuid("account_id").notNull(),
-    /** Always positive; the category type or transfer side gives the direction. */
+    adjustmentDirection: text("adjustment_direction", {
+      enum: ["increase", "decrease"],
+    }),
+    /** Positive magnitude; category, transfer side or adjustment direction supplies the sign. */
     amount: money("amount").notNull(),
     archivedAt: timestamptz("archived_at"),
     categoryId: uuid("category_id"),
@@ -229,6 +235,7 @@ export const financialTransaction = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     paidStatus: paidStatusEnum("paid_status").default("paid").notNull(),
+    reconciliationSnapshotId: uuid("reconciliation_snapshot_id"),
     /** The schedule occurrence this transaction was posted for. */
     recurringOccurrenceDate: date("recurring_occurrence_date", {
       mode: "string",
@@ -285,10 +292,34 @@ export const financialTransaction = pgTable(
     check(
       "financial_transaction_category_or_transfer_chk",
       sql`(
-        (${table.categoryId} IS NOT NULL AND ${table.transferId} IS NULL AND ${table.transferSide} IS NULL)
+        (${table.reconciliationSnapshotId} IS NULL AND ${table.adjustmentDirection} IS NULL AND (
+          (${table.categoryId} IS NOT NULL AND ${table.transferId} IS NULL AND ${table.transferSide} IS NULL)
+          OR
+          (${table.categoryId} IS NULL AND ${table.transferId} IS NOT NULL AND ${table.transferSide} IS NOT NULL)
+        ))
         OR
-        (${table.categoryId} IS NULL AND ${table.transferId} IS NOT NULL AND ${table.transferSide} IS NOT NULL)
+        (${table.reconciliationSnapshotId} IS NOT NULL AND ${table.adjustmentDirection} IS NOT NULL
+          AND ${table.adjustmentDirection} IN ('increase', 'decrease')
+          AND ${table.categoryId} IS NULL AND ${table.transferId} IS NULL AND ${table.transferSide} IS NULL
+          AND ${table.recurringScheduleId} IS NULL AND ${table.recurringOccurrenceDate} IS NULL
+          AND ${table.importFingerprint} IS NULL AND ${table.ruleApplication} IS NULL AND ${table.suggestionApplication} IS NULL)
       )`
+    ),
+    foreignKey({
+      columns: [
+        table.organizationId,
+        table.accountId,
+        table.reconciliationSnapshotId,
+      ],
+      foreignColumns: [
+        financialAccountBalanceSnapshot.organizationId,
+        financialAccountBalanceSnapshot.accountId,
+        financialAccountBalanceSnapshot.id,
+      ],
+      name: "transaction_reconciliation_snapshot_fkey",
+    }).onDelete("restrict"),
+    uniqueIndex("transaction_reconciliation_snapshot_uidx").on(
+      table.reconciliationSnapshotId
     ),
     index("financial_transaction_category_idx").on(table.categoryId),
     index("financial_transaction_transfer_idx").on(table.transferId),

@@ -2,7 +2,7 @@ import type { MoneySign } from "@/components/finance/money";
 
 import type { Transaction } from "./types";
 
-type TransactionKind = "expense" | "income" | "transfer";
+type TransactionKind = "expense" | "income" | "transfer" | "reconciliation";
 
 export interface TransactionView {
   /** Neutral in the household ledger; relative to the posting's account when scoped. */
@@ -16,6 +16,7 @@ export interface TransactionView {
 type Presentable = Pick<
   Transaction,
   | "accountName"
+  | "adjustmentDirection"
   | "categoryName"
   | "notes"
   | "transfer"
@@ -34,12 +35,24 @@ const firstLine = (text: string | null): string | null => {
  * `scoped` means the list is filtered to accounts, so a transfer posting shows
  * which way money moved for that account.
  */
+// oxlint-disable-next-line complexity
 export const describeTransaction = (
   transaction: Presentable,
   { scoped = false }: { scoped?: boolean } = {}
 ): TransactionView => {
   const note = firstLine(transaction.notes);
   const { transfer } = transaction;
+
+  if (transaction.adjustmentDirection) {
+    const increasing = transaction.adjustmentDirection === "increase";
+    return {
+      direction: increasing ? "in" : "out",
+      kind: "reconciliation",
+      sign: increasing ? "in" : "out",
+      subtitle: note ?? transaction.accountName,
+      title: "Balance reconciliation",
+    };
+  }
 
   if (transfer) {
     const toLiability =

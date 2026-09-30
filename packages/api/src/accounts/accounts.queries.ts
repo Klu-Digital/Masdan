@@ -4,8 +4,18 @@ import {
   financialAccount,
   financialAccountBalanceSnapshot,
   financialAccountOwner,
+  financialTransaction,
 } from "@masdan/db/schema/index";
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { ORPCError } from "@orpc/server";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  isNull,
+} from "drizzle-orm";
 
 import { notFound } from "../shared/errors";
 import { fixedAmountText, signedScaledAmount } from "../shared/money";
@@ -107,6 +117,34 @@ const requireCreditCard = async (
   }
 };
 
+export const hasFinancialHistory = async (
+  db: Database,
+  accountId: string
+): Promise<boolean> => {
+  const [posting] = await db
+    .select({ id: financialTransaction.id })
+    .from(financialTransaction)
+    .where(eq(financialTransaction.accountId, accountId))
+    .limit(1);
+  if (posting) {
+    return true;
+  }
+  const [statement] = await db
+    .select({ id: creditCardStatement.id })
+    .from(creditCardStatement)
+    .where(eq(creditCardStatement.accountId, accountId))
+    .limit(1);
+  if (statement) {
+    return true;
+  }
+  const [snapshot] = await db
+    .select({ id: financialAccountBalanceSnapshot.id })
+    .from(financialAccountBalanceSnapshot)
+    .where(eq(financialAccountBalanceSnapshot.accountId, accountId))
+    .limit(1);
+  return snapshot !== undefined;
+};
+
 export const getAccount = async (
   db: Database,
   organizationId: string,
@@ -134,7 +172,46 @@ export const getAccount = async (
 
   return {
     ...(await withBalance(db, organizationId, account)),
+    hasFinancialHistory: await hasFinancialHistory(db, accountId),
     ownerMemberIds: owners.map(({ memberId }) => memberId),
+  };
+};
+
+export const assertReconciliationDate = (
+  account: { archivedAt: Date | null; openingBalanceDate: string },
+  effectiveDate: string
+): void => {
+  if (account.archivedAt !== null) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Restore the account before reconciling it",
+    });
+  }
+  if (effectiveDate < account.openingBalanceDate) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Reconciliation date cannot precede the opening balance date",
+    });
+  }
+};
+
+export const previewReconciliation = async (
+  db: Database,
+  organizationId: string,
+  input: { accountId: string; effectiveDate: string }
+) => {
+  const account = await findOwned(
+    db,
+    financialAccount,
+    { id: input.accountId, organizationId },
+    "Financial account"
+  );
+  assertReconciliationDate(account, input.effectiveDate);
+  return {
+    calculatedBalance: await getAccountBalance(
+      db,
+      organizationId,
+      account.id,
+      input.effectiveDate
+    ),
   };
 };
 
@@ -204,9 +281,28 @@ export const listSnapshots = async (
   );
 
   return db
-    .select()
+    .select({
+      ...getTableColumns(financialAccountBalanceSnapshot),
+      adjustmentArchivedAt: financialTransaction.archivedAt,
+      transactionId: financialTransaction.id,
+    })
     .from(financialAccountBalanceSnapshot)
-    .where(eq(financialAccountBalanceSnapshot.accountId, accountId))
+    .leftJoin(
+      financialTransaction,
+      and(
+        eq(
+          financialTransaction.reconciliationSnapshotId,
+          financialAccountBalanceSnapshot.id
+        ),
+        eq(financialTransaction.organizationId, organizationId)
+      )
+    )
+    .where(
+      and(
+        eq(financialAccountBalanceSnapshot.accountId, accountId),
+        eq(financialAccountBalanceSnapshot.organizationId, organizationId)
+      )
+    )
     .orderBy(
       desc(financialAccountBalanceSnapshot.effectiveDate),
       desc(financialAccountBalanceSnapshot.createdAt)

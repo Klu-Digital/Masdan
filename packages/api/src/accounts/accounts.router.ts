@@ -8,18 +8,26 @@ import {
 import {
   createAccount,
   createStatement,
+  reconcileBalance,
   saveSnapshot,
   setAccountArchived,
   updateAccount,
 } from "./accounts.commands";
 import {
   getAccount,
+  previewReconciliation,
   listAccounts,
   listSnapshots,
   latestStatements,
   listStatements,
 } from "./accounts.queries";
-import { accountValues, snapshotValues, statementValues } from "./schema";
+import {
+  accountValues,
+  reconciliationPreviewValues,
+  reconciliationValues,
+  snapshotValues,
+  statementValues,
+} from "./schema";
 
 const accountIdInput = z.object({ accountId: z.uuid() });
 
@@ -80,6 +88,25 @@ export const accountsRouter = {
     .input(accountIdInput)
     .handler(({ context, input }) =>
       listStatements(context.db, context.organizationId, input.accountId)
+    ),
+
+  previewReconciliation: orgProcedure
+    .use(requirePermission({ financialAccount: ["read"] }))
+    .input(reconciliationPreviewValues)
+    .handler(({ context, input }) =>
+      previewReconciliation(context.db, context.organizationId, input)
+    ),
+
+  reconcile: orgMutationProcedure
+    .use(
+      requirePermission({
+        financialAccount: ["update"],
+        transaction: ["create"],
+      })
+    )
+    .input(reconciliationValues)
+    .handler(({ context, input }) =>
+      reconcileBalance(context.db, context.organizationId, input)
     ),
 
   restore: orgMutationProcedure

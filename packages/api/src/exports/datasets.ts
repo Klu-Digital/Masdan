@@ -100,6 +100,7 @@ const transactions = async (
     .select({
       accountId: financialTransaction.accountId,
       accountName: financialAccount.name,
+      adjustmentDirection: financialTransaction.adjustmentDirection,
       amount: financialTransaction.amount,
       archivedAt: financialTransaction.archivedAt,
       categoryId: financialTransaction.categoryId,
@@ -116,6 +117,7 @@ const transactions = async (
       importSourceRow: provenance.rowNumber,
       notes: financialTransaction.notes,
       paidStatus: financialTransaction.paidStatus,
+      reconciliationSnapshotId: financialTransaction.reconciliationSnapshotId,
       splitCount: sql<number>`(
         select count(*)::int from ${financialTransactionSplit}
         where ${financialTransactionSplit.transactionId} = ${financialTransaction.id}
@@ -180,6 +182,11 @@ const transactions = async (
     { header: "notes", text: true, value: (row) => row.notes },
     { header: "transfer_id", value: (row) => row.transferId },
     { header: "transfer_side", value: (row) => row.transferSide },
+    {
+      header: "reconciliation_snapshot_id",
+      value: (row) => row.reconciliationSnapshotId,
+    },
+    { header: "adjustment_direction", value: (row) => row.adjustmentDirection },
     {
       header: "transfer_counterpart_account_id",
       value: (row) => row.counterpartAccountId,
@@ -409,12 +416,14 @@ const accountBalanceSnapshots = async (
       accountArchivedAt: financialAccount.archivedAt,
       accountId: financialAccountBalanceSnapshot.accountId,
       accountName: financialAccount.name,
+      adjustment: financialAccountBalanceSnapshot.adjustment,
       balance: financialAccountBalanceSnapshot.balance,
       createdAt: financialAccountBalanceSnapshot.createdAt,
       currencyCode: financialAccount.currencyCode,
       effectiveDate: financialAccountBalanceSnapshot.effectiveDate,
       id: financialAccountBalanceSnapshot.id,
       importReference: financialAccountBalanceSnapshot.importReference,
+      notes: financialAccountBalanceSnapshot.notes,
       source: financialAccountBalanceSnapshot.source,
     })
     .from(financialAccountBalanceSnapshot)
@@ -438,6 +447,8 @@ const accountBalanceSnapshots = async (
     { header: "balance", value: (row) => row.balance },
     { header: "currency_code", value: (row) => row.currencyCode },
     { header: "source", value: (row) => row.source },
+    { header: "adjustment", value: (row) => row.adjustment },
+    { header: "notes", text: true, value: (row) => row.notes },
     {
       header: "import_reference",
       text: true,

@@ -9,6 +9,7 @@ import type { AccountDetail } from "./account-composer";
 
 const getAccount = vi.hoisted(() => vi.fn());
 const compose = vi.hoisted(() => vi.fn());
+const listSnapshots = vi.hoisted(() => vi.fn());
 
 vi.mock("@/utils/client", async () => {
   const { mockClient } = await import("@/test/client");
@@ -16,8 +17,9 @@ vi.mock("@/utils/client", async () => {
     client: mockClient({
       accounts: {
         get: getAccount,
-        listSnapshots: () => [],
+        listSnapshots,
         listStatements: () => [],
+        previewReconciliation: () => ({ calculatedBalance: "10000" }),
       },
       transactions: {
         list: () => ({ groups: [], items: [], total: 0 }),
@@ -82,6 +84,7 @@ const account: AccountDetail = {
   createdAt: new Date(),
   creditLimit: null,
   currencyCode: "PHP",
+  hasFinancialHistory: false,
   icon: null,
   id: "account-1",
   includeInNetWorth: true,
@@ -102,6 +105,7 @@ const account: AccountDetail = {
 beforeEach(() => {
   compose.mockClear();
   getAccount.mockResolvedValue(account);
+  listSnapshots.mockResolvedValue([]);
 });
 
 it("groups the balance and monthly flow, keeping import in the actions menu", async () => {
@@ -157,6 +161,51 @@ it("groups card figures and payment together, leaving statements separate", asyn
     within(overview).queryByRole("region", { name: "Statements" })
   ).toBeNull();
   expect(screen.getByRole("region", { name: "Statements" })).toBeVisible();
+});
+
+it("opens reconciliation from the account menu and distinguishes retained observations", async () => {
+  listSnapshots.mockResolvedValue([
+    {
+      adjustment: "1000",
+      adjustmentArchivedAt: new Date(),
+      balance: "11000",
+      effectiveDate: "2026-02-01",
+      id: "snapshot",
+      notes: "Bank check",
+      source: "reconciliation",
+      transactionId: "posting",
+    },
+    {
+      adjustment: "0",
+      adjustmentArchivedAt: null,
+      balance: "10000",
+      effectiveDate: "2026-02-02",
+      id: "zero",
+      notes: null,
+      source: "reconciliation",
+      transactionId: null,
+    },
+  ]);
+  renderWithProviders(
+    <AccountDetailPage accountId={account.id} household={household} />
+  );
+  expect(
+    await screen.findByText(
+      /Reconciliation · Bank check · Adjustment archived/u
+    )
+  ).toBeVisible();
+  expect(screen.getAllByText(/Adjustment/u).length).toBeGreaterThan(1);
+  await userEvent
+    .setup()
+    .click(screen.getByRole("button", { name: "More actions" }));
+  const reconcileAction = await screen.findByRole("menuitem", {
+    name: "Reconcile balance",
+  });
+  expect(reconcileAction.querySelector("svg")).not.toBeNull();
+  await userEvent.setup().click(reconcileAction);
+  expect(
+    await screen.findByRole("dialog", { name: `Reconcile ${account.name}` })
+  ).toBeVisible();
 });
 
 it("does not expose import or transaction actions to a read-only member", async () => {

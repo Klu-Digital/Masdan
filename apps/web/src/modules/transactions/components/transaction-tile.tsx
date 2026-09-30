@@ -9,9 +9,12 @@ export const TransactionTile = ({
   transaction,
 }: {
   size?: "default" | "lg" | "sm";
-  transaction: Pick<Transaction, "categoryColor" | "categoryIcon" | "transfer">;
+  transaction: Pick<
+    Transaction,
+    "categoryColor" | "categoryIcon" | "transfer" | "adjustmentDirection"
+  >;
 }) =>
-  transaction.transfer ? (
+  transaction.transfer || transaction.adjustmentDirection ? (
     <IconTile aria-hidden="true" size={size}>
       <HugeiconsIcon icon={ArrowDataTransferHorizontalIcon} strokeWidth={1.8} />
     </IconTile>

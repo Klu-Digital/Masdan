@@ -15,6 +15,10 @@ export const balanceExpression = sql<string>`
   ${financialAccount.openingBalance} + COALESCE(
     SUM(
       CASE
+        WHEN ${financialTransaction.adjustmentDirection} = 'increase'
+          THEN ${financialTransaction.amount}
+        WHEN ${financialTransaction.adjustmentDirection} = 'decrease'
+          THEN -${financialTransaction.amount}
         WHEN ${financialTransaction.transferSide} = 'source' AND ${financialAccount.accountClass} = 'asset'
           THEN -${financialTransaction.amount}
         WHEN ${financialTransaction.transferSide} = 'source'
@@ -59,7 +63,8 @@ export const balanceCategory = eq(category.id, financialTransaction.categoryId);
 export const getAccountBalances = async (
   db: Database,
   organizationId: string,
-  accountIds: string[]
+  accountIds: string[],
+  asOf?: string
 ): Promise<Map<string, string>> => {
   if (accountIds.length === 0) {
     return new Map();
@@ -71,7 +76,7 @@ export const getAccountBalances = async (
       balance: balanceExpression,
     })
     .from(financialAccount)
-    .leftJoin(financialTransaction, balancePostings())
+    .leftJoin(financialTransaction, balancePostings(asOf))
     .leftJoin(category, balanceCategory)
     .where(
       and(
@@ -91,8 +96,14 @@ export const getAccountBalances = async (
 export const getAccountBalance = async (
   db: Database,
   organizationId: string,
-  accountId: string
+  accountId: string,
+  asOf?: string
 ): Promise<string> => {
-  const balances = await getAccountBalances(db, organizationId, [accountId]);
+  const balances = await getAccountBalances(
+    db,
+    organizationId,
+    [accountId],
+    asOf
+  );
   return balances.get(accountId) ?? "0";
 };

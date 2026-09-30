@@ -53,6 +53,7 @@ const savedCard = (overrides: Partial<AccountDetail> = {}): AccountDetail => ({
   createdAt: new Date("2026-01-01T00:00:00Z"),
   creditLimit: "100000.000000",
   currencyCode: "PHP",
+  hasFinancialHistory: false,
   icon: null,
   id: "account-1",
   includeInNetWorth: true,
@@ -76,6 +77,15 @@ const startCreditCard = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(await screen.findByRole("button", { name: /Credit card/u }));
   await user.type(await screen.findByLabelText("Name"), "My card");
 };
+
+it("keeps the opening balance and date read-only after financial history exists", async () => {
+  renderComposer({ account: savedCard({ hasFinancialHistory: true }) });
+  expect(await screen.findByLabelText("Amount owed")).toHaveAttribute(
+    "readonly"
+  );
+  expect(screen.getByLabelText("As of")).toHaveAttribute("readonly");
+  expect(screen.getByText(/Use Reconcile balance/u)).toBeVisible();
+});
 
 const cardFace = () =>
   document.querySelector("[data-slot='credit-card-visual']");

@@ -15,14 +15,27 @@ import { and, eq, inArray } from "drizzle-orm";
 import { enqueueReminderRefresh } from "../reminders/reminders.commands";
 import { notFound } from "../shared/errors";
 import { householdSettings } from "../shared/household";
+import {
+  fixedAmountText,
+  formatScaledAmount,
+  signedScaledAmount,
+} from "../shared/money";
 import { lockOwned } from "../shared/ownership";
 import {
   accountFields,
+  assertReconciliationDate,
   creditMetrics,
+  hasFinancialHistory,
   statementFields,
   withBalance,
 } from "./accounts.queries";
-import type { AccountValues, SnapshotValues, StatementValues } from "./schema";
+import { getAccountBalance } from "./balances";
+import type {
+  AccountValues,
+  ReconciliationValues,
+  SnapshotValues,
+  StatementValues,
+} from "./schema";
 
 const cardMetadata = (values: AccountValues) =>
   values.accountType === "credit_card"
@@ -101,35 +114,6 @@ const replaceOwners = async (
       }))
     );
   }
-};
-
-/** Class, type and currency are frozen once postings, statements or snapshots exist. */
-const hasFinancialHistory = async (
-  db: Database,
-  accountId: string
-): Promise<boolean> => {
-  const postings = await db
-    .select({ id: financialTransaction.id })
-    .from(financialTransaction)
-    .where(eq(financialTransaction.accountId, accountId))
-    .limit(1);
-  if (postings.length) {
-    return true;
-  }
-  const statements = await db
-    .select({ id: creditCardStatement.id })
-    .from(creditCardStatement)
-    .where(eq(creditCardStatement.accountId, accountId))
-    .limit(1);
-  if (statements.length) {
-    return true;
-  }
-  const snapshots = await db
-    .select({ id: financialAccountBalanceSnapshot.id })
-    .from(financialAccountBalanceSnapshot)
-    .where(eq(financialAccountBalanceSnapshot.accountId, accountId))
-    .limit(1);
-  return snapshots.length > 0;
 };
 
 export const createAccount = async (
@@ -225,6 +209,19 @@ export const updateAccount = async (
   ) {
     throw new ORPCError("BAD_REQUEST", {
       message: `Unknown currency ${currencyCode}`,
+    });
+  }
+
+  if (
+    (signedScaledAmount(existing.openingBalance) !==
+      signedScaledAmount(input.openingBalance) ||
+      (input.openingBalanceDate !== undefined &&
+        existing.openingBalanceDate !== input.openingBalanceDate)) &&
+    (await hasFinancialHistory(db, accountId))
+  ) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "Opening balance and date cannot change after financial history exists. Reconcile the balance instead.",
     });
   }
 
@@ -328,6 +325,65 @@ export const createStatement = async (
   }
   await enqueueReminderRefresh(db, organizationId);
   return created;
+};
+
+export const reconcileBalance = async (
+  db: Database,
+  organizationId: string,
+  input: ReconciliationValues
+) => {
+  const account = await lockOwned(
+    db,
+    financialAccount,
+    { id: input.accountId, organizationId },
+    "Financial account"
+  );
+  assertReconciliationDate(account, input.effectiveDate);
+  const calculatedBalance = await getAccountBalance(
+    db,
+    organizationId,
+    account.id,
+    input.effectiveDate
+  );
+  if (
+    signedScaledAmount(calculatedBalance) !==
+    signedScaledAmount(input.expectedBalance)
+  ) {
+    throw new ORPCError("CONFLICT", {
+      message:
+        "The account balance changed. Review the refreshed adjustment and confirm again.",
+    });
+  }
+  const delta =
+    signedScaledAmount(input.balance) - signedScaledAmount(calculatedBalance);
+  const [snapshot] = await db
+    .insert(financialAccountBalanceSnapshot)
+    .values({
+      accountId: account.id,
+      adjustment: fixedAmountText(delta),
+      balance: input.balance,
+      effectiveDate: input.effectiveDate,
+      notes: input.notes ?? null,
+      organizationId,
+      source: "reconciliation",
+    })
+    .returning();
+  if (!snapshot) {
+    throw new ORPCError("INTERNAL_SERVER_ERROR");
+  }
+  if (delta !== 0n) {
+    await db.insert(financialTransaction).values({
+      accountId: account.id,
+      adjustmentDirection: delta > 0n ? "increase" : "decrease",
+      amount: formatScaledAmount(delta > 0n ? delta : -delta),
+      currencyCode: account.currencyCode,
+      notes: input.notes ?? null,
+      organizationId,
+      reconciliationSnapshotId: snapshot.id,
+      transactionDate: input.effectiveDate,
+    });
+  }
+  return { adjustment: fixedAmountText(delta), calculatedBalance, snapshot };
 };
 
 export const saveSnapshot = async (

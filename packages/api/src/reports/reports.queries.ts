@@ -399,6 +399,7 @@ const flowConditions = (organizationId: string, range: LedgerRange) => {
     eq(financialTransaction.organizationId, organizationId),
     isNull(financialTransaction.archivedAt),
     isNull(financialTransaction.transferId),
+    isNull(financialTransaction.reconciliationSnapshotId),
     gte(financialTransaction.transactionDate, range.dateFrom),
     lte(financialTransaction.transactionDate, range.dateTo),
   ];

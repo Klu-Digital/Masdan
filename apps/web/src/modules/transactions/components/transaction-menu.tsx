@@ -41,7 +41,10 @@ export const TransactionMenu = ({
   const [confirming, setConfirming] = useState(false);
   const { transfer } = transaction;
   const archived = transaction.archivedAt !== null;
-  const canEdit = permissions.canUpdate && (transfer !== null || !archived);
+  const canEdit =
+    permissions.canUpdate &&
+    !transaction.reconciliationSnapshotId &&
+    (transfer !== null || !archived);
   const canArchive = !transfer && !archived && permissions.canArchive;
   const canRestore = !transfer && archived && permissions.canRestore;
   const canDelete = transfer !== null && permissions.canArchive;

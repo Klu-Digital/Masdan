@@ -21,6 +21,7 @@ const entry = (overrides: Partial<Transaction>): Transaction =>
     accountClass: "asset",
     accountId: "account-1",
     accountName: "BPI Savings",
+    adjustmentDirection: null,
     amount: "125.500000",
     archivedAt: null,
     categoryColor: "green",
@@ -33,6 +34,7 @@ const entry = (overrides: Partial<Transaction>): Transaction =>
     notes: null,
     organizationId: "household-1",
     paidStatus: "paid",
+    reconciliationSnapshotId: null,
     splits: [],
     tags: [],
     transactionDate: "2026-09-24",
@@ -176,6 +178,13 @@ describe("Ledger (wide)", () => {
           ...rows,
           entry({ archivedAt: new Date(), id: "archived" }),
           entry({ id: "transfer", transferId: "transfer-id" }),
+          entry({
+            adjustmentDirection: "increase",
+            categoryId: null,
+            id: "reconciliation",
+            reconciliationSnapshotId: "snapshot",
+            type: null,
+          }),
         ]}
       />
     );
@@ -195,7 +204,7 @@ describe("Ledger (wide)", () => {
             Object.hasOwn(item.dataset, "disabled") ||
             item.getAttribute("aria-disabled") === "true"
         )
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     await user.click(
       screen.getByRole("checkbox", { name: /Select Weekly market/u })
     );

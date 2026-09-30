@@ -2,6 +2,7 @@ import {
   Archive02Icon,
   ArchiveRestoreIcon,
   ArrowDataTransferHorizontalIcon,
+  BalanceScaleIcon,
   FileImportIcon,
   Invoice02Icon,
   MoreHorizontalIcon,
@@ -88,6 +89,7 @@ import { AccountCard } from "./account-card";
 import type { AccountDetail as Account } from "./account-composer";
 import { DetailRow, MonthFlow, NetworkValue } from "./account-detail-parts";
 import { AccountTile, accountSubtitle } from "./account-row";
+import { ReconciliationComposer } from "./reconciliation-composer";
 import { StatementComposer } from "./statement-composer";
 
 const ACTIVITY_PAGE_SIZE = 15;
@@ -392,6 +394,7 @@ export const AccountDetailPage = ({
 }) => {
   const { activeOrganizationId, can, members, timezone } = household;
   const queryClient = useQueryClient();
+  const [reconciling, setReconciling] = useState(false);
   const { compose, composeAccount, inspect } = useAppActions();
   const ledgerActions = useLedgerActions(activeOrganizationId);
   const orpc = householdOrpc(activeOrganizationId);
@@ -399,7 +402,10 @@ export const AccountDetailPage = ({
     orpc.accounts.get.queryOptions({ input: { accountId } })
   );
   const snapshots = useQuery(
-    orpc.accounts.listSnapshots.queryOptions({ input: { accountId } })
+    orpc.accounts.listSnapshots.queryOptions({
+      input: { accountId },
+      meta: { suppressErrorToast: true },
+    })
   );
   const catalog = useCardCatalog(cardCountriesOf(account.data ?? {}));
   const activitySearch = {
@@ -474,6 +480,13 @@ export const AccountDetailPage = ({
 
   return (
     <Page>
+      {reconciling ? (
+        <ReconciliationComposer
+          account={data}
+          today={today}
+          onOpenChange={setReconciling}
+        />
+      ) : null}
       <PageHeader className="items-center">
         <PageHeading>
           <div className="flex items-center gap-3.5">
@@ -536,6 +549,12 @@ export const AccountDetailPage = ({
                   >
                     <HugeiconsIcon icon={FileImportIcon} strokeWidth={1.8} />
                     Import CSV
+                  </MenuItem>
+                ) : null}
+                {canUpdate && canTransact ? (
+                  <MenuItem onClick={() => setReconciling(true)}>
+                    <HugeiconsIcon icon={BalanceScaleIcon} strokeWidth={1.8} />
+                    Reconcile balance
                   </MenuItem>
                 ) : null}
                 {canUpdate && !archived ? (
@@ -722,29 +741,71 @@ export const AccountDetailPage = ({
           ) : null}
         </Section>
 
-        {snapshots.data && snapshots.data.length > 0 ? (
+        {snapshots.isPending ||
+        snapshots.isError ||
+        (snapshots.data?.length ?? 0) > 0 ? (
           <Section aria-label="Balance history">
             <SectionHeader>
               <SectionTitle>Balance checkpoints</SectionTitle>
             </SectionHeader>
+            {snapshots.isPending ? <Skeleton className="h-24 w-full" /> : null}
+            {snapshots.isError ? (
+              <p role="alert" className="text-sm">
+                Could not load balance history.{" "}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => snapshots.refetch()}
+                >
+                  Retry
+                </Button>
+              </p>
+            ) : null}
             <List>
-              {snapshots.data.map((snapshot) => (
+              {(snapshots.data ?? []).map((snapshot) => (
                 <ListItem className="min-h-12" key={snapshot.id}>
                   <ListItemContent>
                     <ListItemTitle>
                       {formatLongDate(snapshot.effectiveDate)}
                     </ListItemTitle>
                     <ListItemDescription>
-                      {snapshot.source === "import"
-                        ? "Imported"
-                        : "Entered manually"}
+                      {
+                        {
+                          import: "Imported",
+                          manual: "Entered manually",
+                          reconciliation: "Reconciliation",
+                        }[snapshot.source]
+                      }
+                      {snapshot.notes ? ` · ${snapshot.notes}` : ""}
+                      {snapshot.adjustmentArchivedAt
+                        ? " · Adjustment archived"
+                        : ""}
                     </ListItemDescription>
                   </ListItemContent>
-                  <ListItemTrailing>
+                  <ListItemTrailing stacked>
                     <Amount
                       currency={data.currencyCode}
                       value={snapshot.balance}
                     />
+                    {snapshot.adjustment === null ? null : (
+                      <span className="text-muted-foreground text-xs">
+                        Adjustment{" "}
+                        <Amount
+                          currency={data.currencyCode}
+                          value={snapshot.adjustment}
+                        />
+                      </span>
+                    )}
+                    {snapshot.transactionId &&
+                    can({ transaction: ["read"] }) ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => inspect(snapshot.transactionId ?? "")}
+                      >
+                        View adjustment
+                      </Button>
+                    ) : null}
                   </ListItemTrailing>
                 </ListItem>
               ))}

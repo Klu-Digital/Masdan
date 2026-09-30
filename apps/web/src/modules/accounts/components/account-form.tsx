@@ -326,6 +326,7 @@ export const AccountForm = ({
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.target.value)}
                 placeholder="0.00"
+                readOnly={account?.hasFinancialHistory}
                 value={field.state.value}
               />
               <FieldErrors errors={field.state.meta.errors} />
@@ -363,14 +364,25 @@ export const AccountForm = ({
           <Field name={field.name}>
             <FieldLabel htmlFor={field.name}>As of</FieldLabel>
             <div className="w-full">
-              <DatePicker
-                id={field.name}
-                onValueChange={field.handleChange}
-                value={field.state.value}
-              />
+              {account?.hasFinancialHistory ? (
+                <Input
+                  id={field.name}
+                  readOnly
+                  type="date"
+                  value={field.state.value}
+                />
+              ) : (
+                <DatePicker
+                  id={field.name}
+                  onValueChange={field.handleChange}
+                  value={field.state.value}
+                />
+              )}
             </div>
             <p className="text-muted-foreground text-xs">
-              Transactions dated from this day on adjust the balance.
+              {account?.hasFinancialHistory
+                ? "Opening balance is locked. Use Reconcile balance to record an adjustment."
+                : "Transactions dated from this day on adjust the balance."}
             </p>
           </Field>
         )}

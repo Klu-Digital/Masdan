@@ -62,6 +62,24 @@ export const activeAccount = async (
   return account;
 };
 
+export const lockLedgerAccounts = async (
+  db: Database,
+  organizationId: string,
+  accountIds: string[]
+): Promise<void> => {
+  await db
+    .select({ id: financialAccount.id })
+    .from(financialAccount)
+    .where(
+      and(
+        eq(financialAccount.organizationId, organizationId),
+        inArray(financialAccount.id, [...new Set(accountIds)])
+      )
+    )
+    .orderBy(financialAccount.id)
+    .for("share");
+};
+
 export const validCategory = async (
   db: Database,
   organizationId: string,

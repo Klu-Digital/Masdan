@@ -22,6 +22,7 @@ import {
 } from "./transactions.queries";
 import {
   activeAccount,
+  lockLedgerAccounts,
   createTransaction,
   replaceSplits,
   replaceTags,
@@ -66,6 +67,12 @@ export const updateTransaction = async (
     { id: input.transactionId, organizationId },
     "Transaction"
   );
+  if (existing.reconciliationSnapshotId !== null) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "Reconciliation adjustments cannot be edited. Archive the adjustment and reconcile again.",
+    });
+  }
   if (existing.transferId !== null || existing.categoryId === null) {
     throw new ORPCError("BAD_REQUEST", {
       message: "Use transfer actions to edit a transfer",
@@ -94,6 +101,10 @@ export const updateTransaction = async (
       ? (splits[0]?.categoryId ?? input.categoryId)
       : input.categoryId;
 
+  await lockLedgerAccounts(db, organizationId, [
+    existing.accountId,
+    input.accountId,
+  ]);
   const account = await activeAccount(db, organizationId, input.accountId);
   const parentCategory = await validCategory(
     db,
@@ -194,6 +205,16 @@ export const setTransactionArchived = async (
   transactionId: string,
   archivedAt: Date | null
 ) => {
+  const existing = await lockOwned(
+    db,
+    financialTransaction,
+    { id: transactionId, organizationId },
+    "Transaction"
+  );
+  if (existing.transferId !== null) {
+    throw notFound("Transaction");
+  }
+  await lockLedgerAccounts(db, organizationId, [existing.accountId]);
   const [row] = await db
     .update(financialTransaction)
     .set({ archivedAt })

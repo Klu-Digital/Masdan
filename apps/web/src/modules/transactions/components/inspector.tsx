@@ -102,14 +102,20 @@ const TransferDetails = ({ detail }: { detail: TransactionDetail }) => {
 
 const EntryDetails = ({ detail }: { detail: TransactionDetail }) => (
   <List>
-    <Row label="Category">
-      <span className="flex min-w-0 items-center gap-2">
-        <IconTile tint={detail.categoryColor} size="xs">
-          {detail.categoryIcon}
-        </IconTile>
-        <span className="truncate">{detail.categoryName}</span>
-      </span>
-    </Row>
+    {detail.reconciliationSnapshotId ? (
+      <Row label="Posting">
+        Balance adjustment · excluded from income and expenses
+      </Row>
+    ) : (
+      <Row label="Category">
+        <span className="flex min-w-0 items-center gap-2">
+          <IconTile tint={detail.categoryColor} size="xs">
+            {detail.categoryIcon}
+          </IconTile>
+          <span className="truncate">{detail.categoryName}</span>
+        </span>
+      </Row>
+    )}
     <ListItem
       className="min-h-11"
       render={
@@ -240,7 +246,10 @@ export const TransactionInspector = ({
   } else if (detail && view) {
     const archived = detail.archivedAt !== null;
     const { transfer } = detail;
-    const canEdit = permissions.canUpdate && (transfer !== null || !archived);
+    const canEdit =
+      permissions.canUpdate &&
+      !detail.reconciliationSnapshotId &&
+      (transfer !== null || !archived);
     body = (
       <div className="flex flex-col gap-6">
         <div className="flex flex-col items-center gap-2 pt-1 text-center">
@@ -281,14 +290,14 @@ export const TransactionInspector = ({
           </section>
         ) : null}
 
-        {transfer ? null : (
+        {transfer || detail.reconciliationSnapshotId ? null : (
           <TransactionRule
             canApply={permissions.canUpdate}
             transaction={detail}
           />
         )}
 
-        {transfer ? null : (
+        {transfer || detail.reconciliationSnapshotId ? null : (
           <TransactionSuggestion
             canAccept={permissions.canUpdate}
             transaction={detail}
@@ -376,6 +385,8 @@ export const TransactionInspector = ({
   let title = "Transaction";
   if (detail?.transfer) {
     title = "Transfer";
+  } else if (detail?.reconciliationSnapshotId) {
+    title = "Balance reconciliation";
   } else if (detail) {
     title = detail.type === "income" ? "Income" : "Expense";
   }
