@@ -27,12 +27,11 @@ export const HSBC_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     network: "visa",
     visual: {
       background: {
-        angle: 90,
-        stops: ["#2a4a9c", "#c8102e"],
+        angle: 165,
+        stops: ["#53064f", "#cc3e4c", "#bf626d", "#006fb5"],
       },
       foreground: "light",
-      motif: "facets-left",
-      palette: ["#3a5fc0", "#1f3a80", "#e0283c", "#a80d22"],
+      pattern: "crossed-light",
     },
   },
   {

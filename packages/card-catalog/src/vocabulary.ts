@@ -33,6 +33,7 @@ export const CARD_PATTERNS = [
   "angular-panels",
   "brushed",
   "color-blocks",
+  "crossed-light",
   "diagonal-lines",
   "dot-matrix",
   "fine-lines",

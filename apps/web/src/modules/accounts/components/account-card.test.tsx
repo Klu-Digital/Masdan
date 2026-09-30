@@ -199,6 +199,35 @@ describe("catalog cards", () => {
     expect(new Set(looks).size).toBe(looks.length);
   });
 
+  it("draws Live+ with two glowing diagonals instead of facets", () => {
+    const card = cardFor("ph-hsbc-live-plus-visa-signature");
+    expect(card).toHaveAttribute("data-pattern", "crossed-light");
+    expect(card).not.toHaveAttribute("data-motif");
+    expect(card.querySelector("polygon")).toBeNull();
+    const gradients = card.querySelectorAll("linearGradient");
+    expect(gradients).toHaveLength(2);
+    for (const gradient of gradients) {
+      expect(gradient).toHaveAttribute("gradientUnits", "userSpaceOnUse");
+      expect(gradient.querySelector('[offset="0.5"]')).toHaveAttribute(
+        "stop-opacity",
+        "0.95"
+      );
+      const axisLength = Math.hypot(
+        Number(gradient.getAttribute("x2")) -
+          Number(gradient.getAttribute("x1")),
+        Number(gradient.getAttribute("y2")) -
+          Number(gradient.getAttribute("y1"))
+      );
+      const fadeEnd = gradient.querySelector("stop:last-child");
+      const fadeWidth =
+        (Number(fadeEnd?.getAttribute("offset")) - 0.5) * axisLength;
+      expect(fadeWidth).toBeGreaterThan(5);
+      expect(
+        card.querySelector(`rect[fill="url(#${gradient.id})"]`)
+      ).not.toBeNull();
+    }
+  });
+
   it("runs Ze-Lo's ribbon from red to blue", () => {
     const stops = cardFor("ph-pnb-ze-lo-mastercard").querySelectorAll(
       "linearGradient stop"

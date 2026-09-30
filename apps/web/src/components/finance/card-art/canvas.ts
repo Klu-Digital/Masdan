@@ -4,6 +4,7 @@ export type CardPatternName =
   | "angular-panels"
   | "brushed"
   | "color-blocks"
+  | "crossed-light"
   | "diagonal-lines"
   | "dot-matrix"
   | "fine-lines"

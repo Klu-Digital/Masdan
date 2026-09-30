@@ -207,6 +207,43 @@ export const CardPattern = ({
         </g>
       );
     }
+    case "crossed-light": {
+      return (
+        <>
+          <defs>
+            {[
+              { x1: -70, x2: 132, y1: 202, y2: 0 },
+              { x1: 0, x2: 50, y1: 0, y2: 290 },
+            ].map((axis, index) => (
+              <linearGradient
+                gradientUnits="userSpaceOnUse"
+                id={`${id}-${index}`}
+                key={index}
+                {...axis}
+              >
+                <stop
+                  className="[stop-color:currentColor]"
+                  offset="0.4"
+                  stopOpacity="0"
+                />
+                <stop
+                  className="[stop-color:currentColor]"
+                  offset="0.5"
+                  stopOpacity="0.95"
+                />
+                <stop
+                  className="[stop-color:currentColor]"
+                  offset="0.52"
+                  stopOpacity="0"
+                />
+              </linearGradient>
+            ))}
+          </defs>
+          <rect fill={`url(#${id}-0)`} height={H} width={W} />
+          <rect fill={`url(#${id}-1)`} height={H} width={W} />
+        </>
+      );
+    }
     case "color-blocks": {
       return (
         <g>
