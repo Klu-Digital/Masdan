@@ -1,5 +1,22 @@
 CREATE TYPE "paid_status" AS ENUM('paid', 'unpaid');--> statement-breakpoint
 CREATE TYPE "transfer_side" AS ENUM('source', 'destination');--> statement-breakpoint
+CREATE TABLE "account" (
+	"access_token" text,
+	"access_token_expires_at" timestamp with time zone,
+	"account_id" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"id_token" text,
+	"issuer" text NOT NULL,
+	"password" text,
+	"provider_id" text NOT NULL,
+	"refresh_token" text,
+	"refresh_token_expires_at" timestamp with time zone,
+	"scope" text,
+	"updated_at" timestamp with time zone NOT NULL,
+	"user_id" uuid NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "ai_token_cap" (
 	"feature" text PRIMARY KEY,
 	"max_tokens" integer NOT NULL,
@@ -159,6 +176,32 @@ CREATE TABLE "exchange_rate" (
 	CONSTRAINT "exchange_rate_positive_chk" CHECK ("rate" > 0)
 );
 --> statement-breakpoint
+CREATE TABLE "feature_flag" (
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"enabled" boolean NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"name" text NOT NULL UNIQUE,
+	"updated_by" uuid
+);
+--> statement-breakpoint
+CREATE TABLE "file" (
+	"bucket" text NOT NULL,
+	"checksum" text,
+	"content_type" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"key" text NOT NULL,
+	"name" text NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"size" bigint,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"user_id" uuid NOT NULL,
+	CONSTRAINT "file_organization_id_key" UNIQUE("organization_id","id"),
+	CONSTRAINT "file_status_chk" CHECK ("status" IN ('pending', 'ready', 'failed'))
+);
+--> statement-breakpoint
 CREATE TABLE "financial_account" (
 	"account_class" text NOT NULL,
 	"account_type" text NOT NULL,
@@ -175,6 +218,7 @@ CREATE TABLE "financial_account" (
 	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"include_in_net_worth" boolean DEFAULT true NOT NULL,
 	"institution" text,
+	"institution_id" uuid,
 	"liquidity" text,
 	"name" text NOT NULL,
 	"notes" text,
@@ -192,14 +236,63 @@ CREATE TABLE "financial_account" (
 --> statement-breakpoint
 CREATE TABLE "financial_account_balance_snapshot" (
 	"account_id" uuid NOT NULL,
+	"adjustment" numeric(30,6),
 	"balance" numeric(30,6) NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"effective_date" date NOT NULL,
 	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"import_reference" text,
+	"notes" text,
 	"organization_id" uuid NOT NULL,
 	"source" text DEFAULT 'manual' NOT NULL,
-	CONSTRAINT "financial_account_balance_snapshot_source_chk" CHECK ("source" IN ('manual', 'import'))
+	CONSTRAINT "balance_snapshot_organization_account_id_key" UNIQUE("organization_id","account_id","id"),
+	CONSTRAINT "financial_account_balance_snapshot_source_chk" CHECK ("source" IN ('manual', 'import', 'reconciliation')),
+	CONSTRAINT "balance_snapshot_reconciliation_chk" CHECK (("source" = 'reconciliation') = ("adjustment" IS NOT NULL))
+);
+--> statement-breakpoint
+CREATE TABLE "financial_account_interest" (
+	"account_id" uuid NOT NULL,
+	"auto_post" boolean DEFAULT true NOT NULL,
+	"bonus_eligible" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"maturity_date" date,
+	"organization_id" uuid NOT NULL,
+	"product_id" uuid,
+	"start_date" date,
+	"term_count" smallint,
+	"term_unit" text,
+	CONSTRAINT "financial_account_interest_account_key" UNIQUE("organization_id","account_id"),
+	CONSTRAINT "financial_account_interest_term_chk" CHECK (("term_count" IS NULL) = ("term_unit" IS NULL) AND ("term_unit" IS NULL OR ("term_unit" IN ('day', 'month') AND "term_count" > 0))),
+	CONSTRAINT "financial_account_interest_maturity_chk" CHECK ("maturity_date" IS NULL OR "start_date" IS NULL OR "start_date" < "maturity_date")
+);
+--> statement-breakpoint
+CREATE TABLE "financial_account_interest_rate" (
+	"account_id" uuid NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"effective_from" date NOT NULL,
+	"effective_to" date,
+	"follows_preset" boolean NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"organization_id" uuid NOT NULL,
+	"bonus_annual_rate" numeric(12,6),
+	"calculation_basis" text,
+	"condition_summary" text,
+	"credit_frequency" text,
+	"day_count_basis" text,
+	"interest_cap_balance" numeric(30,6),
+	"minimum_balance" numeric(30,6),
+	"tier_mode" text,
+	"tiers" jsonb,
+	"withholding_tax_rate" numeric(12,6),
+	CONSTRAINT "financial_account_interest_rate_version_key" UNIQUE("account_id","effective_from"),
+	CONSTRAINT "financial_account_interest_rate_tier_mode_chk" CHECK ("tier_mode" IS NULL OR "tier_mode" IN ('marginal', 'whole_balance')),
+	CONSTRAINT "financial_account_interest_rate_calculation_basis_chk" CHECK ("calculation_basis" IS NULL OR "calculation_basis" IN ('eod', 'adb', 'principal')),
+	CONSTRAINT "financial_account_interest_rate_day_count_basis_chk" CHECK ("day_count_basis" IS NULL OR "day_count_basis" IN ('actual', '365', '360')),
+	CONSTRAINT "financial_account_interest_rate_credit_frequency_chk" CHECK ("credit_frequency" IS NULL OR "credit_frequency" IN ('daily', 'monthly', 'maturity')),
+	CONSTRAINT "financial_account_interest_rate_terms_chk" CHECK (CASE WHEN "follows_preset" THEN ("tier_mode" IS NULL AND "tiers" IS NULL AND "calculation_basis" IS NULL AND "day_count_basis" IS NULL AND "credit_frequency" IS NULL AND "withholding_tax_rate" IS NULL) ELSE ("tier_mode" IS NOT NULL AND "tiers" IS NOT NULL AND "calculation_basis" IS NOT NULL AND "day_count_basis" IS NOT NULL AND "credit_frequency" IS NOT NULL AND "withholding_tax_rate" IS NOT NULL) END),
+	CONSTRAINT "financial_account_interest_rate_period_chk" CHECK ("effective_to" IS NULL OR "effective_from" <= "effective_to")
 );
 --> statement-breakpoint
 CREATE TABLE "financial_account_owner" (
@@ -210,8 +303,25 @@ CREATE TABLE "financial_account_owner" (
 	"organization_id" uuid NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "financial_institution" (
+	"aliases" text[] DEFAULT '{}'::text[] NOT NULL,
+	"brand_color" text NOT NULL,
+	"country_code" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"institution_type" text NOT NULL,
+	"key" text NOT NULL CONSTRAINT "financial_institution_key_key" UNIQUE,
+	"logo_key" text NOT NULL,
+	"name" text NOT NULL,
+	"short_name" text NOT NULL,
+	"website_url" text,
+	CONSTRAINT "financial_institution_type_chk" CHECK ("institution_type" IN ('digital_bank', 'bank', 'savings_bank', 'rural_bank', 'channel'))
+);
+--> statement-breakpoint
 CREATE TABLE "financial_transaction" (
 	"account_id" uuid NOT NULL,
+	"adjustment_direction" text,
 	"amount" numeric(30,6) NOT NULL,
 	"archived_at" timestamp with time zone,
 	"category_id" uuid,
@@ -223,6 +333,7 @@ CREATE TABLE "financial_transaction" (
 	"notes" text,
 	"organization_id" uuid NOT NULL,
 	"paid_status" "paid_status" DEFAULT 'paid'::"paid_status" NOT NULL,
+	"reconciliation_snapshot_id" uuid,
 	"recurring_occurrence_date" date,
 	"recurring_schedule_id" uuid,
 	"rule_application" jsonb,
@@ -233,9 +344,17 @@ CREATE TABLE "financial_transaction" (
 	CONSTRAINT "financial_transaction_organization_id_key" UNIQUE("organization_id","id"),
 	CONSTRAINT "financial_transaction_positive_amount_chk" CHECK ("amount" > 0),
 	CONSTRAINT "financial_transaction_category_or_transfer_chk" CHECK ((
-        ("category_id" IS NOT NULL AND "transfer_id" IS NULL AND "transfer_side" IS NULL)
+        ("reconciliation_snapshot_id" IS NULL AND "adjustment_direction" IS NULL AND (
+          ("category_id" IS NOT NULL AND "transfer_id" IS NULL AND "transfer_side" IS NULL)
+          OR
+          ("category_id" IS NULL AND "transfer_id" IS NOT NULL AND "transfer_side" IS NOT NULL)
+        ))
         OR
-        ("category_id" IS NULL AND "transfer_id" IS NOT NULL AND "transfer_side" IS NOT NULL)
+        ("reconciliation_snapshot_id" IS NOT NULL AND "adjustment_direction" IS NOT NULL
+          AND "adjustment_direction" IN ('increase', 'decrease')
+          AND "category_id" IS NULL AND "transfer_id" IS NULL AND "transfer_side" IS NULL
+          AND "recurring_schedule_id" IS NULL AND "recurring_occurrence_date" IS NULL
+          AND "import_fingerprint" IS NULL AND "rule_application" IS NULL AND "suggestion_application" IS NULL)
       )),
 	CONSTRAINT "financial_transaction_recurring_occurrence_chk" CHECK (("recurring_schedule_id" IS NULL) = ("recurring_occurrence_date" IS NULL))
 );
@@ -295,6 +414,115 @@ CREATE TABLE "household_exchange_rate" (
 	CONSTRAINT "household_exchange_rate_pair_chk" CHECK ("from_currency" <> "to_currency")
 );
 --> statement-breakpoint
+CREATE TABLE "interest_credit" (
+	"account_id" uuid NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"credit_date" date NOT NULL,
+	"gross" numeric(30,6) NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"net" numeric(30,6) NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"period_end" date NOT NULL,
+	"period_start" date NOT NULL,
+	"tax" numeric(30,6) NOT NULL,
+	"transaction_id" uuid,
+	CONSTRAINT "interest_credit_account_date_key" UNIQUE("account_id","credit_date"),
+	CONSTRAINT "interest_credit_period_chk" CHECK ("period_start" <= "period_end")
+);
+--> statement-breakpoint
+CREATE TABLE "interest_product" (
+	"aliases" text[] DEFAULT '{}'::text[] NOT NULL,
+	"channel_institution_id" uuid,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"currency_code" text NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"institution_id" uuid NOT NULL,
+	"key" text NOT NULL CONSTRAINT "interest_product_key_key" UNIQUE,
+	"name" text NOT NULL,
+	"notes" text,
+	"product_type" text NOT NULL,
+	"source_url" text,
+	CONSTRAINT "interest_product_type_chk" CHECK ("product_type" IN ('savings', 'goal_savings', 'time_deposit'))
+);
+--> statement-breakpoint
+CREATE TABLE "interest_rate_schedule" (
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"effective_from" date,
+	"effective_to" date,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"product_id" uuid NOT NULL,
+	"source_checked_at" date,
+	"source_url" text,
+	"term_count" smallint,
+	"term_unit" text,
+	"bonus_annual_rate" numeric(12,6),
+	"calculation_basis" text,
+	"condition_summary" text,
+	"credit_frequency" text,
+	"day_count_basis" text,
+	"interest_cap_balance" numeric(30,6),
+	"minimum_balance" numeric(30,6),
+	"tier_mode" text,
+	"tiers" jsonb,
+	"withholding_tax_rate" numeric(12,6),
+	CONSTRAINT "interest_rate_schedule_version_key" UNIQUE NULLS NOT DISTINCT("product_id","term_count","term_unit","effective_from"),
+	CONSTRAINT "interest_rate_schedule_tier_mode_chk" CHECK ("tier_mode" IS NULL OR "tier_mode" IN ('marginal', 'whole_balance')),
+	CONSTRAINT "interest_rate_schedule_calculation_basis_chk" CHECK ("calculation_basis" IS NULL OR "calculation_basis" IN ('eod', 'adb', 'principal')),
+	CONSTRAINT "interest_rate_schedule_day_count_basis_chk" CHECK ("day_count_basis" IS NULL OR "day_count_basis" IN ('actual', '365', '360')),
+	CONSTRAINT "interest_rate_schedule_credit_frequency_chk" CHECK ("credit_frequency" IS NULL OR "credit_frequency" IN ('daily', 'monthly', 'maturity')),
+	CONSTRAINT "interest_rate_schedule_terms_chk" CHECK (("tier_mode" IS NOT NULL AND "tiers" IS NOT NULL AND "calculation_basis" IS NOT NULL AND "day_count_basis" IS NOT NULL AND "credit_frequency" IS NOT NULL AND "withholding_tax_rate" IS NOT NULL)),
+	CONSTRAINT "interest_rate_schedule_term_chk" CHECK (("term_count" IS NULL) = ("term_unit" IS NULL) AND ("term_unit" IS NULL OR ("term_unit" IN ('day', 'month') AND "term_count" > 0))),
+	CONSTRAINT "interest_rate_schedule_period_chk" CHECK ("effective_from" IS NULL OR "effective_to" IS NULL OR "effective_from" <= "effective_to")
+);
+--> statement-breakpoint
+CREATE TABLE "invitation" (
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"email" text NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"inviter_id" uuid NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"role" text,
+	"status" text DEFAULT 'pending' NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "member" (
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"organization_id" uuid NOT NULL,
+	"role" text DEFAULT 'member' NOT NULL,
+	"user_id" uuid NOT NULL,
+	CONSTRAINT "member_organization_id_key" UNIQUE("organization_id","id")
+);
+--> statement-breakpoint
+CREATE TABLE "organization" (
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"default_currency" text DEFAULT 'PHP' NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"logo" text,
+	"metadata" text,
+	"name" text NOT NULL,
+	"slug" text NOT NULL,
+	"timezone" text DEFAULT 'Asia/Manila' NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "post_migration" (
+	"applied_by" text NOT NULL,
+	"checksum" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"description" text NOT NULL,
+	"duration_ms" integer,
+	"error" text,
+	"finished_at" timestamp with time zone,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"name" text NOT NULL UNIQUE,
+	"started_at" timestamp with time zone NOT NULL,
+	"status" text NOT NULL,
+	CONSTRAINT "post_migration_status_chk" CHECK ("status" IN ('running', 'success', 'failed'))
+);
+--> statement-breakpoint
 CREATE TABLE "recurring_schedule" (
 	"account_id" uuid NOT NULL,
 	"amount" numeric(30,6) NOT NULL,
@@ -342,6 +570,19 @@ CREATE TABLE "savings_goal" (
 	"target_amount" numeric(30,6) NOT NULL,
 	"target_date" date,
 	CONSTRAINT "savings_goal_positive_target_chk" CHECK ("target_amount" > 0)
+);
+--> statement-breakpoint
+CREATE TABLE "session" (
+	"active_organization_id" uuid,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"impersonated_by" uuid,
+	"ip_address" text,
+	"token" text NOT NULL UNIQUE,
+	"updated_at" timestamp with time zone NOT NULL,
+	"user_agent" text,
+	"user_id" uuid NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "tag" (
@@ -442,35 +683,31 @@ CREATE TABLE "transaction_rule_tag" (
 	CONSTRAINT "transaction_rule_tag_pkey" PRIMARY KEY("rule_id","tag_id")
 );
 --> statement-breakpoint
-ALTER TABLE "organization" ADD COLUMN "default_currency" text DEFAULT 'PHP' NOT NULL;--> statement-breakpoint
-ALTER TABLE "organization" ADD COLUMN "timezone" text DEFAULT 'Asia/Manila' NOT NULL;--> statement-breakpoint
-ALTER TABLE "account" ALTER COLUMN "access_token_expires_at" SET DATA TYPE timestamp with time zone USING "access_token_expires_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "account" ALTER COLUMN "created_at" SET DATA TYPE timestamp with time zone USING "created_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "account" ALTER COLUMN "refresh_token_expires_at" SET DATA TYPE timestamp with time zone USING "refresh_token_expires_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "account" ALTER COLUMN "updated_at" SET DATA TYPE timestamp with time zone USING "updated_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "feature_flag" ALTER COLUMN "created_at" SET DATA TYPE timestamp with time zone USING "created_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "feature_flag" ALTER COLUMN "updated_at" SET DATA TYPE timestamp with time zone USING "updated_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "file" ALTER COLUMN "created_at" SET DATA TYPE timestamp with time zone USING "created_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "file" ALTER COLUMN "updated_at" SET DATA TYPE timestamp with time zone USING "updated_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "invitation" ALTER COLUMN "created_at" SET DATA TYPE timestamp with time zone USING "created_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "invitation" ALTER COLUMN "expires_at" SET DATA TYPE timestamp with time zone USING "expires_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "member" ALTER COLUMN "created_at" SET DATA TYPE timestamp with time zone USING "created_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "organization" ALTER COLUMN "created_at" SET DATA TYPE timestamp with time zone USING "created_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "post_migration" ALTER COLUMN "created_at" SET DATA TYPE timestamp with time zone USING "created_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "post_migration" ALTER COLUMN "finished_at" SET DATA TYPE timestamp with time zone USING "finished_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "post_migration" ALTER COLUMN "started_at" SET DATA TYPE timestamp with time zone USING "started_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "post_migration" ALTER COLUMN "updated_at" SET DATA TYPE timestamp with time zone USING "updated_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "session" ALTER COLUMN "created_at" SET DATA TYPE timestamp with time zone USING "created_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "session" ALTER COLUMN "expires_at" SET DATA TYPE timestamp with time zone USING "expires_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "session" ALTER COLUMN "updated_at" SET DATA TYPE timestamp with time zone USING "updated_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "user" ALTER COLUMN "ban_expires" SET DATA TYPE timestamp with time zone USING "ban_expires"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "user" ALTER COLUMN "created_at" SET DATA TYPE timestamp with time zone USING "created_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "user" ALTER COLUMN "updated_at" SET DATA TYPE timestamp with time zone USING "updated_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "verification" ALTER COLUMN "created_at" SET DATA TYPE timestamp with time zone USING "created_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "verification" ALTER COLUMN "expires_at" SET DATA TYPE timestamp with time zone USING "expires_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "verification" ALTER COLUMN "updated_at" SET DATA TYPE timestamp with time zone USING "updated_at"::timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "file" ADD CONSTRAINT "file_organization_id_key" UNIQUE("organization_id","id");--> statement-breakpoint
-ALTER TABLE "member" ADD CONSTRAINT "member_organization_id_key" UNIQUE("organization_id","id");--> statement-breakpoint
+CREATE TABLE "user" (
+	"ban_expires" timestamp with time zone,
+	"ban_reason" text,
+	"banned" boolean DEFAULT false,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"email" text NOT NULL UNIQUE,
+	"email_verified" boolean DEFAULT false NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"image" text,
+	"name" text NOT NULL,
+	"role" text
+);
+--> statement-breakpoint
+CREATE TABLE "verification" (
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"identifier" text NOT NULL,
+	"value" text NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX "account_issuer_accountId_uidx" ON "account" ("issuer","account_id");--> statement-breakpoint
+CREATE INDEX "account_userId_idx" ON "account" ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "bill_calendar_feed_token_uidx" ON "bill_calendar_feed" ("token_hash");--> statement-breakpoint
 CREATE UNIQUE INDEX "bill_calendar_feed_user_organization_uidx" ON "bill_calendar_feed" ("user_id","organization_id");--> statement-breakpoint
 CREATE INDEX "bill_calendar_feed_organization_idx" ON "bill_calendar_feed" ("organization_id");--> statement-breakpoint
@@ -493,6 +730,10 @@ CREATE INDEX "credit_card_reminder_statement_idx" ON "credit_card_reminder" ("st
 CREATE UNIQUE INDEX "credit_card_statement_account_date_uidx" ON "credit_card_statement" ("account_id","statement_date");--> statement-breakpoint
 CREATE INDEX "credit_card_statement_organization_date_idx" ON "credit_card_statement" ("organization_id","statement_date");--> statement-breakpoint
 CREATE UNIQUE INDEX "exchange_rate_source_pair_date_uidx" ON "exchange_rate" ("source","base_currency","quote_currency","rate_date");--> statement-breakpoint
+CREATE UNIQUE INDEX "file_key_uidx" ON "file" ("key");--> statement-breakpoint
+CREATE INDEX "file_organizationId_idx" ON "file" ("organization_id");--> statement-breakpoint
+CREATE INDEX "file_userId_idx" ON "file" ("user_id");--> statement-breakpoint
+CREATE INDEX "file_status_idx" ON "file" ("status");--> statement-breakpoint
 CREATE INDEX "financial_account_organization_archived_idx" ON "financial_account" ("organization_id","archived_at");--> statement-breakpoint
 CREATE INDEX "financial_account_organization_type_idx" ON "financial_account" ("organization_id","account_class","account_type");--> statement-breakpoint
 CREATE INDEX "financial_account_balance_snapshot_account_date_idx" ON "financial_account_balance_snapshot" ("account_id","effective_date");--> statement-breakpoint
@@ -500,6 +741,7 @@ CREATE UNIQUE INDEX "financial_account_owner_account_member_uidx" ON "financial_
 CREATE INDEX "financial_account_owner_member_idx" ON "financial_account_owner" ("member_id");--> statement-breakpoint
 CREATE INDEX "financial_transaction_organization_date_idx" ON "financial_transaction" ("organization_id","archived_at","transaction_date");--> statement-breakpoint
 CREATE INDEX "financial_transaction_account_date_idx" ON "financial_transaction" ("account_id","archived_at","transaction_date");--> statement-breakpoint
+CREATE UNIQUE INDEX "transaction_reconciliation_snapshot_uidx" ON "financial_transaction" ("reconciliation_snapshot_id");--> statement-breakpoint
 CREATE INDEX "financial_transaction_category_idx" ON "financial_transaction" ("category_id");--> statement-breakpoint
 CREATE INDEX "financial_transaction_transfer_idx" ON "financial_transaction" ("transfer_id");--> statement-breakpoint
 CREATE INDEX "financial_transaction_organization_amount_idx" ON "financial_transaction" ("organization_id","archived_at","amount","id");--> statement-breakpoint
@@ -513,6 +755,13 @@ CREATE INDEX "financial_transfer_organization_date_idx" ON "financial_transfer" 
 CREATE INDEX "financial_transfer_source_account_idx" ON "financial_transfer" ("source_account_id","transaction_date","id");--> statement-breakpoint
 CREATE INDEX "financial_transfer_destination_account_idx" ON "financial_transfer" ("destination_account_id","transaction_date","id");--> statement-breakpoint
 CREATE UNIQUE INDEX "household_exchange_rate_pair_date_uidx" ON "household_exchange_rate" ("organization_id","from_currency","to_currency","rate_date");--> statement-breakpoint
+CREATE INDEX "interest_product_institution_idx" ON "interest_product" ("institution_id");--> statement-breakpoint
+CREATE INDEX "invitation_organizationId_idx" ON "invitation" ("organization_id");--> statement-breakpoint
+CREATE INDEX "invitation_email_idx" ON "invitation" ("email");--> statement-breakpoint
+CREATE INDEX "member_organizationId_idx" ON "member" ("organization_id");--> statement-breakpoint
+CREATE INDEX "member_userId_idx" ON "member" ("user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "organization_slug_uidx" ON "organization" ("slug");--> statement-breakpoint
+CREATE INDEX "post_migration_status_idx" ON "post_migration" ("status");--> statement-breakpoint
 CREATE INDEX "recurring_schedule_organization_idx" ON "recurring_schedule" ("organization_id","status","next_occurrence_date");--> statement-breakpoint
 CREATE INDEX "recurring_schedule_due_idx" ON "recurring_schedule" ("next_occurrence_date") WHERE "status" = 'active';--> statement-breakpoint
 CREATE INDEX "recurring_schedule_account_idx" ON "recurring_schedule" ("account_id");--> statement-breakpoint
@@ -520,6 +769,7 @@ CREATE INDEX "recurring_schedule_category_idx" ON "recurring_schedule" ("categor
 CREATE INDEX "recurring_schedule_tag_tag_idx" ON "recurring_schedule_tag" ("tag_id");--> statement-breakpoint
 CREATE INDEX "savings_goal_organization_idx" ON "savings_goal" ("organization_id","archived_at");--> statement-breakpoint
 CREATE INDEX "savings_goal_account_idx" ON "savings_goal" ("account_id");--> statement-breakpoint
+CREATE INDEX "session_userId_idx" ON "session" ("user_id");--> statement-breakpoint
 CREATE INDEX "tag_organization_archived_idx" ON "tag" ("organization_id","archived_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "tag_organization_name_uidx" ON "tag" ("organization_id",lower("name"));--> statement-breakpoint
 CREATE INDEX "transaction_import_organization_idx" ON "transaction_import" ("organization_id","id");--> statement-breakpoint
@@ -529,6 +779,8 @@ CREATE INDEX "transaction_import_row_import_status_idx" ON "transaction_import_r
 CREATE INDEX "transaction_import_row_transaction_idx" ON "transaction_import_row" ("transaction_id");--> statement-breakpoint
 CREATE INDEX "transaction_import_row_organization_idx" ON "transaction_import_row" ("organization_id");--> statement-breakpoint
 CREATE INDEX "transaction_rule_tag_tag_idx" ON "transaction_rule_tag" ("tag_id");--> statement-breakpoint
+CREATE INDEX "verification_identifier_idx" ON "verification" ("identifier");--> statement-breakpoint
+ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "ai_token_cap" ADD CONSTRAINT "ai_token_cap_updated_by_user_id_fkey" FOREIGN KEY ("updated_by") REFERENCES "user"("id") ON DELETE SET NULL;--> statement-breakpoint
 ALTER TABLE "ai_usage" ADD CONSTRAINT "ai_usage_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "bill_calendar_feed" ADD CONSTRAINT "bill_calendar_feed_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
@@ -556,10 +808,19 @@ ALTER TABLE "credit_card_statement" ADD CONSTRAINT "credit_card_statement_organi
 ALTER TABLE "credit_card_statement" ADD CONSTRAINT "credit_card_statement_account_id_fkey" FOREIGN KEY ("organization_id","account_id") REFERENCES "financial_account"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "exchange_rate" ADD CONSTRAINT "exchange_rate_base_currency_currency_code_fkey" FOREIGN KEY ("base_currency") REFERENCES "currency"("code");--> statement-breakpoint
 ALTER TABLE "exchange_rate" ADD CONSTRAINT "exchange_rate_quote_currency_currency_code_fkey" FOREIGN KEY ("quote_currency") REFERENCES "currency"("code");--> statement-breakpoint
+ALTER TABLE "feature_flag" ADD CONSTRAINT "feature_flag_updated_by_user_id_fkey" FOREIGN KEY ("updated_by") REFERENCES "user"("id") ON DELETE SET NULL;--> statement-breakpoint
+ALTER TABLE "file" ADD CONSTRAINT "file_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "file" ADD CONSTRAINT "file_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "financial_account" ADD CONSTRAINT "financial_account_currency_code_currency_code_fkey" FOREIGN KEY ("currency_code") REFERENCES "currency"("code") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "financial_account" ADD CONSTRAINT "financial_account_institution_id_financial_institution_id_fkey" FOREIGN KEY ("institution_id") REFERENCES "financial_institution"("id") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "financial_account" ADD CONSTRAINT "financial_account_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "financial_account_balance_snapshot" ADD CONSTRAINT "financial_account_balance_snapshot_zGLPH3UWepV5_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "financial_account_balance_snapshot" ADD CONSTRAINT "financial_account_balance_snapshot_account_id_fkey" FOREIGN KEY ("organization_id","account_id") REFERENCES "financial_account"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "financial_account_interest" ADD CONSTRAINT "financial_account_interest_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "financial_account_interest" ADD CONSTRAINT "financial_account_interest_product_id_interest_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "interest_product"("id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "financial_account_interest" ADD CONSTRAINT "financial_account_interest_account_id_fkey" FOREIGN KEY ("organization_id","account_id") REFERENCES "financial_account"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "financial_account_interest_rate" ADD CONSTRAINT "financial_account_interest_rate_21bBDvIgaXQL_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "financial_account_interest_rate" ADD CONSTRAINT "financial_account_interest_rate_account_id_fkey" FOREIGN KEY ("organization_id","account_id") REFERENCES "financial_account_interest"("organization_id","account_id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "financial_account_owner" ADD CONSTRAINT "financial_account_owner_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "financial_account_owner" ADD CONSTRAINT "financial_account_owner_financial_account_id_fkey" FOREIGN KEY ("organization_id","financial_account_id") REFERENCES "financial_account"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "financial_account_owner" ADD CONSTRAINT "financial_account_owner_member_id_fkey" FOREIGN KEY ("organization_id","member_id") REFERENCES "member"("organization_id","id") ON DELETE CASCADE;--> statement-breakpoint
@@ -568,6 +829,7 @@ ALTER TABLE "financial_transaction" ADD CONSTRAINT "financial_transaction_organi
 ALTER TABLE "financial_transaction" ADD CONSTRAINT "financial_transaction_account_id_fkey" FOREIGN KEY ("organization_id","account_id") REFERENCES "financial_account"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "financial_transaction" ADD CONSTRAINT "financial_transaction_category_id_fkey" FOREIGN KEY ("organization_id","category_id") REFERENCES "category"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "financial_transaction" ADD CONSTRAINT "financial_transaction_transfer_id_fkey" FOREIGN KEY ("organization_id","transfer_id") REFERENCES "financial_transfer"("organization_id","id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "financial_transaction" ADD CONSTRAINT "transaction_reconciliation_snapshot_fkey" FOREIGN KEY ("organization_id","account_id","reconciliation_snapshot_id") REFERENCES "financial_account_balance_snapshot"("organization_id","account_id","id") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "financial_transaction" ADD CONSTRAINT "financial_transaction_recurring_schedule_id_fkey" FOREIGN KEY ("organization_id","recurring_schedule_id") REFERENCES "recurring_schedule"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "financial_transaction_attachment" ADD CONSTRAINT "financial_transaction_attachment_ZiOJz7zZRNKY_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "financial_transaction_attachment" ADD CONSTRAINT "financial_transaction_attachment_file_id_fkey" FOREIGN KEY ("organization_id","file_id") REFERENCES "file"("organization_id","id") ON DELETE CASCADE;--> statement-breakpoint
@@ -585,6 +847,17 @@ ALTER TABLE "household_exchange_rate" ADD CONSTRAINT "household_exchange_rate_cr
 ALTER TABLE "household_exchange_rate" ADD CONSTRAINT "household_exchange_rate_from_currency_currency_code_fkey" FOREIGN KEY ("from_currency") REFERENCES "currency"("code");--> statement-breakpoint
 ALTER TABLE "household_exchange_rate" ADD CONSTRAINT "household_exchange_rate_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "household_exchange_rate" ADD CONSTRAINT "household_exchange_rate_to_currency_currency_code_fkey" FOREIGN KEY ("to_currency") REFERENCES "currency"("code");--> statement-breakpoint
+ALTER TABLE "interest_credit" ADD CONSTRAINT "interest_credit_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "interest_credit" ADD CONSTRAINT "interest_credit_account_id_fkey" FOREIGN KEY ("organization_id","account_id") REFERENCES "financial_account"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "interest_credit" ADD CONSTRAINT "interest_credit_transaction_id_fkey" FOREIGN KEY ("organization_id","transaction_id") REFERENCES "financial_transaction"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "interest_product" ADD CONSTRAINT "interest_product_GclxaGg0cBYy_fkey" FOREIGN KEY ("channel_institution_id") REFERENCES "financial_institution"("id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "interest_product" ADD CONSTRAINT "interest_product_currency_code_currency_code_fkey" FOREIGN KEY ("currency_code") REFERENCES "currency"("code") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "interest_product" ADD CONSTRAINT "interest_product_institution_id_financial_institution_id_fkey" FOREIGN KEY ("institution_id") REFERENCES "financial_institution"("id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "interest_rate_schedule" ADD CONSTRAINT "interest_rate_schedule_product_id_interest_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "interest_product"("id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "invitation" ADD CONSTRAINT "invitation_inviter_id_user_id_fkey" FOREIGN KEY ("inviter_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "invitation" ADD CONSTRAINT "invitation_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "member" ADD CONSTRAINT "member_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "member" ADD CONSTRAINT "member_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "organization" ADD CONSTRAINT "organization_default_currency_currency_code_fkey" FOREIGN KEY ("default_currency") REFERENCES "currency"("code") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "recurring_schedule" ADD CONSTRAINT "recurring_schedule_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "recurring_schedule" ADD CONSTRAINT "recurring_schedule_account_id_fkey" FOREIGN KEY ("organization_id","account_id") REFERENCES "financial_account"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
@@ -594,6 +867,7 @@ ALTER TABLE "recurring_schedule_tag" ADD CONSTRAINT "recurring_schedule_tag_sche
 ALTER TABLE "recurring_schedule_tag" ADD CONSTRAINT "recurring_schedule_tag_tag_id_fkey" FOREIGN KEY ("organization_id","tag_id") REFERENCES "tag"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "savings_goal" ADD CONSTRAINT "savings_goal_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "savings_goal" ADD CONSTRAINT "savings_goal_account_id_fkey" FOREIGN KEY ("organization_id","account_id") REFERENCES "financial_account"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "tag" ADD CONSTRAINT "tag_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "transaction_import" ADD CONSTRAINT "transaction_import_created_by_user_id_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "user"("id") ON DELETE SET NULL;--> statement-breakpoint
 ALTER TABLE "transaction_import" ADD CONSTRAINT "transaction_import_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
@@ -610,6 +884,4 @@ ALTER TABLE "transaction_rule" ADD CONSTRAINT "transaction_rule_match_account_id
 ALTER TABLE "transaction_rule" ADD CONSTRAINT "transaction_rule_set_category_id_fkey" FOREIGN KEY ("organization_id","set_category_id") REFERENCES "category"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "transaction_rule_tag" ADD CONSTRAINT "transaction_rule_tag_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "transaction_rule_tag" ADD CONSTRAINT "transaction_rule_tag_rule_id_fkey" FOREIGN KEY ("organization_id","rule_id") REFERENCES "transaction_rule"("organization_id","id") ON DELETE CASCADE;--> statement-breakpoint
-ALTER TABLE "transaction_rule_tag" ADD CONSTRAINT "transaction_rule_tag_tag_id_fkey" FOREIGN KEY ("organization_id","tag_id") REFERENCES "tag"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
-ALTER TABLE "file" ADD CONSTRAINT "file_status_chk" CHECK ("status" IN ('pending', 'ready', 'failed'));--> statement-breakpoint
-ALTER TABLE "post_migration" ADD CONSTRAINT "post_migration_status_chk" CHECK ("status" IN ('running', 'success', 'failed'));
+ALTER TABLE "transaction_rule_tag" ADD CONSTRAINT "transaction_rule_tag_tag_id_fkey" FOREIGN KEY ("organization_id","tag_id") REFERENCES "tag"("organization_id","id") ON DELETE RESTRICT;

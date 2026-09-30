@@ -1,9 +1,9 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "4aae50c5-f7f1-4dd5-94fd-12400b995da8",
+  "id": "ad82af26-6573-4783-ba6a-2e3c9d2430d8",
   "prevIds": [
-    "42255af7-bf6b-4f9f-86bd-ef3bf3b0eada"
+    "00000000-0000-0000-0000-000000000000"
   ],
   "ddl": [
     {
@@ -134,7 +134,25 @@
     },
     {
       "isRlsEnabled": false,
+      "name": "financial_account_interest",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "financial_account_interest_rate",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "financial_account_owner",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "financial_institution",
       "entityType": "tables",
       "schema": "public"
     },
@@ -171,6 +189,24 @@
     {
       "isRlsEnabled": false,
       "name": "household_exchange_rate",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "interest_credit",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "interest_product",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "interest_rate_schedule",
       "entityType": "tables",
       "schema": "public"
     },
@@ -2150,6 +2186,19 @@
       "table": "financial_account"
     },
     {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "institution_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -2269,6 +2318,19 @@
     {
       "type": "numeric(30,6)",
       "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "adjustment",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_balance_snapshot"
+    },
+    {
+      "type": "numeric(30,6)",
+      "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
@@ -2332,19 +2394,6 @@
       "table": "financial_account_balance_snapshot"
     },
     {
-      "type": "numeric(30,6)",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "adjustment",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "financial_account_balance_snapshot"
-    },
-    {
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -2382,6 +2431,383 @@
       "entityType": "columns",
       "schema": "public",
       "table": "financial_account_balance_snapshot"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "account_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "auto_post",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "bonus_eligible",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "uuidv7()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "maturity_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "product_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "start_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "type": "smallint",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "term_count",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "term_unit",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "account_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_from",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_to",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "follows_preset",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "uuidv7()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "numeric(12,6)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "bonus_annual_rate",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "calculation_basis",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "condition_summary",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "credit_frequency",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "day_count_basis",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "numeric(30,6)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "interest_cap_balance",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "numeric(30,6)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "minimum_balance",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tier_mode",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tiers",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "type": "numeric(12,6)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "withholding_tax_rate",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
     },
     {
       "type": "timestamp with time zone",
@@ -2449,6 +2875,162 @@
       "table": "financial_account_owner"
     },
     {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 1,
+      "default": "'{}'",
+      "generated": null,
+      "identity": null,
+      "name": "aliases",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_institution"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "brand_color",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_institution"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "country_code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_institution"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_institution"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_institution"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "uuidv7()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_institution"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "institution_type",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_institution"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "key",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_institution"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "logo_key",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_institution"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_institution"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "short_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_institution"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "website_url",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_institution"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -2457,19 +3039,6 @@
       "generated": null,
       "identity": null,
       "name": "account_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "financial_transaction"
-    },
-    {
-      "type": "numeric(30,6)",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "amount",
       "entityType": "columns",
       "schema": "public",
       "table": "financial_transaction"
@@ -2488,14 +3057,14 @@
       "table": "financial_transaction"
     },
     {
-      "type": "uuid",
+      "type": "numeric(30,6)",
       "typeSchema": null,
-      "notNull": false,
+      "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "reconciliation_snapshot_id",
+      "name": "amount",
       "entityType": "columns",
       "schema": "public",
       "table": "financial_transaction"
@@ -2626,6 +3195,19 @@
       "generated": null,
       "identity": null,
       "name": "paid_status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_transaction"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "reconciliation_snapshot_id",
       "entityType": "columns",
       "schema": "public",
       "table": "financial_transaction"
@@ -3136,6 +3718,552 @@
       "entityType": "columns",
       "schema": "public",
       "table": "household_exchange_rate"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "account_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "credit_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "type": "numeric(30,6)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "gross",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "uuidv7()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "type": "numeric(30,6)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "net",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "period_end",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "period_start",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "type": "numeric(30,6)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tax",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "transaction_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 1,
+      "default": "'{}'",
+      "generated": null,
+      "identity": null,
+      "name": "aliases",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "channel_institution_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "currency_code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "uuidv7()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "institution_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "key",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "notes",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "product_type",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "source_url",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_from",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_to",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "uuidv7()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "product_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "source_checked_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "source_url",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "smallint",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "term_count",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "term_unit",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "numeric(12,6)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "bonus_annual_rate",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "calculation_basis",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "condition_summary",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "credit_frequency",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "day_count_basis",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "numeric(30,6)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "interest_cap_balance",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "numeric(30,6)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "minimum_balance",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tier_mode",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tiers",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "type": "numeric(12,6)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "withholding_tax_rate",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "interest_rate_schedule"
     },
     {
       "type": "timestamp with time zone",
@@ -6540,6 +7668,27 @@
       "nameExplicit": true,
       "columns": [
         {
+          "value": "institution_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "interest_product_institution_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
           "value": "organization_id",
           "isExpression": false,
           "asc": true,
@@ -7673,6 +8822,23 @@
     {
       "nameExplicit": false,
       "columns": [
+        "institution_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_institution",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "financial_account_institution_id_financial_institution_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_account"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
         "organization_id"
       ],
       "schemaTo": "public",
@@ -7722,6 +8888,95 @@
       "entityType": "fks",
       "schema": "public",
       "table": "financial_account_balance_snapshot"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "financial_account_interest_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "product_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "interest_product",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "financial_account_interest_product_id_interest_product_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_account",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "financial_account_interest_account_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "financial_account_interest_rate_21bBDvIgaXQL_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_account_interest",
+      "columnsTo": [
+        "organization_id",
+        "account_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "financial_account_interest_rate_account_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
     },
     {
       "nameExplicit": false,
@@ -8196,6 +9451,129 @@
       "entityType": "fks",
       "schema": "public",
       "table": "household_exchange_rate"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "interest_credit_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_account",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "interest_credit_account_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "transaction_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_transaction",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "interest_credit_transaction_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "channel_institution_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_institution",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "interest_product_GclxaGg0cBYy_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "currency_code"
+      ],
+      "schemaTo": "public",
+      "tableTo": "currency",
+      "columnsTo": [
+        "code"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "interest_product_currency_code_currency_code_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "institution_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_institution",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "interest_product_institution_id_financial_institution_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "product_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "interest_product",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "interest_rate_schedule_product_id_interest_product_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "interest_rate_schedule"
     },
     {
       "nameExplicit": false,
@@ -8977,9 +10355,39 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "financial_account_interest_pkey",
+      "schema": "public",
+      "table": "financial_account_interest",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "financial_account_interest_rate_pkey",
+      "schema": "public",
+      "table": "financial_account_interest_rate",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "financial_account_owner_pkey",
       "schema": "public",
       "table": "financial_account_owner",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "financial_institution_pkey",
+      "schema": "public",
+      "table": "financial_institution",
       "entityType": "pks"
     },
     {
@@ -9020,6 +10428,36 @@
       "name": "household_exchange_rate_pkey",
       "schema": "public",
       "table": "household_exchange_rate",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "interest_credit_pkey",
+      "schema": "public",
+      "table": "interest_credit",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "interest_product_pkey",
+      "schema": "public",
+      "table": "interest_product",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "interest_rate_schedule_pkey",
+      "schema": "public",
+      "table": "interest_rate_schedule",
       "entityType": "pks"
     },
     {
@@ -9217,6 +10655,30 @@
       "nameExplicit": true,
       "columns": [
         "organization_id",
+        "account_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "financial_account_interest_account_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "account_id",
+        "effective_from"
+      ],
+      "nullsNotDistinct": false,
+      "name": "financial_account_interest_rate_version_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
         "id"
       ],
       "nullsNotDistinct": false,
@@ -9236,6 +10698,32 @@
       "entityType": "uniques",
       "schema": "public",
       "table": "financial_transfer"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "account_id",
+        "credit_date"
+      ],
+      "nullsNotDistinct": false,
+      "name": "interest_credit_account_date_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "product_id",
+        "term_count",
+        "term_unit",
+        "effective_from"
+      ],
+      "nullsNotDistinct": true,
+      "name": "interest_rate_schedule_version_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "interest_rate_schedule"
     },
     {
       "nameExplicit": true,
@@ -9318,6 +10806,28 @@
       "name": "feature_flag_name_key",
       "schema": "public",
       "table": "feature_flag",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "key"
+      ],
+      "nullsNotDistinct": false,
+      "name": "financial_institution_key_key",
+      "schema": "public",
+      "table": "financial_institution",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "key"
+      ],
+      "nullsNotDistinct": false,
+      "name": "interest_product_key_key",
+      "schema": "public",
+      "table": "interest_product",
       "entityType": "uniques"
     },
     {
@@ -9515,6 +11025,69 @@
       "table": "financial_account_balance_snapshot"
     },
     {
+      "value": "(\"term_count\" IS NULL) = (\"term_unit\" IS NULL) AND (\"term_unit\" IS NULL OR (\"term_unit\" IN ('day', 'month') AND \"term_count\" > 0))",
+      "name": "financial_account_interest_term_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "value": "\"maturity_date\" IS NULL OR \"start_date\" IS NULL OR \"start_date\" < \"maturity_date\"",
+      "name": "financial_account_interest_maturity_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_account_interest"
+    },
+    {
+      "value": "\"tier_mode\" IS NULL OR \"tier_mode\" IN ('marginal', 'whole_balance')",
+      "name": "financial_account_interest_rate_tier_mode_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "value": "\"calculation_basis\" IS NULL OR \"calculation_basis\" IN ('eod', 'adb', 'principal')",
+      "name": "financial_account_interest_rate_calculation_basis_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "value": "\"day_count_basis\" IS NULL OR \"day_count_basis\" IN ('actual', '365', '360')",
+      "name": "financial_account_interest_rate_day_count_basis_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "value": "\"credit_frequency\" IS NULL OR \"credit_frequency\" IN ('daily', 'monthly', 'maturity')",
+      "name": "financial_account_interest_rate_credit_frequency_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "value": "CASE WHEN \"follows_preset\" THEN (\"tier_mode\" IS NULL AND \"tiers\" IS NULL AND \"calculation_basis\" IS NULL AND \"day_count_basis\" IS NULL AND \"credit_frequency\" IS NULL AND \"withholding_tax_rate\" IS NULL) ELSE (\"tier_mode\" IS NOT NULL AND \"tiers\" IS NOT NULL AND \"calculation_basis\" IS NOT NULL AND \"day_count_basis\" IS NOT NULL AND \"credit_frequency\" IS NOT NULL AND \"withholding_tax_rate\" IS NOT NULL) END",
+      "name": "financial_account_interest_rate_terms_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "value": "\"effective_to\" IS NULL OR \"effective_from\" <= \"effective_to\"",
+      "name": "financial_account_interest_rate_period_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_account_interest_rate"
+    },
+    {
+      "value": "\"institution_type\" IN ('digital_bank', 'bank', 'savings_bank', 'rural_bank', 'channel')",
+      "name": "financial_institution_type_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_institution"
+    },
+    {
       "value": "\"amount\" > 0",
       "name": "financial_transaction_positive_amount_chk",
       "entityType": "checks",
@@ -9569,6 +11142,69 @@
       "entityType": "checks",
       "schema": "public",
       "table": "household_exchange_rate"
+    },
+    {
+      "value": "\"period_start\" <= \"period_end\"",
+      "name": "interest_credit_period_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "interest_credit"
+    },
+    {
+      "value": "\"product_type\" IN ('savings', 'goal_savings', 'time_deposit')",
+      "name": "interest_product_type_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "interest_product"
+    },
+    {
+      "value": "\"tier_mode\" IS NULL OR \"tier_mode\" IN ('marginal', 'whole_balance')",
+      "name": "interest_rate_schedule_tier_mode_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "value": "\"calculation_basis\" IS NULL OR \"calculation_basis\" IN ('eod', 'adb', 'principal')",
+      "name": "interest_rate_schedule_calculation_basis_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "value": "\"day_count_basis\" IS NULL OR \"day_count_basis\" IN ('actual', '365', '360')",
+      "name": "interest_rate_schedule_day_count_basis_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "value": "\"credit_frequency\" IS NULL OR \"credit_frequency\" IN ('daily', 'monthly', 'maturity')",
+      "name": "interest_rate_schedule_credit_frequency_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "value": "(\"tier_mode\" IS NOT NULL AND \"tiers\" IS NOT NULL AND \"calculation_basis\" IS NOT NULL AND \"day_count_basis\" IS NOT NULL AND \"credit_frequency\" IS NOT NULL AND \"withholding_tax_rate\" IS NOT NULL)",
+      "name": "interest_rate_schedule_terms_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "value": "(\"term_count\" IS NULL) = (\"term_unit\" IS NULL) AND (\"term_unit\" IS NULL OR (\"term_unit\" IN ('day', 'month') AND \"term_count\" > 0))",
+      "name": "interest_rate_schedule_term_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "interest_rate_schedule"
+    },
+    {
+      "value": "\"effective_from\" IS NULL OR \"effective_to\" IS NULL OR \"effective_from\" <= \"effective_to\"",
+      "name": "interest_rate_schedule_period_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "interest_rate_schedule"
     },
     {
       "value": "\"status\" IN ('running', 'success', 'failed')",

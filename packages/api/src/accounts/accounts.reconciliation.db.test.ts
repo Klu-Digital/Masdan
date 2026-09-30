@@ -1,5 +1,3 @@
-import { readFile } from "node:fs/promises";
-
 import { auth } from "@masdan/auth";
 import {
   category,
@@ -13,7 +11,7 @@ import {
   whileHolding,
 } from "@masdan/testing";
 import { call } from "@orpc/server";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vite-plus/test";
 
 import { getMonthBudgets } from "../budgets/budgets.queries";
@@ -92,45 +90,6 @@ const history = (home: Awaited<ReturnType<typeof setup>>) =>
 
 // These literals follow the issue's displayed-balance convention, including amount owed.
 describe("account reconciliation", () => {
-  it("upgrades both pre-reconciliation CHECK constraints without rewriting ledger data", async () => {
-    const home = await setup();
-    const migration = await readFile(
-      new URL(
-        "../../../db/src/migrations/20260930090417_add_account_reconciliation/migration.sql",
-        import.meta.url
-      ),
-      "utf-8"
-    );
-    const replacements = migration
-      .split("--> statement-breakpoint")
-      .filter((statement) => statement.includes("DROP CONSTRAINT"));
-    expect(replacements).toHaveLength(2);
-    await getTestDb().transaction(async (tx) => {
-      const own = { context: { ...home.own.context, db: tx } };
-      await tx.execute(
-        sql`ALTER TABLE financial_account_balance_snapshot DROP CONSTRAINT financial_account_balance_snapshot_source_chk, ADD CONSTRAINT financial_account_balance_snapshot_source_chk CHECK (source IN ('manual', 'import'))`
-      );
-      await tx.execute(
-        sql`ALTER TABLE financial_transaction DROP CONSTRAINT financial_transaction_category_or_transfer_chk, ADD CONSTRAINT financial_transaction_category_or_transfer_chk CHECK ((category_id IS NOT NULL AND transfer_id IS NULL AND transfer_side IS NULL) OR (category_id IS NULL AND transfer_id IS NOT NULL AND transfer_side IS NOT NULL))`
-      );
-      await expect(
-        call(accountsRouter.reconcile, home.reconcile, own)
-      ).rejects.toMatchObject({
-        cause: { constraint: "financial_account_balance_snapshot_source_chk" },
-      });
-      for (const statement of replacements) {
-        await tx.execute(sql.raw(statement));
-      }
-      await call(accountsRouter.reconcile, home.reconcile, own);
-      const account = await call(
-        accountsRouter.get,
-        { accountId: home.account.id },
-        own
-      );
-      expect(account.balance).toBe("1100.000000");
-      expect(account.openingBalance).toBe("1000.000000");
-    });
-  });
   it.each([
     ["asset", "1100", "100.000000", "increase"],
     ["asset", "900", "-100.000000", "decrease"],
