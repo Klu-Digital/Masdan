@@ -198,6 +198,7 @@ export const GoalComposer = ({
               <div className="flex w-full items-center gap-2">
                 <div className="flex-1">
                   <DatePicker
+                    allowFutureYears
                     id={field.name}
                     onValueChange={field.handleChange}
                     placeholder="No target date"

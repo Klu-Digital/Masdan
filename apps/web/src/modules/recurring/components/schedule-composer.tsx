@@ -449,6 +449,7 @@ export const ScheduleComposer = ({
                 <FieldLabel htmlFor={field.name}>Starting</FieldLabel>
                 <div className="w-full">
                   <DatePicker
+                    allowFutureYears
                     aria-invalid={field.state.meta.errors.length > 0}
                     id={field.name}
                     onValueChange={field.handleChange}

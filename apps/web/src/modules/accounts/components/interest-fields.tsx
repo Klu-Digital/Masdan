@@ -572,6 +572,7 @@ export const InterestFields = ({
           <Field>
             <FieldLabel htmlFor="interest-maturity">Matures on</FieldLabel>
             <DatePicker
+              allowFutureYears
               id="interest-maturity"
               onValueChange={(next) =>
                 onChange({ ...value, maturityDate: next })

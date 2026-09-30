@@ -18,7 +18,12 @@ const isValidIso = (value: string): boolean => {
   return toIsoDate(parseIsoDate(value)) === value;
 };
 
+// The calendar's year dropdown otherwise stops at the end of this year. Pickers
+// for dates that can land in a later year (a maturity, a target) opt in.
+const YEARS_AHEAD = 50;
+
 export const DatePicker = ({
+  allowFutureYears = false,
   "aria-invalid": ariaInvalid,
   "aria-label": ariaLabel,
   id,
@@ -26,6 +31,7 @@ export const DatePicker = ({
   placeholder = "Pick a date",
   value,
 }: {
+  allowFutureYears?: boolean;
   "aria-invalid"?: boolean;
   "aria-label"?: string;
   id?: string;
@@ -60,6 +66,11 @@ export const DatePicker = ({
       <PopoverPopup align="start" className="w-auto">
         <Calendar
           captionLayout="dropdown"
+          endMonth={
+            allowFutureYears
+              ? new Date(new Date().getFullYear() + YEARS_AHEAD, 11)
+              : undefined
+          }
           mode="single"
           onSelect={(selected) => {
             if (selected instanceof Date) {

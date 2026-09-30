@@ -189,6 +189,7 @@ export const StatementComposer = ({
                 <FieldLabel htmlFor={field.name}>Payment due</FieldLabel>
                 <div className="w-full">
                   <DatePicker
+                    allowFutureYears
                     id={field.name}
                     onValueChange={field.handleChange}
                     placeholder="Optional"
