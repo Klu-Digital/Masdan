@@ -1,10 +1,10 @@
 {
+  "id": "42255af7-bf6b-4f9f-86bd-ef3bf3b0eada",
+  "prevIds": [
+    "c63a0684-01ac-4574-9e1b-fd7d81b8c962"
+  ],
   "version": "8",
   "dialect": "postgres",
-  "id": "97150bdd-9c60-4f92-8725-4e7076ba3110",
-  "prevIds": [
-    "67d7b668-5bc2-4670-9173-d4f66dc1f8e7"
-  ],
   "ddl": [
     {
       "values": [
@@ -32,6 +32,30 @@
     },
     {
       "isRlsEnabled": false,
+      "name": "ai_token_cap",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "ai_usage",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "bill_calendar_feed",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "bill_payment",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "category",
       "entityType": "tables",
       "schema": "public"
@@ -39,6 +63,24 @@
     {
       "isRlsEnabled": false,
       "name": "category_budget",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "chat_inbound_message",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "chat_link",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "chat_link_code",
       "entityType": "tables",
       "schema": "public"
     },
@@ -57,6 +99,12 @@
     {
       "isRlsEnabled": false,
       "name": "currency",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "exchange_rate",
       "entityType": "tables",
       "schema": "public"
     },
@@ -117,6 +165,12 @@
     {
       "isRlsEnabled": false,
       "name": "financial_transfer",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "household_exchange_rate",
       "entityType": "tables",
       "schema": "public"
     },
@@ -224,7 +278,7 @@
       "table": "account"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -250,7 +304,7 @@
       "table": "account"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -341,7 +395,7 @@
       "table": "account"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -367,7 +421,7 @@
       "table": "account"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -393,7 +447,306 @@
       "table": "account"
     },
     {
-      "type": "timestamp",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "feature",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_token_cap"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "max_tokens",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_token_cap"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_token_cap"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "updated_by",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_token_cap"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "day",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_usage"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_usage"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "requests",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_usage"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "tokens",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_usage"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_calendar_feed"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "uuidv7()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_calendar_feed"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "last_used_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_calendar_feed"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_calendar_feed"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "token_hash",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_calendar_feed"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_calendar_feed"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "account_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "confirmed_by_user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "due_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "uuidv7()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "kind",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "schedule_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "transaction_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -419,7 +772,7 @@
       "table": "category"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -427,6 +780,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "category"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "category"
@@ -510,19 +876,6 @@
       "table": "category"
     },
     {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "category"
-    },
-    {
       "type": "numeric(30,6)",
       "typeSchema": null,
       "notNull": true,
@@ -549,7 +902,7 @@
       "table": "category_budget"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -557,6 +910,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "category_budget"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "category_budget"
@@ -614,17 +980,264 @@
       "table": "category_budget"
     },
     {
-      "type": "timestamp",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "channel",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_inbound_message"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "message_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_inbound_message"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_inbound_message"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "processed_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_inbound_message"
+    },
+    {
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "updated_at",
+      "name": "received_at",
       "entityType": "columns",
       "schema": "public",
-      "table": "category_budget"
+      "table": "chat_inbound_message"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "transaction_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_inbound_message"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "channel",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_link"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_link"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "external_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_link"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "external_user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_link"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "uuidv7()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_link"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_link"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_link"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "code_hash",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_link_code"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "consumed_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_link_code"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_link_code"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "expires_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_link_code"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "uuidv7()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_link_code"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_link_code"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "chat_link_code"
     },
     {
       "type": "uuid",
@@ -640,7 +1253,7 @@
       "table": "credit_card_reminder"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -653,7 +1266,20 @@
       "table": "credit_card_reminder"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_card_reminder"
+    },
+    {
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -757,7 +1383,7 @@
       "table": "credit_card_reminder"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -796,19 +1422,6 @@
       "table": "credit_card_reminder"
     },
     {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "credit_card_reminder"
-    },
-    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -822,7 +1435,7 @@
       "table": "credit_card_statement"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -830,6 +1443,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "credit_card_statement"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "credit_card_statement"
@@ -939,19 +1565,6 @@
       "table": "credit_card_statement"
     },
     {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "credit_card_statement"
-    },
-    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -1030,7 +1643,85 @@
       "table": "currency"
     },
     {
-      "type": "timestamp",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "base_currency",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exchange_rate"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "fetched_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exchange_rate"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "quote_currency",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exchange_rate"
+    },
+    {
+      "type": "numeric(30,12)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "rate",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exchange_rate"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "rate_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exchange_rate"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "source",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exchange_rate"
+    },
+    {
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -1038,6 +1729,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "feature_flag"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "feature_flag"
@@ -1077,19 +1781,6 @@
       "generated": null,
       "identity": null,
       "name": "name",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "feature_flag"
-    },
-    {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "feature_flag"
@@ -1147,7 +1838,7 @@
       "table": "file"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -1155,6 +1846,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "file"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "file"
@@ -1238,19 +1942,6 @@
       "table": "file"
     },
     {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "file"
-    },
-    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -1290,7 +1981,7 @@
       "table": "financial_account"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -1355,7 +2046,7 @@
       "table": "financial_account"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -1363,6 +2054,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "financial_account"
@@ -1550,19 +2254,6 @@
       "table": "financial_account"
     },
     {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "financial_account"
-    },
-    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -1589,7 +2280,7 @@
       "table": "financial_account_balance_snapshot"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -1641,6 +2332,19 @@
       "table": "financial_account_balance_snapshot"
     },
     {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_balance_snapshot"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -1654,7 +2358,7 @@
       "table": "financial_account_balance_snapshot"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -1713,6 +2417,19 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_account_owner"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
       "name": "account_id",
       "entityType": "columns",
       "schema": "public",
@@ -1732,7 +2449,7 @@
       "table": "financial_transaction"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -1758,7 +2475,7 @@
       "table": "financial_transaction"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -1766,6 +2483,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_transaction"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "financial_transaction"
@@ -1888,6 +2618,19 @@
       "table": "financial_transaction"
     },
     {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "suggestion_application",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_transaction"
+    },
+    {
       "type": "date",
       "typeSchema": null,
       "notNull": true,
@@ -1927,20 +2670,7 @@
       "table": "financial_transaction"
     },
     {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "financial_transaction"
-    },
-    {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -1961,6 +2691,19 @@
       "generated": null,
       "identity": null,
       "name": "file_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_transaction_attachment"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
       "entityType": "columns",
       "schema": "public",
       "table": "financial_transaction_attachment"
@@ -2018,6 +2761,19 @@
       "table": "financial_transaction_split"
     },
     {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_transaction_split"
+    },
+    {
       "type": "integer",
       "typeSchema": null,
       "notNull": true,
@@ -2051,6 +2807,19 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_transaction_tag"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
       "name": "tag_id",
       "entityType": "columns",
       "schema": "public",
@@ -2070,7 +2839,7 @@
       "table": "financial_transaction_tag"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -2078,6 +2847,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "financial_transfer"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "financial_transfer"
@@ -2187,7 +2969,20 @@
       "table": "financial_transfer"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "household_exchange_rate"
+    },
+    {
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -2197,10 +2992,101 @@
       "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
-      "table": "financial_transfer"
+      "table": "household_exchange_rate"
     },
     {
-      "type": "timestamp",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "created_by_user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "household_exchange_rate"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "from_currency",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "household_exchange_rate"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "uuidv7()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "household_exchange_rate"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "household_exchange_rate"
+    },
+    {
+      "type": "numeric(30,12)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "rate",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "household_exchange_rate"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "rate_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "household_exchange_rate"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "to_currency",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "household_exchange_rate"
+    },
+    {
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -2226,7 +3112,7 @@
       "table": "invitation"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -2304,7 +3190,7 @@
       "table": "invitation"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -2369,7 +3255,7 @@
       "table": "member"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -2499,7 +3385,7 @@
       "table": "post_migration"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -2507,6 +3393,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "post_migration"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "post_migration"
@@ -2551,7 +3450,7 @@
       "table": "post_migration"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2590,7 +3489,7 @@
       "table": "post_migration"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -2611,19 +3510,6 @@
       "generated": null,
       "identity": null,
       "name": "status",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "post_migration"
-    },
-    {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "post_migration"
@@ -2668,7 +3554,7 @@
       "table": "recurring_schedule"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -2676,6 +3562,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recurring_schedule"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "recurring_schedule"
@@ -2798,7 +3697,7 @@
       "table": "recurring_schedule"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2837,7 +3736,7 @@
       "table": "recurring_schedule"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2850,17 +3749,17 @@
       "table": "recurring_schedule"
     },
     {
-      "type": "timestamp",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "now()",
+      "default": null,
       "generated": null,
       "identity": null,
-      "name": "updated_at",
+      "name": "organization_id",
       "entityType": "columns",
       "schema": "public",
-      "table": "recurring_schedule"
+      "table": "recurring_schedule_tag"
     },
     {
       "type": "uuid",
@@ -2902,7 +3801,7 @@
       "table": "savings_goal"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2915,7 +3814,7 @@
       "table": "savings_goal"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2928,7 +3827,7 @@
       "table": "savings_goal"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -2936,6 +3835,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "savings_goal"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "savings_goal"
@@ -3006,19 +3918,6 @@
       "table": "savings_goal"
     },
     {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "savings_goal"
-    },
-    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": false,
@@ -3032,7 +3931,7 @@
       "table": "session"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -3045,7 +3944,7 @@
       "table": "session"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -3110,7 +4009,7 @@
       "table": "session"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -3149,7 +4048,7 @@
       "table": "session"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -3175,7 +4074,7 @@
       "table": "tag"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -3183,6 +4082,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "tag"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "tag"
@@ -3227,19 +4139,6 @@
       "table": "tag"
     },
     {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "tag"
-    },
-    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -3266,7 +4165,7 @@
       "table": "transaction_import"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -3279,7 +4178,7 @@
       "table": "transaction_import"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -3287,6 +4186,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "transaction_import"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "transaction_import"
@@ -3513,19 +4425,6 @@
       "table": "transaction_import"
     },
     {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "transaction_import"
-    },
-    {
       "type": "integer",
       "typeSchema": null,
       "notNull": true,
@@ -3539,7 +4438,7 @@
       "table": "transaction_import"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -3721,6 +4620,32 @@
       "table": "transaction_import_row"
     },
     {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "suggestion",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "transaction_import_row"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "suggestion_application",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "transaction_import_row"
+    },
+    {
       "type": "date",
       "typeSchema": null,
       "notNull": false,
@@ -3760,7 +4685,7 @@
       "table": "transaction_import_row"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -3768,6 +4693,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "transaction_rule"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "transaction_rule"
@@ -3929,17 +4867,17 @@
       "table": "transaction_rule"
     },
     {
-      "type": "timestamp",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "now()",
+      "default": null,
       "generated": null,
       "identity": null,
-      "name": "updated_at",
+      "name": "organization_id",
       "entityType": "columns",
       "schema": "public",
-      "table": "transaction_rule"
+      "table": "transaction_rule_tag"
     },
     {
       "type": "uuid",
@@ -3968,7 +4906,7 @@
       "table": "transaction_rule_tag"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -4007,7 +4945,7 @@
       "table": "user"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -4015,6 +4953,19 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "user"
@@ -4098,20 +5049,7 @@
       "table": "user"
     },
     {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "user"
-    },
-    {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -4124,7 +5062,20 @@
       "table": "verification"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "verification"
+    },
+    {
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -4158,19 +5109,6 @@
       "generated": null,
       "identity": null,
       "name": "identifier",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "verification"
-    },
-    {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "verification"
@@ -4236,6 +5174,181 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "account"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "token_hash",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "bill_calendar_feed_token_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "bill_calendar_feed"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "bill_calendar_feed_user_organization_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "bill_calendar_feed"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "bill_calendar_feed_organization_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "bill_calendar_feed"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "schedule_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "due_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "\"schedule_id\" IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "bill_payment_schedule_due_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "account_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "due_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "\"account_id\" IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "bill_payment_account_due_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "transaction_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "\"transaction_id\" IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "bill_payment_transaction_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "due_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "bill_payment_organization_due_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "bill_payment"
     },
     {
       "nameExplicit": true,
@@ -4348,6 +5461,139 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "category_budget"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "channel",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "external_user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "chat_link_channel_external_user_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "chat_link"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "channel",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "chat_link_channel_user_organization_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "chat_link"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "chat_link_organization_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "chat_link"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "code_hash",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "chat_link_code_hash_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "chat_link_code"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "chat_link_code_user_organization_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "chat_link_code"
     },
     {
       "nameExplicit": true,
@@ -4495,6 +5741,48 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "credit_card_statement"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "source",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "base_currency",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "quote_currency",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "rate_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "exchange_rate_source_pair_date_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "exchange_rate"
     },
     {
       "nameExplicit": true,
@@ -5142,6 +6430,48 @@
           "asc": true,
           "nullsFirst": false,
           "opclass": null
+        },
+        {
+          "value": "from_currency",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "to_currency",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "rate_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "household_exchange_rate_pair_date_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "household_exchange_rate"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -5653,20 +6983,6 @@
           "asc": true,
           "nullsFirst": false,
           "opclass": null
-        },
-        {
-          "value": "position",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
         }
       ],
       "isUnique": false,
@@ -5674,10 +6990,10 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "transaction_rule_organization_position_idx",
+      "name": "transaction_import_row_organization_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "transaction_rule"
+      "table": "transaction_import_row"
     },
     {
       "nameExplicit": true,
@@ -5741,6 +7057,165 @@
     {
       "nameExplicit": false,
       "columns": [
+        "updated_by"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "ai_token_cap_updated_by_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "ai_token_cap"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "ai_usage_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "ai_usage"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "bill_calendar_feed_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "bill_calendar_feed"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "bill_calendar_feed_user_id_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "bill_calendar_feed"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "confirmed_by_user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "bill_payment_confirmed_by_user_id_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "bill_payment_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_account",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "bill_payment_account_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "schedule_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "recurring_schedule",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "bill_payment_schedule_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "transaction_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_transaction",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "bill_payment_transaction_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
         "organization_id"
       ],
       "schemaTo": "public",
@@ -5754,23 +7229,6 @@
       "entityType": "fks",
       "schema": "public",
       "table": "category"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "category_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "category",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "category_budget_category_id_category_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "category_budget"
     },
     {
       "nameExplicit": false,
@@ -5807,21 +7265,127 @@
       "table": "category_budget"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
-        "account_id"
+        "organization_id",
+        "category_id"
       ],
       "schemaTo": "public",
-      "tableTo": "financial_account",
+      "tableTo": "category",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "category_budget_category_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "category_budget"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
       "columnsTo": [
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "credit_card_reminder_account_id_financial_account_id_fkey",
+      "name": "chat_inbound_message_organization_id_organization_id_fkey",
       "entityType": "fks",
       "schema": "public",
-      "table": "credit_card_reminder"
+      "table": "chat_inbound_message"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "transaction_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_transaction",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "chat_inbound_message_transaction_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "chat_inbound_message"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "chat_link_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "chat_link"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "chat_link_user_id_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "chat_link"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "chat_link_code_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "chat_link_code"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "chat_link_code_user_id_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "chat_link_code"
     },
     {
       "nameExplicit": false,
@@ -5858,38 +7422,42 @@
       "table": "credit_card_reminder"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
-        "statement_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "credit_card_statement",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "credit_card_reminder_statement_id_credit_card_statement_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "credit_card_reminder"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
+        "organization_id",
         "account_id"
       ],
       "schemaTo": "public",
       "tableTo": "financial_account",
       "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "credit_card_reminder_account_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "credit_card_reminder"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "statement_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "credit_card_statement",
+      "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "credit_card_statement_account_id_financial_account_id_fkey",
+      "name": "credit_card_reminder_statement_id_fkey",
       "entityType": "fks",
       "schema": "public",
-      "table": "credit_card_statement"
+      "table": "credit_card_reminder"
     },
     {
       "nameExplicit": false,
@@ -5907,6 +7475,59 @@
       "entityType": "fks",
       "schema": "public",
       "table": "credit_card_statement"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_account",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "credit_card_statement_account_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "credit_card_statement"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "base_currency"
+      ],
+      "schemaTo": "public",
+      "tableTo": "currency",
+      "columnsTo": [
+        "code"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "exchange_rate_base_currency_currency_code_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "exchange_rate"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "quote_currency"
+      ],
+      "schemaTo": "public",
+      "tableTo": "currency",
+      "columnsTo": [
+        "code"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "exchange_rate_quote_currency_currency_code_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "exchange_rate"
     },
     {
       "nameExplicit": false,
@@ -5996,16 +7617,35 @@
     {
       "nameExplicit": false,
       "columns": [
-        "account_id"
+        "organization_id"
       ],
       "schemaTo": "public",
-      "tableTo": "financial_account",
+      "tableTo": "organization",
       "columnsTo": [
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "financial_account_balance_snapshot_So432hpv04KX_fkey",
+      "name": "financial_account_balance_snapshot_zGLPH3UWepV5_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_account_balance_snapshot"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_account",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "financial_account_balance_snapshot_account_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "financial_account_balance_snapshot"
@@ -6013,70 +7653,57 @@
     {
       "nameExplicit": false,
       "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "financial_account_owner_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_account_owner"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
         "financial_account_id"
       ],
       "schemaTo": "public",
       "tableTo": "financial_account",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "financial_account_owner_vLgDrwpOJ0pn_fkey",
+      "onDelete": "RESTRICT",
+      "name": "financial_account_owner_financial_account_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "financial_account_owner"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
+        "organization_id",
         "member_id"
       ],
       "schemaTo": "public",
       "tableTo": "member",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "financial_account_owner_member_id_member_id_fkey",
+      "name": "financial_account_owner_member_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "financial_account_owner"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "account_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "financial_account",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "financial_transaction_account_id_financial_account_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "financial_transaction"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "category_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "category",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "financial_transaction_category_id_category_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "financial_transaction"
     },
     {
       "nameExplicit": false,
@@ -6113,18 +7740,20 @@
       "table": "financial_transaction"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
-        "transfer_id"
+        "organization_id",
+        "account_id"
       ],
       "schemaTo": "public",
-      "tableTo": "financial_transfer",
+      "tableTo": "financial_account",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "financial_transaction_transfer_id_financial_transfer_id_fkey",
+      "onDelete": "RESTRICT",
+      "name": "financial_transaction_account_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "financial_transaction"
@@ -6132,15 +7761,55 @@
     {
       "nameExplicit": true,
       "columns": [
+        "organization_id",
+        "category_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "category",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "financial_transaction_category_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_transaction"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "transfer_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_transfer",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "financial_transaction_transfer_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_transaction"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
         "recurring_schedule_id"
       ],
       "schemaTo": "public",
       "tableTo": "recurring_schedule",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
+      "onDelete": "RESTRICT",
       "name": "financial_transaction_recurring_schedule_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -6149,33 +7818,54 @@
     {
       "nameExplicit": false,
       "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "financial_transaction_attachment_ZiOJz7zZRNKY_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_transaction_attachment"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
         "file_id"
       ],
       "schemaTo": "public",
       "tableTo": "file",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "financial_transaction_attachment_file_id_file_id_fkey",
+      "name": "financial_transaction_attachment_file_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "financial_transaction_attachment"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
+        "organization_id",
         "transaction_id"
       ],
       "schemaTo": "public",
       "tableTo": "financial_transaction",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "financial_transaction_attachment_dLPrxbcV4UfM_fkey",
+      "name": "financial_transaction_attachment_transaction_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "financial_transaction_attachment"
@@ -6183,16 +7873,54 @@
     {
       "nameExplicit": false,
       "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "financial_transaction_split_KlNOG6P6nad5_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_transaction_split"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "transaction_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_transaction",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "financial_transaction_split_transaction_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_transaction_split"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
         "category_id"
       ],
       "schemaTo": "public",
       "tableTo": "category",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "financial_transaction_split_category_id_category_id_fkey",
+      "onDelete": "RESTRICT",
+      "name": "financial_transaction_split_category_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "financial_transaction_split"
@@ -6200,70 +7928,57 @@
     {
       "nameExplicit": false,
       "columns": [
-        "transaction_id"
+        "organization_id"
       ],
       "schemaTo": "public",
-      "tableTo": "financial_transaction",
+      "tableTo": "organization",
       "columnsTo": [
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "financial_transaction_split_RMSnRTKe0Ad3_fkey",
+      "name": "financial_transaction_tag_organization_id_organization_id_fkey",
       "entityType": "fks",
       "schema": "public",
-      "table": "financial_transaction_split"
+      "table": "financial_transaction_tag"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
+        "organization_id",
         "tag_id"
       ],
       "schemaTo": "public",
       "tableTo": "tag",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "financial_transaction_tag_tag_id_tag_id_fkey",
+      "onDelete": "RESTRICT",
+      "name": "financial_transaction_tag_tag_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "financial_transaction_tag"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
+        "organization_id",
         "transaction_id"
       ],
       "schemaTo": "public",
       "tableTo": "financial_transaction",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "financial_transaction_tag_K4HFjtyuAbzP_fkey",
+      "name": "financial_transaction_tag_transaction_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "financial_transaction_tag"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "destination_account_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "financial_account",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "financial_transfer_G50neSxrsENW_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "financial_transfer"
     },
     {
       "nameExplicit": false,
@@ -6283,21 +7998,110 @@
       "table": "financial_transfer"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
+        "organization_id",
         "source_account_id"
       ],
       "schemaTo": "public",
       "tableTo": "financial_account",
       "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "financial_transfer_source_account_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_transfer"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "destination_account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_account",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "financial_transfer_destination_account_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "financial_transfer"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "created_by_user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "household_exchange_rate_created_by_user_id_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "household_exchange_rate"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "from_currency"
+      ],
+      "schemaTo": "public",
+      "tableTo": "currency",
+      "columnsTo": [
+        "code"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "household_exchange_rate_from_currency_currency_code_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "household_exchange_rate"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "financial_transfer_source_account_id_financial_account_id_fkey",
+      "name": "household_exchange_rate_organization_id_organization_id_fkey",
       "entityType": "fks",
       "schema": "public",
-      "table": "financial_transfer"
+      "table": "household_exchange_rate"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "to_currency"
+      ],
+      "schemaTo": "public",
+      "tableTo": "currency",
+      "columnsTo": [
+        "code"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "household_exchange_rate_to_currency_currency_code_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "household_exchange_rate"
     },
     {
       "nameExplicit": false,
@@ -6387,40 +8191,6 @@
     {
       "nameExplicit": false,
       "columns": [
-        "account_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "financial_account",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "recurring_schedule_account_id_financial_account_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "recurring_schedule"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "category_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "category",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "recurring_schedule_category_id_category_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "recurring_schedule"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
         "organization_id"
       ],
       "schemaTo": "public",
@@ -6436,55 +8206,97 @@
       "table": "recurring_schedule"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
-        "schedule_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "recurring_schedule",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "recurring_schedule_tag_schedule_id_recurring_schedule_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "recurring_schedule_tag"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "tag_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "tag",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "recurring_schedule_tag_tag_id_tag_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "recurring_schedule_tag"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
+        "organization_id",
         "account_id"
       ],
       "schemaTo": "public",
       "tableTo": "financial_account",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "savings_goal_account_id_financial_account_id_fkey",
+      "onDelete": "RESTRICT",
+      "name": "recurring_schedule_account_id_fkey",
       "entityType": "fks",
       "schema": "public",
-      "table": "savings_goal"
+      "table": "recurring_schedule"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "category_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "category",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "recurring_schedule_category_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "recurring_schedule"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "recurring_schedule_tag_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "recurring_schedule_tag"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "schedule_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "recurring_schedule",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "recurring_schedule_tag_schedule_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "recurring_schedule_tag"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "tag_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "tag",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "recurring_schedule_tag_tag_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "recurring_schedule_tag"
     },
     {
       "nameExplicit": false,
@@ -6499,6 +8311,25 @@
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "savings_goal_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "savings_goal"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_account",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "savings_goal_account_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "savings_goal"
@@ -6540,23 +8371,6 @@
     {
       "nameExplicit": false,
       "columns": [
-        "account_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "financial_account",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "transaction_import_account_id_financial_account_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "transaction_import"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
         "created_by_user_id"
       ],
       "schemaTo": "public",
@@ -6567,40 +8381,6 @@
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "transaction_import_created_by_user_id_user_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "transaction_import"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "default_expense_category_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "category",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "transaction_import_default_expense_category_id_category_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "transaction_import"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "default_income_category_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "category",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "transaction_import_default_income_category_id_category_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "transaction_import"
@@ -6623,55 +8403,80 @@
       "table": "transaction_import"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
-        "source_file_id"
+        "organization_id",
+        "account_id"
       ],
       "schemaTo": "public",
-      "tableTo": "file",
+      "tableTo": "financial_account",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "SET NULL",
-      "name": "transaction_import_source_file_id_file_id_fkey",
+      "onDelete": "RESTRICT",
+      "name": "transaction_import_account_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "transaction_import"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
-        "category_id"
+        "organization_id",
+        "default_expense_category_id"
       ],
       "schemaTo": "public",
       "tableTo": "category",
       "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "transaction_import_default_expense_category_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "transaction_import"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "default_income_category_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "category",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "transaction_import_default_income_category_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "transaction_import"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "source_file_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "file",
+      "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
-      "name": "transaction_import_row_category_id_category_id_fkey",
+      "name": "transaction_import_source_file_id_fkey",
       "entityType": "fks",
       "schema": "public",
-      "table": "transaction_import_row"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "import_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "transaction_import",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "transaction_import_row_import_id_transaction_import_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "transaction_import_row"
+      "table": "transaction_import"
     },
     {
       "nameExplicit": false,
@@ -6691,38 +8496,61 @@
       "table": "transaction_import_row"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
-        "transaction_id"
+        "organization_id",
+        "import_id"
       ],
       "schemaTo": "public",
-      "tableTo": "financial_transaction",
+      "tableTo": "transaction_import",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "SET NULL",
-      "name": "transaction_import_row_BBLIpy3RFGrl_fkey",
+      "onDelete": "CASCADE",
+      "name": "transaction_import_row_import_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "transaction_import_row"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
-        "match_account_id"
+        "organization_id",
+        "category_id"
       ],
       "schemaTo": "public",
-      "tableTo": "financial_account",
+      "tableTo": "category",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "transaction_rule_match_account_id_financial_account_id_fkey",
+      "onDelete": "RESTRICT",
+      "name": "transaction_import_row_category_id_fkey",
       "entityType": "fks",
       "schema": "public",
-      "table": "transaction_rule"
+      "table": "transaction_import_row"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "transaction_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_transaction",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "transaction_import_row_transaction_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "transaction_import_row"
     },
     {
       "nameExplicit": false,
@@ -6742,18 +8570,39 @@
       "table": "transaction_rule"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
+        "organization_id",
+        "match_account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "financial_account",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "transaction_rule_match_account_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "transaction_rule"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
         "set_category_id"
       ],
       "schemaTo": "public",
       "tableTo": "category",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "transaction_rule_set_category_id_category_id_fkey",
+      "onDelete": "RESTRICT",
+      "name": "transaction_rule_set_category_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "transaction_rule"
@@ -6761,36 +8610,79 @@
     {
       "nameExplicit": false,
       "columns": [
-        "rule_id"
+        "organization_id"
       ],
       "schemaTo": "public",
-      "tableTo": "transaction_rule",
+      "tableTo": "organization",
       "columnsTo": [
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "transaction_rule_tag_rule_id_transaction_rule_id_fkey",
+      "name": "transaction_rule_tag_organization_id_organization_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "transaction_rule_tag"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
+        "organization_id",
+        "rule_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "transaction_rule",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "transaction_rule_tag_rule_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "transaction_rule_tag"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
         "tag_id"
       ],
       "schemaTo": "public",
       "tableTo": "tag",
       "columnsTo": [
+        "organization_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "transaction_rule_tag_tag_id_tag_id_fkey",
+      "onDelete": "RESTRICT",
+      "name": "transaction_rule_tag_tag_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "transaction_rule_tag"
+    },
+    {
+      "columns": [
+        "organization_id",
+        "day"
+      ],
+      "nameExplicit": false,
+      "name": "ai_usage_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "ai_usage"
+    },
+    {
+      "columns": [
+        "channel",
+        "message_id"
+      ],
+      "nameExplicit": false,
+      "name": "chat_inbound_message_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "chat_inbound_message"
     },
     {
       "columns": [
@@ -6848,6 +8740,36 @@
     },
     {
       "columns": [
+        "feature"
+      ],
+      "nameExplicit": false,
+      "name": "ai_token_cap_pkey",
+      "schema": "public",
+      "table": "ai_token_cap",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "bill_calendar_feed_pkey",
+      "schema": "public",
+      "table": "bill_calendar_feed",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "bill_payment_pkey",
+      "schema": "public",
+      "table": "bill_payment",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
         "id"
       ],
       "nameExplicit": false,
@@ -6864,6 +8786,26 @@
       "name": "category_budget_pkey",
       "schema": "public",
       "table": "category_budget",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "chat_link_pkey",
+      "schema": "public",
+      "table": "chat_link",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "chat_link_code_pkey",
+      "schema": "public",
+      "table": "chat_link_code",
       "entityType": "pks"
     },
     {
@@ -6974,6 +8916,16 @@
       "name": "financial_transfer_pkey",
       "schema": "public",
       "table": "financial_transfer",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "household_exchange_rate_pkey",
+      "schema": "public",
+      "table": "household_exchange_rate",
       "entityType": "pks"
     },
     {
@@ -7107,6 +9059,150 @@
       "entityType": "pks"
     },
     {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "category_organization_id_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "category"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "credit_card_statement_organization_id_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "credit_card_statement"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "file_organization_id_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "file"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "financial_account_organization_id_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "financial_account"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "financial_transaction_organization_id_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "financial_transaction"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "financial_transfer_organization_id_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "financial_transfer"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "member_organization_id_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "member"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "recurring_schedule_organization_id_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "recurring_schedule"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "tag_organization_id_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "tag"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "transaction_import_organization_id_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "transaction_import"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "transaction_rule_organization_id_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "transaction_rule"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "position"
+      ],
+      "nullsNotDistinct": false,
+      "name": "transaction_rule_organization_position_key",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "transaction_rule"
+    },
+    {
       "nameExplicit": false,
       "columns": [
         "name"
@@ -7151,6 +9247,27 @@
       "entityType": "uniques"
     },
     {
+      "value": "\"kind\" IN ('recurring', 'card')",
+      "name": "bill_payment_kind_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "value": "(\"kind\" = 'recurring') = (\"schedule_id\" IS NOT NULL)\n        AND (\"kind\" = 'card') = (\"account_id\" IS NOT NULL)",
+      "name": "bill_payment_source_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "bill_payment"
+    },
+    {
+      "value": "\"type\" IN ('expense', 'income')",
+      "name": "category_type_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "category"
+    },
+    {
       "value": "\"amount\" > 0",
       "name": "category_budget_positive_amount_chk",
       "entityType": "checks",
@@ -7163,6 +9280,48 @@
       "entityType": "checks",
       "schema": "public",
       "table": "category_budget"
+    },
+    {
+      "value": "\"channel\" IN ('telegram')",
+      "name": "chat_inbound_message_channel_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "chat_inbound_message"
+    },
+    {
+      "value": "(\"organization_id\" IS NULL) = (\"transaction_id\" IS NULL)",
+      "name": "chat_inbound_message_household_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "chat_inbound_message"
+    },
+    {
+      "value": "\"channel\" IN ('telegram')",
+      "name": "chat_link_channel_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "chat_link"
+    },
+    {
+      "value": "\"kind\" IN ('statement', 'payment')",
+      "name": "credit_card_reminder_kind_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "credit_card_reminder"
+    },
+    {
+      "value": "\"status\" IN ('active', 'dismissed', 'resolved')",
+      "name": "credit_card_reminder_status_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "credit_card_reminder"
+    },
+    {
+      "value": "\"resolution\" IN ('recorded', 'paid', 'superseded', 'expired', 'account_archived')",
+      "name": "credit_card_reminder_resolution_value_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "credit_card_reminder"
     },
     {
       "value": "(\"status\" = 'resolved') = (\"resolution\" IS NOT NULL)",
@@ -7193,6 +9352,62 @@
       "table": "credit_card_statement"
     },
     {
+      "value": "\"rate\" > 0",
+      "name": "exchange_rate_positive_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "exchange_rate"
+    },
+    {
+      "value": "\"status\" IN ('pending', 'ready', 'failed')",
+      "name": "file_status_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "file"
+    },
+    {
+      "value": "\"account_class\" IN ('asset', 'liability')",
+      "name": "financial_account_class_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_account"
+    },
+    {
+      "value": "\"account_type\" IN ('cash', 'bank', 'e_wallet', 'investment', 'property', 'vehicle', 'receivable', 'other_asset', 'credit_card', 'personal_loan', 'mortgage', 'auto_loan', 'payable', 'other_liability')",
+      "name": "financial_account_type_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_account"
+    },
+    {
+      "value": "(\"account_class\" = 'asset') = (\"account_type\" IN ('cash', 'bank', 'e_wallet', 'investment', 'property', 'vehicle', 'receivable', 'other_asset'))",
+      "name": "financial_account_class_type_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_account"
+    },
+    {
+      "value": "\"liquidity\" IS NULL OR \"liquidity\" IN ('liquid', 'semi_liquid', 'illiquid')",
+      "name": "financial_account_liquidity_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_account"
+    },
+    {
+      "value": "\"source\" IN ('manual', 'import')",
+      "name": "financial_account_balance_snapshot_source_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_account_balance_snapshot"
+    },
+    {
+      "value": "\"amount\" > 0",
+      "name": "financial_transaction_positive_amount_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_transaction"
+    },
+    {
       "value": "(\n        (\"category_id\" IS NOT NULL AND \"transfer_id\" IS NULL AND \"transfer_side\" IS NULL)\n        OR\n        (\"category_id\" IS NULL AND \"transfer_id\" IS NOT NULL AND \"transfer_side\" IS NOT NULL)\n      )",
       "name": "financial_transaction_category_or_transfer_chk",
       "entityType": "checks",
@@ -7207,6 +9422,13 @@
       "table": "financial_transaction"
     },
     {
+      "value": "\"amount\" > 0",
+      "name": "financial_transaction_split_positive_amount_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "financial_transaction_split"
+    },
+    {
       "value": "\"source_account_id\" <> \"destination_account_id\"",
       "name": "financial_transfer_distinct_accounts_chk",
       "entityType": "checks",
@@ -7219,6 +9441,41 @@
       "entityType": "checks",
       "schema": "public",
       "table": "financial_transfer"
+    },
+    {
+      "value": "\"rate\" > 0",
+      "name": "household_exchange_rate_positive_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "household_exchange_rate"
+    },
+    {
+      "value": "\"from_currency\" <> \"to_currency\"",
+      "name": "household_exchange_rate_pair_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "household_exchange_rate"
+    },
+    {
+      "value": "\"status\" IN ('running', 'success', 'failed')",
+      "name": "post_migration_status_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "post_migration"
+    },
+    {
+      "value": "\"frequency\" IN ('daily', 'weekly', 'monthly')",
+      "name": "recurring_schedule_frequency_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "recurring_schedule"
+    },
+    {
+      "value": "\"status\" IN ('active', 'paused', 'stopped')",
+      "name": "recurring_schedule_status_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "recurring_schedule"
     },
     {
       "value": "\"amount\" > 0",
@@ -7247,6 +9504,55 @@
       "entityType": "checks",
       "schema": "public",
       "table": "savings_goal"
+    },
+    {
+      "value": "\"status\" IN ('validating', 'ready', 'committing', 'completed', 'failed', 'discarded')",
+      "name": "transaction_import_status_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "transaction_import"
+    },
+    {
+      "value": "\"failed_status\" IN ('validating', 'committing')",
+      "name": "transaction_import_failed_status_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "transaction_import"
+    },
+    {
+      "value": "\"opening_balance_mode\" IN ('reject', 'rebase', 'include')",
+      "name": "transaction_import_opening_balance_mode_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "transaction_import"
+    },
+    {
+      "value": "\"status\" IN ('valid', 'invalid', 'duplicate', 'imported')",
+      "name": "transaction_import_row_status_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "transaction_import_row"
+    },
+    {
+      "value": "\"type\" IN ('income', 'expense')",
+      "name": "transaction_import_row_type_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "transaction_import_row"
+    },
+    {
+      "value": "\"match_text_operator\" IN ('contains', 'equals', 'startsWith')",
+      "name": "transaction_rule_match_text_operator_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "transaction_rule"
+    },
+    {
+      "value": "\"match_type\" IN ('income', 'expense')",
+      "name": "transaction_rule_match_type_chk",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "transaction_rule"
     },
     {
       "value": "(\"match_text\" IS NULL) = (\"match_text_operator\" IS NULL)",

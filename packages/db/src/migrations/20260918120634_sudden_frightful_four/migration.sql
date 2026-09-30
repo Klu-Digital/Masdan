@@ -1,2 +1,0 @@
-CREATE INDEX "financial_transaction_organization_amount_idx" ON "financial_transaction" ("organization_id","archived_at","amount","id");--> statement-breakpoint
-CREATE INDEX "financial_transaction_tag_tag_transaction_idx" ON "financial_transaction_tag" ("tag_id","transaction_id");
