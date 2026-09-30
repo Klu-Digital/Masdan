@@ -177,7 +177,7 @@ If you want to add app-specific blocks instead of shared primitives, run the sha
 
 Environment variables are read from each app's `.env` file (baked into web builds for public variables) and overridden in `docker-compose.yml` for container networking.
 
-The stack mirrors production: only the web container publishes a port (`WEB_PORT`, container port 8080, because the unprivileged nginx image cannot bind 80), and the API is reached through its proxy. All three images run as non-root users and declare their own `HEALTHCHECK`.
+The stack mirrors production: only the web container publishes a port (`WEB_PORT`, container port 2600, matching dev, because the unprivileged nginx image cannot bind 80), and the API is reached through its proxy. All three images run as non-root users and declare their own `HEALTHCHECK`.
 
 The server and workers images hold only production dependencies and the bundle. Migrations and post-migration scripts need drizzle-kit and tsx, so `deploy.yml` runs them from the server Dockerfile's `migrate` target, which `release.yml` builds and pushes as a fourth image.
 

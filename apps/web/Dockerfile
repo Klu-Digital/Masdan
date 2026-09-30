@@ -24,7 +24,7 @@ ENV VITE_SERVER_URL=${VITE_SERVER_URL}
 ENV NODE_ENV=production
 RUN cd apps/web && pnpm run build
 
-# The unprivileged variant runs as uid 101 and so listens on 8080, not 80.
+# The unprivileged variant runs as uid 101 and cannot bind 80, so nginx listens on 2600, the same port as dev.
 FROM nginxinc/nginx-unprivileged:alpine@sha256:26b0bf6fbf07297983cb341998d79c831508787de26627dd2a112321b9c3a4af AS runner
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 # Not conf.d: the nginx image renders everything in /etc/nginx/templates through
@@ -41,9 +41,9 @@ ENV CSP_CONNECT_SRC=""
 # CSP an empty upstream is simply a broken proxy, so the default is the compose
 # service name rather than "".
 ENV SERVER_UPSTREAM="http://server:1900"
-EXPOSE 8080
+EXPOSE 2600
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
-  CMD ["wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+  CMD ["wget", "-q", "--spider", "http://127.0.0.1:2600/"]
 
 CMD ["nginx", "-g", "daemon off;"]

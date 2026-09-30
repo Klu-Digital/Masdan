@@ -4,7 +4,7 @@
 # untouched — do not add a plain `${...}` here expecting it to stay literal.
 
 server {
-    listen 8080;
+    listen 2600;
     server_name _;
     root /usr/share/nginx/html;
     index index.html;

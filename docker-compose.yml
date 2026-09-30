@@ -7,8 +7,8 @@ services:
       dockerfile: apps/web/Dockerfile
     init: true
     ports:
-      # 8080 inside: the unprivileged nginx image cannot bind 80.
-      - "${WEB_PORT:-2600}:8080"
+      # 2600 inside too: the unprivileged nginx image cannot bind 80, and one port everywhere.
+      - "${WEB_PORT:-2600}:2600"
     env_file:
       - path: apps/web/.env
         required: false
