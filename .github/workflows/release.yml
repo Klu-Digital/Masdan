@@ -64,7 +64,7 @@ jobs:
       POSTHOG_PERSONAL_API_KEY: ${{ matrix.app == 'server' && secrets.POSTHOG_PERSONAL_API_KEY || '' }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: useblacksmith/checkout@v1 # v7.0.1
 
       # GHCR rejects any uppercase character in a repository path, and
       # `github.repository` preserves whatever case the owner/repo was created
