@@ -106,8 +106,11 @@ jobs:
             # built (wrong branch, a force-push that orphaned the commit, a
             # release run that failed), we stop here rather than migrating the
             # database for code that does not exist as an artifact.
-            if ! digest=$(docker buildx imagetools inspect "$ref" --format '{{.Manifest.Digest}}' 2>/dev/null); then
-              echo "::error::No image at ${ref}. Was ${sha} built by release.yml?"
+            # stderr is kept: "not found" and "unauthorized" are different
+            # problems and the error below is wrong for the second.
+            if ! digest=$(docker buildx imagetools inspect "$ref" --format '{{.Manifest.Digest}}' 2>"$RUNNER_TEMP/inspect.err"); then
+              cat "$RUNNER_TEMP/inspect.err"
+              echo "::error::Could not inspect ${ref}. Was ${sha} built by release.yml, and can this job read the package?"
               exit 1
             fi
             echo "${app}=${ref}" >> "$GITHUB_OUTPUT"
@@ -217,7 +220,9 @@ jobs:
       #
       # Endpoint names track Dokploy's API and have moved between versions; check
       # ${DOKPLOY_URL}/swagger if a call 404s. Registry credentials for GHCR are
-      # configured in Dokploy itself, not sent here.
+      # configured in Dokploy itself, not sent here. saveDockerProvider still
+      # requires the username/password/registryUrl keys and overwrites them, so
+      # the current values are read via application.one and sent back as-is.
       #
       # `--insecure` skips TLS verification on these calls, carried over
       # deliberately because the Dokploy host does not present a certificate that
@@ -241,10 +246,19 @@ jobs:
           set -euo pipefail
 
           call() {
-            curl -fsS --insecure -X POST "${DOKPLOY_URL}/api/$1" \
+            # No -f: with it curl discards the response body on a 4xx, which is
+            # where Dokploy explains what it rejected.
+            local body status
+            body="$(mktemp)"
+            status="$(curl -sS --insecure -o "$body" -w '%{http_code}' \
+              -X POST "${DOKPLOY_URL}/api/$1" \
               -H "x-api-key: ${DOKPLOY_TOKEN}" \
               -H "Content-Type: application/json" \
-              -d "$2" > /dev/null
+              -d "$2")"
+            if [ "$status" -ge 400 ]; then
+              echo "::error::$1 returned HTTP ${status}: $(cat "$body")"
+              exit 1
+            fi
           }
 
           release() {
@@ -254,9 +268,18 @@ jobs:
               exit 1
             fi
             echo "→ ${name}: ${image}"
+            # saveDockerProvider overwrites the registry credentials with whatever
+            # it is sent, so read the stored ones and echo them back unchanged.
+            local current
+            current="$(curl -fsS --insecure -G "${DOKPLOY_URL}/api/application.one" \
+              -H "x-api-key: ${DOKPLOY_TOKEN}" \
+              --data-urlencode "applicationId=${id}")"
             call application.saveDockerProvider \
-              "$(jq -n --arg id "$id" --arg image "$image" \
-                  '{applicationId: $id, dockerImage: $image}')"
+              "$(jq -n --arg id "$id" --arg image "$image" --argjson cur "$current" \
+                  '{applicationId: $id, dockerImage: $image,
+                    username: ($cur.username // null),
+                    password: ($cur.password // null),
+                    registryUrl: ($cur.registryUrl // null)}')"
             call application.deploy \
               "$(jq -n --arg id "$id" '{applicationId: $id}')"
           }
