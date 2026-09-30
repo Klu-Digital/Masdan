@@ -12,6 +12,7 @@ const accountsList = vi.hoisted(() => vi.fn());
 const categoriesList = vi.hoisted(() => vi.fn());
 const tagsList = vi.hoisted(() => vi.fn());
 const create = vi.hoisted(() => vi.fn());
+const update = vi.hoisted(() => vi.fn());
 const attachmentsList = vi.hoisted(() => vi.fn());
 
 vi.mock("@/hooks/use-household", () => ({
@@ -29,7 +30,7 @@ vi.mock("@/utils/client", async () => {
       attachments: { list: attachmentsList },
       categories: { list: categoriesList },
       tags: { list: tagsList },
-      transactions: { create },
+      transactions: { create, update },
     }),
   };
 });
@@ -71,6 +72,7 @@ const renderForm = (kind: "expense" | "income" = "expense") => {
 
 beforeEach(() => {
   create.mockReset();
+  update.mockReset().mockResolvedValue({ id: "transaction-1" });
   accountsList.mockResolvedValue([
     {
       accountClass: "asset",
@@ -161,6 +163,46 @@ describe("TransactionForm", () => {
       })
     );
     expect(onSaved).toHaveBeenCalledWith("transaction-1");
+  });
+
+  it("keeps an imported transaction accountless when editing", async () => {
+    const user = userEvent.setup();
+    render(
+      <TransactionForm
+        actions={() => <button type="submit">Save</button>}
+        activeOrganizationId="household-1"
+        householdCurrency="PHP"
+        kind="expense"
+        onSaved={vi.fn()}
+        timezone="Asia/Manila"
+        transaction={
+          {
+            accountId: null,
+            amount: "125.500000",
+            categoryId: GROCERIES,
+            currencyCode: "USD",
+            id: "transaction-1",
+            notes: null,
+            paidStatus: "paid",
+            splits: [],
+            tags: [],
+            transactionDate: "2026-01-05",
+          } as never
+        }
+      />,
+      { wrapper: Wrapper }
+    );
+    await screen.findByLabelText("Amount");
+    expect(screen.getByRole("combobox", { name: "Account" })).toHaveTextContent(
+      "No account"
+    );
+    await user.type(screen.getByLabelText("Note"), "Imported history");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({ accountId: null, notes: "Imported history" })
+      )
+    );
   });
 
   it("manages attachments only when editing an existing entry", async () => {

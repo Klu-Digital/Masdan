@@ -13,6 +13,10 @@ const rows = vi.hoisted(() => vi.fn());
 const commit = vi.hoisted(() => vi.fn());
 const retry = vi.hoisted(() => vi.fn());
 const discard = vi.hoisted(() => vi.fn());
+const exportAttention = vi.hoisted(() => vi.fn());
+const downloadCsv = vi.hoisted(() => vi.fn());
+
+vi.mock("@/modules/exports/download", () => ({ downloadCsv }));
 const listAccounts = vi.hoisted(() => vi.fn());
 const listCategories = vi.hoisted(() => vi.fn());
 const listTags = vi.hoisted(() => vi.fn());
@@ -32,7 +36,7 @@ vi.mock("@/utils/client", async () => {
     client: mockClient({
       accounts: { list: listAccounts },
       categories: { list: listCategories },
-      imports: { commit, discard, get, retry, rows },
+      imports: { commit, discard, exportAttention, get, retry, rows },
       suggestions: {
         acceptAllForImport,
         forImport,
@@ -123,6 +127,8 @@ beforeEach(() => {
     commit,
     retry,
     discard,
+    exportAttention,
+    downloadCsv,
     importSummary,
     forImport,
     resolveImportRows,
@@ -236,6 +242,32 @@ describe("ImportDetailPage", () => {
         statuses: ["invalid"],
         suggestionPending: false,
       })
+    );
+  });
+
+  it("downloads all Needs attention rows from the export endpoint", async () => {
+    get.mockResolvedValue({ ...baseImport, invalidRows: 205 });
+    exportAttention.mockResolvedValue({
+      csv: "Date,Errors\r\n,Date is empty\r\n",
+      fileName: "bpi-needs-attention.csv",
+      rowCount: 205,
+    });
+    const user = userEvent.setup();
+    renderPage(false);
+    await user.click(
+      await screen.findByRole("tab", { name: "Needs attention" })
+    );
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Download Needs attention CSV",
+      })
+    );
+    await waitFor(() =>
+      expect(exportAttention).toHaveBeenCalledWith({ importId: "import-1" })
+    );
+    expect(downloadCsv).toHaveBeenCalledWith(
+      "bpi-needs-attention.csv",
+      "Date,Errors\r\n,Date is empty\r\n"
     );
   });
 

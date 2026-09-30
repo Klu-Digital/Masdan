@@ -13,6 +13,7 @@ import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { z } from "zod";
 
 import { DatePicker } from "@/components/date-picker";
 import { FieldErrors } from "@/components/field-errors";
@@ -145,6 +146,7 @@ export const TransactionForm = ({
 }) => {
   const queryClient = useQueryClient();
   const editing = transaction !== undefined;
+  const accountless = transaction?.accountId === null;
   const formRef = useRef<HTMLFormElement>(null);
   const [review, setReview] = useState(
     () => new Map(prefill?.issues.map(({ field, message }) => [field, message]))
@@ -179,11 +181,12 @@ export const TransactionForm = ({
 
   const prefilled = prefill?.values ?? {};
   const defaultValues: TransactionFormValues = {
-    accountId:
-      transaction?.accountId ??
-      prefilled.accountId ??
-      (review.has("accountId") ? undefined : firstAccount) ??
-      "",
+    accountId: accountless
+      ? ""
+      : (transaction?.accountId ??
+        prefilled.accountId ??
+        (review.has("accountId") ? undefined : firstAccount) ??
+        ""),
     amount: trimDecimal(transaction?.amount ?? prefilled.amount),
     categoryId: transaction?.categoryId ?? prefilled.categoryId ?? "",
     notes: transaction?.notes ?? prefilled.notes ?? "",
@@ -213,7 +216,11 @@ export const TransactionForm = ({
       // The mutation cache toasts the failure; the form keeps its values.
       const saved = await (
         transaction
-          ? update.mutateAsync({ ...payload, transactionId: transaction.id })
+          ? update.mutateAsync({
+              ...payload,
+              accountId: payload.accountId || null,
+              transactionId: transaction.id,
+            })
           : create.mutateAsync(payload)
       ).catch(() => null);
       if (!saved) {
@@ -229,7 +236,18 @@ export const TransactionForm = ({
       });
       onSaved(saved.id);
     },
-    validators: { onSubmit: transactionSchema },
+    validators: {
+      onSubmit: accountless
+        ? transactionSchema.safeExtend({
+            accountId: z
+              .string()
+              .refine(
+                (value) => value === "" || z.uuid().safeParse(value).success,
+                "Choose an account"
+              ),
+          })
+        : transactionSchema,
+    },
   });
 
   // Switching between expense and income invalidates a category of the other type.
@@ -385,6 +403,7 @@ export const TransactionForm = ({
               <FieldLabel>Account</FieldLabel>
               <div className="w-full">
                 <AccountPicker
+                  allowNone={accountless}
                   accounts={activeAccounts}
                   aria-invalid={
                     field.state.meta.errors.length > 0 ||

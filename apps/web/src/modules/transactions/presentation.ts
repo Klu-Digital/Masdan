@@ -42,6 +42,7 @@ export const describeTransaction = (
 ): TransactionView => {
   const note = firstLine(transaction.notes);
   const { transfer } = transaction;
+  const accountName = transaction.accountName ?? "No account";
 
   if (transaction.adjustmentDirection) {
     const increasing = transaction.adjustmentDirection === "increase";
@@ -49,7 +50,7 @@ export const describeTransaction = (
       direction: increasing ? "in" : "out",
       kind: "reconciliation",
       sign: increasing ? "in" : "out",
-      subtitle: note ?? transaction.accountName,
+      subtitle: note ?? accountName,
       title: "Balance reconciliation",
     };
   }
@@ -87,9 +88,7 @@ export const describeTransaction = (
     direction: income ? "in" : "out",
     kind: income ? "income" : "expense",
     sign: income ? "in" : "out",
-    subtitle: note
-      ? `${category} · ${transaction.accountName}`
-      : transaction.accountName,
+    subtitle: note ? `${category} · ${accountName}` : accountName,
     title: note ?? category,
   };
 };

@@ -419,7 +419,7 @@ const DesktopLedger = (props: LedgerProps) => {
         </DataGridCell>
         {hideAccount ? null : (
           <DataGridCell className="text-muted-foreground hidden w-48 truncate lg:table-cell">
-            {transaction.accountName}
+            {transaction.accountName ?? "No account"}
           </DataGridCell>
         )}
         <DataGridCell className="w-40 text-right">

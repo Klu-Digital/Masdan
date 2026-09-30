@@ -51,6 +51,7 @@ const keptApplication = <
  * earlier provenance survives only while the category and tags it set are
  * still there.
  */
+// oxlint-disable-next-line complexity
 export const updateTransaction = async (
   db: Database,
   organizationId: string,
@@ -101,11 +102,16 @@ export const updateTransaction = async (
       ? (splits[0]?.categoryId ?? input.categoryId)
       : input.categoryId;
 
+  if (!input.accountId && !existing.importFingerprint) {
+    throw new ORPCError("BAD_REQUEST", { message: "Choose an account" });
+  }
   await lockLedgerAccounts(db, organizationId, [
-    existing.accountId,
-    input.accountId,
+    ...(existing.accountId ? [existing.accountId] : []),
+    ...(input.accountId ? [input.accountId] : []),
   ]);
-  const account = await activeAccount(db, organizationId, input.accountId);
+  const account = input.accountId
+    ? await activeAccount(db, organizationId, input.accountId)
+    : null;
   const parentCategory = await validCategory(
     db,
     organizationId,
@@ -125,10 +131,10 @@ export const updateTransaction = async (
   const [updated] = await db
     .update(financialTransaction)
     .set({
-      accountId: account.id,
+      accountId: account?.id ?? null,
       amount: input.amount,
       categoryId,
-      currencyCode: account.currencyCode,
+      currencyCode: account?.currencyCode ?? existing.currencyCode,
       notes: input.notes ?? null,
       paidStatus: input.paidStatus,
       ruleApplication: keptApplication(
@@ -214,7 +220,9 @@ export const setTransactionArchived = async (
   if (existing.transferId !== null) {
     throw notFound("Transaction");
   }
-  await lockLedgerAccounts(db, organizationId, [existing.accountId]);
+  if (existing.accountId) {
+    await lockLedgerAccounts(db, organizationId, [existing.accountId]);
+  }
   const [row] = await db
     .update(financialTransaction)
     .set({ archivedAt })

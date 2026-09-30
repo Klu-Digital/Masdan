@@ -308,7 +308,7 @@ const flowAnswer = async (
         currencyCode: financialTransaction.currencyCode,
       })
       .from(financialTransaction)
-      .innerJoin(
+      .leftJoin(
         financialAccount,
         eq(financialAccount.id, financialTransaction.accountId)
       )
@@ -466,7 +466,7 @@ const largestAnswer = async (
       transactionDate: financialTransaction.transactionDate,
     })
     .from(financialTransaction)
-    .innerJoin(
+    .leftJoin(
       financialAccount,
       eq(financialAccount.id, financialTransaction.accountId)
     )

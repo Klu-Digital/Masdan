@@ -48,7 +48,7 @@ export interface EvaluableRule {
 
 /** The fields a rule can see, whether on a saved transaction or an import row. */
 export interface RuleSubject {
-  accountId: string;
+  accountId: string | null;
   /** Positive decimal string. */
   amount: string;
   /** The transaction's note — for imports, the description plus notes. */

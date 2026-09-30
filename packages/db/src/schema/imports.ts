@@ -59,11 +59,11 @@ export interface TransactionImportRowError {
   message: string;
 }
 
-/** One CSV upload mapped onto one account; rows land in the ledger. */
+/** One CSV upload; an optional account receives its ledger postings. */
 export const transactionImport = pgTable(
   "transaction_import",
   {
-    accountId: uuid("account_id").notNull(),
+    accountId: uuid("account_id"),
     /** sha256 of the source bytes, set when the worker first reads the file. */
     checksum: text("checksum"),
     committedAt: timestamptz("committed_at"),

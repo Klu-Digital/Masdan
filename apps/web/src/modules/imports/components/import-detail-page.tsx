@@ -46,6 +46,7 @@ import {
 } from "@/components/finance/stat";
 import { PageSkeleton } from "@/components/household-gate";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
+import { downloadCsv } from "@/modules/exports/download";
 import { ruleEffects, ruleReasons } from "@/modules/rules/presentation";
 import {
   ImportRowSuggestion,
@@ -301,6 +302,9 @@ export const ImportDetailPage = ({
   const accounts = useQuery(
     orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
   );
+  const household = useQuery(
+    orpc.households.profile.queryOptions({ enabled: editing })
+  );
   const categories = useCategories(activeOrganizationId);
   const tags = useTags(activeOrganizationId);
 
@@ -322,6 +326,11 @@ export const ImportDetailPage = ({
       );
       await invalidate(queryClient, activeOrganizationId, "imports");
     },
+  });
+
+  const downloadAttention = useMutation({
+    mutationFn: () => orpc.imports.exportAttention.call({ importId }),
+    onSuccess: ({ csv, fileName }) => downloadCsv(fileName, csv),
   });
 
   const update = useMutation(
@@ -392,7 +401,9 @@ export const ImportDetailPage = ({
           <PageTitle>{current.fileName}</PageTitle>
           <PageDescription>
             <span className="flex flex-wrap items-center gap-2">
-              Into {current.accountName}
+              {current.accountName
+                ? `Into ${current.accountName}`
+                : "No account"}
               <ImportStatusBadge status={current.status} />
             </span>
           </PageDescription>
@@ -457,15 +468,16 @@ export const ImportDetailPage = ({
             {`${current.importedRows.toLocaleString()} transactions imported`}
           </AlertTitle>
           <AlertDescription>
-            They appear on their original dates and count toward{" "}
-            {current.accountName}’s balance and your reports.
+            {current.accountName
+              ? `They appear on their original dates and count toward ${current.accountName}’s balance and your reports.`
+              : "They appear on their original dates and count toward your reports without changing account balances."}
             <span className="mt-2 flex">
               <Button
                 render={
                   <Link
                     search={{
                       ...DEFAULT_TRANSACTION_SEARCH,
-                      accountIds: [current.accountId],
+                      accountIds: current.accountId ? [current.accountId] : [],
                     }}
                     to="/transactions"
                   />
@@ -491,8 +503,8 @@ export const ImportDetailPage = ({
         <Alert variant="warning">
           <AlertTitle>This file was imported before</AlertTitle>
           <AlertDescription>
-            Rows already in {current.accountName} are marked as duplicates and
-            will be skipped.
+            Rows already in {current.accountName ?? "the household ledger"} are
+            marked as duplicates and will be skipped.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -506,10 +518,19 @@ export const ImportDetailPage = ({
         />
       ) : null}
 
-      {editing && accounts.data && categories.data ? (
+      {editing && household.isPending ? <PageSkeleton /> : null}
+      {editing && household.isError ? (
+        <Alert variant="error">
+          <AlertTitle>Couldn’t load household settings</AlertTitle>
+          <AlertDescription>Reload this page to try again.</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {editing && accounts.data && categories.data && household.data ? (
         <MappingForm
           accounts={accounts.data}
           categories={categories.data}
+          currency={household.data.defaultCurrency.code}
           initialValues={toFormValues(current)}
           lockSource
           onCancel={() => setEditing(false)}
@@ -536,6 +557,18 @@ export const ImportDetailPage = ({
               ))}
             </TabsList>
           </Tabs>
+          {filter === "invalid" && current.invalidRows > 0 ? (
+            <div className="flex justify-end">
+              <Button
+                loading={downloadAttention.isPending}
+                onClick={() => downloadAttention.mutate()}
+                size="sm"
+                variant="secondary"
+              >
+                Download Needs attention CSV
+              </Button>
+            </div>
+          ) : null}
           {rows.data && rows.data.items.length > 0 ? (
             <RowsTable
               activeOrganizationId={activeOrganizationId}

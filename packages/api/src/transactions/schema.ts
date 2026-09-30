@@ -23,7 +23,7 @@ const splitValues = z.object({
   categoryId: z.uuid(),
 });
 
-export const transactionValues = z
+const transactionFields = z
   .object({
     accountId: z.uuid(),
     amount: positiveAmount,
@@ -38,27 +38,37 @@ export const transactionValues = z
       .refine((ids) => new Set(ids).size === ids.length, "Duplicate tag"),
     transactionDate: isoDate,
   })
-  .strict()
-  .superRefine((value, context) => {
-    if (!value.splits || value.splits.length === 0) {
-      return;
-    }
+  .strict();
 
-    const total = splitTotal(value.splits);
-    if (total !== scaledAmount(value.amount)) {
-      context.addIssue({
-        code: "custom",
-        message: "Split amounts must equal the transaction amount",
-        path: ["splits"],
-      });
-    }
-  });
+const validateSplitTotal = (
+  value: { amount: string; splits?: { amount: string }[] },
+  context: z.RefinementCtx
+) => {
+  if (!value.splits || value.splits.length === 0) {
+    return;
+  }
+
+  const total = splitTotal(value.splits);
+  if (total !== scaledAmount(value.amount)) {
+    context.addIssue({
+      code: "custom",
+      message: "Split amounts must equal the transaction amount",
+      path: ["splits"],
+    });
+  }
+};
+
+export const transactionValues =
+  transactionFields.superRefine(validateSplitTotal);
 
 export type TransactionCreateInput = z.output<typeof transactionValues>;
 
-export const transactionUpdateValues = transactionValues.extend({
-  transactionId: z.uuid(),
-});
+export const transactionUpdateValues = transactionFields
+  .extend({
+    accountId: z.uuid().nullable(),
+    transactionId: z.uuid(),
+  })
+  .superRefine(validateSplitTotal);
 
 export type TransactionUpdateInput = z.output<typeof transactionUpdateValues>;
 

@@ -1,0 +1,4 @@
+ALTER TABLE "financial_transaction" ALTER COLUMN "account_id" DROP NOT NULL;--> statement-breakpoint
+ALTER TABLE "transaction_import" ALTER COLUMN "account_id" DROP NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "financial_transaction_household_import_fingerprint_uidx" ON "financial_transaction" ("organization_id","import_fingerprint") WHERE "account_id" IS NULL AND "import_fingerprint" IS NOT NULL;--> statement-breakpoint
+ALTER TABLE "financial_transaction" ADD CONSTRAINT "financial_transaction_accountless_import_chk" CHECK ("account_id" IS NOT NULL OR ("import_fingerprint" IS NOT NULL AND "category_id" IS NOT NULL AND "transfer_id" IS NULL AND "reconciliation_snapshot_id" IS NULL AND "recurring_schedule_id" IS NULL));

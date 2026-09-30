@@ -213,7 +213,7 @@ export const financialTransfer = pgTable(
 export const financialTransaction = pgTable(
   "financial_transaction",
   {
-    accountId: uuid("account_id").notNull(),
+    accountId: uuid("account_id"),
     adjustmentDirection: text("adjustment_direction", {
       enum: ["increase", "decrease"],
     }),
@@ -329,6 +329,15 @@ export const financialTransaction = pgTable(
       table.amount,
       table.id
     ),
+    check(
+      "financial_transaction_accountless_import_chk",
+      sql`${table.accountId} IS NOT NULL OR (${table.importFingerprint} IS NOT NULL AND ${table.categoryId} IS NOT NULL AND ${table.transferId} IS NULL AND ${table.reconciliationSnapshotId} IS NULL AND ${table.recurringScheduleId} IS NULL)`
+    ),
+    uniqueIndex("financial_transaction_household_import_fingerprint_uidx")
+      .on(table.organizationId, table.importFingerprint)
+      .where(
+        sql`${table.accountId} IS NULL AND ${table.importFingerprint} IS NOT NULL`
+      ),
     uniqueIndex("financial_transaction_account_import_fingerprint_uidx")
       .on(table.accountId, table.importFingerprint)
       .where(sql`${table.importFingerprint} IS NOT NULL`),

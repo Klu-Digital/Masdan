@@ -273,10 +273,10 @@ export interface TransactionWrite {
   transactionDate: string;
 }
 
-/** Currency always follows the account, never the caller. */
+/** Callers resolve currency from the account or household, never user input. */
 export const transactionInsertValues = (
   organizationId: string,
-  account: LedgerAccount,
+  account: { id: string | null; currencyCode: string },
   values: TransactionWrite
 ): typeof financialTransaction.$inferInsert => ({
   accountId: account.id,

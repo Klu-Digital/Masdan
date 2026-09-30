@@ -73,7 +73,7 @@ export interface ImportFormValues {
 }
 
 export interface ImportConfig {
-  accountId: string;
+  accountId: string | null;
   defaultExpenseCategoryId: string;
   defaultIncomeCategoryId: string;
   mapping: ImportMapping;
@@ -118,7 +118,7 @@ const columnNumber = (value: string): number | null =>
   value === NONE ? null : Number(value);
 
 const toImportConfig = (values: ImportFormValues): ImportConfig => ({
-  accountId: values.accountId,
+  accountId: values.accountId || null,
   defaultExpenseCategoryId: values.defaultExpenseCategoryId,
   defaultIncomeCategoryId: values.defaultIncomeCategoryId,
   mapping: {
@@ -146,14 +146,12 @@ const toImportConfig = (values: ImportFormValues): ImportConfig => ({
   openingBalanceMode: values.openingBalanceMode,
 });
 
-export const toFormValues = (
-  config: Omit<ImportConfig, "accountId"> & { accountId: string }
-): ImportFormValues => {
+export const toFormValues = (config: ImportConfig): ImportFormValues => {
   const { amount } = config.mapping;
   const column = (value: number | null) =>
     value === null ? NONE : String(value);
   return {
-    accountId: config.accountId,
+    accountId: config.accountId ?? "",
     amountColumn: amount.kind === "signed" ? String(amount.column) : "0",
     amountKind: amount.kind,
     categoryColumn: column(config.mapping.categoryColumn),
@@ -176,7 +174,6 @@ export const toFormValues = (
 };
 
 const required = {
-  account: z.string().min(1, "Choose the account these rows belong to"),
   expense: z.string().min(1, "Choose a category for money out"),
   income: z.string().min(1, "Choose a category for money in"),
 };
@@ -298,6 +295,7 @@ const PreviewTable = ({
 export const MappingForm = ({
   accounts,
   categories,
+  currency,
   initialValues,
   lockSource = false,
   onCancel,
@@ -307,6 +305,7 @@ export const MappingForm = ({
 }: {
   accounts: ImportAccount[];
   categories: ImportCategory[];
+  currency: string;
   initialValues: ImportFormValues;
   lockSource?: boolean;
   onCancel?: () => void;
@@ -355,19 +354,21 @@ export const MappingForm = ({
     >
       <section className="flex flex-col gap-4">
         <h2 className="text-base font-semibold">Destination</h2>
-        <form.Field
-          name="accountId"
-          validators={{ onSubmit: required.account }}
-        >
+        <form.Field name="accountId">
           {(field) => (
             <Field name={field.name}>
-              <FieldLabel>Account</FieldLabel>
+              <FieldLabel>Account (optional)</FieldLabel>
               <AccountPicker
                 accounts={accounts.filter((item) => item.archivedAt === null)}
-                aria-invalid={field.state.meta.errors.length > 0}
+                allowNone
+                ariaLabel="Account (optional)"
                 onValueChange={field.handleChange}
                 value={field.state.value}
               />
+              <p className="text-muted-foreground text-sm">
+                Without an account, rows count toward reports but not account
+                balances.
+              </p>
               <Errors errors={field.state.meta.errors} />
             </Field>
           )}
@@ -644,50 +645,52 @@ export const MappingForm = ({
         </div>
       </section>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold">
-          Rows before the opening date
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          {account
-            ? `${account.name} starts on ${account.openingBalanceDate}. Balances only count transactions from that date.`
-            : "Balances only count transactions from the account’s opening date."}
-        </p>
-        <form.Field name="openingBalanceMode">
-          {(field) => (
-            <Field name={field.name}>
-              <RadioGroup
-                aria-label="Rows before the opening date"
-                onValueChange={(next) =>
-                  field.handleChange(next as OpeningBalanceMode)
-                }
-                value={field.state.value}
-              >
-                {OPENING_BALANCE_CHOICES.map((choice) => (
-                  <FieldItem key={choice.value}>
-                    <FieldLabel>
-                      <Radio value={choice.value} />
-                      <span className="flex flex-col gap-0.5">
-                        <span className="text-foreground text-sm">
-                          {choice.label}
+      {account ? (
+        <section className="flex flex-col gap-4">
+          <h2 className="text-base font-semibold">
+            Rows before the opening date
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            {account
+              ? `${account.name} starts on ${account.openingBalanceDate}. Balances only count transactions from that date.`
+              : "Balances only count transactions from the account’s opening date."}
+          </p>
+          <form.Field name="openingBalanceMode">
+            {(field) => (
+              <Field name={field.name}>
+                <RadioGroup
+                  aria-label="Rows before the opening date"
+                  onValueChange={(next) =>
+                    field.handleChange(next as OpeningBalanceMode)
+                  }
+                  value={field.state.value}
+                >
+                  {OPENING_BALANCE_CHOICES.map((choice) => (
+                    <FieldItem key={choice.value}>
+                      <FieldLabel>
+                        <Radio value={choice.value} />
+                        <span className="flex flex-col gap-0.5">
+                          <span className="text-foreground text-sm">
+                            {choice.label}
+                          </span>
+                          <span className="font-normal">
+                            {choice.description}
+                          </span>
                         </span>
-                        <span className="font-normal">
-                          {choice.description}
-                        </span>
-                      </span>
-                    </FieldLabel>
-                  </FieldItem>
-                ))}
-              </RadioGroup>
-            </Field>
-          )}
-        </form.Field>
-      </section>
+                      </FieldLabel>
+                    </FieldItem>
+                  ))}
+                </RadioGroup>
+              </Field>
+            )}
+          </form.Field>
+        </section>
+      ) : null}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-base font-semibold">Preview</h2>
         <PreviewTable
-          currency={account?.currencyCode ?? "PHP"}
+          currency={account?.currencyCode ?? currency}
           mapping={toImportConfig(values).mapping}
           sample={current}
         />

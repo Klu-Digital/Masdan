@@ -276,6 +276,9 @@ const loadCardTransfers = async (
       )
     );
   for (const row of rows) {
+    if (!row.accountId) {
+      continue;
+    }
     const list = byAccount.get(row.accountId) ?? [];
     list.push(row);
     byAccount.set(row.accountId, list);

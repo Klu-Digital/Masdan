@@ -58,8 +58,7 @@ const initialValues = (
   const { headers } = sampleCsv(source.text, source.delimiter, true);
   const active = accounts.filter((account) => account.archivedAt === null);
   const preselected =
-    active.find((account) => account.id === accountId)?.id ??
-    (active.length === 1 ? (active[0]?.id ?? "") : "");
+    active.find((account) => account.id === accountId)?.id ?? null;
   return toFormValues({
     accountId: preselected,
     defaultExpenseCategoryId: firstOfType(categories, "expense"),
@@ -102,8 +101,9 @@ const RecentImports = ({
             <ListItemContent>
               <ListItemTitle>{item.fileName}</ListItemTitle>
               <ListItemDescription>
-                {item.accountName} · {item.importedRows} imported ·{" "}
-                {item.invalidRows} rejected · {item.duplicateRows} duplicates
+                {item.accountName ?? "No account"} · {item.importedRows}{" "}
+                imported · {item.invalidRows} rejected · {item.duplicateRows}{" "}
+                duplicates
               </ListItemDescription>
             </ListItemContent>
             <ListItemTrailing>
@@ -129,6 +129,7 @@ export const NewImportPage = ({
   const accounts = useQuery(
     orpc.accounts.list.queryOptions({ input: { includeArchived: true } })
   );
+  const household = useQuery(orpc.households.profile.queryOptions());
   const categories = useQuery(
     orpc.categories.list.queryOptions({ input: { includeArchived: true } })
   );
@@ -200,7 +201,9 @@ export const NewImportPage = ({
     await start.mutateAsync({ config, selected: file }).catch(() => null);
   };
 
-  const ready = accounts.data && categories.data;
+  const ready = accounts.data && categories.data && household.data;
+  const settingsError =
+    accounts.isError || categories.isError || household.isError;
 
   return (
     <Page width="narrow">
@@ -239,10 +242,21 @@ export const NewImportPage = ({
         </Alert>
       ) : null}
 
+      {source && !ready && settingsError ? (
+        <Alert variant="error">
+          <AlertTitle>Couldn’t load import settings</AlertTitle>
+          <AlertDescription>Reload this page to try again.</AlertDescription>
+        </Alert>
+      ) : null}
+      {source && !ready && !settingsError ? (
+        <Skeleton className="h-24 w-full" radius="2xl" />
+      ) : null}
+
       {source && ready ? (
         <MappingForm
           accounts={accounts.data}
           categories={categories.data}
+          currency={household.data.defaultCurrency.code}
           initialValues={initialValues(
             source,
             accounts.data,

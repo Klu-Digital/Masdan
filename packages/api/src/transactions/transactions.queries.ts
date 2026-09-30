@@ -197,7 +197,7 @@ export const transactionQuery = (db: Database) =>
       type: category.type,
     })
     .from(financialTransaction)
-    .innerJoin(
+    .leftJoin(
       financialAccount,
       eq(financialAccount.id, financialTransaction.accountId)
     )
@@ -437,7 +437,7 @@ export const listTransactions = async (
     db
       .select({ total: count() })
       .from(financialTransaction)
-      .innerJoin(
+      .leftJoin(
         financialAccount,
         eq(financialAccount.id, financialTransaction.accountId)
       )
@@ -481,7 +481,7 @@ export const transactionTotals = async (
     db
       .select({ total: count() })
       .from(financialTransaction)
-      .innerJoin(
+      .leftJoin(
         financialAccount,
         eq(financialAccount.id, financialTransaction.accountId)
       )
@@ -494,7 +494,7 @@ export const transactionTotals = async (
         income: incomeTotal,
       })
       .from(financialTransaction)
-      .innerJoin(
+      .leftJoin(
         financialAccount,
         eq(financialAccount.id, financialTransaction.accountId)
       )

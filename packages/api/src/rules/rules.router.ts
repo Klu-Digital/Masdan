@@ -184,7 +184,7 @@ interface RuleTarget {
   subject: RuleSubject;
   tagIds: string[];
   transaction: {
-    accountId: string;
+    accountId: string | null;
     amount: string;
     id: string;
     notes: string | null;
@@ -213,7 +213,7 @@ const ruleTarget = async (
       type: category.type,
     })
     .from(financialTransaction)
-    .innerJoin(
+    .leftJoin(
       financialAccount,
       eq(financialAccount.id, financialTransaction.accountId)
     )

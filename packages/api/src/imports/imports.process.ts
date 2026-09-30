@@ -26,6 +26,7 @@ import { applyRuleActions, findMatchingRule } from "../rules/engine";
 import { loadRules, runnableRules } from "../rules/rules.data";
 import type { StoredRule } from "../rules/rules.data";
 import { chunks } from "../shared/chunks";
+import { householdSettings } from "../shared/household";
 import { scaledAmount } from "../shared/money";
 import { transactionInsertValues } from "../transactions/transactions.write";
 import { decodeCsvBytes, parseCsv } from "./csv";
@@ -183,7 +184,7 @@ interface ClassifiedRow {
  */
 const applyImportRules = (
   rules: readonly StoredRule[],
-  accountId: string,
+  accountId: string | null,
   row: Pick<NormalizedImportRow, "amount" | "notes" | "type">,
   categoryId: string | null
 ): {
@@ -222,7 +223,8 @@ const rowTagIds = (row: {
 
 const existingFingerprints = async (
   db: Database,
-  accountId: string,
+  organizationId: string,
+  accountId: string | null,
   fingerprints: string[]
 ): Promise<Set<string>> => {
   const found = new Set<string>();
@@ -232,7 +234,10 @@ const existingFingerprints = async (
       .from(financialTransaction)
       .where(
         and(
-          eq(financialTransaction.accountId, accountId),
+          eq(financialTransaction.organizationId, organizationId),
+          accountId
+            ? eq(financialTransaction.accountId, accountId)
+            : isNull(financialTransaction.accountId),
           inArray(financialTransaction.importFingerprint, batch)
         )
       );
@@ -265,11 +270,9 @@ const validateImport = async (
       );
     }
     const mapping = parsedMapping.data;
-    const account = await loadAccount(
-      tx,
-      current.organizationId,
-      current.accountId
-    );
+    const account = current.accountId
+      ? await loadAccount(tx, current.organizationId, current.accountId)
+      : null;
 
     const parsed = parseCsv(decodeCsvBytes(bytes), {
       delimiter: mapping.delimiter,
@@ -307,6 +310,7 @@ const validateImport = async (
     const rules = runnableRules(await loadRules(tx, current.organizationId));
 
     const occurrences = new Map<string, number>();
+    // oxlint-disable-next-line complexity
     const classified: ClassifiedRow[] = dataRecords.map((record) => {
       const row = normalizeImportRow(record, mapping);
       const errors: TransactionImportRowError[] = [...row.errors];
@@ -343,6 +347,7 @@ const validateImport = async (
       }
 
       if (
+        account &&
         row.transactionDate &&
         current.openingBalanceMode === "reject" &&
         row.transactionDate < account.openingBalanceDate
@@ -356,7 +361,7 @@ const validateImport = async (
       let fingerprint: string | null = null;
       if (row.transactionDate && row.amount && row.type) {
         const base = [
-          account.id,
+          account?.id ?? current.organizationId,
           row.transactionDate,
           row.type,
           scaledAmount(row.amount).toString(),
@@ -369,7 +374,7 @@ const validateImport = async (
 
       const ruled =
         errors.length === 0
-          ? applyImportRules(rules, account.id, row, categoryId)
+          ? applyImportRules(rules, current.accountId, row, categoryId)
           : { categoryId, ruleApplication: null };
 
       return {
@@ -390,7 +395,8 @@ const validateImport = async (
 
     const committed = await existingFingerprints(
       tx,
-      account.id,
+      current.organizationId,
+      current.accountId,
       classified.flatMap((row) =>
         row.status === "valid" && row.fingerprint ? [row.fingerprint] : []
       )
@@ -474,6 +480,7 @@ const extendOpeningDate = async (
 };
 
 const commitImport = async (db: Database, importId: string): Promise<void> => {
+  // oxlint-disable-next-line complexity
   await db.transaction(async (tx) => {
     const current = await lockImport(tx, importId);
     if (current?.status !== "committing") {
@@ -481,12 +488,19 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
     }
     // Held to commit: a rebase reads the balance twice around moving the
     // opening date, and a posting committed in between would be offset away.
-    const account = await loadAccount(
+    const account = current.accountId
+      ? await loadAccount(
+          tx,
+          current.organizationId,
+          current.accountId,
+          "update"
+        )
+      : null;
+    const { defaultCurrency } = await householdSettings(
       tx,
-      current.organizationId,
-      current.accountId,
-      "update"
+      current.organizationId
     );
+    const destination = account ?? { currencyCode: defaultCurrency, id: null };
     const rows = await tx
       .select()
       .from(transactionImportRow)
@@ -549,6 +563,7 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
         return false;
       }
       if (
+        account &&
         current.openingBalanceMode === "reject" &&
         row.transactionDate &&
         row.transactionDate < account.openingBalanceDate
@@ -572,12 +587,14 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
           "A tag this row adds was archived after the preview. Restore it and import again.",
       },
     ]);
-    await setRowStatus(tx, beforeOpening, "invalid", [
-      {
-        field: "date",
-        message: openingDateMessage(account.openingBalanceDate),
-      },
-    ]);
+    if (account) {
+      await setRowStatus(tx, beforeOpening, "invalid", [
+        {
+          field: "date",
+          message: openingDateMessage(account.openingBalanceDate),
+        },
+      ]);
+    }
 
     const duplicates: string[] = [];
     let earliest: string | null = null;
@@ -586,7 +603,7 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
         .insert(financialTransaction)
         .values(
           batch.map((row) =>
-            transactionInsertValues(current.organizationId, account, {
+            transactionInsertValues(current.organizationId, destination, {
               amount: row.amount ?? "0",
               categoryId: row.categoryId ?? "",
               importFingerprint: row.fingerprint,
@@ -658,6 +675,7 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
     await setRowStatus(tx, duplicates, "duplicate");
 
     if (
+      account &&
       current.openingBalanceMode !== "reject" &&
       earliest &&
       earliest < account.openingBalanceDate

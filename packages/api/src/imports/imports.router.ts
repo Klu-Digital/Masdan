@@ -8,7 +8,17 @@ import {
 import type { TransactionImportStatus } from "@masdan/db/schema/index";
 import { queue } from "@masdan/queue";
 import { ORPCError } from "@orpc/server";
-import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  ne,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 
 import type { Context } from "../context";
@@ -22,14 +32,21 @@ import {
   activeAccount,
   validCategory,
 } from "../transactions/transactions.write";
-import { findImport, importFields } from "./imports.queries";
+import {
+  exportAttentionRows,
+  findImport,
+  importFields,
+} from "./imports.queries";
 import { OPENING_BALANCE_MODES, importMappingSchema } from "./mapping";
 
 const CSV_CONTENT_TYPES = new Set(["text/csv", "text/plain"]);
 
 const importConfigValues = z
   .object({
-    accountId: z.uuid(),
+    accountId: z
+      .uuid()
+      .nullish()
+      .transform((value) => value ?? null),
     defaultExpenseCategoryId: z.uuid(),
     defaultIncomeCategoryId: z.uuid(),
     mapping: importMappingSchema,
@@ -49,7 +66,9 @@ const assertConfig = async (
   organizationId: string,
   config: ImportConfig
 ): Promise<void> => {
-  await activeAccount(db, organizationId, config.accountId);
+  if (config.accountId) {
+    await activeAccount(db, organizationId, config.accountId);
+  }
   const [expense, income] = await Promise.all([
     validCategory(db, organizationId, config.defaultExpenseCategoryId, false),
     validCategory(db, organizationId, config.defaultIncomeCategoryId, false),
@@ -189,6 +208,13 @@ export const importsRouter = {
       return findImport(context.db, context.organizationId, input.importId);
     }),
 
+  exportAttention: orgProcedure
+    .use(requirePermission({ transaction: ["read"] }))
+    .input(importIdInput)
+    .handler(({ context, input }) =>
+      exportAttentionRows(context.db, context.organizationId, input.importId)
+    ),
+
   get: orgProcedure
     .use(requirePermission({ transaction: ["read"] }))
     .input(importIdInput)
@@ -208,7 +234,9 @@ export const importsRouter = {
             .where(
               and(
                 eq(transactionImport.organizationId, context.organizationId),
-                eq(transactionImport.accountId, current.accountId),
+                current.accountId
+                  ? eq(transactionImport.accountId, current.accountId)
+                  : isNull(transactionImport.accountId),
                 eq(transactionImport.checksum, current.checksum),
                 eq(transactionImport.status, "completed"),
                 ne(transactionImport.id, current.id)
@@ -234,7 +262,7 @@ export const importsRouter = {
       const rows = await context.db
         .select(importFields)
         .from(transactionImport)
-        .innerJoin(
+        .leftJoin(
           financialAccount,
           eq(financialAccount.id, transactionImport.accountId)
         )

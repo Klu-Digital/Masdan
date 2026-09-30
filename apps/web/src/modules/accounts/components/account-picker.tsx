@@ -49,6 +49,7 @@ const AccountOption = ({ account }: { account: PickerAccount }) => (
 
 export const AccountPicker = ({
   accounts,
+  allowNone = false,
   "aria-invalid": ariaInvalid,
   ariaLabel = "Account",
   onValueChange,
@@ -56,6 +57,7 @@ export const AccountPicker = ({
   value,
 }: {
   accounts: PickerAccount[];
+  allowNone?: boolean;
   "aria-invalid"?: boolean;
   ariaLabel?: string;
   onValueChange: (value: string) => void;
@@ -63,22 +65,24 @@ export const AccountPicker = ({
   value: string;
 }) => {
   const selected = accounts.find((account) => account.id === value);
+  const emptyLabel = allowNone ? "No account" : placeholder;
   return (
     <Select
       onValueChange={(next) =>
-        onValueChange(typeof next === "string" ? next : "")
+        onValueChange(typeof next === "string" && next !== "none" ? next : "")
       }
-      value={value || null}
+      value={value || (allowNone ? "none" : null)}
     >
       <SelectTrigger
         aria-invalid={ariaInvalid || undefined}
         aria-label={ariaLabel}
       >
         <SelectValue>
-          {selected ? <AccountOption account={selected} /> : placeholder}
+          {selected ? <AccountOption account={selected} /> : emptyLabel}
         </SelectValue>
       </SelectTrigger>
       <SelectPopup>
+        {allowNone ? <SelectItem value="none">No account</SelectItem> : null}
         {accounts.map((account) => (
           <SelectItem key={account.id} value={account.id}>
             <AccountOption account={account} />

@@ -11,6 +11,7 @@ vi.mock("@masdan/ui/components/toast", () => ({
 
 const accountsList = vi.hoisted(() => vi.fn());
 const categoriesList = vi.hoisted(() => vi.fn());
+const householdProfile = vi.hoisted(() => vi.fn());
 const importsList = vi.hoisted(() => vi.fn());
 const importsCreate = vi.hoisted(() => vi.fn());
 const uploadFile = vi.hoisted(() => vi.fn());
@@ -22,6 +23,7 @@ vi.mock("@/utils/client", async () => {
     client: mockClient({
       accounts: { list: accountsList },
       categories: { list: categoriesList },
+      households: { profile: householdProfile },
       imports: { create: importsCreate, list: importsList },
     }),
   };
@@ -48,6 +50,7 @@ beforeEach(() => {
   for (const mock of [
     accountsList,
     categoriesList,
+    householdProfile,
     importsList,
     importsCreate,
     uploadFile,
@@ -55,6 +58,7 @@ beforeEach(() => {
   ]) {
     mock.mockReset();
   }
+  householdProfile.mockResolvedValue({ defaultCurrency: { code: "USD" } });
   accountsList.mockResolvedValue([
     {
       accountType: "bank",
@@ -109,7 +113,8 @@ describe("NewImportPage", () => {
       )
     ).toBeVisible();
     expect(uploadFile).not.toHaveBeenCalled();
-    expect(screen.getByText(/BPI Savings starts on 2026-01-01/u)).toBeVisible();
+    expect(screen.getByText("No account")).toBeVisible();
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
   });
 
   it("uploads the file and creates an import with the guessed mapping", async () => {
@@ -158,7 +163,9 @@ describe("NewImportPage", () => {
 
   it("sends the chosen opening-balance handling", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<NewImportPage activeOrganizationId="household-1" />);
+    renderWithProviders(
+      <NewImportPage accountId="account-1" activeOrganizationId="household-1" />
+    );
 
     await user.upload(await screen.findByLabelText("CSV file"), csvFile());
     await user.click(
@@ -171,6 +178,24 @@ describe("NewImportPage", () => {
     await waitFor(() =>
       expect(importsCreate).toHaveBeenCalledWith(
         expect.objectContaining({ openingBalanceMode: "rebase" })
+      )
+    );
+  });
+
+  it("imports without any accounts using the household currency", async () => {
+    accountsList.mockResolvedValue([]);
+    const user = userEvent.setup();
+    renderWithProviders(<NewImportPage activeOrganizationId="household-1" />);
+    await user.upload(await screen.findByLabelText("CSV file"), csvFile());
+    const preview = await screen.findByRole("table", {
+      name: "How the first rows will be read",
+    });
+    expect(within(preview).getAllByText(/\$/u).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Check all rows" }));
+    await waitFor(() =>
+      expect(importsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ accountId: null })
       )
     );
   });

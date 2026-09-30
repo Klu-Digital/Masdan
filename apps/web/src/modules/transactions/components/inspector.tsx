@@ -116,20 +116,24 @@ const EntryDetails = ({ detail }: { detail: TransactionDetail }) => (
         </span>
       </Row>
     )}
-    <ListItem
-      className="min-h-11"
-      render={
-        <Link
-          params={{ accountId: detail.accountId }}
-          to="/accounts/$accountId"
-        />
-      }
-    >
-      <ListItemContent>
-        <span className="text-muted-foreground text-sm">Account</span>
-      </ListItemContent>
-      <ListItemTrailing chevron>{detail.accountName}</ListItemTrailing>
-    </ListItem>
+    {detail.accountId ? (
+      <ListItem
+        className="min-h-11"
+        render={
+          <Link
+            params={{ accountId: detail.accountId }}
+            to="/accounts/$accountId"
+          />
+        }
+      >
+        <ListItemContent>
+          <span className="text-muted-foreground text-sm">Account</span>
+        </ListItemContent>
+        <ListItemTrailing chevron>{detail.accountName}</ListItemTrailing>
+      </ListItem>
+    ) : (
+      <Row label="Account">No account</Row>
+    )}
     <Row label="Status">
       {detail.paidStatus === "paid" ? (
         "Paid"

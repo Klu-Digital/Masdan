@@ -3,6 +3,7 @@ import {
   file,
   financialAccount,
   financialTransaction,
+  organization,
   transactionImportRow,
 } from "@masdan/db/schema/index";
 import type * as StorageModule from "@masdan/storage";
@@ -29,9 +30,11 @@ import {
 
 import { accountsRouter } from "../accounts/accounts.router";
 import type { Context } from "../context";
+import { getMonthlyCashFlow } from "../reports/reports.queries";
 import { rulesRouter } from "../rules/rules.router";
 import { tagsRouter } from "../tags/tags.router";
 import { transactionsRouter } from "../transactions/transactions.router";
+import { parseCsv } from "./csv";
 import { processImport } from "./imports.process";
 import { importsRouter } from "./imports.router";
 import type { ImportMapping } from "./mapping";
@@ -180,7 +183,7 @@ const uploadCsv = async (household: Household, text: string) => {
 
 const startImport = (
   household: Household,
-  accountId: string,
+  accountId: string | null,
   fileId: string,
   overrides: Partial<{
     mapping: ImportMapping;
@@ -387,7 +390,172 @@ describe("imports preview", () => {
   });
 });
 
+describe("imports attention export", () => {
+  it("exports every rejected row with original cells and errors, safely quoted", async () => {
+    const household = await signUpHousehold();
+    const csv = [
+      "Date,Description,Amount,Category",
+      'not a date,"=SUM(1,2)\nquoted ""text""",-10,',
+      ...Array.from(
+        { length: 204 },
+        (_, index) => `not a date,Rejected ${index},-10,`
+      ),
+      "2026-02-01,Valid,-10,",
+    ].join("\n");
+    const source = await uploadCsv(household, csv);
+    const created = await startImport(household, null, source.id);
+    await processImport(getTestDb(), created.id);
+    const exported = await call(
+      importsRouter.exportAttention,
+      { importId: created.id },
+      household.context
+    );
+    expect(exported).toMatchObject({
+      fileName: "bank-needs-attention.csv",
+      rowCount: 205,
+    });
+    const { records } = parseCsv(exported.csv, { delimiter: "," });
+    expect(records).toHaveLength(206);
+    expect(records[0]?.cells).toEqual([
+      "Date",
+      "Description",
+      "Amount",
+      "Category",
+      "Source row",
+      "Errors",
+    ]);
+    expect(records[1]?.cells).toEqual([
+      "not a date",
+      '\'=SUM(1,2)\nquoted "text"',
+      "'-10",
+      "",
+      "2",
+      expect.stringContaining("date: Can't read"),
+    ]);
+    expect(exported.csv).not.toContain(",Valid,");
+    const other = await signUpHousehold();
+    expect(
+      await codeOf(
+        call(
+          importsRouter.exportAttention,
+          { importId: created.id },
+          other.context
+        )
+      )
+    ).toBe("NOT_FOUND");
+  });
+});
+
 describe("imports commit", () => {
+  it("imports accountless history into the household ledger and reports, with household-scoped duplicates", async () => {
+    const household = await signUpHousehold();
+    await getTestDb()
+      .update(organization)
+      .set({ defaultCurrency: "USD" })
+      .where(eq(organization.id, household.organizationId));
+    const source = await uploadCsv(household, CSV);
+    const created = await call(
+      importsRouter.create,
+      {
+        defaultExpenseCategoryId: household.expenseCategoryId,
+        defaultIncomeCategoryId: household.incomeCategoryId,
+        fileId: source.id,
+        mapping,
+        openingBalanceMode: "reject",
+      },
+      household.context
+    );
+    expect(created).toMatchObject({
+      accountId: null,
+      accountName: null,
+      currencyCode: "USD",
+    });
+    expect(await validateAndCommit(household, created.id)).toMatchObject({
+      importedRows: 4,
+      invalidRows: 3,
+      status: "completed",
+    });
+    expect(await call(importsRouter.list, {}, household.context)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ accountId: null, id: created.id }),
+      ])
+    );
+    const ledger = await call(transactionsRouter.list, {}, household.context);
+    expect(ledger.total).toBe(4);
+    expect(ledger.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          accountId: null,
+          accountName: null,
+          currencyCode: "USD",
+        }),
+      ])
+    );
+    expect(
+      await getMonthlyCashFlow(getTestDb(), household.organizationId, {
+        dateFrom: "2026-02-01",
+        dateTo: "2026-02-28",
+      })
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          currencyCode: "USD",
+          expense: "1526.250000",
+          income: "25000.000000",
+        }),
+      ])
+    );
+    const account = await createAccount(household);
+    expect(await balanceOf(household, account.id)).toBe("1000.000000");
+    const repeated = await startImport(household, null, source.id);
+    await processImport(getTestDb(), repeated.id);
+    expect(
+      await call(
+        importsRouter.get,
+        { importId: repeated.id },
+        household.context
+      )
+    ).toMatchObject({
+      duplicateRows: 4,
+      previousImport: { id: created.id },
+      validRows: 0,
+    });
+    const other = await signUpHousehold();
+    const otherSource = await uploadCsv(other, CSV);
+    const otherImport = await startImport(other, null, otherSource.id);
+    expect(await validateAndCommit(other, otherImport.id)).toMatchObject({
+      duplicateRows: 0,
+      importedRows: 4,
+    });
+    const [transaction] = ledger.items;
+    if (!transaction?.categoryId) {
+      throw new Error("Missing imported transaction");
+    }
+    await call(
+      transactionsRouter.update,
+      {
+        accountId: null,
+        amount: transaction.amount,
+        categoryId: transaction.categoryId,
+        notes: "Edited history",
+        paidStatus: "paid",
+        transactionDate: transaction.transactionDate,
+        transactionId: transaction.id,
+      },
+      household.context
+    );
+    await call(
+      transactionsRouter.archive,
+      { transactionId: transaction.id },
+      household.context
+    );
+    await call(
+      transactionsRouter.restore,
+      { transactionId: transaction.id },
+      household.context
+    );
+    expect(await balanceOf(household, account.id)).toBe("1000.000000");
+  });
   it("backfills transactions on their original dates and moves the balance", async () => {
     const household = await signUpHousehold();
     const account = await createAccount(household);
