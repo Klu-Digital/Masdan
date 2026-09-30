@@ -6,6 +6,7 @@ import {
   LIQUIDITY_TYPES,
 } from "@masdan/api/accounts/constants";
 import type { AccountType } from "@masdan/api/accounts/constants";
+import { INTEREST_ACCOUNT_TYPES } from "@masdan/api/interest/schema";
 import {
   cardNetworkLabel,
   resolveCardNetwork,
@@ -49,8 +50,14 @@ import { householdOrpc, orpc } from "@/utils/orpc";
 import type { RouterInputs, RouterOutputs } from "@/utils/orpc";
 
 import { cardCountriesOf, useCardCatalog } from "../card-catalog";
+import { resolveInstitution } from "../institutions";
+import { interestCatalogQuery } from "../interest";
+import { interestDraftOf, interestPayload } from "../interest-draft";
+import type { InterestDraft } from "../interest-draft";
 import { LIQUIDITY_LABELS, accountKind } from "../kinds";
 import { CardProductPicker } from "./card-product-picker";
+import { InstitutionField } from "./institution-field";
+import { InterestFields } from "./interest-fields";
 import { IssuerField } from "./issuer-field";
 
 export type AccountDetail = RouterOutputs["accounts"]["get"];
@@ -98,6 +105,8 @@ const accountSchema = z
     currencyCode: z.string().length(3, "Choose a currency"),
     includeInNetWorth: z.boolean(),
     institution: z.string().max(120),
+    institutionId: z.string().nullable(),
+    interest: z.custom<InterestDraft>(),
     liquidity: z.enum(LIQUIDITY_TYPES).nullable(),
     name: z.string().trim().min(1, "Give the account a name").max(120),
     notes: z.string().max(2000),
@@ -150,12 +159,33 @@ export const AccountForm = ({
   const editing = account !== undefined;
   const kind = accountKind(accountType);
   const savedProductKey = account?.cardProductKey ?? null;
+  const earnsInterest = (INTEREST_ACCOUNT_TYPES as readonly string[]).includes(
+    accountType
+  );
+  const interestCatalog = useQuery({
+    ...interestCatalogQuery(),
+    enabled: accountType !== "credit_card",
+  });
   const catalog = useCardCatalog(
     cardCountriesOf({
       cardProductKey: savedProductKey,
       currencyCode: household.currency,
     })
   );
+
+  const hasOwnLook = (
+    values: Pick<
+      AccountFormValues,
+      "cardProductKey" | "institution" | "institutionId"
+    >
+  ): boolean =>
+    accountType === "credit_card"
+      ? catalog.findProduct(values.cardProductKey) !== null
+      : resolveInstitution(interestCatalog.data?.institutions ?? [], values) !==
+        null;
+
+  const productOf = (productId: string | null) =>
+    interestCatalog.data?.products.find(({ id }) => id === productId) ?? null;
 
   const defaultValues: AccountFormValues = {
     accountClass: kind.accountClass,
@@ -168,6 +198,8 @@ export const AccountForm = ({
     currencyCode: account?.currencyCode ?? household.currency ?? "",
     includeInNetWorth: account?.includeInNetWorth ?? true,
     institution: account?.institution ?? "",
+    institutionId: account?.institutionId ?? null,
+    interest: interestDraftOf(account?.interest ?? null),
     liquidity:
       kind.accountClass === "liability"
         ? null
@@ -187,14 +219,22 @@ export const AccountForm = ({
     defaultValues,
     onSubmit: async ({ value }) => {
       const isCard = value.accountType === "credit_card";
+      const { interest: draft, ...fields } = value;
+      const interest = earnsInterest
+        ? interestPayload(draft, productOf(draft.productId))
+        : null;
       const payload = {
-        ...value,
+        ...fields,
         cardLastFour: isCard ? value.cardLastFour : null,
         cardNetwork: isCard ? value.cardNetwork : null,
         cardProductKey: isCard ? value.cardProductKey : null,
-        color: (value.color ??
-          null) as RouterInputs["accounts"]["create"]["color"],
+        color: (hasOwnLook(value)
+          ? null
+          : (value.color ??
+            null)) as RouterInputs["accounts"]["create"]["color"],
         creditLimit: isCard ? value.creditLimit : null,
+        institutionId: isCard ? null : value.institutionId,
+        interest: interest?.ok ? interest.value : undefined,
         openingBalance: value.openingBalance || "0",
         paymentDueDay: isCard ? value.paymentDueDay : null,
         statementClosingDay: isCard ? value.statementClosingDay : null,
@@ -283,9 +323,7 @@ export const AccountForm = ({
         <form.Field name="institution">
           {(field) => (
             <Field name={field.name}>
-              <FieldLabel htmlFor={isCard ? undefined : field.name}>
-                Institution
-              </FieldLabel>
+              <FieldLabel>Institution</FieldLabel>
               {isCard ? (
                 <form.Subscribe selector={(state) => state.values.currencyCode}>
                   {(currencyCode) => (
@@ -298,13 +336,21 @@ export const AccountForm = ({
                   )}
                 </form.Subscribe>
               ) : (
-                <Input
-                  id={field.name}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                  placeholder="Optional"
-                  value={field.state.value}
-                />
+                <form.Subscribe
+                  selector={(state) => state.values.institutionId}
+                >
+                  {(institutionId) => (
+                    <InstitutionField
+                      institutions={interestCatalog.data?.institutions ?? []}
+                      onBlur={field.handleBlur}
+                      onChange={(next) => {
+                        field.handleChange(next.institution);
+                        form.setFieldValue("institutionId", next.institutionId);
+                      }}
+                      value={{ institution: field.state.value, institutionId }}
+                    />
+                  )}
+                </form.Subscribe>
               )}
             </Field>
           )}
@@ -607,6 +653,55 @@ export const AccountForm = ({
         </section>
       ) : null}
 
+      {earnsInterest && interestCatalog.data ? (
+        <form.Field
+          name="interest"
+          validators={{
+            onSubmit: ({ value }) => {
+              const result = interestPayload(value, productOf(value.productId));
+              return result.ok ? undefined : result.message;
+            },
+          }}
+        >
+          {(field) => (
+            <form.Subscribe
+              selector={(state) => ({
+                currencyCode: state.values.currencyCode,
+                institutionId: state.values.institutionId,
+                openingBalanceDate: state.values.openingBalanceDate,
+              })}
+            >
+              {(context) => (
+                <InterestFields
+                  catalog={interestCatalog.data}
+                  currencyCode={context.currencyCode}
+                  error={
+                    field.state.meta.errors.length > 0
+                      ? String(field.state.meta.errors[0])
+                      : undefined
+                  }
+                  institutionId={context.institutionId}
+                  onChange={field.handleChange}
+                  onPickProduct={(product) => {
+                    const bank = interestCatalog.data.institutions.find(
+                      ({ id }) => id === product.institutionId
+                    );
+                    // Picking a product deliberately picks its bank.
+                    if (bank && context.institutionId !== bank.id) {
+                      form.setFieldValue("institution", bank.name);
+                      form.setFieldValue("institutionId", bank.id);
+                    }
+                  }}
+                  openingBalanceDate={context.openingBalanceDate}
+                  today={householdToday(household.timezone)}
+                  value={field.state.value}
+                />
+              )}
+            </form.Subscribe>
+          )}
+        </form.Field>
+      ) : null}
+
       <MoreOptions defaultOpen={opensAdvanced}>
         <form.Field name="includeInNetWorth">
           {(field) => (
@@ -695,14 +790,10 @@ export const AccountForm = ({
           </form.Field>
         ) : null}
 
-        <form.Subscribe
-          selector={(state) =>
-            isCard && catalog.findProduct(state.values.cardProductKey) !== null
-          }
-        >
-          {(hasCardDesign) =>
-            // A catalog card brings its own design, so a colour would be ignored.
-            hasCardDesign ? null : (
+        <form.Subscribe selector={(state) => hasOwnLook(state.values)}>
+          {(ownLook) =>
+            // A catalog card or a known bank brings its own look.
+            ownLook ? null : (
               <form.Field name="color">
                 {(field) => (
                   <Field name={field.name}>

@@ -107,6 +107,33 @@ export const jobs = defineJobs({
     schema: z.object({ importId: z.uuid() }),
   },
   /**
+   * Posts one account's finished interest credits as income. Safe to deliver
+   * twice or retry: the unique (account, credit date) key on `interest_credit`
+   * turns a repeat into a no-op. `stately` with the account as `singletonKey`,
+   * so overlapping sweeps queue one job per account.
+   */
+  "interest.post": {
+    queue: {
+      policy: "stately",
+      retryBackoff: true,
+      retryDelay: 30,
+      retryLimit: 3,
+    },
+    schema: z.object({ accountId: z.uuid() }),
+  },
+  /**
+   * Enqueues `interest.post` for every account set to post interest.
+   * Hourly because credits are day-granular: a household's day turns over at
+   * its own midnight, so a credit lands at most an hour after it.
+   */
+  "interest.sweep": {
+    cron: { data: {}, expression: "23 * * * *", tz: "UTC" },
+    // `singleton` so a slow sweep can't stack up behind the next; the next tick
+    // replaces a failed one.
+    queue: { policy: "singleton", retryLimit: 0 },
+    schema: z.object({}).strict(),
+  },
+  /**
    * Posts one schedule's due occurrences. Safe to deliver twice or retry: the
    * unique (schedule, occurrence date) index turns a repeat into a no-op.
    * `stately` with the schedule as `singletonKey`, so overlapping sweeps queue

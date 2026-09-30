@@ -31,7 +31,7 @@
     "db:post-migrate:new": "vp run --filter @masdan/db post-migrate:new",
     "db:post-migrate:status": "vp run --filter @masdan/db post-migrate:status",
     "db:purge": "vp run --filter @masdan/db purge",
-    "db:reset": "pnpm run db:purge --yes && pnpm run db:migrate && pnpm run db:post-migrate && pnpm run db:seed",
+    "db:reset": "pnpm run db:purge --yes && pnpm run db:deploy && pnpm run db:seed",
     "admin:grant": "vp run --filter @masdan/db grant-admin",
     "admin:reset-password": "vp run --filter @masdan/db reset-password",
     "queue:migrate": "vp run --filter @masdan/queue queue:migrate",

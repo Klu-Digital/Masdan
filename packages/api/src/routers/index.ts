@@ -15,6 +15,7 @@ import { filesRouter } from "../files/files.router";
 import { goalsRouter } from "../goals/goals.router";
 import { householdsRouter } from "../households/households.router";
 import { importsRouter } from "../imports/imports.router";
+import { interestRouter } from "../interest/interest.router";
 import { invitationsRouter } from "../invitations/invitations.router";
 import { recurringRouter } from "../recurring/recurring.router";
 import { remindersRouter } from "../reminders/reminders.router";
@@ -50,6 +51,7 @@ export const appRouter = {
   goals: goalsRouter,
   households: householdsRouter,
   imports: importsRouter,
+  interest: interestRouter,
   invitations: invitationsRouter,
   recurringSchedules: recurringRouter,
   reminders: remindersRouter,

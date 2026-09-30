@@ -89,6 +89,7 @@ import { AccountCard } from "./account-card";
 import type { AccountDetail as Account } from "./account-composer";
 import { DetailRow, MonthFlow, NetworkValue } from "./account-detail-parts";
 import { AccountTile, accountSubtitle } from "./account-row";
+import { InterestPanel } from "./interest-panel";
 import { ReconciliationComposer } from "./reconciliation-composer";
 import { StatementComposer } from "./statement-composer";
 
@@ -619,6 +620,14 @@ export const AccountDetailPage = ({
           </div>
         </section>
       )}
+
+      {data.interest ? (
+        <InterestPanel
+          account={data}
+          organizationId={activeOrganizationId}
+          today={today}
+        />
+      ) : null}
 
       <Section aria-label="Activity">
         <SectionHeader>

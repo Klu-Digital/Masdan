@@ -7,37 +7,37 @@ import {
 import { and, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
+/** What one posting does to its account's balance: the sign of the formula. */
+const postingDelta = sql<string>`
+  CASE
+    WHEN ${financialTransaction.adjustmentDirection} = 'increase'
+      THEN ${financialTransaction.amount}
+    WHEN ${financialTransaction.adjustmentDirection} = 'decrease'
+      THEN -${financialTransaction.amount}
+    WHEN ${financialTransaction.transferSide} = 'source' AND ${financialAccount.accountClass} = 'asset'
+      THEN -${financialTransaction.amount}
+    WHEN ${financialTransaction.transferSide} = 'source'
+      THEN ${financialTransaction.amount}
+    WHEN ${financialTransaction.transferSide} = 'destination' AND ${financialAccount.accountClass} = 'asset'
+      THEN ${financialTransaction.amount}
+    WHEN ${financialTransaction.transferSide} = 'destination'
+      THEN -${financialTransaction.amount}
+    WHEN ${financialAccount.accountClass} = 'asset' AND ${category.type} = 'income'
+      THEN ${financialTransaction.amount}
+    WHEN ${financialAccount.accountClass} = 'asset'
+      THEN -${financialTransaction.amount}
+    WHEN ${category.type} = 'expense'
+      THEN ${financialTransaction.amount}
+    ELSE -${financialTransaction.amount}
+  END
+`;
+
 /**
  * The one balance formula. Aggregate it over `financial_account` joined with
  * `balancePostings()` and `balanceCategory`, grouped by the account.
  */
 export const balanceExpression = sql<string>`
-  ${financialAccount.openingBalance} + COALESCE(
-    SUM(
-      CASE
-        WHEN ${financialTransaction.adjustmentDirection} = 'increase'
-          THEN ${financialTransaction.amount}
-        WHEN ${financialTransaction.adjustmentDirection} = 'decrease'
-          THEN -${financialTransaction.amount}
-        WHEN ${financialTransaction.transferSide} = 'source' AND ${financialAccount.accountClass} = 'asset'
-          THEN -${financialTransaction.amount}
-        WHEN ${financialTransaction.transferSide} = 'source'
-          THEN ${financialTransaction.amount}
-        WHEN ${financialTransaction.transferSide} = 'destination' AND ${financialAccount.accountClass} = 'asset'
-          THEN ${financialTransaction.amount}
-        WHEN ${financialTransaction.transferSide} = 'destination'
-          THEN -${financialTransaction.amount}
-        WHEN ${financialAccount.accountClass} = 'asset' AND ${category.type} = 'income'
-          THEN ${financialTransaction.amount}
-        WHEN ${financialAccount.accountClass} = 'asset'
-          THEN -${financialTransaction.amount}
-        WHEN ${category.type} = 'expense'
-          THEN ${financialTransaction.amount}
-        ELSE -${financialTransaction.amount}
-      END
-    ),
-    0
-  )
+  ${financialAccount.openingBalance} + COALESCE(SUM(${postingDelta}), 0)
 `;
 
 /**
@@ -106,4 +106,31 @@ export const getAccountBalance = async (
     asOf
   );
   return balances.get(accountId) ?? "0";
+};
+
+/** Each day's net movement in `[from, to]`, for day-by-day balances. */
+export const getDailyMovements = async (
+  db: Database,
+  organizationId: string,
+  accountId: string,
+  from: string,
+  to: string
+): Promise<Map<string, string>> => {
+  const rows = await db
+    .select({
+      date: financialTransaction.transactionDate,
+      movement: sql<string>`SUM(${postingDelta})`,
+    })
+    .from(financialAccount)
+    .innerJoin(financialTransaction, balancePostings(to))
+    .leftJoin(category, balanceCategory)
+    .where(
+      and(
+        eq(financialAccount.organizationId, organizationId),
+        eq(financialAccount.id, accountId),
+        gte(financialTransaction.transactionDate, from)
+      )
+    )
+    .groupBy(financialTransaction.transactionDate);
+  return new Map(rows.map(({ date, movement }) => [date, movement]));
 };

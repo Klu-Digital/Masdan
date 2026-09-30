@@ -15,12 +15,15 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
 import { Amount } from "@/components/finance/amount";
+import { InstitutionLogo } from "@/components/finance/institution-logo";
 import { toNumber } from "@/components/finance/money";
 import { Sensitive } from "@/components/finance/sensitive";
 import { formatRelativeDays, formatShortDate } from "@/lib/dates";
 import { householdOrpc } from "@/utils/orpc";
 
 import { nextPaymentDue, utilizationTone } from "../credit";
+import { useInstitutionOf } from "../institutions";
+import type { InstitutionIdentity } from "../institutions";
 import { accountKind, accountTint } from "../kinds";
 import type { LabelledAllocation } from "../net-worth";
 import { AccountCard, AccountCardThumb } from "./account-card";
@@ -38,25 +41,33 @@ export interface RowAccount {
   currencyCode: string;
   id: string;
   institution: string | null;
+  institutionId?: string | null;
   name: string;
   paymentDueDay: number | null;
   utilization: string | null;
 }
 
+/** The account's bank logo when Masdan knows the bank, else its kind's glyph. */
 export const AccountTile = ({
   account,
   size = "default",
 }: {
-  account: Pick<RowAccount, "accountType" | "color">;
-  size?: "default" | "lg" | "sm";
-}) => (
-  <IconTile aria-hidden="true" size={size} tint={accountTint(account)}>
-    <HugeiconsIcon
-      icon={accountKind(account.accountType).icon}
-      strokeWidth={1.8}
-    />
-  </IconTile>
-);
+  account: Pick<RowAccount, "accountType" | "color"> & InstitutionIdentity;
+  size?: "default" | "lg" | "sm" | "xs";
+}) => {
+  const institution = useInstitutionOf(account);
+  if (institution && account.accountType !== "credit_card") {
+    return <InstitutionLogo institution={institution} size={size} />;
+  }
+  return (
+    <IconTile aria-hidden="true" size={size} tint={accountTint(account)}>
+      <HugeiconsIcon
+        icon={accountKind(account.accountType).icon}
+        strokeWidth={size === "xs" ? 2 : 1.8}
+      />
+    </IconTile>
+  );
+};
 
 export const accountSubtitle = (
   account: Pick<RowAccount, "accountType" | "cardLastFour" | "institution">

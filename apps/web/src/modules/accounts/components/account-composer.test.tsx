@@ -58,6 +58,8 @@ const savedCard = (overrides: Partial<AccountDetail> = {}): AccountDetail => ({
   id: "account-1",
   includeInNetWorth: true,
   institution: "BPI",
+  institutionId: null,
+  interest: null,
   liquidity: null,
   name: "BPI Gold Rewards",
   notes: null,

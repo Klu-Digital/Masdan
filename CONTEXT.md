@@ -32,6 +32,14 @@ A self-hosted household finance tracker: accounts, an income/expense ledger, bud
 
 **Currency**: An ISO 4217 code with its minor units. A household has a default currency; each account has its own.
 
+**Interest preset**: A bank product Masdan ships with its rates, such as MariBank Savings or a Tonik time deposit. Shared by every household and never edited by one. _Avoid_: Template
+
+**Rate schedule**: One dated version of a preset's rates: tiers, how interest is calculated and credited, and tax. A rate change adds a schedule; it never edits one.
+
+**Interest projection**: An estimate of an account's interest from its ledger balance and rates, shown on the account.
+
+**Interest credit**: One credit period's estimated net interest, posted as Interest Income on its credit date by a worker, for accounts set to post interest. Posted once; archiving the transaction does not bring it back.
+
 **Net worth**: Assets minus liabilities across accounts marked for inclusion, consolidated into the household currency at exchange rates.
 
 ### The ledger

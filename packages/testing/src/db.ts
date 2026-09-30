@@ -36,7 +36,12 @@ export const getTestDb = (): Database => {
  * truncating them breaks the `organization.default_currency` foreign key for
  * every test that signs a user up.
  */
-const REFERENCE_TABLES = ["currency"];
+const REFERENCE_TABLES = [
+  "currency",
+  "financial_institution",
+  "interest_product",
+  "interest_rate_schedule",
+];
 
 /**
  * Only the job table. `queue` and `schedule` are schema-shaped rather than

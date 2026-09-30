@@ -18,6 +18,10 @@ export const timestamps = () => ({
 export const money = (name: string) =>
   numeric(name, { precision: 30, scale: 6 });
 
+/** Percentages, at the ledger's scale so `scaledAmount` reads them: `3.25` is 3.25%. */
+export const percent = (name: string) =>
+  numeric(name, { precision: 12, scale: 6 });
+
 export const rate = (name: string) =>
   numeric(name, { precision: 30, scale: 12 });
 

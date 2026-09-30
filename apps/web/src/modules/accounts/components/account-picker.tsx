@@ -1,5 +1,3 @@
-import { HugeiconsIcon } from "@hugeicons/react";
-import { IconTile } from "@masdan/ui/components/icon-tile";
 import {
   Select,
   SelectItem,
@@ -8,8 +6,8 @@ import {
   SelectValue,
 } from "@masdan/ui/components/select";
 
-import { accountKind, accountTint } from "../kinds";
 import { AccountCardThumb } from "./account-card";
+import { AccountTile } from "./account-row";
 
 export interface PickerAccount {
   accountType: string;
@@ -20,6 +18,7 @@ export interface PickerAccount {
   currencyCode: string;
   id: string;
   institution?: string | null;
+  institutionId?: string | null;
   name: string;
 }
 
@@ -39,12 +38,7 @@ const AccountOption = ({ account }: { account: PickerAccount }) => (
         size="xs"
       />
     ) : (
-      <IconTile tint={accountTint(account)} size="xs">
-        <HugeiconsIcon
-          icon={accountKind(account.accountType).icon}
-          strokeWidth={2}
-        />
-      </IconTile>
+      <AccountTile account={account} size="xs" />
     )}
     <span className="truncate">{account.name}</span>
     <span className="text-muted-foreground text-xs">

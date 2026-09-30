@@ -17,6 +17,7 @@ import {
   isNull,
 } from "drizzle-orm";
 
+import { accountInterestSummary } from "../interest/interest.queries";
 import { notFound } from "../shared/errors";
 import { fixedAmountText, signedScaledAmount } from "../shared/money";
 import { findOwned } from "../shared/ownership";
@@ -37,6 +38,7 @@ export const accountFields = {
   id: financialAccount.id,
   includeInNetWorth: financialAccount.includeInNetWorth,
   institution: financialAccount.institution,
+  institutionId: financialAccount.institutionId,
   liquidity: financialAccount.liquidity,
   name: financialAccount.name,
   notes: financialAccount.notes,
@@ -173,6 +175,7 @@ export const getAccount = async (
   return {
     ...(await withBalance(db, organizationId, account)),
     hasFinancialHistory: await hasFinancialHistory(db, accountId),
+    interest: await accountInterestSummary(db, organizationId, accountId),
     ownerMemberIds: owners.map(({ memberId }) => memberId),
   };
 };

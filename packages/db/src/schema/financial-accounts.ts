@@ -23,6 +23,7 @@ import {
 import { member, organization } from "./auth";
 import { money, oneOf, timestamps, timestamptz } from "./columns";
 import { currency } from "./finance";
+import { financialInstitution } from "./institutions";
 
 export const financialAccount = pgTable(
   "financial_account",
@@ -45,7 +46,12 @@ export const financialAccount = pgTable(
       .primaryKey()
       .default(sql`uuidv7()`),
     includeInNetWorth: boolean("include_in_net_worth").default(true).notNull(),
+    /** Free text, kept in step with `institutionId` when that is set. */
     institution: text("institution"),
+    institutionId: uuid("institution_id").references(
+      () => financialInstitution.id,
+      { onDelete: "restrict" }
+    ),
     liquidity: text("liquidity", { enum: LIQUIDITY_TYPES }),
     name: text("name").notNull(),
     notes: text("notes"),

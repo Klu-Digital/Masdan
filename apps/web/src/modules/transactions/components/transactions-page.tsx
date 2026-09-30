@@ -44,6 +44,7 @@ import { NewMenu } from "@/components/shell/new-menu";
 import type { Household } from "@/hooks/use-household";
 import { householdToday } from "@/lib/household-date";
 import { AccountCardThumb } from "@/modules/accounts/components/account-card";
+import { AccountTile } from "@/modules/accounts/components/account-row";
 import {
   ledgerInfiniteQuery,
   ledgerQueries,
@@ -210,7 +211,9 @@ export const TransactionsPage = ({
         leading:
           account.accountType === "credit_card" ? (
             <AccountCardThumb account={account} size="xs" />
-          ) : undefined,
+          ) : (
+            <AccountTile account={account} size="xs" />
+          ),
         value: account.id,
       })),
     [accounts.data]

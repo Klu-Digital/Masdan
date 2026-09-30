@@ -6,15 +6,18 @@ import {
   financialAccount,
   financialAccountBalanceSnapshot,
   financialAccountOwner,
+  financialInstitution,
   financialTransaction,
   member,
 } from "@masdan/db/schema/index";
 import { ORPCError } from "@orpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 
+import { saveAccountInterest } from "../interest/interest.commands";
+import { INTEREST_ACCOUNT_TYPES } from "../interest/schema";
 import { enqueueReminderRefresh } from "../reminders/reminders.commands";
 import { notFound } from "../shared/errors";
-import { householdSettings } from "../shared/household";
+import { householdDate, householdSettings } from "../shared/household";
 import {
   fixedAmountText,
   formatScaledAmount,
@@ -69,6 +72,30 @@ const assertCardProduct = (
     throw new ORPCError("BAD_REQUEST", { message: issue });
   }
 };
+
+/** A catalog bank sets the account's institution to its name. */
+const institutionFields = async (
+  db: Database,
+  values: AccountValues
+): Promise<{ institution?: string | null; institutionId?: string | null }> => {
+  if (!values.institutionId) {
+    return values.institutionId === null ? { institutionId: null } : {};
+  }
+  const [institution] = await db
+    .select({ name: financialInstitution.name })
+    .from(financialInstitution)
+    .where(eq(financialInstitution.id, values.institutionId))
+    .limit(1);
+  if (!institution) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Choose a bank from the list",
+    });
+  }
+  return { institution: institution.name, institutionId: values.institutionId };
+};
+
+const earnsInterest = (accountType: string): boolean =>
+  (INTEREST_ACCOUNT_TYPES as readonly string[]).includes(accountType);
 
 const validateOwners = async (
   db: Database,
@@ -142,12 +169,13 @@ export const createAccount = async (
   const card = cardMetadata(input);
   assertCardProduct(card, input.institution, null);
 
-  const { ownerMemberIds, currencyCode: _, ...values } = input;
+  const { interest, ownerMemberIds, currencyCode: _, ...values } = input;
   const [created] = await db
     .insert(financialAccount)
     .values({
       ...values,
       ...card,
+      ...(await institutionFields(db, input)),
       currencyCode: selectedCurrency.code,
       organizationId,
     })
@@ -160,6 +188,15 @@ export const createAccount = async (
   }
 
   await replaceOwners(db, organizationId, created.id, ownerMemberIds);
+  if (interest) {
+    await saveAccountInterest(
+      db,
+      organizationId,
+      created,
+      interest,
+      await householdDate(db, organizationId)
+    );
+  }
   if (created.accountType === "credit_card") {
     await enqueueReminderRefresh(db, organizationId);
   }
@@ -181,6 +218,7 @@ export const updateAccount = async (
 
   const {
     accountId,
+    interest,
     ownerMemberIds,
     currencyCode: requestedCurrency,
     ...values
@@ -242,6 +280,7 @@ export const updateAccount = async (
     .set({
       ...values,
       ...card,
+      ...(await institutionFields(db, input)),
       currencyCode: selectedCurrency.code,
     })
     .where(
@@ -256,6 +295,17 @@ export const updateAccount = async (
   }
 
   await replaceOwners(db, organizationId, accountId, ownerMemberIds);
+  // An account that can no longer earn interest loses its terms with it.
+  const nextInterest = earnsInterest(updated.accountType) ? interest : null;
+  if (nextInterest !== undefined) {
+    await saveAccountInterest(
+      db,
+      organizationId,
+      updated,
+      nextInterest,
+      await householdDate(db, organizationId)
+    );
+  }
   if (updated.accountType === "credit_card") {
     await enqueueReminderRefresh(db, organizationId);
   }

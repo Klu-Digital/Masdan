@@ -12,6 +12,8 @@ const LEDGER = [
   "bills",
   "categoryBudgets",
   "goals",
+  // Projections read the ledger balance.
+  "interest",
   "recurringSchedules",
   "reminders",
   "reports",

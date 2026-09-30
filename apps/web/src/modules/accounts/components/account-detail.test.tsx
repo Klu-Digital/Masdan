@@ -10,6 +10,7 @@ import type { AccountDetail } from "./account-composer";
 const getAccount = vi.hoisted(() => vi.fn());
 const compose = vi.hoisted(() => vi.fn());
 const listSnapshots = vi.hoisted(() => vi.fn());
+const projection = vi.hoisted(() => vi.fn());
 
 vi.mock("@/utils/client", async () => {
   const { mockClient } = await import("@/test/client");
@@ -20,6 +21,10 @@ vi.mock("@/utils/client", async () => {
         listSnapshots,
         listStatements: () => [],
         previewReconciliation: () => ({ calculatedBalance: "10000" }),
+      },
+      interest: {
+        catalog: () => ({ institutions: [], products: [] }),
+        projection,
       },
       transactions: {
         list: () => ({ groups: [], items: [], total: 0 }),
@@ -89,6 +94,8 @@ const account: AccountDetail = {
   id: "account-1",
   includeInNetWorth: true,
   institution: "BPI",
+  institutionId: null,
+  interest: null,
   liquidity: null,
   name: "Household savings",
   notes: null,
@@ -218,4 +225,84 @@ it("does not expose import or transaction actions to a read-only member", async 
   await screen.findByRole("heading", { name: account.name });
   expect(screen.queryByRole("button", { name: "Add transaction" })).toBeNull();
   expect(screen.queryByRole("button", { name: "More actions" })).toBeNull();
+});
+
+const figure = (net: string, gross: string, tax: string) => ({
+  gross,
+  net,
+  tax,
+});
+
+it("shows the configured rate, estimates and how credits are posted", async () => {
+  getAccount.mockResolvedValue({
+    ...account,
+    balance: "1500000",
+    interest: {
+      autoPost: true,
+      bonusEligible: false,
+      customTerms: null,
+      maturityDate: null,
+      product: {
+        id: "product",
+        institutionName: "MariBank",
+        key: "ph-maribank-savings",
+        name: "Savings",
+        productType: "savings",
+      },
+      productId: "product",
+      startDate: null,
+      term: null,
+    },
+  });
+  projection.mockResolvedValue({
+    autoPost: true,
+    balance: "1500000.000000",
+    bonusEligible: false,
+    effectiveRate: "3.416666",
+    followsPreset: true,
+    lastCredit: { date: "2026-10-09", net: "112.33", transactionId: "posting" },
+    matured: false,
+    maturityDate: null,
+    nextCredit: { ...figure("112.33", "140.41", "28.08"), date: "2026-10-10" },
+    principal: null,
+    projection: {
+      ...figure("41000.00", "51250.00", "10250.00"),
+      toMaturity: false,
+      until: "2027-10-10",
+    },
+    startDate: null,
+    terms: {
+      bonusAnnualRate: null,
+      calculationBasis: "eod",
+      conditionSummary: null,
+      creditFrequency: "daily",
+      dayCountBasis: "actual",
+      interestCapBalance: null,
+      minimumBalance: null,
+      tierMode: "marginal",
+      tiers: [
+        { annualRate: "3.250000", minBalance: "0.000000" },
+        { annualRate: "3.750000", minBalance: "1000000.000000" },
+      ],
+      withholdingTaxRate: "20.000000",
+    },
+    toDate: { ...figure("1123.30", "1404.10", "280.80"), since: "2026-10-01" },
+  });
+
+  renderWithProviders(
+    <AccountDetailPage accountId={account.id} household={household} />
+  );
+
+  const panel = await screen.findByRole("region", { name: "Interest" });
+  expect(within(panel).getByText("MariBank Savings")).toBeVisible();
+  expect(await within(panel).findByText("3.42%")).toBeVisible();
+  expect(within(panel).getByText("Next 12 months")).toBeVisible();
+  const current = within(panel)
+    .getAllByRole("listitem")
+    .find((row) => row.getAttribute("aria-current") === "true");
+  expect(current).toHaveTextContent("₱1M and up");
+  expect(current).toHaveTextContent("Your balance");
+  expect(
+    within(panel).getByText(/added as Interest Income on its credit date/u)
+  ).toBeVisible();
 });

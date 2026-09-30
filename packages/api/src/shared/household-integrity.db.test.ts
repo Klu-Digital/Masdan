@@ -8,12 +8,15 @@ import {
   file,
   financialAccount,
   financialAccountBalanceSnapshot,
+  financialAccountInterest,
+  financialAccountInterestRate,
   financialAccountOwner,
   financialTransaction,
   financialTransactionAttachment,
   financialTransactionSplit,
   financialTransactionTag,
   financialTransfer,
+  interestCredit,
   member,
   organization,
   recurringSchedule,
@@ -445,6 +448,54 @@ const crossHouseholdWrites: [string, () => PromiseLike<unknown>][] = [
         balance: "0",
         effectiveDate: "2026-09-01",
         organizationId: home.organizationId,
+      }),
+  ],
+  [
+    "financial_account_interest_account_id_fkey",
+    () =>
+      getTestDb().insert(financialAccountInterest).values({
+        accountId: away.bank.id,
+        organizationId: home.organizationId,
+      }),
+  ],
+  [
+    "financial_account_interest_rate_account_id_fkey",
+    () =>
+      getTestDb().insert(financialAccountInterestRate).values({
+        accountId: away.bank.id,
+        effectiveFrom: "2026-09-01",
+        followsPreset: true,
+        organizationId: home.organizationId,
+      }),
+  ],
+  [
+    "interest_credit_account_id_fkey",
+    () =>
+      getTestDb().insert(interestCredit).values({
+        accountId: away.bank.id,
+        creditDate: "2026-09-30",
+        gross: "1",
+        net: "0.8",
+        organizationId: home.organizationId,
+        periodEnd: "2026-09-30",
+        periodStart: "2026-09-01",
+        tax: "0.2",
+        transactionId: null,
+      }),
+  ],
+  [
+    "interest_credit_transaction_id_fkey",
+    () =>
+      getTestDb().insert(interestCredit).values({
+        accountId: home.bank.id,
+        creditDate: "2026-09-30",
+        gross: "1",
+        net: "0.8",
+        organizationId: home.organizationId,
+        periodEnd: "2026-09-30",
+        periodStart: "2026-09-01",
+        tax: "0.2",
+        transactionId: away.posting.id,
       }),
   ],
   [

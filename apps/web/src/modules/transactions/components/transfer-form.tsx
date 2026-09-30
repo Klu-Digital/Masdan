@@ -3,7 +3,6 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { positiveAmount } from "@masdan/api/shared/money";
 import { Button } from "@masdan/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@masdan/ui/components/field";
-import { IconTile } from "@masdan/ui/components/icon-tile";
 import { Input } from "@masdan/ui/components/input";
 import { Skeleton } from "@masdan/ui/components/skeleton";
 import { Textarea } from "@masdan/ui/components/textarea";
@@ -20,7 +19,7 @@ import { useFormattedMoney } from "@/components/finance/use-formatted-money";
 import { householdToday } from "@/lib/household-date";
 import { AccountCardThumb } from "@/modules/accounts/components/account-card";
 import { AccountPicker } from "@/modules/accounts/components/account-picker";
-import { accountKind, accountTint } from "@/modules/accounts/kinds";
+import { AccountTile } from "@/modules/accounts/components/account-row";
 import { invalidate } from "@/utils/invalidate";
 import { householdOrpc } from "@/utils/orpc";
 import type { RouterOutputs } from "@/utils/orpc";
@@ -298,17 +297,7 @@ export const TransferForm = ({
                           size="sm"
                         />
                       ) : (
-                        <IconTile
-                          tint={accountTint(lockedDestination)}
-                          size="xs"
-                        >
-                          <HugeiconsIcon
-                            icon={
-                              accountKind(lockedDestination.accountType).icon
-                            }
-                            strokeWidth={2}
-                          />
-                        </IconTile>
+                        <AccountTile account={lockedDestination} size="xs" />
                       )}
                       <span className="text-sm font-medium">
                         {lockedDestination.name}

@@ -5,6 +5,7 @@ import type { JobName, JobOf } from "@masdan/queue";
 import { handleChatProcess } from "./handlers/chat";
 import { handleFxRefresh } from "./handlers/fx";
 import { handleImportProcess } from "./handlers/imports";
+import { handleInterestPost, handleInterestSweep } from "./handlers/interest";
 import {
   handleRecurringGenerate,
   handleRecurringSweep,
@@ -26,6 +27,8 @@ const handlers: Handlers = {
   "chat.process": handleChatProcess,
   "fx.refresh": handleFxRefresh,
   "imports.process": handleImportProcess,
+  "interest.post": handleInterestPost,
+  "interest.sweep": handleInterestSweep,
   "recurring.generate": handleRecurringGenerate,
   "recurring.sweep": handleRecurringSweep,
   "reminders.refresh": handleRemindersRefresh,

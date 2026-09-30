@@ -2,6 +2,7 @@ import { CARD_PRODUCT_KEY_PATTERN } from "@masdan/card-catalog/catalog";
 import { z } from "zod";
 
 import { TAILWIND_COLORS } from "../colors";
+import { accountInterestValues } from "../interest/schema";
 import { isoDate } from "../shared/dates";
 import { nonNegativeAmount, signedAmount } from "../shared/money";
 import {
@@ -41,6 +42,10 @@ export const accountValues = z
     icon: z.string().trim().max(80).nullable().optional(),
     includeInNetWorth: z.boolean().default(true),
     institution: z.string().trim().max(120).nullable().optional(),
+    /** A catalog bank; its name replaces `institution` on save. */
+    institutionId: z.uuid().nullable().optional(),
+    /** Absent leaves the account's interest alone; `null` removes it. */
+    interest: accountInterestValues.nullable().optional(),
     liquidity: z.enum(LIQUIDITY_TYPES).nullable().optional(),
     name: z.string().trim().min(1, "Name is required").max(120),
     notes: z.string().trim().max(2000).nullable().optional(),
