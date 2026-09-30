@@ -2,6 +2,7 @@ import { eq, inArray, sql } from "drizzle-orm";
 
 import { user } from "../../../schema/auth";
 import { defineSeeder } from "../define";
+import { seedFinances } from "./finances";
 
 interface PlannedUser {
   email: string;
@@ -33,7 +34,7 @@ export interface UsersPlan {
 }
 
 export const usersSeeder = defineSeeder<UsersPlan>({
-  async apply({ db, auth, log }, { users }) {
+  async apply({ db, auth, faker, log }, { users }) {
     for (const planned of users) {
       const { user: created } = await auth.api.signUpEmail({
         body: {
@@ -48,6 +49,9 @@ export const usersSeeder = defineSeeder<UsersPlan>({
           .update(user)
           .set({ role: planned.role })
           .where(eq(user.id, created.id));
+      }
+      if (planned.email === "K1@gmail.com") {
+        await seedFinances(db, created.id, faker);
       }
 
       log(

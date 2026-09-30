@@ -351,10 +351,7 @@ export const LedgerFilters = ({
   categoryOptions: FilterOption[];
   hasFilters: boolean;
   onClear: () => void;
-  onSearchChange: (
-    updates: Partial<TransactionSearch>,
-    resetPage?: boolean
-  ) => void;
+  onSearchChange: (updates: Partial<TransactionSearch>) => void;
   search: TransactionSearch;
   tagOptions: FilterOption[];
   today: string;

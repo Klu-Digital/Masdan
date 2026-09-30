@@ -28,6 +28,17 @@ export const ledgerQueries = (
         types: search.types,
       },
     }),
-    transactions: orpc.transactions.list.queryOptions({ input: search }),
   };
 };
+
+/** Each scroll fetch loads 25 ledger entries; the URL owns filters, not pages. */
+export const ledgerInfiniteQuery = (
+  activeOrganizationId: string,
+  search: TransactionSearch
+) =>
+  householdOrpc(activeOrganizationId).transactions.list.infiniteOptions({
+    getNextPageParam: (last) =>
+      last.page < last.totalPages ? last.page + 1 : undefined,
+    initialPageParam: 1,
+    input: (page: number) => ({ ...search, page, pageSize: 25 }),
+  });

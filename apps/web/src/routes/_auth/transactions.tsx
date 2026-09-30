@@ -8,7 +8,10 @@ import { useCallback } from "react";
 
 import { HouseholdGate } from "@/components/household-gate";
 import { TransactionsPage } from "@/modules/transactions/components/transactions-page";
-import { ledgerQueries } from "@/modules/transactions/queries";
+import {
+  ledgerInfiniteQuery,
+  ledgerQueries,
+} from "@/modules/transactions/queries";
 import {
   DEFAULT_TRANSACTION_SEARCH,
   transactionSearch,
@@ -31,14 +34,8 @@ const TransactionsLayout = () => {
   });
 
   const updateSearch = useCallback(
-    (updates: Partial<TransactionSearch>, resetPage = true) => {
-      navigate({
-        search: (previous) => ({
-          ...previous,
-          ...updates,
-          page: resetPage ? 1 : (updates.page ?? previous.page),
-        }),
-      });
+    (updates: Partial<TransactionSearch>) => {
+      navigate({ search: (previous) => ({ ...previous, ...updates }) });
     },
     [navigate]
   );
@@ -46,7 +43,6 @@ const TransactionsLayout = () => {
     navigate({
       search: (previous) => ({
         ...DEFAULT_TRANSACTION_SEARCH,
-        pageSize: previous.pageSize,
         sortBy: previous.sortBy,
         sortDirection: previous.sortDirection,
       }),
@@ -83,6 +79,9 @@ export const Route = createFileRoute("/_auth/transactions")({
       prefetch(
         context.queryClient,
         ledgerQueries(context.activeOrganizationId, deps.search)
+      );
+      void context.queryClient.prefetchInfiniteQuery(
+        ledgerInfiniteQuery(context.activeOrganizationId, deps.search)
       );
     }
   },

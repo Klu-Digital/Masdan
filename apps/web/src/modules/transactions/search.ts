@@ -24,19 +24,6 @@ const stringArray = z
   .optional()
   .default([]);
 
-const positiveInteger = (fallback: number) =>
-  z
-    .preprocess(
-      Number,
-      z
-        .number()
-        .int()
-        .positive()
-        .or(z.unknown().transform(() => fallback))
-    )
-    .optional()
-    .default(fallback);
-
 export const transactionSearch = z.object({
   accountIds: stringArray,
   categoryIds: stringArray,
@@ -46,8 +33,6 @@ export const transactionSearch = z.object({
     .preprocess((value) => value === true || value === "true", z.boolean())
     .optional()
     .default(false),
-  page: positiveInteger(1),
-  pageSize: positiveInteger(25).transform((value) => Math.min(value, 100)),
   paidStatuses: stringArray.transform((values) =>
     values.filter(
       (value): value is "paid" | "unpaid" =>
@@ -82,8 +67,6 @@ export const DEFAULT_TRANSACTION_SEARCH: TransactionSearch = {
   accountIds: [],
   categoryIds: [],
   includeArchived: false,
-  page: 1,
-  pageSize: 25,
   paidStatuses: [],
   quickEntry: undefined,
   search: "",

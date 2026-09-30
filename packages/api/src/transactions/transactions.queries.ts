@@ -444,9 +444,23 @@ export const listTransactions = async (
   ]);
 
   const total = countRows[0]?.total ?? 0;
+  const items = await withDetailsList(db, organizationId, rows);
+  const groups: { month: string; items: typeof items }[] = [];
+  if (input.sortBy === "date") {
+    for (const item of items) {
+      const month = item.transactionDate.slice(0, 7);
+      const last = groups.at(-1);
+      if (last?.month === month) {
+        last.items.push(item);
+      } else {
+        groups.push({ items: [item], month });
+      }
+    }
+  }
 
   return {
-    items: await withDetailsList(db, organizationId, rows),
+    groups,
+    items,
     page: input.page,
     pageSize: input.pageSize,
     total,

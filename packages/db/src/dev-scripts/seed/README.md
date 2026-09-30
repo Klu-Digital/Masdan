@@ -1,11 +1,11 @@
 # seed
 
-Populates a local database with usable dev data. Users only, for now — this is the pattern later seeders (posts, orgs, whatever comes next) will follow.
+Populates a local database with usable dev data. K1's household has a connected finance history; the other users have their normal sign-up households but no sample ledger.
 
 ## Quick start
 
 ```bash
-pnpm db:start && pnpm db:purge --yes && pnpm db:migrate
+pnpm db:start && pnpm db:purge --yes && pnpm db:deploy
 pnpm db:seed
 ```
 
@@ -19,6 +19,8 @@ Two fixed accounts, the same on every run:
 | ------------------- | -------------- | -------- | ------- |
 | `K1@gmail.com`      | `K1@gmail.com` | `K1`     | `admin` |
 | `member@masdan.dev` | `password`     | `Member` | —       |
+
+K1's personal household also gets its sign-up categories, three PHP accounts (checking, wallet, credit card) with ownership, 12 months of salary and categorized spending (300 ledger transactions including monthly wallet transfers), 12 months of budgets, tags, a categorization rule, an emergency-fund goal, monthly wallet transfers with both ledger legs, two upcoming recurring bills and a credit-card statement. Amounts vary reproducibly with `--seed`; dates follow the current month. Other users remain empty for onboarding checks.
 
 Plus, by default, 5 random users from faker, all with the password `password` so they're actually loggable-into: `pnpm db:seed --users 20` for more, `--users 0` for just the fixed two.
 
@@ -45,7 +47,7 @@ Refusing to seed — some rows already exist:
     - user K1@gmail.com
     - user member@masdan.dev
 
-Nothing was written. Reset with "pnpm db:purge --yes && pnpm db:migrate", then seed again.
+Nothing was written. Reset with "pnpm db:purge --yes && pnpm db:deploy", then seed again.
 ```
 
 That's the intended reset flow. This precedent — plan everything first, refuse on any collision, write only if the whole batch is clean — is meant to carry forward to every future seeder, not just this one.

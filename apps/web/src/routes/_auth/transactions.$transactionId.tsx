@@ -5,7 +5,6 @@ import { useAppActions } from "@/components/app-actions";
 import { useHousehold } from "@/hooks/use-household";
 import { TransactionInspector } from "@/modules/transactions/components/inspector";
 import { useLedgerActions } from "@/modules/transactions/use-ledger-actions";
-import { householdOrpc, orNullIfMissing } from "@/utils/orpc";
 
 const routeApi = getRouteApi("/_auth/transactions/$transactionId");
 
@@ -57,28 +56,7 @@ const TransactionDetailRoute = () => {
   );
 };
 
-/* oxlint-disable sort-keys */
 export const Route = createFileRoute("/_auth/transactions/$transactionId")({
   component: TransactionDetailRoute,
-  // A missing transaction renders its own state inside the inspector.
-  loader: ({ context, params }) =>
-    orNullIfMissing(
-      context.queryClient.ensureQueryData(
-        householdOrpc(
-          context.activeOrganizationId
-        ).transactions.get.queryOptions({
-          input: { transactionId: params.transactionId },
-        })
-      )
-    ),
-  head: ({ loaderData }) => {
-    let title = "Transaction";
-    if (loaderData?.transfer) {
-      title = "Transfer";
-    } else if (loaderData?.categoryName) {
-      title = loaderData.categoryName;
-    }
-    return { meta: [{ title }] };
-  },
+  head: () => ({ meta: [{ title: "Transaction" }] }),
 });
-/* oxlint-enable sort-keys */

@@ -638,7 +638,7 @@ export const AccountDetailPage = ({
                 canUpdate: can({ transaction: ["update"] }),
               },
             }}
-            grouped
+            groups={activity.data.groups}
             hideAccount
             onOpen={(transaction) => inspect(transaction.id)}
             scoped

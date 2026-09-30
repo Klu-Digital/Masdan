@@ -2,7 +2,6 @@ import { Badge } from "@masdan/ui/components/badge";
 import { Checkbox } from "@masdan/ui/components/checkbox";
 import { ColorDot } from "@masdan/ui/components/icon-tile";
 import {
-  List,
   ListItemButton,
   ListItemContent,
   ListItemDescription,
@@ -11,7 +10,9 @@ import {
   ListItemTrailing,
 } from "@masdan/ui/components/list";
 import { useMediaQuery } from "@masdan/ui/hooks/use-media-query";
-import { Fragment } from "react";
+import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
+import type { VirtualItem } from "@tanstack/react-virtual";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 
 import { Amount } from "@/components/finance/amount";
@@ -24,7 +25,7 @@ import {
   DataGridHeader,
   DataGridRow,
 } from "@/components/finance/data-grid";
-import { formatDay, formatShortDate } from "@/lib/dates";
+import { formatDay, formatMonthYear, formatShortDate } from "@/lib/dates";
 
 import { describeTransaction } from "../presentation";
 import type { TransactionView } from "../presentation";
@@ -60,7 +61,7 @@ const SelectAllCheckbox = ({
   return (
     <DataGridColumnHeader>
       <Checkbox
-        aria-label="Select all transactions on this page"
+        aria-label="Select all loaded transactions"
         checked={selected > 0 && selected === ids.length}
         indeterminate={selected > 0 && selected < ids.length}
         disabled={ids.length === 0}
@@ -96,8 +97,8 @@ export interface LedgerProps {
     handleEdit: (transaction: Transaction) => void;
     permissions: LedgerPermissions;
   };
-  /** Group rows under day headings; only meaningful when sorted by date. */
-  grouped?: boolean;
+  /** Month groups returned by the ledger API when sorted by date. */
+  groups?: { month: string; items: Transaction[] }[];
   /** Hide the account column when the ledger is already one account's. */
   hideAccount?: boolean;
   onOpen: (transaction: Transaction) => void;
@@ -117,19 +118,6 @@ export interface LedgerProps {
   today: string;
   transactions: Transaction[];
 }
-
-const groupByDay = (transactions: Transaction[]) => {
-  const groups: { date: string; items: Transaction[] }[] = [];
-  for (const transaction of transactions) {
-    const last = groups.at(-1);
-    if (last && last.date === transaction.transactionDate) {
-      last.items.push(transaction);
-    } else {
-      groups.push({ date: transaction.transactionDate, items: [transaction] });
-    }
-  }
-  return groups;
-};
 
 const StatusBadges = ({ transaction }: { transaction: Transaction }) => (
   <>
@@ -184,9 +172,146 @@ const openOnKey =
     }
   };
 
+type LedgerEntry =
+  | { kind: "group"; month: string }
+  | { kind: "item"; transaction: Transaction };
+
+const OVERSCAN = 12;
+const ESTIMATED_ITEM_HEIGHT = { desktop: 57, mobile: 72 };
+const ESTIMATED_GROUP_HEIGHT = { desktop: 44, mobile: 40 };
+
+const flattenEntries = (
+  groups: LedgerProps["groups"],
+  transactions: Transaction[]
+): LedgerEntry[] => {
+  if (!groups) {
+    return transactions.map((transaction) => ({ kind: "item", transaction }));
+  }
+  return groups.flatMap((group) => [
+    { kind: "group" as const, month: group.month },
+    ...group.items.map((transaction) => ({
+      kind: "item" as const,
+      transaction,
+    })),
+  ]);
+};
+
+/**
+ * Windows the ledger against the app shell's scroll container. The rows that are mounted keep
+ * their normal flow (so sticky headers and table semantics still work) and
+ * spacers stand in for the ones that are not. The month band above the
+ * viewport stays mounted so it can keep sticking.
+ */
+const useVirtualLedger = <T extends HTMLElement>(
+  entries: LedgerEntry[],
+  variant: "desktop" | "mobile"
+) => {
+  const listRef = useRef<T>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
+  const groupIndexes = useMemo(
+    () =>
+      entries.flatMap((entry, index) =>
+        entry.kind === "group" ? [index] : []
+      ),
+    [entries]
+  );
+
+  // The app shell scrolls `main`, not the window, so the virtualizer has to
+  // watch that element and measure the list's offset within it.
+  const [scroller, setScroller] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const node = listRef.current;
+    const root = node?.closest<HTMLElement>('[data-slot="app-scroll"]') ?? null;
+    setScroller(root);
+    if (!node || !root) {
+      return;
+    }
+    const measure = () =>
+      setScrollMargin(
+        node.getBoundingClientRect().top -
+          root.getBoundingClientRect().top +
+          root.scrollTop
+      );
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    if (root.firstElementChild) {
+      observer.observe(root.firstElementChild);
+    }
+    return () => observer.disconnect();
+  }, []);
+
+  // oxlint-disable-next-line react/incompatible-library -- rows read straight from the virtualizer each render
+  const virtualizer = useVirtualizer({
+    count: entries.length,
+    estimateSize: (index) =>
+      entries[index]?.kind === "group"
+        ? ESTIMATED_GROUP_HEIGHT[variant]
+        : ESTIMATED_ITEM_HEIGHT[variant],
+    getItemKey: (index) => {
+      const entry = entries[index];
+      return entry?.kind === "group"
+        ? `group:${entry.month}`
+        : (entry?.transaction.id ?? index);
+    },
+    getScrollElement: () => scroller,
+    // Until the scroll container is found (and where there is none, as in
+    // jsdom) assume a viewport-sized window so the first rows still render.
+    initialRect: { height: window.innerHeight, width: window.innerWidth },
+    overscan: OVERSCAN,
+    rangeExtractor: (range) => {
+      const rendered = defaultRangeExtractor(range);
+      const pinned = groupIndexes.findLast(
+        (index) => index <= range.startIndex
+      );
+      return pinned === undefined || rendered.includes(pinned)
+        ? rendered
+        : [pinned, ...rendered];
+    },
+    scrollMargin,
+  });
+
+  return { listRef, scrollMargin, virtualizer };
+};
+
+/** Interleaves the mounted rows with spacers for the gaps between them. */
+const withSpacers = (
+  items: VirtualItem[],
+  scrollMargin: number,
+  totalSize: number
+) => {
+  const out: ({ height: number; spacer: true; key: string } | VirtualItem)[] =
+    [];
+  let cursor = 0;
+  for (const item of items) {
+    const start = item.start - scrollMargin;
+    if (start > cursor) {
+      out.push({
+        height: start - cursor,
+        key: `spacer:${item.index}`,
+        spacer: true,
+      });
+    }
+    out.push(item);
+    cursor = item.end - scrollMargin;
+  }
+  const tail = totalSize - cursor;
+  if (tail > 0) {
+    out.push({ height: tail, key: "spacer:end", spacer: true });
+  }
+  return out;
+};
+
+const Spacer = ({ height }: { height: number }) => (
+  <div
+    aria-hidden="true"
+    className="h-(--spacer-height)"
+    style={{ "--spacer-height": `${height}px` } as React.CSSProperties}
+  />
+);
+
 const DesktopHeader = ({
   actions,
-  grouped,
   hideAccount,
   selection,
   sort,
@@ -197,20 +322,13 @@ const DesktopHeader = ({
       {selection ? (
         <SelectAllCheckbox selection={selection} transactions={transactions} />
       ) : null}
-      {grouped ? null : (
-        <DataGridColumnHeader
-          direction={sort?.by === "date" ? sort.direction : undefined}
-          onSort={sort ? () => sort.onSort("date") : undefined}
-        >
-          Date
-        </DataGridColumnHeader>
-      )}
       <DataGridColumnHeader
-        direction={grouped && sort?.by === "date" ? sort.direction : undefined}
-        onSort={grouped && sort ? () => sort.onSort("date") : undefined}
+        direction={sort?.by === "date" ? sort.direction : undefined}
+        onSort={sort ? () => sort.onSort("date") : undefined}
       >
-        {grouped ? "Date" : "Transaction"}
+        Date
       </DataGridColumnHeader>
+      <DataGridColumnHeader>Transaction</DataGridColumnHeader>
       {hideAccount ? null : (
         <DataGridColumnHeader className="hidden lg:table-cell">
           Account
@@ -235,7 +353,7 @@ const DesktopHeader = ({
 const DesktopLedger = (props: LedgerProps) => {
   const {
     actions,
-    grouped,
+    groups,
     hideAccount,
     onOpen,
     scoped,
@@ -244,23 +362,26 @@ const DesktopLedger = (props: LedgerProps) => {
     today,
     transactions,
   } = props;
-  const showDate = !grouped;
   const columnCount =
-    2 +
-    (hideAccount ? 0 : 1) +
-    (showDate ? 1 : 0) +
-    (actions ? 1 : 0) +
-    (selection ? 1 : 0);
-  const row = (transaction: Transaction) => {
+    3 + (hideAccount ? 0 : 1) + (actions ? 1 : 0) + (selection ? 1 : 0);
+  const entries = useMemo(
+    () => flattenEntries(groups, transactions),
+    [groups, transactions]
+  );
+  const { listRef, scrollMargin, virtualizer } =
+    useVirtualLedger<HTMLTableSectionElement>(entries, "desktop");
+  const row = (transaction: Transaction, virtualItem: VirtualItem) => {
     const view = describeTransaction(transaction, { scoped });
     const open = () => onOpen(transaction);
     return (
       <DataGridRow
         aria-label={rowLabel(transaction, view.title, today)}
         data-selected={selectedId === transaction.id || undefined}
-        key={transaction.id}
+        data-index={virtualItem.index}
+        key={virtualItem.key}
         onClick={open}
         onKeyDown={openOnKey(open)}
+        ref={virtualizer.measureElement}
         tabIndex={0}
       >
         {selection ? (
@@ -272,11 +393,9 @@ const DesktopLedger = (props: LedgerProps) => {
             />
           </DataGridCell>
         ) : null}
-        {showDate ? (
-          <DataGridCell className="text-muted-foreground w-28 whitespace-nowrap tabular-nums">
-            {formatShortDate(transaction.transactionDate, today)}
-          </DataGridCell>
-        ) : null}
+        <DataGridCell className="text-muted-foreground w-28 whitespace-nowrap tabular-nums">
+          {formatShortDate(transaction.transactionDate, today)}
+        </DataGridCell>
         <DataGridCell>
           <div className="flex min-w-0 items-center gap-3">
             <TransactionTile transaction={transaction} />
@@ -329,41 +448,64 @@ const DesktopLedger = (props: LedgerProps) => {
   return (
     <DataGrid>
       <DesktopHeader {...props} />
-      <DataGridBody>
-        {grouped
-          ? groupByDay(transactions).map((group) => (
-              <Fragment key={group.date}>
-                <DataGridGroupRow colSpan={columnCount}>
-                  {formatDay(group.date, today)}
-                </DataGridGroupRow>
-                {group.items.map(row)}
-              </Fragment>
-            ))
-          : transactions.map(row)}
+      <DataGridBody ref={listRef}>
+        {withSpacers(
+          virtualizer.getVirtualItems(),
+          scrollMargin,
+          virtualizer.getTotalSize()
+        ).map((item) => {
+          if ("spacer" in item) {
+            return (
+              <tr aria-hidden="true" key={item.key}>
+                <td colSpan={columnCount}>
+                  <Spacer height={item.height} />
+                </td>
+              </tr>
+            );
+          }
+          const entry = entries[item.index];
+          if (!entry) {
+            return null;
+          }
+          return entry.kind === "group" ? (
+            <DataGridGroupRow
+              colSpan={columnCount}
+              data-index={item.index}
+              key={item.key}
+              ref={virtualizer.measureElement}
+            >
+              {formatMonthYear(entry.month)}
+            </DataGridGroupRow>
+          ) : (
+            row(entry.transaction, item)
+          );
+        })}
       </DataGridBody>
     </DataGrid>
   );
 };
 
 const MobileRow = ({
+  dataIndex,
+  measureRef,
   onOpen,
   scoped,
-  showDate,
   selection,
   today,
   transaction,
 }: {
+  dataIndex: number;
+  measureRef: (node: HTMLElement | null) => void;
   selection?: LedgerProps["selection"];
   onOpen: (transaction: Transaction) => void;
   scoped?: boolean;
-  showDate: boolean;
   today: string;
   transaction: Transaction;
 }) => {
   const view = describeTransaction(transaction, { scoped });
   const label = rowLabel(transaction, view.title, today);
   return (
-    <div className="flex items-center">
+    <div className="flex items-center" data-index={dataIndex} ref={measureRef}>
       {selection ? (
         <div className="pl-2">
           <RowCheckbox
@@ -380,9 +522,8 @@ const MobileRow = ({
         <ListItemContent>
           <ListItemTitle>{view.title}</ListItemTitle>
           <ListItemDescription>
-            {showDate
-              ? `${formatShortDate(transaction.transactionDate, today)} · ${view.subtitle}`
-              : view.subtitle}
+            {formatShortDate(transaction.transactionDate, today)} ·{" "}
+            {view.subtitle}
           </ListItemDescription>
         </ListItemContent>
         <ListItemTrailing stacked>
@@ -403,62 +544,61 @@ const MobileRow = ({
 };
 
 const MobileLedger = ({
-  grouped,
+  groups,
   onOpen,
   scoped,
   selection,
   today,
   transactions,
 }: LedgerProps) => {
-  if (!grouped) {
-    return (
-      <List variant="plain">
-        {transactions.map((transaction) => (
+  const entries = useMemo(
+    () => flattenEntries(groups, transactions),
+    [groups, transactions]
+  );
+  const { listRef, scrollMargin, virtualizer } =
+    useVirtualLedger<HTMLDivElement>(entries, "mobile");
+  return (
+    <div className="flex flex-col" ref={listRef}>
+      {withSpacers(
+        virtualizer.getVirtualItems(),
+        scrollMargin,
+        virtualizer.getTotalSize()
+      ).map((item) => {
+        if ("spacer" in item) {
+          return <Spacer height={item.height} key={item.key} />;
+        }
+        const entry = entries[item.index];
+        if (!entry) {
+          return null;
+        }
+        return entry.kind === "group" ? (
+          <h3
+            className="bg-background/92 sticky top-13 z-10 px-2 pt-4 pb-1.5 text-xs font-semibold group-data-[sticky]/ledger:top-40 supports-[backdrop-filter]:backdrop-blur-md"
+            data-index={item.index}
+            key={item.key}
+            ref={virtualizer.measureElement}
+          >
+            {formatMonthYear(entry.month)}
+          </h3>
+        ) : (
           <MobileRow
-            key={transaction.id}
+            dataIndex={item.index}
+            key={item.key}
+            measureRef={virtualizer.measureElement}
             onOpen={onOpen}
             scoped={scoped}
             selection={selection}
-            showDate
             today={today}
-            transaction={transaction}
+            transaction={entry.transaction}
           />
-        ))}
-      </List>
-    );
-  }
-  return (
-    <div className="flex flex-col gap-5">
-      {groupByDay(transactions).map((group) => (
-        <section
-          aria-label={formatDay(group.date, today)}
-          className="flex flex-col gap-1"
-          key={group.date}
-        >
-          <h3 className="bg-background/92 sticky top-13 z-10 px-2 py-1.5 text-xs font-semibold supports-[backdrop-filter]:backdrop-blur-md">
-            {formatDay(group.date, today)}
-          </h3>
-          <List variant="plain">
-            {group.items.map((transaction) => (
-              <MobileRow
-                key={transaction.id}
-                onOpen={onOpen}
-                scoped={scoped}
-                selection={selection}
-                showDate={false}
-                today={today}
-                transaction={transaction}
-              />
-            ))}
-          </List>
-        </section>
-      ))}
+        );
+      })}
     </div>
   );
 };
 
 /**
- * The ledger: a sortable, date-grouped grid on wide screens and a touch list
+ * The ledger: a sortable, month-grouped grid on wide screens and a touch list
  * on phones. Row actions live in a contextual menu; opening a row shows its
  * detail.
  */

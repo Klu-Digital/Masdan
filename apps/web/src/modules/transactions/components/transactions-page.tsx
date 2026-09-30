@@ -1,6 +1,4 @@
 import {
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
   FileImportIcon,
   Invoice02Icon,
   PlusSignIcon,
@@ -23,15 +21,12 @@ import {
   PageHeading,
   PageTitle,
 } from "@masdan/ui/components/page";
-import {
-  Select,
-  SelectItem,
-  SelectPopup,
-  SelectTrigger,
-  SelectValue,
-} from "@masdan/ui/components/select";
 import { Skeleton } from "@masdan/ui/components/skeleton";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+} from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
 import type React from "react";
@@ -48,7 +43,10 @@ import {
 import { NewMenu } from "@/components/shell/new-menu";
 import type { Household } from "@/hooks/use-household";
 import { householdToday } from "@/lib/household-date";
-import { ledgerQueries } from "@/modules/transactions/queries";
+import {
+  ledgerInfiniteQuery,
+  ledgerQueries,
+} from "@/modules/transactions/queries";
 
 import type { TransactionSearch } from "../search";
 import type { Transaction } from "../types";
@@ -59,8 +57,6 @@ import { BulkEditDialog } from "./bulk-edit-dialog";
 import { Ledger } from "./ledger";
 import { LedgerFilters, LedgerSearch } from "./ledger-filters";
 import { QuickEntry } from "./quick-entry";
-
-const PAGE_SIZES = [25, 50, 100];
 
 const LedgerSkeleton = () => (
   <div aria-hidden="true" className="flex flex-col gap-1 pt-4">
@@ -159,10 +155,7 @@ export const TransactionsPage = ({
 }: {
   household: Household & { activeOrganizationId: string };
   onClearFilters: () => void;
-  onSearchChange: (
-    updates: Partial<TransactionSearch>,
-    resetPage?: boolean
-  ) => void;
+  onSearchChange: (updates: Partial<TransactionSearch>) => void;
   search: TransactionSearch;
   selectedId?: string;
 }) => {
@@ -175,11 +168,33 @@ export const TransactionsPage = ({
   const accounts = useQuery(queries.accounts);
   const categories = useQuery(queries.categories);
   const tags = useQuery(queries.tags);
-  const transactions = useQuery({
-    ...queries.transactions,
-    // Filter changes keep the current rows on screen until the next page lands.
-    placeholderData: keepPreviousData,
-  });
+  const transactions = useInfiniteQuery(
+    ledgerInfiniteQuery(activeOrganizationId, search)
+  );
+  const {
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
+  } = transactions;
+  const loadMore = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (!node || !hasNextPage || isFetchingNextPage || isFetchNextPageError) {
+        return;
+      }
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry?.isIntersecting) {
+            fetchNextPage();
+          }
+        },
+        { rootMargin: "400px" }
+      );
+      observer.observe(node);
+      return () => observer.disconnect();
+    },
+    [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage]
+  );
   const today = householdToday(timezone);
   const { clearSelection, selectedIds, toggleAll, toggleSelection } =
     useLedgerSelection(search);
@@ -223,7 +238,7 @@ export const TransactionsPage = ({
     search.types.length > 0;
 
   const clearLinkedText = useCallback(
-    () => onSearchChange({ quickEntry: undefined }, false),
+    () => onSearchChange({ quickEntry: undefined }),
     [onSearchChange]
   );
 
@@ -242,15 +257,27 @@ export const TransactionsPage = ({
     compose({ transaction, type: "transaction" });
   };
 
-  const { data } = transactions;
-  const totalPages = data?.totalPages ?? 0;
-  const firstRow = data ? (data.page - 1) * data.pageSize + 1 : 0;
-  const lastRow = data ? firstRow + data.items.length - 1 : 0;
+  const pages = transactions.data?.pages ?? [];
+  const items = pages.flatMap((page) => page.items);
+  const groups: { month: string; items: Transaction[] }[] = [];
+  if (search.sortBy === "date") {
+    for (const page of pages) {
+      for (const group of page.groups) {
+        const last = groups.at(-1);
+        if (last?.month === group.month) {
+          last.items.push(...group.items);
+        } else {
+          groups.push({ items: [...group.items], month: group.month });
+        }
+      }
+    }
+  }
+  const total = pages[0]?.total ?? 0;
 
   let content: React.ReactNode;
   if (transactions.isPending) {
     content = <LedgerSkeleton />;
-  } else if (transactions.isError) {
+  } else if (transactions.isError && pages.length === 0) {
     content = (
       <Empty>
         <EmptyTitle>Couldn’t load transactions</EmptyTitle>
@@ -262,15 +289,9 @@ export const TransactionsPage = ({
         </Button>
       </Empty>
     );
-  } else if (data && data.items.length > 0) {
+  } else if (items.length > 0) {
     content = (
-      <div
-        className={
-          transactions.isPlaceholderData
-            ? "opacity-60 transition-opacity"
-            : "transition-opacity"
-        }
-      >
+      <div>
         <Ledger
           actions={{
             handleEdit: (transaction) => editTransaction(transaction),
@@ -281,7 +302,7 @@ export const TransactionsPage = ({
               canUpdate: canBulkEdit,
             },
           }}
-          grouped={search.sortBy === "date"}
+          groups={search.sortBy === "date" ? groups : undefined}
           onOpen={(transaction) => openTransaction(transaction)}
           scoped={search.accountIds.length > 0}
           selection={
@@ -307,64 +328,22 @@ export const TransactionsPage = ({
               }),
           }}
           today={today}
-          transactions={data.items}
+          transactions={items}
         />
-        <nav
-          aria-label="Pages"
-          className="flex flex-wrap items-center justify-between gap-3 pt-5"
-        >
+        <div className="flex flex-col items-center gap-3 py-5" ref={loadMore}>
           <p className="text-muted-foreground text-xs tabular-nums">
-            {firstRow.toLocaleString()}–{lastRow.toLocaleString()} of{" "}
-            {data.total.toLocaleString()}
+            Showing {items.length.toLocaleString()} of {total.toLocaleString()}
           </p>
-          <div className="flex items-center gap-2">
-            <Select
-              onValueChange={(value) =>
-                onSearchChange({ pageSize: Number(value) })
-              }
-              value={String(search.pageSize)}
-            >
-              <SelectTrigger
-                aria-label="Rows per page"
-                className="w-auto min-w-0"
-                size="sm"
-              >
-                <SelectValue>{`${search.pageSize} per page`}</SelectValue>
-              </SelectTrigger>
-              <SelectPopup>
-                {PAGE_SIZES.map((size) => (
-                  <SelectItem key={size} value={String(size)}>
-                    {size} per page
-                  </SelectItem>
-                ))}
-              </SelectPopup>
-            </Select>
-            <Button
-              aria-label="Previous page"
-              disabled={search.page <= 1}
-              onClick={() => onSearchChange({ page: search.page - 1 }, false)}
-              size="icon-sm"
-              variant="secondary"
-            >
-              <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
+          {transactions.isFetchingNextPage ? <LedgerSkeleton /> : null}
+          {transactions.isFetchNextPageError ? (
+            <Button onClick={() => fetchNextPage()} variant="secondary">
+              Couldn’t load more · Try again
             </Button>
-            <span className="text-muted-foreground text-xs tabular-nums">
-              {search.page} / {Math.max(totalPages, 1)}
-            </span>
-            <Button
-              aria-label="Next page"
-              disabled={search.page >= totalPages}
-              onClick={() => onSearchChange({ page: search.page + 1 }, false)}
-              size="icon-sm"
-              variant="secondary"
-            >
-              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-            </Button>
-          </div>
-        </nav>
+          ) : null}
+        </div>
       </div>
     );
-  } else if (hasFilters || search.page > 1) {
+  } else if (hasFilters) {
     content = (
       <Empty>
         <EmptyMedia>
@@ -451,26 +430,29 @@ export const TransactionsPage = ({
 
       <section
         aria-label="Ledger"
+        data-sticky
         className={
           canBulkEdit
-            ? "flex flex-col gap-3 pb-24 md:pb-12"
-            : "flex flex-col gap-3"
+            ? "group/ledger flex flex-col gap-3 pb-24 md:pb-12"
+            : "group/ledger flex flex-col gap-3"
         }
       >
-        <LedgerSearch
-          onChange={(value) => onSearchChange({ search: value })}
-          value={search.search}
-        />
-        <LedgerFilters
-          accountOptions={accountOptions}
-          categoryOptions={categoryOptions}
-          hasFilters={hasFilters}
-          onClear={onClearFilters}
-          onSearchChange={onSearchChange}
-          search={search}
-          tagOptions={tagOptions}
-          today={today}
-        />
+        <div className="bg-background/95 border-hairline supports-[backdrop-filter]:bg-background/85 sticky top-13 z-20 -mx-4 flex flex-col gap-2 border-b px-4 py-3 shadow-sm supports-[backdrop-filter]:backdrop-blur-md sm:mx-0 sm:rounded-xl sm:border sm:px-3">
+          <LedgerSearch
+            onChange={(value) => onSearchChange({ search: value })}
+            value={search.search}
+          />
+          <LedgerFilters
+            accountOptions={accountOptions}
+            categoryOptions={categoryOptions}
+            hasFilters={hasFilters}
+            onClear={onClearFilters}
+            onSearchChange={onSearchChange}
+            search={search}
+            tagOptions={tagOptions}
+            today={today}
+          />
+        </div>
         {content}
       </section>
       {canBulkEdit ? (

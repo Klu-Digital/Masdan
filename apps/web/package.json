@@ -25,6 +25,7 @@
     "@tanstack/react-form": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "^1.170.18",
+    "@tanstack/react-virtual": "^3.14.13",
     "better-auth": "catalog:",
     "class-variance-authority": "^0.7.1",
     "frimousse": "^0.3.0",

@@ -8,8 +8,6 @@ describe("transactionSearch", () => {
       transactionSearch.parse({
         accountIds: ["first, second", 3],
         includeArchived: "true",
-        page: "0",
-        pageSize: "500",
         paidStatuses: ["paid", "unknown"],
         search: "x".repeat(130),
         sortBy: "unknown",
@@ -18,8 +16,6 @@ describe("transactionSearch", () => {
     ).toMatchObject({
       accountIds: ["first", "second"],
       includeArchived: true,
-      page: 1,
-      pageSize: 100,
       paidStatuses: ["paid"],
       search: "x".repeat(120),
       sortBy: "date",

@@ -653,7 +653,7 @@ describe("transaction list", () => {
       context
     );
 
-    for (const day of ["01", "02", "03"]) {
+    for (const date of ["2026-02-01", "2026-03-02", "2026-03-03"]) {
       await call(
         transactionsRouter.create,
         {
@@ -666,7 +666,7 @@ describe("transaction list", () => {
             { amount: "10", categoryId: foodId },
           ],
           tagIds: [tracked.id],
-          transactionDate: `2026-03-${day}`,
+          transactionDate: date,
         },
         context
       );
@@ -710,6 +710,22 @@ describe("transaction list", () => {
     expect(all.queries).toBe(5);
 
     expect(all.page.items).toHaveLength(4);
+    expect(all.page.groups.map(({ month }) => month)).toEqual([
+      "2026-03",
+      "2026-02",
+    ]);
+    expect(all.page.groups.map(({ items }) => items.length)).toEqual([3, 1]);
+    expect(one.page.groups[0]?.items).toEqual(one.page.items);
+    expect(one.page.groups[0]?.month).toBe("2026-03");
+    const next = await listTransactions(
+      countingDb,
+      organizationId,
+      transactionListValues.parse({ page: 2, pageSize: 2 })
+    );
+    expect(next.groups.map(({ month }) => month)).toEqual([
+      "2026-03",
+      "2026-02",
+    ]);
     const [transferRow, ...entries] = all.page.items;
     expect(transferRow).toMatchObject({
       splits: [],

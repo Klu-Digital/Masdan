@@ -80,7 +80,7 @@ export const runSeed = async (
       }
     }
     console.error(
-      '\nNothing was written. Reset with "pnpm db:purge --yes && pnpm db:migrate", then seed again.'
+      '\nNothing was written. Reset with "pnpm db:purge --yes && pnpm db:deploy", then seed again.'
     );
     return 1;
   }

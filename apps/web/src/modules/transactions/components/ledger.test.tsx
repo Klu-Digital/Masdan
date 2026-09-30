@@ -56,9 +56,14 @@ const rows = [
     amount: "50000.000000",
     categoryName: "Salary",
     id: "t-3",
-    transactionDate: "2026-09-23",
+    transactionDate: "2026-08-23",
     type: "income",
   }),
+];
+
+const groups = [
+  { items: rows.slice(0, 2), month: "2026-09" },
+  { items: rows.slice(2), month: "2026-08" },
 ];
 
 const originalMatchMedia = window.matchMedia;
@@ -129,16 +134,27 @@ it("floats bulk actions when a row is selected and hides them when cleared", asy
 describe("Ledger (wide)", () => {
   beforeEach(useWideViewport);
 
-  it("groups rows under day headings and titles them by note, then category", async () => {
+  it("renders backend month groups with an exact date column", async () => {
     renderWithProviders(
-      <Ledger grouped onOpen={vi.fn()} today="2026-09-24" transactions={rows} />
+      <Ledger
+        groups={groups}
+        onOpen={vi.fn()}
+        today="2026-09-24"
+        transactions={rows}
+      />
     );
     expect(
-      await screen.findByRole("columnheader", { name: "Today" })
+      await screen.findByRole("columnheader", { name: "September 2026" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("columnheader", { name: "Yesterday" })
+      screen.getByRole("columnheader", { name: "August 2026" })
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", { name: "Date" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("row", { name: /Weekly market/u })
+    ).toHaveTextContent("Sep 24");
     expect(
       screen.getByRole("row", { name: /Weekly market, Today/u })
     ).toBeInTheDocument();
@@ -165,7 +181,7 @@ describe("Ledger (wide)", () => {
     );
     expect(
       await screen.findByRole("checkbox", {
-        name: "Select all transactions on this page",
+        name: "Select all loaded transactions",
       })
     ).toHaveAttribute("data-indeterminate");
     expect(
@@ -187,7 +203,7 @@ describe("Ledger (wide)", () => {
     expect(onOpen).not.toHaveBeenCalled();
     await user.click(
       screen.getByRole("checkbox", {
-        name: "Select all transactions on this page",
+        name: "Select all loaded transactions",
       })
     );
     expect(onToggleAll).toHaveBeenCalledWith(["t-1", "t-2", "t-3"]);
@@ -195,7 +211,12 @@ describe("Ledger (wide)", () => {
 
   it("colours income as money in and reads signs aloud", async () => {
     renderWithProviders(
-      <Ledger grouped onOpen={vi.fn()} today="2026-09-24" transactions={rows} />
+      <Ledger
+        groups={groups}
+        onOpen={vi.fn()}
+        today="2026-09-24"
+        transactions={rows}
+      />
     );
     const salary = await screen.findByRole("row", { name: /Salary/u });
     expect(within(salary).getByText(/^plus /u)).toBeInTheDocument();
@@ -255,10 +276,15 @@ describe("Ledger (phone)", () => {
     const user = userEvent.setup();
     const onOpen = vi.fn();
     renderWithProviders(
-      <Ledger grouped onOpen={onOpen} today="2026-09-24" transactions={rows} />
+      <Ledger
+        groups={groups}
+        onOpen={onOpen}
+        today="2026-09-24"
+        transactions={rows}
+      />
     );
     expect(
-      await screen.findByRole("heading", { name: "Today" })
+      await screen.findByRole("heading", { name: "September 2026" })
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Salary/u }));
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "t-3" }));
