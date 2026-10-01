@@ -1,4 +1,4 @@
-import { motion, wake } from "./loop";
+import { motion, parallax, wake } from "./loop";
 import type { Actor } from "./loop";
 import { BAYER8 } from "./matrix";
 import { readPalette, Surface } from "./surface";
@@ -11,13 +11,16 @@ interface Aim {
 /**
  * Returns a tone index plus a density: `2.6` is tone 2 at 60% ink, and 0 is
  * paper. `u` and `v` run 0 to 1 across the canvas; `aspect` is width / height.
+ * `lift` is how far the canvas sits below the viewport's centre, in viewport
+ * heights clamped to [-1, 1], so a scene can move its layers at their own depth.
  */
 export type Scene = (
   u: number,
   v: number,
   t: number,
   aspect: number,
-  aim: Aim
+  aim: Aim,
+  lift: number
 ) => number;
 
 interface ArtOptions {
@@ -75,6 +78,10 @@ export const artActor = (
       x: Math.max(-1, Math.min(1, aim.x)),
       y: Math.max(-1, Math.min(1, aim.y)),
     };
+    const lift = Math.max(
+      -1,
+      Math.min(1, parallax(canvas) / window.innerHeight)
+    );
     for (let y = 0; y < rows; y += 1) {
       const v = (y + 0.5) / rows;
       const order = (y & 7) << 3;
@@ -86,7 +93,7 @@ export const artActor = (
           progress >= 1 ||
           threshold * 0.55 + (x / cols + v) * 0.225 <= sweep
         ) {
-          const code = scene((x + 0.5) / cols, v, t, aspect, lean);
+          const code = scene((x + 0.5) / cols, v, t, aspect, lean, lift);
           const tone = Math.floor(code);
           if (tone > 0 && code - tone > threshold) {
             color = palette[tone] ?? bg;

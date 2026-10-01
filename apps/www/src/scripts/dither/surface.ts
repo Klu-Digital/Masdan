@@ -22,6 +22,7 @@ export interface Tones {
   fg: number;
   bg: number;
   line: number;
+  shadow: number;
 }
 
 /** Reads the tones a canvas paints with from its CSS custom properties. */
@@ -34,12 +35,13 @@ export const readPalette = (
 };
 
 export const readTones = (el: Element): Tones => {
-  const [fg = 0, bg = 0, line = 0] = readPalette(el, [
+  const [fg = 0, bg = 0, line = 0, shadow = 0] = readPalette(el, [
     "--tone-fg",
     "--tone-bg",
     "--tone-line",
+    "--tone-shadow",
   ]);
-  return { bg, fg, line };
+  return { bg, fg, line, shadow };
 };
 
 /** A low-res pixel buffer scaled by whole device pixels so cells stay crisp. */

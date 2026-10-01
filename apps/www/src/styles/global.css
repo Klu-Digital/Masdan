@@ -42,6 +42,7 @@
   --hairline: rgb(62 99 221 / 10%);
   --rule: rgb(62 99 221 / 26%);
   --dither-ink: var(--foreground);
+  --dither-shadow: var(--muted-foreground);
   --sheet: min(100% - 32px, 1280px);
   --columns: 4;
   color-scheme: light;
@@ -67,6 +68,7 @@
   --hairline: rgb(84 114 228 / 14%);
   --rule: rgb(84 114 228 / 34%);
   --dither-ink: var(--muted-foreground);
+  --dither-shadow: #000000;
   color-scheme: dark;
 }
 
@@ -260,6 +262,7 @@
     --tone-fg: var(--brand);
     --tone-bg: var(--background);
     --tone-line: var(--dither-ink);
+    --tone-shadow: var(--dither-shadow);
   }
 
   .dither-ink {

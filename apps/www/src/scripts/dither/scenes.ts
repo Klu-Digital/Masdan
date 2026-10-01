@@ -41,50 +41,62 @@ const ring = (r: number, turn: number): number => {
   return 0;
 };
 
-/** An eye whose outer ring is a spending breakdown; the pupil follows the pointer. */
-export const iris: Scene = (u, v, t, aspect, aim) => {
+/**
+ * An eye whose outer ring is a spending breakdown; the pupil follows the
+ * pointer. Inner layers sit nearer, so scrolling slides them off-centre.
+ */
+export const iris: Scene = (u, v, t, aspect, aim, lift) => {
   const x = (u - 0.5) * aspect;
   const y = v - 0.5;
   const r = Math.hypot(x, y);
   if (r > 0.49) {
     return 0;
   }
-  const angle = Math.atan2(y, x);
   if (r > 0.45) {
+    const angle = Math.atan2(y, x);
     const tick = ((angle / TAU + 1) * 72) % 1 < 0.38;
     const major = Math.round((angle / TAU + 1) * 72) % 6 === 0;
     return tick && (r > 0.465 || major) ? INK + SOLID : 0;
   }
-  if (r > 0.43) {
+  const ry = y - lift * 0.012;
+  const rr = Math.hypot(x, ry);
+  if (rr > 0.43) {
     return 0;
   }
-  if (r > 0.33) {
-    const turn = ((((angle - t * 0.06) / TAU) % 1) + 1) % 1;
-    return ring(r, turn);
+  if (rr > 0.33) {
+    const turn = ((((Math.atan2(ry, x) - t * 0.06) / TAU) % 1) + 1) % 1;
+    return ring(rr, turn);
   }
-  if (r > 0.31) {
+  const iy = y - lift * 0.03;
+  const ir = Math.hypot(x, iy);
+  if (ir > 0.31) {
     return 0;
   }
+  const angle = Math.atan2(iy, x);
   const px = aim.x * 0.06;
-  const py = aim.y * 0.06;
+  const py = aim.y * 0.06 + lift * 0.055;
   const pupil = Math.hypot(x - px, y - py);
   const size = 0.115 + 0.008 * Math.sin(t * 0.8);
   if (pupil < size) {
     const glint = Math.hypot(x - px + 0.04, y - py + 0.04) < 0.026;
     return glint ? GLINT + SOLID : PUPIL + SOLID;
   }
-  if (r > 0.19) {
+  if (ir > 0.19) {
     const fiber = noise(
-      Math.cos(angle) * 4 + r * 9,
+      Math.cos(angle) * 4 + ir * 9,
       Math.sin(angle) * 4 - t * 0.2
     );
-    return BLUE + Math.min(SOLID, 0.12 + 0.75 * fiber * (1.3 - (r - 0.19) * 4));
+    return (
+      BLUE + Math.min(SOLID, 0.12 + 0.75 * fiber * (1.3 - (ir - 0.19) * 4))
+    );
   }
   return BLUE + Math.max(0.05, Math.min(SOLID, 0.95 - (pupil - size) * 5));
 };
 
 const ROWS_VISIBLE = 11;
 const SPEED = 0.022;
+/** Rows the ledger scrolls per viewport height the page scrolls. */
+const SCROLL_ROWS = 6;
 
 const rowTone = (i: number): number => {
   const kind = hash(i);
@@ -94,9 +106,13 @@ const rowTone = (i: number): number => {
   return kind < 0.42 ? BLUE : INK;
 };
 
-/** Transactions, abstracted to bars, scrolling up an endless ledger. */
-export const ledger: Scene = (u, v, t) => {
-  const position = v * ROWS_VISIBLE + t * SPEED * ROWS_VISIBLE;
+/**
+ * Transactions, abstracted to bars, scrolling up an endless ledger that
+ * runs ahead of the page as it scrolls.
+ */
+export const ledger: Scene = (u, v, t, _aspect, _aim, lift) => {
+  const position =
+    v * ROWS_VISIBLE + t * SPEED * ROWS_VISIBLE - lift * SCROLL_ROWS;
   const i = Math.floor(position);
   const local = position - i;
   const fade = Math.min(1, v / 0.14, (1 - v) / 0.14);
@@ -136,7 +152,13 @@ export const ledger: Scene = (u, v, t) => {
 
 const CARD_TONES = [BLUE, INK, GREEN, GREY];
 const CARD_TILT = [-6, 4, -3, 7];
+/** Height above the paper. Later cards are drawn on top, so they sit highest. */
+const CARD_HEIGHT = [0.08, 0.13, 0.18, 0.24];
 const CARD_RATIO = 1.586;
+/** Light from the upper left: shadow offset per unit of height. */
+const CAST = { x: 0.3, y: 0.5 };
+const SHADOW_SOFT = 0.03;
+const SHADOW_INK = 0.5;
 
 const EDGE = 0.025;
 
@@ -166,36 +188,54 @@ const cardFace = (s: number, q: number, tone: number): number => {
   );
 };
 
-/** Credit cards floating in a loose row, each drawn as a dithered card face. */
-export const cards: Scene = (u, v, t, aspect) => {
-  const x = u * aspect;
-  const width = Math.min(0.6, aspect * 0.235);
+/** Signed distance from a point to a tilted rounded card; negative inside. */
+const cardDistance = (
+  dx: number,
+  dy: number,
+  theta: number,
+  width: number
+): { distance: number; s: number; q: number } => {
   const height = width / CARD_RATIO;
   const corner = width * 0.06;
+  const lx = dx * Math.cos(theta) + dy * Math.sin(theta);
+  const ly = -dx * Math.sin(theta) + dy * Math.cos(theta);
+  const qx = Math.abs(lx) - (width / 2 - corner);
+  const qy = Math.abs(ly) - (height / 2 - corner);
+  const distance =
+    Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) +
+    Math.min(Math.max(qx, qy), 0) -
+    corner;
+  return { distance, q: ly / height + 0.5, s: lx / width + 0.5 };
+};
+
+/**
+ * Credit cards hovering over the paper, each drawn as a dithered card face.
+ * Their shadows stay on the paper while the cards bob and ride the scroll
+ * above it, which is what makes them read as lifted.
+ */
+export const cards: Scene = (u, v, t, aspect, _aim, lift) => {
+  const x = u * aspect;
+  const width = Math.min(0.6, aspect * 0.235);
+  let shade = 0;
   for (let i = CARD_TONES.length - 1; i >= 0; i -= 1) {
+    const height = CARD_HEIGHT[i] ?? 0;
     const cx = aspect * (0.14 + 0.24 * i);
-    const cy =
-      0.5 + (i % 2 === 0 ? -0.1 : 0.1) + 0.03 * Math.sin(t * 0.7 + i * 1.7);
+    const rest = 0.5 + (i % 2 === 0 ? -0.1 : 0.1);
+    const cy = rest + 0.03 * Math.sin(t * 0.7 + i * 1.7) + lift * height * 0.6;
     const theta =
       (((CARD_TILT[i] ?? 0) + 1.5 * Math.sin(t * 0.45 + i * 1.3)) * Math.PI) /
       180;
-    const dx = x - cx;
-    const dy = v - cy;
-    const lx = dx * Math.cos(theta) + dy * Math.sin(theta);
-    const ly = -dx * Math.sin(theta) + dy * Math.cos(theta);
-    const qx = Math.max(0, Math.abs(lx) - (width / 2 - corner));
-    const qy = Math.max(0, Math.abs(ly) - (height / 2 - corner));
-    if (
-      Math.abs(lx) <= width / 2 &&
-      Math.abs(ly) <= height / 2 &&
-      Math.hypot(qx, qy) <= corner
-    ) {
-      return cardFace(
-        lx / width + 0.5,
-        ly / height + 0.5,
-        CARD_TONES[i] ?? INK
-      );
+    const card = cardDistance(x - cx, v - cy, theta, width);
+    if (card.distance <= 0) {
+      return cardFace(card.s, card.q, CARD_TONES[i] ?? INK);
     }
+    const shadow = cardDistance(
+      x - cx - height * CAST.x,
+      v - rest - height * CAST.y,
+      theta,
+      width
+    );
+    shade = Math.max(shade, 1 - Math.max(0, shadow.distance) / SHADOW_SOFT);
   }
-  return 0;
+  return shade > 0 ? GREY + SHADOW_INK * shade : 0;
 };

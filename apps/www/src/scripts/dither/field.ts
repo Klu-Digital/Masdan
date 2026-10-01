@@ -1,15 +1,20 @@
-import { motion, wake } from "./loop";
+import { motion, parallax, wake } from "./loop";
 import type { Actor } from "./loop";
 import type { Matrix } from "./matrix";
 import { readTones, Surface } from "./surface";
 
-/** Ink density in [0, 1] at a point in CSS pixels, `t` in seconds. */
+/**
+ * Ink density in [0, 1] at a point in CSS pixels, `t` in seconds. `s` is the
+ * canvas's scroll offset from `parallax`: sampling at `y + s * depth` makes a
+ * layer lag the page, so depth 0 rides with it and depth 1 stays put.
+ */
 export type Field = (
   x: number,
   y: number,
   t: number,
   w: number,
-  h: number
+  h: number,
+  s: number
 ) => number;
 
 interface FieldOptions {
@@ -22,6 +27,15 @@ interface FieldOptions {
   lamp?: HTMLElement;
   /** Evaluates the field once per n-by-n block of cells; thresholds stay per cell. */
   sample?: number;
+  /** Elements floating above the field, which cast a dithered shadow onto it. */
+  casters?: readonly Element[];
+}
+
+interface Shadow {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
 }
 
 const RESOLVE_MS = 1400;
@@ -30,6 +44,14 @@ const STILL_T = 12;
 const LAMP_RADIUS = 180;
 const LAMP_STRENGTH = 0.6;
 const LAMP_EASE = 0.14;
+/** Shadow length per pixel between a caster and the light above the viewport. */
+const ELEVATION = 0.08;
+const LIGHT_ABOVE = 0.35;
+/** Sideways throw per pixel of drop, from the same upper-left light as the cards. */
+const SLANT = 0.6;
+const STILL_DROP = 40;
+const SHADOW_SOFT = 14;
+const SHADOW_INK = 0.62;
 
 const easeOut = (x: number): number => 1 - (1 - x) ** 3;
 
@@ -38,6 +60,7 @@ export const fieldActor = (
   options: FieldOptions
 ): Actor => {
   const { field, matrix, cell, resolve, lamp, sample = 1 } = options;
+  const casters = options.casters ?? [];
   let row = new Float32Array(0);
   const surface = new Surface(canvas, resolve?.[0] ?? cell);
   let tones = readTones(canvas);
@@ -68,10 +91,50 @@ export const fieldActor = (
     });
   }
 
+  /**
+   * Shadows land where a light above the viewport puts them, so they stretch
+   * as a caster sinks down the screen and shrink as it rises.
+   */
+  const castShadows = (): Shadow[] => {
+    const frame = canvas.getBoundingClientRect();
+    return casters.map((caster) => {
+      const rect = caster.getBoundingClientRect();
+      const dy = motion.still
+        ? STILL_DROP
+        : (rect.top + rect.height / 2 + window.innerHeight * LIGHT_ABOVE) *
+          ELEVATION;
+      const dx = dy * SLANT;
+      return {
+        bottom: rect.bottom - frame.top + dy,
+        left: rect.left - frame.left + dx,
+        right: rect.right - frame.left + dx,
+        top: rect.top - frame.top + dy,
+      };
+    });
+  };
+
+  /**
+   * Fades only toward the bottom and right edges: the light is up and to the
+   * left, so the other two lie under the caster, and fading them would leave
+   * a pale seam where two neighbouring panels' shadows meet.
+   */
+  const shadowAt = (px: number, py: number, shadows: Shadow[]): number => {
+    let shade = 0;
+    for (const shadow of shadows) {
+      if (px > shadow.left && py > shadow.top) {
+        const inset = Math.min(shadow.right - px, shadow.bottom - py);
+        if (inset > 0) {
+          shade = Math.max(shade, Math.min(1, inset / SHADOW_SOFT));
+        }
+      }
+    }
+    return shade;
+  };
+
   const draw = (t: number, density: number): void => {
     const { cols, rows, pixels, unit } = surface;
     const { values, mask, shift } = matrix;
-    const { fg, bg } = tones;
+    const { fg, bg, shadow: dark } = tones;
     const width = cols * unit;
     const height = rows * unit;
     const lit = light.power > 0.01;
@@ -81,18 +144,23 @@ export const fieldActor = (
       row = new Float32Array(cols);
     }
     const block = sample * unit;
+    const s = parallax(canvas);
+    const shadows = castShadows();
     for (let y = 0; y < rows; y += 1) {
       const py = (y + 0.5) * unit;
       if (y % sample === 0) {
         const fy = (y + sample / 2) * unit;
         for (let x = 0; x < cols; x += sample) {
-          const value = field((x + sample / 2) * unit, fy, t, width, height);
+          const value = field((x + sample / 2) * unit, fy, t, width, height, s);
           row.fill(value * density, x, x + sample);
         }
       }
       const order = (y & mask) << shift;
       const dy = py - light.y;
       const rowLit = lit && Math.abs(dy) < reach + block;
+      const rowShadows = shadows.filter(
+        (shadow) => py > shadow.top && py < shadow.bottom
+      );
       let index = y * cols;
       for (let x = 0; x < cols; x += 1) {
         const px = (x + 0.5) * unit;
@@ -106,7 +174,15 @@ export const fieldActor = (
               Math.exp(-(dx * dx + dy * dy) * falloff);
           }
         }
-        pixels[index] = d > (values[order + (x & mask)] ?? 1) ? fg : bg;
+        const threshold = values[order + (x & mask)] ?? 1;
+        let color = d > threshold ? fg : bg;
+        if (
+          rowShadows.length > 0 &&
+          shadowAt(px, py, rowShadows) * SHADOW_INK > threshold
+        ) {
+          color = dark;
+        }
+        pixels[index] = color;
         index += 1;
       }
     }
