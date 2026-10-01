@@ -299,8 +299,15 @@ export const NetWorthHistoryChart = ({
             <EChartsComposedChart.YAxis tickFormatter={yAxis} />
             <EChartsComposedChart.Legend align="left" />
             <EChartsComposedChart.Tooltip valueFormatter={tooltip} />
-            <EChartsComposedChart.Bar dataKey="assets" />
-            <EChartsComposedChart.Bar dataKey="liabilities" />
+            <EChartsComposedChart.Bar
+              dataKey="assets"
+              outline
+              variant="gradient"
+            />
+            <EChartsComposedChart.Bar
+              dataKey="liabilities"
+              variant="gradient"
+            />
             <EChartsComposedChart.Line dataKey="netWorth">
               <EChartsComposedChart.Dot />
             </EChartsComposedChart.Line>
@@ -417,8 +424,16 @@ export const CashFlowSection = ({
               <EChartsComposedChart.YAxis tickFormatter={yAxis} />
               <EChartsComposedChart.Legend align="left" />
               <EChartsComposedChart.Tooltip valueFormatter={tooltip} />
-              <EChartsComposedChart.Bar dataKey="income" />
-              <EChartsComposedChart.Bar dataKey="expense" />
+              <EChartsComposedChart.Bar
+                dataKey="income"
+                outline
+                variant="gradient"
+              />
+              <EChartsComposedChart.Bar
+                dataKey="expense"
+                outline
+                variant="gradient"
+              />
             </EChartsComposedChart>
             <ChartTable
               caption="Money in and out by month"

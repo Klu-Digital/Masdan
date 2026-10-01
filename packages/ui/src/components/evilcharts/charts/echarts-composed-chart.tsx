@@ -309,6 +309,8 @@ export interface BarProps {
   radius?: number;
   // applies a soft neon glow to this bar
   glow?: boolean;
+  // draws a 1px outline around each column that fades out toward the baseline
+  outline?: boolean;
   // grow-in order — the first series drives the chart
   animationType?: ComposedAnimationType;
   // lets this bar be selected by clicking it
@@ -443,6 +445,7 @@ interface BarSeriesConfig {
   variant: BarVariant;
   radius: number;
   glow: boolean;
+  outline: boolean;
   animationType?: ComposedAnimationType;
   isClickable: boolean;
   enableHoverHighlight: boolean;
@@ -536,6 +539,7 @@ const barConfig = (props: BarProps): BarSeriesConfig => ({
   enableHoverHighlight: props.enableHoverHighlight ?? false,
   glow: props.glow ?? false,
   isClickable: props.isClickable ?? false,
+  outline: props.outline ?? false,
   radius: props.radius ?? DEFAULT_BAR_RADIUS,
   variant: props.variant ?? "default",
 });
@@ -1442,6 +1446,11 @@ const buildBarSeries = (ctx: OptionBuildContext): BarSeriesOption[] => {
         // Stripped bars are square (their solid top strip lives in the fill);
         // every other variant rounds all four corners like the Recharts twin.
         borderRadius: bar.variant === "stripped" ? 0 : bar.radius,
+        // The outline reuses the fill's top→bottom fade, so the baseline edge is
+        // transparent and only the top and the upper sides read.
+        ...(bar.outline
+          ? { borderColor: barFillPaint("gradient", slots), borderWidth: 1 }
+          : {}),
         color: barFillPaint(bar.variant, slots),
         opacity: fillDim,
         ...glowSeriesStyle,
