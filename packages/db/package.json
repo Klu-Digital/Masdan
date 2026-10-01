@@ -36,6 +36,7 @@
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
     "@masdan/auth": "workspace:*",
+    "@masdan/card-catalog": "workspace:*",
     "@masdan/config": "workspace:*",
     "@types/pg": "^8.20.0",
     "drizzle-kit": "catalog:",
