@@ -1,0 +1,29 @@
+---
+import { ArrowRight01Icon, Github01Icon } from "@hugeicons/core-free-icons";
+import { GETTING_STARTED, REPO } from "../lib/links";
+import Icon from "./icon.astro";
+---
+
+<header class="sticky top-0 z-20 border-b border-rule bg-paper">
+  <nav class="sheet h-14 items-center" aria-label="Main">
+    <a
+      href="/"
+      class="col-span-2 flex items-center gap-2.5 self-stretch pl-4 text-lg font-bold tracking-tight md:col-span-3"
+    >
+      <span class="mark" aria-hidden="true"></span>
+      masdan
+    </a>
+    <div class="col-span-2 flex items-center justify-end gap-1 md:col-span-9 md:gap-2">
+      <a href="#features" class="hidden px-3 py-2 text-sm font-medium hover:text-brand-text md:inline-block">Features</a>
+      <a href="#self-host" class="hidden px-3 py-2 text-sm font-medium hover:text-brand-text md:inline-block">Self-host</a>
+      <a href={REPO} class="hidden items-center gap-2 px-3 py-2 text-sm font-medium hover:text-brand-text sm:inline-flex">
+        <Icon icon={Github01Icon} />
+        GitHub
+      </a>
+      <a href={GETTING_STARTED} class="btn btn-primary h-14 md:ml-2">
+        Self-host it
+        <Icon icon={ArrowRight01Icon} />
+      </a>
+    </div>
+  </nav>
+</header>

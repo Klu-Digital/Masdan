@@ -18,6 +18,7 @@
     "staged": "vp staged",
     "dev:infra": "docker compose up -d --wait postgres redis minio && docker compose run --rm minio-init",
     "dev:web": "vp run --filter web dev",
+    "dev:www": "vp run --filter www dev",
     "dev:server": "pnpm dev:infra && vp run --filter server dev",
     "dev:workers": "pnpm dev:infra && vp run --filter workers dev",
     "dev:down": "lsof -ti tcp:${WEB_PORT:-2600},${SERVER_PORT:-1900} | xargs kill -9 2>/dev/null; true",

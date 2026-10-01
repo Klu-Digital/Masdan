@@ -16,6 +16,9 @@ procs:
   web:
     shell: vp run --filter web dev
 
+  www:
+    shell: vp run --filter www dev
+
   # `send-keys` rather than `stop: SIGINT`, and the difference is not cosmetic.
   # These procs are three processes deep — a shell running `vp run`, which spawns
   # `tsx watch`, which spawns node — and a signal `stop` is delivered to the

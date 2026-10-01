@@ -1,0 +1,13 @@
+---
+interface Props {
+  kind: "sweep" | "closing";
+  class?: string;
+}
+
+const { kind, class: className } = Astro.props;
+---
+
+<div class:list={["relative border-y border-rule", className]} aria-hidden="true">
+  <canvas class="dither absolute inset-0" data-dither={kind}></canvas>
+  <div class="rules"></div>
+</div>

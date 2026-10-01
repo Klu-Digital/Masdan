@@ -1,0 +1,31 @@
+---
+import { ArrowRight01Icon, Github01Icon } from "@hugeicons/core-free-icons";
+import { GETTING_STARTED, REPO } from "../lib/links";
+import Icon from "./icon.astro";
+---
+
+<section class="relative mt-20 border-t border-rule md:mt-28" aria-labelledby="closing-title">
+  <canvas class="dither absolute inset-0" data-dither="closing" aria-hidden="true"></canvas>
+  <div class="rules" aria-hidden="true"></div>
+  <div class="sheet py-24 md:py-40">
+    <div class="cell-solid relative col-span-4 px-5 py-8 md:col-span-8 md:col-start-3 md:p-12">
+      <span class="label absolute top-3 right-3" aria-hidden="true">§5</span>
+      <h2 id="closing-title" class="text-4xl leading-none font-bold tracking-[-0.03em] text-balance md:text-6xl">
+        Keep the whole household in view.
+      </h2>
+      <p class="mt-5 max-w-[48ch] text-base leading-relaxed text-muted md:text-lg">
+        On your own machine, under the MIT License. Read it, run it, change it.
+      </p>
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a href={GETTING_STARTED} class="btn btn-primary">
+          Self-host it
+          <Icon icon={ArrowRight01Icon} />
+        </a>
+        <a href={REPO} class="btn btn-ghost">
+          <Icon icon={Github01Icon} />
+          View on GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

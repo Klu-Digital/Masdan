@@ -55,6 +55,23 @@ export default defineConfig({
         "shadcn/require-static-classes": "off",
       },
     },
+    {
+      // The landing page's dither renderer paints raw palette values on canvas.
+      files: ["apps/www/**"],
+      rules: {
+        "shadcn/no-arbitrary-values": "off",
+        "shadcn/no-inline-styles": "off",
+        "shadcn/no-raw-colors": "off",
+        "shadcn/no-restyle": "off",
+        "shadcn/no-unknown-classes": "off",
+        "shadcn/require-static-classes": "off",
+      },
+    },
+    {
+      // Packing RGBA words and indexing Bayer matrices are bitwise by nature.
+      files: ["apps/www/src/scripts/dither/**"],
+      rules: { "no-bitwise": "off" },
+    },
   ],
   rules: {
     // Plenty of our loops are deliberately sequential — ordered migrations,

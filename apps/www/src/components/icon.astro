@@ -1,0 +1,32 @@
+---
+type IconNode = readonly (readonly [string, Readonly<Record<string, string | number>>])[];
+
+interface Props {
+  icon: IconNode;
+  class?: string;
+  label?: string;
+}
+
+const { icon, class: className, label } = Astro.props;
+const kebab = (key: string) => key.replaceAll(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`);
+const nodes = icon.map(([tag, attrs]) => ({
+  Tag: tag,
+  attrs: Object.fromEntries(
+    Object.entries(attrs)
+      .filter(([key]) => key !== "key")
+      .map(([key, value]) => [kebab(key), value])
+  ),
+}));
+---
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+  fill="none"
+  class:list={["icon", className]}
+  aria-hidden={label ? undefined : "true"}
+  aria-label={label}
+  role={label ? "img" : undefined}
+>
+  {nodes.map(({ Tag, attrs }) => <Tag {...attrs} />)}
+</svg>

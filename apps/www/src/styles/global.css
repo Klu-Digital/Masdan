@@ -1,0 +1,286 @@
+@import "tailwindcss";
+@import "@fontsource-variable/schibsted-grotesk";
+@import "@fontsource-variable/geist-mono";
+
+@theme inline {
+  --font-sans:
+    "Schibsted Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+  --color-paper: var(--background);
+  --color-ink: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted-foreground);
+  --color-faint: var(--faint);
+  --color-brand: var(--brand);
+  --color-brand-text: var(--brand-text);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-solid: var(--brand-solid);
+  --color-positive: var(--positive);
+  --color-positive-text: var(--positive-foreground);
+  --color-hairline: var(--hairline);
+  --color-rule: var(--rule);
+}
+
+/* Values copied from packages/ui/src/styles/globals.css so the site matches the app. */
+:root {
+  --background: #ffffff;
+  --foreground: #1d1d1f;
+  --surface: #f5f5f7;
+  --muted-foreground: #6e6e73;
+  --faint: #a1a1a6;
+  --brand: #3e63dd;
+  --brand-text: #3451c7;
+  --brand-soft: rgb(62 99 221 / 10%);
+  --brand-solid: #3e63dd;
+  --brand-solid-hover: #3451c7;
+  --positive: #30a46c;
+  --positive-foreground: #18794e;
+  --chart-1: #3e63dd;
+  --chart-2: #30a46c;
+  --chart-3: #1d1d1f;
+  --chart-5: #b4b4b9;
+  --hairline: rgb(62 99 221 / 10%);
+  --rule: rgb(62 99 221 / 26%);
+  --dither-ink: var(--foreground);
+  --sheet: min(100% - 32px, 1280px);
+  --columns: 4;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #151517;
+    --foreground: #f5f5f7;
+    --surface: #1e1e21;
+    --muted-foreground: #98989f;
+    --faint: #636369;
+    --brand: #5472e4;
+    --brand-text: #9eb1ff;
+    --brand-soft: rgb(84 114 228 / 18%);
+    --brand-solid: #3e63dd;
+    --brand-solid-hover: #5472e4;
+    --positive: #33b074;
+    --positive-foreground: #3dd68c;
+    --chart-1: #6e8bf0;
+    --chart-2: #2f9e68;
+    --chart-3: #e8e8ed;
+    --chart-5: #48484e;
+    --hairline: rgb(84 114 228 / 14%);
+    --rule: rgb(84 114 228 / 34%);
+    --dither-ink: var(--muted-foreground);
+    color-scheme: dark;
+  }
+
+  .art {
+    --tone-5: var(--background);
+    --tone-6: var(--foreground);
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --columns: 12;
+  }
+}
+
+@layer base {
+  html {
+    scroll-padding-top: 4.5rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    position: relative;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--brand);
+    color: #ffffff;
+  }
+}
+
+@layer components {
+  /* The content column every section snaps to. */
+  .sheet {
+    position: relative;
+    display: grid;
+    width: var(--sheet);
+    margin-inline: auto;
+    grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  }
+
+  /* Ledger-paper column rules, drawn at the same geometry as .sheet. */
+  .rules {
+    position: absolute;
+    inset-block: 0;
+    left: 50%;
+    width: var(--sheet);
+    translate: -50% 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to right, var(--rule) 1px, transparent 1px),
+      linear-gradient(to left, var(--rule) 1px, transparent 1px),
+      linear-gradient(to right, var(--hairline) 1px, transparent 1px);
+    background-size:
+      100% 100%,
+      100% 100%,
+      calc(100% / var(--columns)) 100%;
+    background-repeat: no-repeat, no-repeat, repeat-x;
+  }
+
+  .rules-page {
+    z-index: -1;
+  }
+
+  /* Cell edges land on the same pixels as the column rules. */
+  .cell {
+    box-shadow: inset 1px 0 0 var(--rule);
+  }
+
+  .cell-solid {
+    background: var(--background);
+    box-shadow:
+      inset 1px 1px 0 var(--rule),
+      1px 1px 0 var(--rule);
+  }
+
+  .cell-surface {
+    background: var(--surface);
+    box-shadow:
+      inset 1px 1px 0 var(--rule),
+      1px 1px 0 var(--rule);
+  }
+
+  .cell-brand {
+    background: var(--brand-solid);
+    color: #ffffff;
+  }
+
+  .cross {
+    position: absolute;
+    width: 11px;
+    height: 11px;
+    translate: -5px -5px;
+    pointer-events: none;
+    background:
+      linear-gradient(var(--brand), var(--brand)) center / 1px 100% no-repeat,
+      linear-gradient(var(--brand), var(--brand)) center / 100% 1px no-repeat;
+  }
+
+  .label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .figures {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums slashed-zero;
+  }
+
+  .mark {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    background: repeating-conic-gradient(var(--brand) 0 25%, transparent 0 50%)
+      0 0 / 4px 4px;
+    box-shadow: 0 0 0 1px var(--brand);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.75rem;
+    padding-inline: 1.125rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    white-space: nowrap;
+    transition:
+      translate 160ms cubic-bezier(0.16, 1, 0.3, 1),
+      background-color 160ms;
+  }
+
+  .btn:active {
+    translate: 0 1px;
+  }
+
+  .btn-primary {
+    background: var(--brand-solid);
+    color: #ffffff;
+  }
+
+  .btn-primary:hover {
+    background: var(--brand-solid-hover);
+  }
+
+  .btn-ghost {
+    background: var(--background);
+    color: var(--foreground);
+    box-shadow: inset 0 0 0 1px var(--foreground);
+  }
+
+  .btn-ghost:hover {
+    background: var(--surface);
+  }
+
+  .icon {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  .dither {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    --tone-fg: var(--brand);
+    --tone-bg: var(--background);
+    --tone-line: var(--dither-ink);
+  }
+
+  .dither-ink {
+    --tone-fg: var(--dither-ink);
+  }
+
+  /* Multi-tone art pieces paint with the app's chart palette. */
+  .art {
+    display: block;
+    width: 100%;
+    image-rendering: pixelated;
+    --tone-bg: var(--background);
+    --tone-1: var(--chart-1);
+    --tone-2: var(--chart-2);
+    --tone-3: var(--dither-ink);
+    --tone-4: var(--chart-5);
+    --tone-5: var(--foreground);
+    --tone-6: var(--background);
+  }
+
+  .glyph {
+    display: block;
+    width: 48px;
+    height: 48px;
+    image-rendering: pixelated;
+    --tone-fg: var(--brand);
+    --tone-bg: transparent;
+  }
+
+  .cell-brand .glyph {
+    --tone-fg: #ffffff;
+  }
+}

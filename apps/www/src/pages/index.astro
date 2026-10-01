@@ -1,0 +1,37 @@
+---
+import Accounts from "../components/accounts.astro";
+import Band from "../components/band.astro";
+import Closing from "../components/closing.astro";
+import Definition from "../components/definition.astro";
+import Features from "../components/features.astro";
+import Footer from "../components/footer.astro";
+import Hero from "../components/hero.astro";
+import Ledger from "../components/ledger.astro";
+import Nav from "../components/nav.astro";
+import NetWorthBand from "../components/net-worth-band.astro";
+import SelfHost from "../components/self-host.astro";
+import Base from "../layouts/base.astro";
+---
+
+<Base
+  title="Masdan: see your household's whole financial life"
+  description="Masdan is Tagalog for observe closely. A self-hosted household finance tracker that keeps every account, card, bill and budget in one shared ledger. MIT licensed."
+>
+  <Nav />
+  <main>
+    <Hero />
+    <Definition />
+    <NetWorthBand />
+    <Features />
+    <Ledger />
+    <Band kind="sweep" class="mt-20 h-28 md:mt-28 md:h-40" />
+    <Accounts />
+    <SelfHost />
+    <Closing />
+  </main>
+  <Footer />
+</Base>
+
+<script>
+  import "../scripts/dither/main";
+</script>

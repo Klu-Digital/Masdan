@@ -1,0 +1,13 @@
+---
+interface Props {
+  mark?: string;
+}
+
+const { mark } = Astro.props;
+---
+
+<div class="sheet h-0" aria-hidden="true">
+  <span class="cross left-0 top-0"></span>
+  <span class="cross left-full top-0"></span>
+  {mark && <span class="label absolute left-2 top-2">{mark}</span>}
+</div>
