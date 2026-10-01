@@ -47,34 +47,32 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #151517;
-    --foreground: #f5f5f7;
-    --surface: #1e1e21;
-    --muted-foreground: #98989f;
-    --faint: #636369;
-    --brand: #5472e4;
-    --brand-text: #9eb1ff;
-    --brand-soft: rgb(84 114 228 / 18%);
-    --brand-solid: #3e63dd;
-    --brand-solid-hover: #5472e4;
-    --positive: #33b074;
-    --positive-foreground: #3dd68c;
-    --chart-1: #6e8bf0;
-    --chart-2: #2f9e68;
-    --chart-3: #e8e8ed;
-    --chart-5: #48484e;
-    --hairline: rgb(84 114 228 / 14%);
-    --rule: rgb(84 114 228 / 34%);
-    --dither-ink: var(--muted-foreground);
-    color-scheme: dark;
-  }
+:root[data-theme="dark"] {
+  --background: #151517;
+  --foreground: #f5f5f7;
+  --surface: #1e1e21;
+  --muted-foreground: #98989f;
+  --faint: #636369;
+  --brand: #5472e4;
+  --brand-text: #9eb1ff;
+  --brand-soft: rgb(84 114 228 / 18%);
+  --brand-solid: #3e63dd;
+  --brand-solid-hover: #5472e4;
+  --positive: #33b074;
+  --positive-foreground: #3dd68c;
+  --chart-1: #6e8bf0;
+  --chart-2: #2f9e68;
+  --chart-3: #e8e8ed;
+  --chart-5: #48484e;
+  --hairline: rgb(84 114 228 / 14%);
+  --rule: rgb(84 114 228 / 34%);
+  --dither-ink: var(--muted-foreground);
+  color-scheme: dark;
+}
 
-  .art {
-    --tone-5: var(--background);
-    --tone-6: var(--foreground);
-  }
+:root[data-theme="dark"] .art {
+  --tone-5: var(--background);
+  --tone-6: var(--foreground);
 }
 
 @media (min-width: 768px) {
@@ -192,12 +190,23 @@
   }
 
   .mark {
+    flex: none;
+    width: 24px;
+    height: 24px;
+  }
+
+  .mark-dark,
+  .theme-dark-icon,
+  [data-theme="dark"] .mark-light,
+  [data-theme="dark"] .theme-light-icon,
+  .theme-toggle {
+    display: none;
+  }
+
+  [data-theme="dark"] .mark-dark,
+  [data-theme="dark"] .theme-dark-icon,
+  .js .theme-toggle {
     display: inline-block;
-    width: 14px;
-    height: 14px;
-    background: repeating-conic-gradient(var(--brand) 0 25%, transparent 0 50%)
-      0 0 / 4px 4px;
-    box-shadow: 0 0 0 1px var(--brand);
   }
 
   .btn {

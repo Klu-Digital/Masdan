@@ -104,7 +104,4 @@ const paintGlyphs = (): void => {
   }
 };
 paintGlyphs();
-matchMedia("(prefers-color-scheme: dark)").addEventListener(
-  "change",
-  paintGlyphs
-);
+document.addEventListener("themechange", paintGlyphs);

@@ -1,26 +1,31 @@
 ---
-import { ArrowRight01Icon, Github01Icon } from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon, Github01Icon, Moon02Icon, Sun03Icon } from "@hugeicons/core-free-icons";
 import { GETTING_STARTED, REPO } from "../lib/links";
 import Icon from "./icon.astro";
 ---
 
 <header class="sticky top-0 z-20 border-b border-rule bg-paper">
-  <nav class="sheet h-14 items-center" aria-label="Main">
+  <nav class="sheet flex h-14 items-center justify-between" aria-label="Main">
     <a
       href="/"
-      class="col-span-2 flex items-center gap-2.5 self-stretch pl-4 text-lg font-bold tracking-tight md:col-span-3"
+      class="flex items-center gap-2 self-stretch pl-2 text-lg font-bold tracking-tight md:pl-4"
     >
-      <span class="mark" aria-hidden="true"></span>
+      <img src="/favicon-light.png" class="mark mark-light" width="24" height="24" alt="" />
+      <img src="/favicon-dark.png" class="mark mark-dark" width="24" height="24" alt="" />
       masdan
     </a>
-    <div class="col-span-2 flex items-center justify-end gap-1 md:col-span-9 md:gap-2">
+    <div class="flex items-center justify-end gap-1 md:gap-2">
       <a href="#features" class="hidden px-3 py-2 text-sm font-medium hover:text-brand-text md:inline-block">Features</a>
       <a href="#self-host" class="hidden px-3 py-2 text-sm font-medium hover:text-brand-text md:inline-block">Self-host</a>
       <a href={REPO} class="hidden items-center gap-2 px-3 py-2 text-sm font-medium hover:text-brand-text sm:inline-flex">
         <Icon icon={Github01Icon} />
         GitHub
       </a>
-      <a href={GETTING_STARTED} class="btn btn-primary h-14 md:ml-2">
+      <button id="theme" type="button" aria-label="Dark mode" aria-pressed="false" class="theme-toggle cursor-pointer p-3 hover:text-brand-text">
+        <span class="theme-light-icon"><Icon icon={Sun03Icon} /></span>
+        <span class="theme-dark-icon"><Icon icon={Moon02Icon} /></span>
+      </button>
+      <a href={GETTING_STARTED} class="btn btn-primary h-14 px-2 text-sm md:ml-2 md:px-4">
         Self-host it
         <Icon icon={ArrowRight01Icon} />
       </a>

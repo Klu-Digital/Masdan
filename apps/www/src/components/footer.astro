@@ -4,59 +4,81 @@ import { GETTING_STARTED, LICENSE, REPO } from "../lib/links";
 import Icon from "./icon.astro";
 
 const groups = [
-  {
-    links: [
-      { href: "#features", label: "Features" },
-      { href: "#ledger", label: "Ledger" },
-      { href: "#accounts", label: "Accounts" },
-      { href: "#self-host", label: "Self-host" },
-      { href: "#faq", label: "FAQ" },
-    ],
-    title: "Product",
-  },
-  {
-    links: [
-      { href: REPO, label: "GitHub" },
-      { href: GETTING_STARTED, label: "Getting started" },
-      { href: LICENSE, label: "MIT License" },
-    ],
-    title: "Source",
-  },
+    {
+        links: [
+            { href: "#features", label: "Features" },
+            { href: "#ledger", label: "Ledger" },
+            { href: "#accounts", label: "Accounts" },
+            { href: "#self-host", label: "Self-host" },
+            { href: "#faq", label: "FAQ" },
+        ],
+        title: "Product",
+    },
+    {
+        links: [
+            { href: REPO, label: "GitHub" },
+            { href: GETTING_STARTED, label: "Getting started" },
+            { href: LICENSE, label: "MIT License" },
+        ],
+        title: "Source",
+    },
 ];
 ---
 
 <footer class="border-t border-rule">
-  <div class="sheet">
-    <div class="col-span-4 px-4 py-10 md:col-span-6 md:px-6">
-      <p class="flex items-center gap-2.5 text-lg font-bold tracking-tight">
-        <span class="mark" aria-hidden="true"></span>
-        masdan
-      </p>
-      <p class="mt-3 max-w-[36ch] leading-relaxed text-muted">
-        A self-hosted household finance tracker. <span lang="tl">Masdan</span> is Tagalog for
-        “observe closely”.
-      </p>
-      <a href={REPO} class="mt-6 inline-flex items-center gap-2 font-medium hover:text-brand-text">
-        <Icon icon={Github01Icon} />
-        k22i/Masdan
-      </a>
+    <div class="sheet">
+        <div class="col-span-4 px-4 py-10 md:col-span-6 md:px-6">
+            <p class="flex items-center gap-2.5 text-lg font-bold tracking-tight">
+                <img
+                    src="/favicon-light.png"
+                    class="mark mark-light"
+                    width="24"
+                    height="24"
+                    alt=""
+                />
+                <img
+                    src="/favicon-dark.png"
+                    class="mark mark-dark"
+                    width="24"
+                    height="24"
+                    alt=""
+                />
+                masdan
+            </p>
+            <p class="mt-3 max-w-[36ch] leading-relaxed text-muted">
+                A self-hosted household finance tracker.{" "}
+                <span lang="tl">Masdan</span> is Tagalog for “observe closely”.
+            </p>
+            <a
+                href={REPO}
+                class="mt-6 inline-flex items-center gap-2 font-medium hover:text-brand-text"
+            >
+                <Icon icon={Github01Icon} />
+                Klu-Digital/Masdan
+            </a>
+        </div>
+        {groups.map((group) => (
+            <nav
+                class="cell col-span-2 px-4 py-10 md:col-span-3 md:px-6"
+                aria-label={group.title}
+            >
+                <p class="label">{group.title}</p>
+                <ul class="mt-4 space-y-2.5">
+                    {group.links.map((link) => (
+                        <li>
+                            <a
+                                href={link.href}
+                                class="text-[0.9375rem] hover:text-brand-text"
+                            >
+                                {link.label}
+                            </a>
+                        </li>
+                    ))}
+                </ul>
+            </nav>
+        ))}
+        <p class="label col-span-4 border-t border-hairline px-4 py-4 leading-relaxed md:col-span-12 md:px-6">
+            Released under the MIT License. Copyright 2026.
+        </p>
     </div>
-    {
-      groups.map((group) => (
-        <nav class="cell col-span-2 px-4 py-10 md:col-span-3 md:px-6" aria-label={group.title}>
-          <p class="label">{group.title}</p>
-          <ul class="mt-4 space-y-2.5">
-            {group.links.map((link) => (
-              <li>
-                <a href={link.href} class="text-[0.9375rem] hover:text-brand-text">{link.label}</a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      ))
-    }
-    <p class="label col-span-4 border-t border-hairline px-4 py-4 leading-relaxed md:col-span-12 md:px-6">
-      Released under the MIT License. Copyright 2026 Kevin Mallari.
-    </p>
-  </div>
 </footer>

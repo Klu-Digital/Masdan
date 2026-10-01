@@ -52,7 +52,7 @@ export default defineConfig({
           // Enumerated rather than "apps/*": the web app's tests need jsdom and
           // belong to the "web" project below, not this node one.
           include: [
-            "apps/{server,workers}/src/**/*.test.ts",
+            "apps/{server,workers,www}/src/**/*.test.ts",
             "packages/*/src/**/*.test.ts",
             "scripts/**/*.test.ts",
           ],

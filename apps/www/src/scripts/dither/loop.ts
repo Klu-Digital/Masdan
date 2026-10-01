@@ -11,7 +11,6 @@ export interface Actor {
 }
 
 const reduce = matchMedia("(prefers-reduced-motion: reduce)");
-const dark = matchMedia("(prefers-color-scheme: dark)");
 
 export const motion = { still: reduce.matches };
 
@@ -79,7 +78,7 @@ reduce.addEventListener("change", () => {
   motion.still = reduce.matches;
   redrawAll(false);
 });
-dark.addEventListener("change", () => redrawAll(true));
+document.addEventListener("themechange", () => redrawAll(true));
 
 export const register = (actor: Actor): void => {
   actors.set(actor.el, actor);

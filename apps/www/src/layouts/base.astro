@@ -19,12 +19,45 @@ const { title, description } = Astro.props;
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#151517" media="(prefers-color-scheme: dark)" />
-    <link rel="icon" href="/favicon-light.png" media="(prefers-color-scheme: light)" />
-    <link rel="icon" href="/favicon-dark.png" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" href="/favicon-light.png" />
     <script is:inline>
+      const systemTheme = matchMedia("(prefers-color-scheme: dark)");
+      let preference;
+      try {
+        preference = localStorage.getItem("www-theme");
+      } catch {
+        // Storage restrictions must not prevent theme switching.
+      }
+      const applyTheme = (theme) => {
+        document.documentElement.dataset.theme = theme;
+        document.querySelector('link[rel="icon"]').href = `/favicon-${theme}.png`;
+        document.querySelector('meta[name="theme-color"]').content =
+          theme === "dark" ? "#151517" : "#ffffff";
+        const toggle = document.querySelector("#theme");
+        if (toggle) {toggle.setAttribute("aria-pressed", String(theme === "dark"));}
+        document.dispatchEvent(new Event("themechange"));
+      };
+      if (preference !== "light" && preference !== "dark") {preference = null;}
       document.documentElement.classList.add("js");
+      applyTheme(preference ?? (systemTheme.matches ? "dark" : "light"));
+      systemTheme.addEventListener("change", () => {
+        if (!preference) {applyTheme(systemTheme.matches ? "dark" : "light");}
+      });
+      document.addEventListener("DOMContentLoaded", () => {
+        const toggle = document.querySelector("#theme");
+        if (!toggle) {return;}
+        toggle.setAttribute("aria-pressed", String(document.documentElement.dataset.theme === "dark"));
+        toggle.addEventListener("click", () => {
+          preference = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+          applyTheme(preference);
+          try {
+            localStorage.setItem("www-theme", preference);
+          } catch {
+            // The selected theme still works when storage is unavailable.
+          }
+        });
+      });
     </script>
   </head>
   <body>

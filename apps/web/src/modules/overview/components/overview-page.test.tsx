@@ -44,7 +44,7 @@ const household = (id: string, name: string): OverviewHousehold => ({
   can: () => true,
   currency: "PHP",
   organization: { name },
-  session: { user: { name: "Kevin Mallari" } },
+  session: { user: { name: "K1" } },
   timezone: "Asia/Manila",
 });
 
