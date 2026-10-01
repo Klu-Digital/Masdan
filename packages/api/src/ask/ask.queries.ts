@@ -257,6 +257,7 @@ const ledgerFilters = (query: AskQuery, range: Resolved["range"]) => ({
   dateFrom: range.dateFrom,
   dateTo: range.dateTo,
   includeArchived: false,
+  includeInterest: true,
   paidStatuses: [],
   search: query.search ?? "",
   tagIds: [],

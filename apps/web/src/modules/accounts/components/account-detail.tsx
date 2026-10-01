@@ -58,6 +58,7 @@ import { useState } from "react";
 
 import { useAppActions } from "@/components/app-actions";
 import { Amount } from "@/components/finance/amount";
+import { FilterToggle } from "@/components/finance/filters";
 import { toNumber } from "@/components/finance/money";
 import {
   Stat,
@@ -396,6 +397,8 @@ export const AccountDetailPage = ({
   const { activeOrganizationId, can, members, timezone } = household;
   const queryClient = useQueryClient();
   const [reconciling, setReconciling] = useState(false);
+  // Interest credits clutter the activity, so they stay hidden until asked for.
+  const [includeInterest, setIncludeInterest] = useState(false);
   const { compose, composeAccount, inspect } = useAppActions();
   const ledgerActions = useLedgerActions(activeOrganizationId);
   const orpc = householdOrpc(activeOrganizationId);
@@ -412,6 +415,7 @@ export const AccountDetailPage = ({
   const activitySearch = {
     ...DEFAULT_TRANSACTION_SEARCH,
     accountIds: [accountId],
+    includeInterest,
     pageSize: ACTIVITY_PAGE_SIZE,
   };
   const activity = useQuery(
@@ -632,23 +636,31 @@ export const AccountDetailPage = ({
       <Section aria-label="Activity">
         <SectionHeader>
           <SectionTitle>Activity</SectionTitle>
-          {(activity.data?.total ?? 0) > ACTIVITY_PAGE_SIZE ? (
-            <Button
-              render={
-                <Link
-                  search={{
-                    ...DEFAULT_TRANSACTION_SEARCH,
-                    accountIds: [data.id],
-                  }}
-                  to="/transactions"
-                />
-              }
-              size="sm"
-              variant="ghost"
-            >
-              See all {activity.data?.total.toLocaleString()}
-            </Button>
-          ) : null}
+          <div className="flex items-center gap-2">
+            <FilterToggle
+              label="Interest"
+              onPressedChange={setIncludeInterest}
+              pressed={includeInterest}
+            />
+            {(activity.data?.total ?? 0) > ACTIVITY_PAGE_SIZE ? (
+              <Button
+                render={
+                  <Link
+                    search={{
+                      ...DEFAULT_TRANSACTION_SEARCH,
+                      accountIds: [data.id],
+                      includeInterest,
+                    }}
+                    to="/transactions"
+                  />
+                }
+                size="sm"
+                variant="ghost"
+              >
+                See all {activity.data?.total.toLocaleString()}
+              </Button>
+            ) : null}
+          </div>
         </SectionHeader>
         {activity.isPending ? (
           <Skeleton className="h-48 w-full" radius="2xl" />

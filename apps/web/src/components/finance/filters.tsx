@@ -1,6 +1,10 @@
 "use client";
 
-import { ArrowDown01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowDown01Icon,
+  Cancel01Icon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { cn } from "@masdan/ui/lib/utils";
 import type * as React from "react";
@@ -100,6 +104,36 @@ export const FilterChip = ({
       </button>
     ) : null}
   </span>
+);
+
+/** An on/off filter as a pill: tinted with a tick while on, no menu behind it. */
+export const FilterToggle = ({
+  className,
+  label,
+  onPressedChange,
+  pressed,
+}: {
+  className?: string;
+  label: string;
+  onPressedChange: (pressed: boolean) => void;
+  pressed: boolean;
+}): React.ReactElement => (
+  <button
+    aria-pressed={pressed}
+    className={cn(
+      "focus-visible:ring-ring/50 inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-3 sm:h-7 [&_svg]:size-3.5",
+      pressed
+        ? "bg-brand-soft text-brand-text"
+        : "bg-secondary text-foreground hover:bg-accent",
+      className
+    )}
+    data-slot="filter-toggle"
+    onClick={() => onPressedChange(!pressed)}
+    type="button"
+  >
+    {pressed ? <HugeiconsIcon icon={Tick02Icon} strokeWidth={2.5} /> : null}
+    {label}
+  </button>
 );
 
 export const FilterField = ({

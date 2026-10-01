@@ -36,6 +36,7 @@ import {
   FilterBar,
   FilterChip,
   FilterField,
+  FilterToggle,
 } from "@/components/finance/filters";
 import {
   addDays,
@@ -500,6 +501,13 @@ export const LedgerFilters = ({
           </MenuCheckboxItem>
         </MenuPopup>
       </Menu>
+      <FilterToggle
+        label="Interest"
+        onPressedChange={(includeInterest) =>
+          onSearchChange({ includeInterest })
+        }
+        pressed={search.includeInterest}
+      />
       {/* Column headers sort on wide screens; phones get the same choice here. */}
       <div className="flex shrink-0 md:hidden">
         <Menu>

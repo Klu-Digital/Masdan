@@ -91,6 +91,8 @@ const transactionFilterFields = {
   dateFrom: isoDate.optional(),
   dateTo: isoDate.optional(),
   includeArchived: z.boolean().default(false),
+  // Defaults on so Ask Masdan and other callers keep counting interest.
+  includeInterest: z.boolean().default(true),
   paidStatuses: z.array(z.enum(TRANSACTION_PAID_STATUSES)).max(2).default([]),
   search: z.string().trim().max(120).default(""),
   tagIds: z.array(z.uuid()).max(50).default([]),

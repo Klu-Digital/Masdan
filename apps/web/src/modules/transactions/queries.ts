@@ -22,6 +22,7 @@ export const ledgerQueries = (
         dateFrom: search.dateFrom,
         dateTo: search.dateTo,
         includeArchived: search.includeArchived,
+        includeInterest: search.includeInterest,
         paidStatuses: search.paidStatuses,
         search: search.search,
         tagIds: search.tagIds,

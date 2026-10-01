@@ -33,6 +33,11 @@ export const transactionSearch = z.object({
     .preprocess((value) => value === true || value === "true", z.boolean())
     .optional()
     .default(false),
+  // Interest credits clutter the ledger, so they stay hidden until asked for.
+  includeInterest: z
+    .preprocess((value) => value === true || value === "true", z.boolean())
+    .optional()
+    .default(false),
   paidStatuses: stringArray.transform((values) =>
     values.filter(
       (value): value is "paid" | "unpaid" =>
@@ -67,6 +72,7 @@ export const DEFAULT_TRANSACTION_SEARCH: TransactionSearch = {
   accountIds: [],
   categoryIds: [],
   includeArchived: false,
+  includeInterest: false,
   paidStatuses: [],
   quickEntry: undefined,
   search: "",

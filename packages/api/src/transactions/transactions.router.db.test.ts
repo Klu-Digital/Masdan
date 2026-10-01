@@ -1,5 +1,10 @@
 import { relations } from "@masdan/db/relations";
-import { category, member, session } from "@masdan/db/schema/index";
+import {
+  category,
+  interestCredit,
+  member,
+  session,
+} from "@masdan/db/schema/index";
 import {
   getSessionFor,
   getTestDb,
@@ -578,6 +583,67 @@ describe("transaction list", () => {
       id: matching.id,
       notes: "Target groceries",
     });
+  });
+
+  it("hides posted interest and its totals unless includeInterest is set", async () => {
+    const user = await signUpTestUser();
+    const context = { context: await contextFor(user.headers) };
+    const organizationId = await activeOrganizationId(user.headers);
+    const account = await call(accountsRouter.create, accountInput, context);
+    const interest = await call(
+      transactionsRouter.create,
+      {
+        accountId: account.id,
+        amount: "4.25",
+        categoryId: await categoryIdFor(organizationId, "Interest Income"),
+        notes: "Estimated interest",
+        paidStatus: "paid",
+        tagIds: [],
+        transactionDate: "2026-02-28",
+      },
+      context
+    );
+    const salary = await call(
+      transactionsRouter.create,
+      {
+        accountId: account.id,
+        amount: "50",
+        categoryId: await categoryIdFor(organizationId, "Salary"),
+        paidStatus: "paid",
+        tagIds: [],
+        transactionDate: "2026-02-28",
+      },
+      context
+    );
+    await getTestDb().insert(interestCredit).values({
+      accountId: account.id,
+      creditDate: "2026-02-28",
+      gross: "5",
+      net: "4.25",
+      organizationId,
+      periodEnd: "2026-02-28",
+      periodStart: "2026-02-01",
+      tax: "0.75",
+      transactionId: interest.id,
+    });
+
+    const hidden = await call(
+      transactionsRouter.list,
+      { includeInterest: false },
+      context
+    );
+    const shown = await call(transactionsRouter.list, {}, context);
+    const hiddenTotals = await call(
+      transactionsRouter.totals,
+      { includeInterest: false },
+      context
+    );
+
+    expect(hidden.items.map((item) => item.id)).toEqual([salary.id]);
+    expect(shown.items.map((item) => item.id).toSorted()).toEqual(
+      [interest.id, salary.id].toSorted()
+    );
+    expect(hiddenTotals.count).toBe(1);
   });
 
   it("keeps amount-sorted pages deterministic", async () => {

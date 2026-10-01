@@ -247,6 +247,7 @@ export const TransactionsPage = ({
     search.dateFrom !== undefined ||
     search.dateTo !== undefined ||
     search.includeArchived ||
+    search.includeInterest ||
     search.paidStatuses.length > 0 ||
     search.search.length > 0 ||
     search.tagIds.length > 0 ||

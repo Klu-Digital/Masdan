@@ -13,6 +13,7 @@ export type SavedFilters = Pick<
   | "dateFrom"
   | "dateTo"
   | "includeArchived"
+  | "includeInterest"
   | "paidStatuses"
   | "sortBy"
   | "sortDirection"
@@ -29,6 +30,7 @@ const pick = (search: TransactionSearch): SavedFilters => ({
   dateFrom: search.dateFrom,
   dateTo: search.dateTo,
   includeArchived: search.includeArchived,
+  includeInterest: search.includeInterest,
   paidStatuses: search.paidStatuses,
   sortBy: search.sortBy,
   sortDirection: search.sortDirection,

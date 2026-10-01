@@ -5,6 +5,7 @@ import {
   financialTransaction,
   financialTransactionSplit,
   financialTransactionTag,
+  interestCredit,
   recurringSchedule,
   tag,
 } from "@masdan/db/schema/index";
@@ -230,6 +231,21 @@ export const transactionListConditions = (
   }
   if (!input.includeArchived) {
     conditions.push(isNull(financialTransaction.archivedAt));
+  }
+  if (!input.includeInterest) {
+    conditions.push(
+      notExists(
+        db
+          .select({ id: interestCredit.id })
+          .from(interestCredit)
+          .where(
+            and(
+              eq(interestCredit.organizationId, organizationId),
+              eq(interestCredit.transactionId, financialTransaction.id)
+            )
+          )
+      )
+    );
   }
   if (input.accountIds.length > 0) {
     conditions.push(inArray(financialTransaction.accountId, input.accountIds));
