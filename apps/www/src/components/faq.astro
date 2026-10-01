@@ -1,0 +1,89 @@
+---
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
+import { GETTING_STARTED, REPO } from "../lib/links";
+import Boundary from "./boundary.astro";
+import Icon from "./icon.astro";
+
+const questions = [
+  {
+    answer: "Yes. Masdan runs on your own infrastructure. The repository includes instructions for getting started with Docker. You manage updates and backups for your instance.",
+    link: { href: GETTING_STARTED, label: "Getting started" },
+    question: "Do I need to host it myself?",
+  },
+  {
+    answer: "I have no plans to monetize Masdan. It’s an open-source project, not a subscription business. Running your own instance may still involve hosting costs.",
+    question: "Will Masdan become a paid product?",
+  },
+  {
+    answer: "No native mobile app is planned. Masdan is a web app you access through your browser.",
+    question: "Will there be a mobile app?",
+  },
+  {
+    answer: "No. You can record transactions yourself or import your bank’s CSV export into the ledger.",
+    question: "Does it connect directly to my bank?",
+  },
+  {
+    answer: "No. AI features are optional. You can track your finances without configuring an AI provider. If you enable them, relevant data is sent to your chosen provider, whose usage may involve costs.",
+    question: "Do I need AI to use Masdan?",
+  },
+  {
+    answer: "Absolutely. Tell me what you’re trying to do in a GitHub issue. We can discuss it and, if you’d like, work on it together.",
+    link: { href: `${REPO}/issues`, label: "Open an issue on GitHub" },
+    question: "Can I suggest a feature?",
+  },
+];
+---
+
+<section id="faq" class="mt-20 border-t border-rule md:mt-28" aria-labelledby="faq-title">
+  <Boundary mark="§5" />
+  <div class="sheet pt-14 md:pt-20">
+    <div class="col-span-4 px-4 pb-10 md:px-6 md:pb-14">
+      <h2 id="faq-title" class="text-4xl leading-none font-bold tracking-[-0.03em] text-balance md:text-6xl">
+        Questions, answered.
+      </h2>
+      <p class="mt-5 max-w-[32ch] text-base leading-relaxed text-muted md:text-lg">
+        About running Masdan and helping it grow.
+      </p>
+    </div>
+    <div class="cell col-span-4 border-y border-rule bg-paper md:col-span-8">
+      {
+        questions.map(({ question, answer, link }) => (
+          <details class="group border-b border-hairline last:border-b-0">
+            <summary class="flex cursor-pointer list-none items-start justify-between gap-6 px-4 py-6 hover:text-brand-text md:px-6 md:py-8 [&::-webkit-details-marker]:hidden">
+              <h3 class="text-lg font-semibold tracking-tight md:text-xl">{question}</h3>
+              <Icon icon={ArrowDown01Icon} class="mt-1 size-5 text-brand-text group-open:rotate-180 motion-safe:transition-transform" />
+            </summary>
+            <div class="px-4 pb-6 md:px-6 md:pb-8">
+              <p class="max-w-[65ch] leading-relaxed text-muted">{answer}</p>
+              {link && (
+                <a href={link.href} class="mt-4 inline-block font-semibold text-brand-text underline underline-offset-4">{link.label}</a>
+              )}
+            </div>
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (interpolate-size: allow-keywords) {
+      details {
+        interpolate-size: allow-keywords;
+      }
+
+      details::details-content {
+        block-size: 0;
+        overflow: clip;
+        transition:
+          block-size 240ms cubic-bezier(0.16, 1, 0.3, 1),
+          content-visibility 240ms allow-discrete;
+      }
+
+      details[open]::details-content {
+        block-size: auto;
+      }
+    }
+  }
+</style>
