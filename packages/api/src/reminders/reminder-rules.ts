@@ -166,8 +166,9 @@ export const reminderCandidates = (
   if (card.archived) {
     return [];
   }
+  // Nothing owed, nothing to close or pay: skip both reminders.
   const candidates =
-    card.statementClosingDay === null
+    card.statementClosingDay === null || !isPositive(card.balance)
       ? []
       : statementCandidates(card.statementClosingDay, today);
   const payment =
@@ -206,6 +207,9 @@ export const reminderResolution = (
       latest.statementDate >= addDays(reminder.eventDate, -STATEMENT_EARLY_DAYS)
     ) {
       return "recorded";
+    }
+    if (!isPositive(card.balance)) {
+      return "paid";
     }
     return daysBetween(reminder.eventDate, today) > STATEMENT_RECORD_DAYS
       ? "expired"

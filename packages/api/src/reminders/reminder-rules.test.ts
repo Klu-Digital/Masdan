@@ -83,6 +83,18 @@ describe("reminderCandidates", () => {
     expect(reminderCandidates(closing, null, "2026-03-23")).toEqual([]);
   });
 
+  it("skips a closing date when nothing is owed", () => {
+    for (const balance of ["0.000000", "-500.000000"]) {
+      expect(
+        reminderCandidates(
+          card({ balance, statementClosingDay: 12 }),
+          null,
+          "2026-03-05"
+        )
+      ).toEqual([]);
+    }
+  });
+
   it("uses a short month's last day for a 31st closing day", () => {
     const closing = card({ statementClosingDay: 31 });
     expect(
@@ -224,6 +236,15 @@ describe("reminderResolution", () => {
     expect(
       reminderResolution(closingReminder, facts({ today: "2026-03-23" }))
     ).toBe("expired");
+  });
+
+  it("resolves a closing reminder once nothing is owed", () => {
+    expect(
+      reminderResolution(
+        closingReminder,
+        facts({ card: { archived: false, balance: "-1.000000" } })
+      )
+    ).toBe("paid");
   });
 
   it("keeps a partly paid statement actionable and resolves it once paid in full", () => {
