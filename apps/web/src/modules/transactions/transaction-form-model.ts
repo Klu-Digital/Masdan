@@ -88,6 +88,7 @@ export interface TransactionPrefill {
       | "categoryId"
       | "notes"
       | "paidStatus"
+      | "tagIds"
       | "transactionDate"
     >
   >;

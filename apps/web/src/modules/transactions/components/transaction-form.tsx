@@ -196,7 +196,7 @@ export const TransactionForm = ({
         amount: trimDecimal(amount),
         categoryId,
       })) ?? [],
-    tagIds: transaction?.tags.map(({ id }) => id) ?? [],
+    tagIds: transaction?.tags.map(({ id }) => id) ?? prefilled.tagIds ?? [],
     transactionDate:
       transaction?.transactionDate ??
       prefilled.transactionDate ??

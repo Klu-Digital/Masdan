@@ -5,6 +5,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { completeJson, isAiConfigured } from "../ai/gateway";
+import { loadRules, runnableRules } from "../rules/rules.data";
 import { householdDate } from "../shared/household";
 import {
   QUICK_ENTRY_MAX_LENGTH,
@@ -93,7 +94,10 @@ export const parseQuickEntryText = async (
   text: string
 ): Promise<QuickEntryParse> => {
   const note = quickEntryText.parse(text);
-  const household = await quickEntryHousehold(db, organizationId);
+  const [household, rules] = await Promise.all([
+    quickEntryHousehold(db, organizationId),
+    loadRules(db, organizationId).then(runnableRules),
+  ]);
   let ai: QuickEntryAiStatus = "unavailable";
   let extraction: QuickEntryExtraction | null = null;
   if (isAiConfigured("quickTransaction")) {
@@ -114,5 +118,5 @@ export const parseQuickEntryText = async (
     }
   }
 
-  return { ai, ...resolveQuickEntry(note, household, extraction) };
+  return { ai, ...resolveQuickEntry(note, household, extraction, rules) };
 };

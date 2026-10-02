@@ -38,6 +38,7 @@ const quickEntryRequest = (
       categoryId: parsed.prefill.categoryId ?? undefined,
       notes: parsed.prefill.notes ?? undefined,
       paidStatus: parsed.prefill.paidStatus,
+      tagIds: parsed.prefill.tagIds,
       transactionDate: parsed.prefill.transactionDate,
     },
   },

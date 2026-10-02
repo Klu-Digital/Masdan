@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
+import type { EvaluableRule } from "../rules/engine";
 import { resolveQuickEntry } from "./quick-entry";
 import {
   GOLDEN_CASES,
@@ -165,5 +166,79 @@ describe("resolveQuickEntry", () => {
     expect(dateOn("dinner 400 gcash dec 30", "2027-01-02")).toBe("2026-12-30");
     expect(dateOn("dinner 400 gcash jan 2", "2026-12-30")).toBe("2027-01-02");
     expect(dateOn("dinner 400 gcash sep 20", "2026-09-26")).toBe("2026-09-20");
+  });
+});
+
+const TAG = "00000000-0000-4000-8000-0000000000aa";
+const rule = (
+  actions: { categoryId: string | null; tagIds: string[] },
+  text = "grab"
+): EvaluableRule => ({
+  actions,
+  conditions: {
+    accountId: null,
+    amountMax: null,
+    amountMin: null,
+    text: { operator: "contains", value: text },
+    type: "expense",
+  },
+  enabled: true,
+  id: "00000000-0000-4000-8000-0000000000bb",
+  name: "Grab rides",
+  position: 0,
+});
+const run = (text: string, rules: EvaluableRule[], category?: string) =>
+  resolveQuickEntry(
+    text,
+    GOLDEN_HOUSEHOLD,
+    ai({
+      account: "gcash",
+      amount: "250",
+      category: category ?? null,
+      notes: "Grab ride",
+    }),
+    rules
+  );
+
+describe("quick entry rules", () => {
+  it("fills the category and tags from a matching rule", () => {
+    const result = run("grab ride 250 gcash", [
+      rule({ categoryId: GOLDEN_IDS.transport, tagIds: [TAG] }),
+    ]);
+
+    expect(result.issues).toEqual([]);
+    expect(result.input).toMatchObject({
+      categoryId: GOLDEN_IDS.transport,
+      tagIds: [TAG],
+    });
+  });
+
+  it("lets a rule settle a category the model left blank", () => {
+    expect(
+      run("grab ride 250 gcash", [
+        rule({ categoryId: GOLDEN_IDS.transport, tagIds: [] }),
+      ]).input
+    ).not.toBeNull();
+    expect(run("grab ride 250 gcash", []).input).toBeNull();
+  });
+
+  it("keeps a category the text names, but still adds the tags", () => {
+    const result = run("grab ride 250 gcash shopping", [
+      rule({ categoryId: GOLDEN_IDS.transport, tagIds: [TAG] }),
+    ]);
+
+    expect(result.input).toMatchObject({
+      categoryId: GOLDEN_IDS.shopping,
+      tagIds: [TAG],
+    });
+  });
+
+  it("ignores a rule that does not match", () => {
+    const result = run("dinner 250 gcash", [
+      rule({ categoryId: GOLDEN_IDS.transport, tagIds: [TAG] }),
+    ]);
+
+    expect(result.prefill.tagIds).toEqual([]);
+    expect(result.prefill.categoryId).toBeNull();
   });
 });

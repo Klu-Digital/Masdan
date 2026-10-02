@@ -8,6 +8,8 @@ import { z } from "zod";
 
 import { addDays } from "../recurring/recurrence";
 import { daysBetween } from "../reports/periods";
+import { findMatchingRule } from "../rules/engine";
+import type { EvaluableRule } from "../rules/engine";
 import {
   formatScaledAmount,
   positiveAmount,
@@ -102,6 +104,8 @@ interface QuickEntryPrefill {
   categoryId: string | null;
   notes: string | null;
   paidStatus: TransactionPaidStatus;
+  /** Tags a matching household rule adds; empty when none matched. */
+  tagIds: string[];
   transactionDate: string;
 }
 
@@ -888,7 +892,8 @@ const resolveAccount = (
 export const resolveQuickEntry = (
   text: string,
   household: QuickEntryHousehold,
-  extraction: QuickEntryExtraction | null
+  extraction: QuickEntryExtraction | null,
+  rules: readonly EvaluableRule[] = []
 ): QuickEntryResult => {
   const { accounts, categories, today } = household;
   const tokens = tokenize(text.trim().slice(0, QUICK_ENTRY_MAX_LENGTH));
@@ -1048,7 +1053,20 @@ export const resolveQuickEntry = (
     );
   }
 
-  // Category: named outright, or the model's pick from this household's list.
+  // Rules: the household's first matching rule, judged on what was resolved.
+  // Ambiguous input never matches one, so a rule can't act on a guess.
+  const ruleMatch =
+    amount && accountId && kinds.length <= 1
+      ? findMatchingRule(rules, {
+          accountId,
+          amount,
+          description: notes,
+          type: kind,
+        })
+      : null;
+  const ruleCategoryId = ruleMatch?.rule.actions.categoryId ?? null;
+
+  // Category: named outright, a rule's, or the model's pick from this household's list.
   let categoryId: string | null = null;
   if (namedCategories.length > 1) {
     flag(
@@ -1062,6 +1080,8 @@ export const resolveQuickEntry = (
     } else {
       flag("categoryId", "conflict", `${namedCategory.name} is not ${kind}`);
     }
+  } else if (ruleCategoryId) {
+    categoryId = ruleCategoryId;
   } else if (extraction?.category) {
     const wanted = normalizeCardText(extraction.category);
     const picked = categories.filter(
@@ -1095,6 +1115,7 @@ export const resolveQuickEntry = (
     categoryId,
     notes,
     paidStatus,
+    tagIds: ruleMatch ? [...ruleMatch.rule.actions.tagIds] : [],
     transactionDate,
   };
   if (extraction === null || issues.length > 0) {
@@ -1102,10 +1123,7 @@ export const resolveQuickEntry = (
   }
 
   // The last gate is the create procedure's own schema.
-  const parsed = transactionValues.safeParse({
-    ...prefill,
-    tagIds: [],
-  });
+  const parsed = transactionValues.safeParse(prefill);
   if (!parsed.success) {
     const [problem] = parsed.error.issues;
     const path = problem?.path[0];
