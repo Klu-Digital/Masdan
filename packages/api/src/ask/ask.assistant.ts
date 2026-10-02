@@ -26,7 +26,7 @@ const MAX_ROUNDS = 10;
 const MAX_READS = 24;
 const MAX_SOURCE_LENGTH = 24_000;
 const MAX_CONTEXT_LENGTH = 120_000;
-export const ASK_CONFIRMATION_MS = 15 * 60 * 1000;
+const ASK_CONFIRMATION_MS = 15 * 60 * 1000;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const previewId = (index: number): string =>
@@ -36,7 +36,7 @@ const readValues = z.strictObject({
   input: z.string().max(16_000),
   tool: z.string().min(1).max(100),
 });
-export const askActionValues = readValues.extend({
+const askActionValues = readValues.extend({
   description: z.string().trim().min(1).max(500),
 });
 
@@ -58,13 +58,13 @@ export const askStep = z.strictObject({
   tools: z.array(z.string().max(100)).max(8),
 });
 
-export interface AskSource {
+interface AskSource {
   input: string;
   result: string;
   tool: string;
 }
 
-export interface AskPreview {
+interface AskPreview {
   description: string;
   id: string;
   details: string;
@@ -135,7 +135,7 @@ const BEARER_FIELDS = new Set([
 ]);
 
 /** The user can receive links/codes; the model must not receive their credentials. */
-export const askModelResultText = (result: unknown): string =>
+const askModelResultText = (result: unknown): string =>
   askResultText(
     JSON.parse(
       JSON.stringify(result, (key, value: unknown) => {
@@ -313,7 +313,7 @@ const historyFor = async (context: AskContext, previousId?: string) => {
   return history;
 };
 
-export const prepareAskActions = (
+const prepareAskActions = (
   actions: AskStoredAction[],
   tools: AskTools,
   context: AskContext,

@@ -546,7 +546,7 @@ export const AskMasdan = ({
                 </p>
                 {EXAMPLE_QUESTIONS.map((example) => (
                   <Button
-                    className="h-auto max-w-full py-1.5 text-left whitespace-normal sm:h-auto"
+                    className="h-auto max-w-full text-left whitespace-normal sm:h-auto"
                     disabled={busy}
                     key={example}
                     onClick={() => setQuestion(example)}
