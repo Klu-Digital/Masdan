@@ -59,6 +59,7 @@ const setUp = async () => {
     accountId: account.id,
     amount: "45000",
     categoryId: salary?.id ?? "",
+    endDate: null,
     frequency: "monthly" as const,
     interval: 1,
     name: "Salary",

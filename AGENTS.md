@@ -47,7 +47,7 @@ The filename routes the test. Three vitest projects:
 - `apps/web/**/*.test.{ts,tsx}` → **web** project: jsdom.
 - everything else `*.test.ts` → **unit** project: node, no I/O.
 
-Run one file: `pnpm exec vitest run --project unit path/to/file.test.ts`.
+Run one file: `pnpm exec vp test run --project unit path/to/file.test.ts`.
 
 `@masdan/env/server` freezes its config at import, so `vi.stubEnv` does not work on it. Mock the module instead — `apps/server/src/metrics.test.ts` is the pattern.
 

@@ -52,6 +52,8 @@ export const MAX_RECURRING_INTERVAL = 366;
  * A template that posts an income or expense on a calendar rhythm. Occurrences
  * are household calendar days counted from `startDate`; `nextOccurrenceDate`
  * is the next one still to post, and is null once the schedule is stopped.
+ * With an `endDate`, the schedule stops itself once no occurrence is left on
+ * or before it.
  */
 export const recurringSchedule = pgTable(
   "recurring_schedule",
@@ -60,6 +62,8 @@ export const recurringSchedule = pgTable(
     amount: money("amount").notNull(),
     categoryId: uuid("category_id").notNull(),
     ...timestamps(),
+    /** The last day an occurrence may fall on; null repeats indefinitely. */
+    endDate: date("end_date", { mode: "string" }),
     frequency: text("frequency", { enum: recurringFrequencies }).notNull(),
     id: uuid("id")
       .primaryKey()
@@ -113,6 +117,11 @@ export const recurringSchedule = pgTable(
       "recurring_schedule_next_occurrence_chk",
       sql`(${table.status} = 'stopped') = (${table.nextOccurrenceDate} IS NULL)
         AND (${table.nextOccurrenceDate} IS NULL OR ${table.nextOccurrenceDate} >= ${table.startDate})`
+    ),
+    check(
+      "recurring_schedule_end_date_chk",
+      sql`${table.endDate} IS NULL OR (${table.endDate} >= ${table.startDate}
+        AND (${table.nextOccurrenceDate} IS NULL OR ${table.nextOccurrenceDate} <= ${table.endDate}))`
     ),
     index("recurring_schedule_organization_idx").on(
       table.organizationId,

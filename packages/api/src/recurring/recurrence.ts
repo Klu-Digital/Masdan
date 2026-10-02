@@ -23,6 +23,8 @@ export interface Recurrence {
   interval: number;
   /** The first occurrence; weekday and day of month are taken from it. */
   startDate: string;
+  /** The last day an occurrence may fall on; absent or null never ends. */
+  endDate?: string | null;
 }
 
 const DAY_MS = 86_400_000;
@@ -124,7 +126,11 @@ export const firstOccurrenceOnOrAfter = (
 export const occurrenceAfter = (recurrence: Recurrence, date: string): string =>
   firstOccurrenceOnOrAfter(recurrence, addDays(date, 1));
 
-/** The next `count` occurrences from `from` on, for previews. */
+/** Whether `date` is on or before the schedule's end date, if it has one. */
+export const isBeforeEnd = (recurrence: Recurrence, date: string): boolean =>
+  !recurrence.endDate || date <= recurrence.endDate;
+
+/** The next `count` occurrences from `from` on, for previews; fewer past an end date. */
 export const upcomingOccurrences = (
   recurrence: Recurrence,
   from: string,
@@ -132,7 +138,7 @@ export const upcomingOccurrences = (
 ): string[] => {
   const dates: string[] = [];
   let next = firstOccurrenceOnOrAfter(recurrence, from);
-  while (dates.length < count) {
+  while (dates.length < count && isBeforeEnd(recurrence, next)) {
     dates.push(next);
     next = occurrenceAfter(recurrence, next);
   }

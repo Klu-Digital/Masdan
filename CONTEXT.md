@@ -70,7 +70,7 @@ A self-hosted household finance tracker: accounts, an income/expense ledger, bud
 
 **Bill**: Something with a due date the household must pay: an occurrence of a recurring expense or a credit card's due date.
 
-**Recurring schedule**: A template that posts a transaction on a daily, weekly or monthly rhythm.
+**Recurring schedule**: A template that posts a transaction on a daily, weekly or monthly rhythm, indefinitely or until an optional end date, after which it stops itself.
 
 **Reminder**: A notice before a credit card statement or payment falls due.
 

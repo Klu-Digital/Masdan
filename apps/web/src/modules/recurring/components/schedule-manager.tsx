@@ -234,6 +234,9 @@ const ScheduleDetails = ({
             <Row label="Account">{schedule.accountName}</Row>
             <Row label="Repeats">{describeRecurrence(schedule)}</Row>
             <Row label="Next">{next}</Row>
+            <Row label="Ends">
+              {schedule.endDate ? formatLongDate(schedule.endDate) : "Never"}
+            </Row>
             <Row label="Posts as">
               {schedule.paidStatus === "paid" ? "Paid" : "Unpaid"}
             </Row>

@@ -24,7 +24,10 @@ export const STATUS_LABELS = {
   stopped: "Stopped",
 } as const;
 
-/** "Monthly on the 15th · next Oct 15, 2026", or why it isn't posting. */
+/**
+ * "Monthly on the 15th · next Oct 15, 2026 · until Dec 15, 2026", or why it
+ * isn't posting.
+ */
 export const scheduleTiming = (
   schedule: Recurrence & {
     nextOccurrenceDate: string | null;
@@ -38,19 +41,22 @@ export const scheduleTiming = (
   if (schedule.status === "paused") {
     return `${rhythm} · paused`;
   }
-  return `${rhythm} · next ${formatLongDate(schedule.nextOccurrenceDate)}`;
+  const next = `${rhythm} · next ${formatLongDate(schedule.nextOccurrenceDate)}`;
+  return schedule.endDate
+    ? `${next} · until ${formatLongDate(schedule.endDate)}`
+    : next;
 };
 
 /**
- * The next dates a schedule would post from `from`, for the form preview.
- * Null while the recurrence is incomplete.
+ * The next dates a schedule would post from `from`, for the form preview;
+ * fewer, or none, when it ends first. Null while the recurrence is incomplete.
  */
 export const previewOccurrences = (
   recurrence: Partial<Recurrence>,
   from: string,
   count = 3
 ): string[] | null => {
-  const { frequency, interval, startDate } = recurrence;
+  const { endDate, frequency, interval, startDate } = recurrence;
   if (
     !frequency ||
     !startDate ||
@@ -61,5 +67,9 @@ export const previewOccurrences = (
   ) {
     return null;
   }
-  return upcomingOccurrences({ frequency, interval, startDate }, from, count);
+  return upcomingOccurrences(
+    { endDate, frequency, interval, startDate },
+    from,
+    count
+  );
 };

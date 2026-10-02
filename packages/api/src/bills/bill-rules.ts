@@ -4,7 +4,11 @@ import type {
   RecurringScheduleStatus,
 } from "@masdan/db/schema/transactions";
 
-import { addDays, firstOccurrenceOnOrAfter } from "../recurring/recurrence";
+import {
+  addDays,
+  firstOccurrenceOnOrAfter,
+  isBeforeEnd,
+} from "../recurring/recurrence";
 import {
   PAYMENT_OVERDUE_DAYS,
   STATEMENT_COVERS_DAYS,
@@ -40,6 +44,7 @@ export const billStatus = (
 };
 
 export interface ScheduleTiming {
+  endDate: string | null;
   frequency: RecurringFrequency;
   interval: number;
   nextOccurrenceDate: string | null;
@@ -68,7 +73,11 @@ export const scheduleBillDates = (
         ? schedule.nextOccurrenceDate
         : firstOccurrenceOnOrAfter(schedule, from);
     let count = 0;
-    while (next <= to && count < MAX_OCCURRENCES_PER_SCHEDULE) {
+    while (
+      next <= to &&
+      isBeforeEnd(schedule, next) &&
+      count < MAX_OCCURRENCES_PER_SCHEDULE
+    ) {
       dates.add(next);
       next = firstOccurrenceOnOrAfter(schedule, addDays(next, 1));
       count += 1;
@@ -79,10 +88,14 @@ export const scheduleBillDates = (
 
 /** Whether `date` is a day the schedule's rhythm lands on. */
 export const isScheduleOccurrence = (
-  schedule: Pick<ScheduleTiming, "frequency" | "interval" | "startDate">,
+  schedule: Pick<
+    ScheduleTiming,
+    "endDate" | "frequency" | "interval" | "startDate"
+  >,
   date: string
 ): boolean =>
   date >= schedule.startDate &&
+  isBeforeEnd(schedule, date) &&
   firstOccurrenceOnOrAfter(schedule, date) === date;
 
 export interface BillStatement {

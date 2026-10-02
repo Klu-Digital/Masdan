@@ -102,6 +102,7 @@ const household = async () => {
         accountId: bank.id,
         amount: "18000",
         categoryId: await categoryId(categoryName),
+        endDate: null,
         frequency: "monthly",
         interval: 1,
         name,

@@ -88,6 +88,7 @@ const loadSchedules = (db: Database, organizationId: string) =>
       categoryIcon: category.icon,
       categoryName: category.name,
       currencyCode: financialAccount.currencyCode,
+      endDate: recurringSchedule.endDate,
       frequency: recurringSchedule.frequency,
       id: recurringSchedule.id,
       interval: recurringSchedule.interval,

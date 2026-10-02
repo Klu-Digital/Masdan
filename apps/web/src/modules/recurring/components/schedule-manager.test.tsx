@@ -59,6 +59,7 @@ const baseSchedule = {
   accountName: "BPI Savings",
   createdAt: new Date("2026-01-01"),
   currencyCode: "PHP",
+  endDate: null,
   interval: 1,
   lastError: null,
   lastOccurrenceDate: null,
@@ -245,6 +246,7 @@ describe("ScheduleManager", () => {
         accountId: ACCOUNT,
         amount: "18000",
         categoryId: HOUSING,
+        endDate: null,
         frequency: "monthly",
         interval: 1,
         name: "Rent",
@@ -330,6 +332,7 @@ describe("ScheduleManager", () => {
         accountId: ACCOUNT,
         amount: "19500",
         categoryId: HOUSING,
+        endDate: null,
         frequency: "monthly",
         interval: 1,
         name: "Rent",
@@ -339,6 +342,30 @@ describe("ScheduleManager", () => {
         startDate: "2026-07-05",
         tagIds: [BILLS],
       })
+    );
+  });
+
+  it("shows a schedule's end date and lets an edit remove it", async () => {
+    const user = userEvent.setup();
+    rpc.list.mockResolvedValue([{ ...rent, endDate: "2027-07-05" }]);
+    renderManager();
+
+    const list = await screen.findByRole("list", {
+      name: "Recurring schedules",
+    });
+    expect(list).toHaveTextContent("until July 5, 2027");
+    await user.click(screen.getByRole("button", { name: "Rent actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Edit" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Remove end date" })
+    );
+    expect(screen.getByLabelText("Ending")).toHaveTextContent("Never");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(rpc.update).toHaveBeenCalledWith(
+        expect.objectContaining({ endDate: null, scheduleId: RENT })
+      )
     );
   });
 

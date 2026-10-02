@@ -20,7 +20,7 @@ src/countries/<cc>/cards.ts         assembles the country
 1. Find the card on the bank's official site. Put the page in the file's `// Reference:` comment.
 2. Add an entry to `countries/<cc>/products/<bank>.ts`, copying a neighbour's shape.
 3. Build the look only from `CARD_PATTERNS` and `CARD_MOTIFS`, and take the nearest match. A card reads as itself from its colour, one texture and one focal element.
-4. Run `pnpm exec vitest run --project unit packages/card-catalog`. The tests check key format, contrast and the vocabulary.
+4. Run `pnpm exec vp test run --project unit packages/card-catalog`. The tests check key format, contrast and the vocabulary.
 
 ## Add a bank
 

@@ -10,7 +10,12 @@ import { and, asc, eq, lte } from "drizzle-orm";
 
 import { householdToday } from "../reports/periods";
 import { createTransaction } from "../transactions/transactions.write";
-import { addDays, isOccurrenceDue, occurrenceAfter } from "./recurrence";
+import {
+  addDays,
+  isBeforeEnd,
+  isOccurrenceDue,
+  occurrenceAfter,
+} from "./recurrence";
 
 /**
  * Worker-side generation. No procedure ladder: apps/workers runs it. Every
@@ -23,6 +28,8 @@ export const MAX_OCCURRENCES_PER_RUN = 62;
 export interface GenerationResult {
   /** Occurrences that got a new transaction in this run. */
   created: number;
+  /** Set when its end date left the schedule nothing more to post. */
+  ended: boolean;
   /** Set when a validation failure paused the schedule. */
   pausedReason: string | null;
   /** Occurrences that already had their transaction — a retry or a race. */
@@ -31,6 +38,7 @@ export interface GenerationResult {
 
 const EMPTY_RESULT: GenerationResult = {
   created: 0,
+  ended: false,
   pausedReason: null,
   skipped: 0,
 };
@@ -76,6 +84,7 @@ export const generateDueOccurrences = (
     let next: string = schedule.nextOccurrenceDate;
     while (
       next <= today &&
+      isBeforeEnd(schedule, next) &&
       result.created + result.skipped < MAX_OCCURRENCES_PER_RUN
     ) {
       const occurrenceDate = next;
@@ -130,6 +139,13 @@ export const generateDueOccurrences = (
       next = occurrenceAfter(schedule, occurrenceDate);
     }
 
+    if (!isBeforeEnd(schedule, next)) {
+      await tx
+        .update(recurringSchedule)
+        .set({ nextOccurrenceDate: null, status: "stopped", stoppedAt: now })
+        .where(eq(recurringSchedule.id, schedule.id));
+      return { ...result, ended: true };
+    }
     if (next !== schedule.nextOccurrenceDate) {
       await tx
         .update(recurringSchedule)

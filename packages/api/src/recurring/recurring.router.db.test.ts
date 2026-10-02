@@ -116,6 +116,7 @@ const todayIn = async (household: Household) => {
 interface ScheduleOverrides {
   amount?: string;
   categoryId?: string;
+  endDate?: string | null;
   frequency?: "daily" | "weekly" | "monthly";
   interval?: number;
   name?: string;
@@ -132,6 +133,7 @@ const rentValues = async (
   accountId,
   amount: "18000",
   categoryId: await categoryId(household, "Housing"),
+  endDate: null,
   frequency: "monthly" as const,
   interval: 1,
   name: "Rent",
@@ -463,6 +465,118 @@ describe("recurring schedule lifecycle", () => {
         today
       )
     );
+  });
+
+  it("takes an end date, rejecting one before the start or before anything would post", async () => {
+    const household = await signUpHousehold();
+    const account = await createAccount(household);
+    const today = await todayIn(household);
+
+    const ending = await call(
+      recurringRouter.create,
+      await rentValues(household, account.id, { endDate: addDays(today, 90) }),
+      household.context
+    );
+    expect(ending).toMatchObject({
+      endDate: addDays(today, 90),
+      nextOccurrenceDate: today,
+      status: "active",
+    });
+
+    expect(
+      await codeOf(
+        call(
+          recurringRouter.create,
+          await rentValues(household, account.id, {
+            endDate: addDays(today, -1),
+          }),
+          household.context
+        )
+      )
+    ).toBe("BAD_REQUEST");
+    expect(
+      await codeOf(
+        call(
+          recurringRouter.create,
+          await rentValues(household, account.id, {
+            endDate: addDays(today, -1),
+            startDate: addDays(today, -45),
+          }),
+          household.context
+        )
+      )
+    ).toBe("BAD_REQUEST");
+  });
+
+  it("stops a schedule whose edited end date comes before its next occurrence", async () => {
+    const household = await signUpHousehold();
+    const account = await createAccount(household);
+    const today = await todayIn(household);
+    const values = await rentValues(household, account.id, {
+      frequency: "daily",
+      startDate: addDays(today, -5),
+    });
+    const created = await call(
+      recurringRouter.create,
+      values,
+      household.context
+    );
+    await generateDueOccurrences(getTestDb(), created.id, new Date());
+
+    // Today's occurrence has posted, so it was the last one.
+    const updated = await call(
+      recurringRouter.update,
+      { ...values, endDate: today, scheduleId: created.id },
+      household.context
+    );
+
+    expect(await postedFor(created.id)).toHaveLength(1);
+    expect(updated).toMatchObject({
+      endDate: today,
+      nextOccurrenceDate: null,
+      status: "stopped",
+    });
+    expect(updated.stoppedAt).toBeInstanceOf(Date);
+  });
+
+  it("stops instead of resuming once the end date passed while paused", async () => {
+    const household = await signUpHousehold();
+    const account = await createAccount(household);
+    const today = await todayIn(household);
+    const created = await call(
+      recurringRouter.create,
+      await rentValues(household, account.id, {
+        endDate: addDays(today, 5),
+        frequency: "daily",
+        startDate: addDays(today, -10),
+      }),
+      household.context
+    );
+    await call(
+      recurringRouter.pause,
+      { scheduleId: created.id },
+      household.context
+    );
+    // Pretend it was paused before the end date and that day has gone by.
+    await getTestDb()
+      .update(recurringSchedule)
+      .set({
+        endDate: addDays(today, -1),
+        nextOccurrenceDate: addDays(today, -3),
+      })
+      .where(eq(recurringSchedule.id, created.id));
+
+    const resumed = await call(
+      recurringRouter.resume,
+      { scheduleId: created.id },
+      household.context
+    );
+
+    expect(resumed).toMatchObject({
+      nextOccurrenceDate: null,
+      pausedAt: null,
+      status: "stopped",
+    });
   });
 
   it("resuming checks the template can still post", async () => {

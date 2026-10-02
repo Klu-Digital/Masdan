@@ -56,6 +56,15 @@ describe("daily recurrence", () => {
       "2026-09-29",
     ]);
   });
+
+  it("stops at the end date, which is itself an occurrence", () => {
+    const ending = { ...daily, endDate: "2026-09-22" };
+    expect(upcomingOccurrences(ending, "2026-09-21", 5)).toEqual([
+      "2026-09-21",
+      "2026-09-22",
+    ]);
+    expect(upcomingOccurrences(ending, "2026-09-23", 5)).toEqual([]);
+  });
 });
 
 describe("weekly recurrence", () => {

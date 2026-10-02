@@ -13,6 +13,7 @@ import {
 import type { BillStatement, ScheduleTiming } from "./bill-rules";
 
 const monthly: ScheduleTiming = {
+  endDate: null,
   frequency: "monthly",
   interval: 1,
   nextOccurrenceDate: "2026-10-31",
@@ -61,6 +62,7 @@ describe("scheduleBillDates", () => {
 
   it("shows the saved next posting even when it differs from the anchor day", () => {
     const schedule: ScheduleTiming = {
+      endDate: null,
       frequency: "monthly",
       interval: 1,
       nextOccurrenceDate: "2026-10-05",
@@ -79,6 +81,7 @@ describe("scheduleBillDates", () => {
     expect(
       scheduleBillDates(
         {
+          endDate: null,
           frequency: "weekly",
           interval: 1,
           nextOccurrenceDate: "2026-09-21",
@@ -94,6 +97,7 @@ describe("scheduleBillDates", () => {
 
   it("ignores posted days outside the range and bounds a daily expansion", () => {
     const daily: ScheduleTiming = {
+      endDate: null,
       frequency: "daily",
       interval: 1,
       nextOccurrenceDate: "2026-01-01",
@@ -106,6 +110,17 @@ describe("scheduleBillDates", () => {
     expect(
       scheduleBillDates(daily, [], "2026-01-01", "2030-12-31")
     ).toHaveLength(500);
+  });
+
+  it("projects nothing past the end date", () => {
+    expect(
+      scheduleBillDates(
+        { ...monthly, endDate: "2026-12-15" },
+        [],
+        "2026-10-01",
+        "2027-03-31"
+      )
+    ).toEqual(["2026-10-31", "2026-11-30"]);
   });
 
   it("returns nothing for an empty month", () => {
@@ -125,6 +140,9 @@ describe("isScheduleOccurrence", () => {
     expect(isScheduleOccurrence(monthly, "2026-02-28")).toBe(true);
     expect(isScheduleOccurrence(monthly, "2026-02-27")).toBe(false);
     expect(isScheduleOccurrence(monthly, "2025-12-31")).toBe(false);
+    expect(
+      isScheduleOccurrence({ ...monthly, endDate: "2026-02-28" }, "2026-03-31")
+    ).toBe(false);
   });
 });
 

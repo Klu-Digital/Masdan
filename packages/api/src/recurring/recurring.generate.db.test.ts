@@ -150,7 +150,12 @@ describe("generateDueOccurrences", () => {
       MANILA_OCT_1
     );
 
-    expect(result).toEqual({ created: 1, pausedReason: null, skipped: 0 });
+    expect(result).toEqual({
+      created: 1,
+      ended: false,
+      pausedReason: null,
+      skipped: 0,
+    });
     const posted = await postedFor(scheduleId);
     expect(posted).toEqual([
       {
@@ -264,6 +269,55 @@ describe("generateDueOccurrences", () => {
     expect(await nextOccurrenceOf(scheduleId)).toBe("2026-10-02");
   });
 
+  it("posts through the end date, then stops the schedule", async () => {
+    const fixture = await signUpHousehold();
+    const scheduleId = await createSchedule(fixture, {
+      endDate: "2026-09-30",
+      frequency: "daily",
+      nextOccurrenceDate: "2026-09-28",
+      startDate: "2026-09-01",
+    });
+
+    const result = await generateDueOccurrences(
+      getTestDb(),
+      scheduleId,
+      MANILA_OCT_1
+    );
+
+    expect(result).toEqual({
+      created: 3,
+      ended: true,
+      pausedReason: null,
+      skipped: 0,
+    });
+    const posted = await postedFor(scheduleId);
+    expect(posted.map(({ occurrenceDate }) => occurrenceDate)).toEqual([
+      "2026-09-28",
+      "2026-09-29",
+      "2026-09-30",
+    ]);
+    expect(await scheduleRow(scheduleId)).toMatchObject({
+      nextOccurrenceDate: null,
+      status: "stopped",
+      stoppedAt: MANILA_OCT_1,
+    });
+  });
+
+  it("stops right after posting its last occurrence before the end date", async () => {
+    const fixture = await signUpHousehold();
+    const scheduleId = await createSchedule(fixture, {
+      endDate: "2026-10-20",
+    });
+
+    expect(
+      await generateDueOccurrences(getTestDb(), scheduleId, MANILA_OCT_1)
+    ).toMatchObject({ created: 1, ended: true });
+    expect(await scheduleRow(scheduleId)).toMatchObject({
+      nextOccurrenceDate: null,
+      status: "stopped",
+    });
+  });
+
   it("bounds one run's catch-up and lets the next run continue", async () => {
     const fixture = await signUpHousehold();
     const scheduleId = await createSchedule(fixture, {
@@ -297,7 +351,12 @@ describe("generateDueOccurrences", () => {
       MANILA_OCT_1
     );
 
-    expect(again).toEqual({ created: 0, pausedReason: null, skipped: 0 });
+    expect(again).toEqual({
+      created: 0,
+      ended: false,
+      pausedReason: null,
+      skipped: 0,
+    });
     expect(await postedFor(scheduleId)).toHaveLength(1);
   });
 
@@ -317,7 +376,12 @@ describe("generateDueOccurrences", () => {
       MANILA_OCT_1
     );
 
-    expect(retry).toEqual({ created: 0, pausedReason: null, skipped: 1 });
+    expect(retry).toEqual({
+      created: 0,
+      ended: false,
+      pausedReason: null,
+      skipped: 1,
+    });
     expect(await postedFor(scheduleId)).toHaveLength(1);
     expect(await nextOccurrenceOf(scheduleId)).toBe("2026-11-01");
   });
@@ -392,7 +456,7 @@ describe("generateDueOccurrences", () => {
     for (const scheduleId of [paused, stopped]) {
       expect(
         await generateDueOccurrences(getTestDb(), scheduleId, MANILA_OCT_1)
-      ).toEqual({ created: 0, pausedReason: null, skipped: 0 });
+      ).toEqual({ created: 0, ended: false, pausedReason: null, skipped: 0 });
       expect(await postedFor(scheduleId)).toHaveLength(0);
     }
     expect(await nextOccurrenceOf(paused)).toBe("2026-10-01");
@@ -414,6 +478,7 @@ describe("generateDueOccurrences", () => {
 
     expect(result).toEqual({
       created: 0,
+      ended: false,
       pausedReason: "Financial account not found",
       skipped: 0,
     });

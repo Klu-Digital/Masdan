@@ -1,3 +1,5 @@
+import { Cancel01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { RECURRING_FREQUENCIES } from "@masdan/api/recurring/recurrence";
 import { positiveAmount } from "@masdan/api/shared/money";
 import { TRANSACTION_PAID_STATUSES } from "@masdan/api/transactions/constants";
@@ -64,27 +66,35 @@ export interface ComposerTag {
 }
 
 const MAX_INTERVAL = 366;
+const PREVIEW_COUNT = 3;
 
-const scheduleFormSchema = z.object({
-  accountId: z.string().uuid("Choose an account"),
-  amount: positiveAmount,
-  categoryId: z.string().uuid("Choose a category"),
-  frequency: z.enum(RECURRING_FREQUENCIES),
-  interval: z
-    .string()
-    .trim()
-    .regex(/^\d+$/u, "Use a whole number")
-    .refine(
-      (value) => Number(value) >= 1 && Number(value) <= MAX_INTERVAL,
-      `Use 1 to ${MAX_INTERVAL}`
-    ),
-  kind: z.enum(["expense", "income"]),
-  name: z.string().trim().min(1, "Give the schedule a name").max(80),
-  notes: z.string().max(2000),
-  paidStatus: z.enum(TRANSACTION_PAID_STATUSES),
-  startDate: z.string().min(1, "Choose a start date"),
-  tagIds: z.array(z.string()),
-});
+const scheduleFormSchema = z
+  .object({
+    accountId: z.string().uuid("Choose an account"),
+    amount: positiveAmount,
+    categoryId: z.string().uuid("Choose a category"),
+    /** Empty for a schedule that repeats indefinitely. */
+    endDate: z.string(),
+    frequency: z.enum(RECURRING_FREQUENCIES),
+    interval: z
+      .string()
+      .trim()
+      .regex(/^\d+$/u, "Use a whole number")
+      .refine(
+        (value) => Number(value) >= 1 && Number(value) <= MAX_INTERVAL,
+        `Use 1 to ${MAX_INTERVAL}`
+      ),
+    kind: z.enum(["expense", "income"]),
+    name: z.string().trim().min(1, "Give the schedule a name").max(80),
+    notes: z.string().max(2000),
+    paidStatus: z.enum(TRANSACTION_PAID_STATUSES),
+    startDate: z.string().min(1, "Choose a start date"),
+    tagIds: z.array(z.string()),
+  })
+  .refine(({ endDate, startDate }) => endDate === "" || endDate >= startDate, {
+    message: "End on or after the start date",
+    path: ["endDate"],
+  });
 
 type ScheduleFormValues = z.infer<typeof scheduleFormSchema>;
 type Kind = ScheduleFormValues["kind"];
@@ -99,6 +109,7 @@ const toFormValues = (
         accountId: schedule.accountId,
         amount: trimDecimal(schedule.amount),
         categoryId: schedule.categoryId,
+        endDate: schedule.endDate ?? "",
         frequency: schedule.frequency,
         interval: String(schedule.interval),
         kind: schedule.type === "income" ? "income" : "expense",
@@ -112,6 +123,7 @@ const toFormValues = (
         accountId: defaultAccountId,
         amount: "",
         categoryId: "",
+        endDate: "",
         frequency: "monthly",
         interval: "1",
         kind: "expense",
@@ -126,6 +138,7 @@ const toInput = (values: ScheduleFormValues): ScheduleInput => ({
   accountId: values.accountId,
   amount: values.amount.trim(),
   categoryId: values.categoryId,
+  endDate: values.endDate || null,
   frequency: values.frequency,
   interval: Number(values.interval),
   name: values.name.trim(),
@@ -148,9 +161,13 @@ const TimingPreview = ({
 }: {
   schedule?: Schedule;
   today: string;
-  values: Pick<ScheduleFormValues, "frequency" | "interval" | "startDate">;
+  values: Pick<
+    ScheduleFormValues,
+    "endDate" | "frequency" | "interval" | "startDate"
+  >;
 }) => {
   const recurrence = {
+    endDate: values.endDate || null,
     frequency: values.frequency,
     interval: Number(values.interval),
     startDate: values.startDate,
@@ -165,13 +182,21 @@ const TimingPreview = ({
     unchanged && schedule.nextOccurrenceDate
       ? schedule.nextOccurrenceDate
       : today;
-  const dates = previewOccurrences(recurrence, from);
+  const dates = previewOccurrences(recurrence, from, PREVIEW_COUNT);
   if (!dates) {
     return null;
   }
+  if (dates.length === 0) {
+    return (
+      <output className="text-muted-foreground text-xs">
+        Nothing left to post before the end date.
+      </output>
+    );
+  }
+  const more = dates.length === PREVIEW_COUNT ? ", …" : ", then ends.";
   return (
     <output className="text-muted-foreground text-xs">
-      {`Posts ${dates.map((date) => formatLongDate(date)).join(", ")}, …`}
+      {`Posts ${dates.map((date) => formatLongDate(date)).join(", ")}${more}`}
       {values.startDate < today
         ? " Dates before today are not filled in."
         : null}
@@ -443,25 +468,58 @@ export const ScheduleComposer = ({
               )}
             </form.Subscribe>
           </div>
-          <form.Field name="startDate">
-            {(field) => (
-              <Field name={field.name}>
-                <FieldLabel htmlFor={field.name}>Starting</FieldLabel>
-                <div className="w-full">
-                  <DatePicker
-                    allowFutureYears
-                    aria-invalid={field.state.meta.errors.length > 0}
-                    id={field.name}
-                    onValueChange={field.handleChange}
-                    value={field.state.value}
-                  />
-                </div>
-                <FieldErrors errors={field.state.meta.errors} />
-              </Field>
-            )}
-          </form.Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <form.Field name="startDate">
+              {(field) => (
+                <Field name={field.name}>
+                  <FieldLabel htmlFor={field.name}>Starting</FieldLabel>
+                  <div className="w-full">
+                    <DatePicker
+                      allowFutureYears
+                      aria-invalid={field.state.meta.errors.length > 0}
+                      id={field.name}
+                      onValueChange={field.handleChange}
+                      value={field.state.value}
+                    />
+                  </div>
+                  <FieldErrors errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+            <form.Field name="endDate">
+              {(field) => (
+                <Field name={field.name}>
+                  <FieldLabel htmlFor={field.name}>Ending</FieldLabel>
+                  <div className="flex w-full items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <DatePicker
+                        allowFutureYears
+                        aria-invalid={field.state.meta.errors.length > 0}
+                        id={field.name}
+                        onValueChange={field.handleChange}
+                        placeholder="Never"
+                        value={field.state.value}
+                      />
+                    </div>
+                    {field.state.value ? (
+                      <Button
+                        aria-label="Remove end date"
+                        onClick={() => field.handleChange("")}
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2.2} />
+                      </Button>
+                    ) : null}
+                  </div>
+                  <FieldErrors errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+          </div>
           <form.Subscribe
             selector={(state) => ({
+              endDate: state.values.endDate,
               frequency: state.values.frequency,
               interval: state.values.interval,
               startDate: state.values.startDate,

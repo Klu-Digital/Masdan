@@ -73,6 +73,7 @@ const assertOccurrence = async (
   if (occurrence.kind === "recurring") {
     const [schedule] = await db
       .select({
+        endDate: recurringSchedule.endDate,
         frequency: recurringSchedule.frequency,
         interval: recurringSchedule.interval,
         startDate: recurringSchedule.startDate,

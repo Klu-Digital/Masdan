@@ -29,6 +29,7 @@ import { assertReferences } from "../transactions/transactions.write";
 import {
   RECURRING_FREQUENCIES,
   initialNextOccurrence,
+  isBeforeEnd,
   resumedNextOccurrence,
 } from "./recurrence";
 import type { Recurrence } from "./recurrence";
@@ -38,6 +39,7 @@ const scheduleValues = z
     accountId: z.uuid(),
     amount: positiveAmount,
     categoryId: z.uuid(),
+    endDate: isoDate.nullable(),
     frequency: z.enum(RECURRING_FREQUENCIES),
     interval: z.number().int().min(1).max(MAX_RECURRING_INTERVAL),
     name: z.string().trim().min(1, "Name is required").max(80),
@@ -53,12 +55,28 @@ const scheduleValues = z
 
 type ScheduleValues = z.output<typeof scheduleValues>;
 
+// Applied to each input, since zod refuses to `.extend()` a refined object.
+const endsOnOrAfterStart = (
+  values: Pick<ScheduleValues, "endDate" | "startDate">
+): boolean => values.endDate === null || values.endDate >= values.startDate;
+const endBeforeStart = {
+  message: "The end date can't be before the start date",
+  path: ["endDate"],
+};
+
 const scheduleIdInput = z.object({ scheduleId: z.uuid() });
 
 const stoppedSchedule = () =>
   new ORPCError("BAD_REQUEST", {
     message: "This schedule is stopped. Create a new one instead.",
   });
+
+/** What a schedule with nothing left to post before its end date becomes. */
+const ended = () => ({
+  nextOccurrenceDate: null,
+  status: "stopped" as const,
+  stoppedAt: new Date(),
+});
 
 const scheduleColumns = {
   accountId: recurringSchedule.accountId,
@@ -70,6 +88,7 @@ const scheduleColumns = {
   categoryName: category.name,
   createdAt: recurringSchedule.createdAt,
   currencyCode: financialAccount.currencyCode,
+  endDate: recurringSchedule.endDate,
   frequency: recurringSchedule.frequency,
   id: recurringSchedule.id,
   interval: recurringSchedule.interval,
@@ -210,6 +229,7 @@ const templateColumns = (values: ScheduleValues) => ({
   accountId: values.accountId,
   amount: values.amount,
   categoryId: values.categoryId,
+  endDate: values.endDate,
   frequency: values.frequency,
   interval: values.interval,
   name: values.name,
@@ -258,11 +278,17 @@ export const recurringRouter = {
         transaction: ["create"],
       })
     )
-    .input(scheduleValues)
+    .input(scheduleValues.refine(endsOnOrAfterStart, endBeforeStart))
     .handler(async ({ context, input }) => {
       await assertReferences(context.db, context.organizationId, input);
       const today = await householdDate(context.db, context.organizationId);
       const nextOccurrenceDate = initialNextOccurrence(input, today);
+      if (!isBeforeEnd(input, nextOccurrenceDate)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "Nothing would post: the end date is before the first occurrence from today.",
+        });
+      }
       const [created] = await context.db
         .insert(recurringSchedule)
         .values({
@@ -355,7 +381,8 @@ export const recurringRouter = {
   /**
    * Picks up from today: occurrences that fell due while paused are skipped,
    * not backfilled. Rechecks the template, since a paused schedule's account,
-   * category or tags may have been archived since.
+   * category or tags may have been archived since. One whose end date passed
+   * while paused stops instead.
    */
   resume: orgMutationProcedure
     .use(requirePermission({ recurringTransaction: ["update"] }))
@@ -389,9 +416,10 @@ export const recurringRouter = {
           .update(recurringSchedule)
           .set({
             lastError: null,
-            nextOccurrenceDate,
             pausedAt: null,
-            status: "active",
+            ...(isBeforeEnd(current, nextOccurrenceDate)
+              ? { nextOccurrenceDate, status: "active" as const }
+              : ended()),
           })
           .where(eq(recurringSchedule.id, current.id));
         await enqueueIfDue(
@@ -435,10 +463,15 @@ export const recurringRouter = {
    * Changes what future occurrences post. Transactions already posted are
    * never touched. New timing restarts from today, so past days are not
    * backfilled and today's occurrence, if already posted, is not repeated.
+   * An end date before the next occurrence stops the schedule.
    */
   update: orgMutationProcedure
     .use(requirePermission({ recurringTransaction: ["update"] }))
-    .input(scheduleValues.extend({ scheduleId: z.uuid() }))
+    .input(
+      scheduleValues
+        .extend({ scheduleId: z.uuid() })
+        .refine(endsOnOrAfterStart, endBeforeStart)
+    )
     .handler(async ({ context, input }) => {
       const { scheduleId, ...values } = input;
       const current = await lockSchedule(
@@ -454,6 +487,10 @@ export const recurringRouter = {
       const nextOccurrenceDate = sameTiming(current, values)
         ? current.nextOccurrenceDate
         : initialNextOccurrence(values, today);
+      const timing =
+        nextOccurrenceDate !== null && isBeforeEnd(values, nextOccurrenceDate)
+          ? { nextOccurrenceDate, status: current.status }
+          : ended();
 
       await context.db
         .update(recurringSchedule)
@@ -461,7 +498,7 @@ export const recurringRouter = {
         .set({
           ...templateColumns(values),
           lastError: null,
-          nextOccurrenceDate,
+          ...timing,
         })
         .where(eq(recurringSchedule.id, current.id));
       await replaceScheduleTags(
@@ -473,8 +510,8 @@ export const recurringRouter = {
       await enqueueIfDue(
         context.db,
         current.id,
-        current.status,
-        nextOccurrenceDate,
+        timing.status,
+        timing.nextOccurrenceDate,
         today
       );
       return findSchedule(context.db, context.organizationId, current.id);
