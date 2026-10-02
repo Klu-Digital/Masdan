@@ -3,6 +3,7 @@ import type { EvlogVariables } from "@masdan/observability/hono";
 import { signUpTestUser } from "@masdan/testing";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
+import { SimpleCsrfProtectionLinkPlugin } from "@orpc/client/plugins";
 import { Hono } from "hono";
 import { describe, expect, it } from "vite-plus/test";
 
@@ -23,6 +24,7 @@ const clientWithHeaders = (headers?: Headers): AppRouterClient => {
       }
       return await app.request(new Request(request, { headers: merged }));
     },
+    plugins: [new SimpleCsrfProtectionLinkPlugin()],
     url: "http://localhost/rpc",
   });
   return createORPCClient(link);
@@ -73,6 +75,24 @@ describe("POST /rpc body limit", () => {
     });
 
     expect(response.status).toBe(413);
+  });
+});
+
+describe("POST /rpc CSRF header", () => {
+  it("refuses a cookie-bearing call without it, as a cross-site form would send", async () => {
+    const { headers } = await signUpTestUser();
+    headers.set("content-type", "application/json");
+
+    const response = await app.request("/rpc/currencies/list", {
+      body: JSON.stringify({}),
+      headers,
+      method: "POST",
+    });
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({
+      json: { code: "CSRF_TOKEN_MISMATCH" },
+    });
   });
 });
 

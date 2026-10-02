@@ -112,14 +112,16 @@ export type PermissionRequest = {
 
 type AnyRole = Role<Statements, Statement>;
 
+// Split exactly as better-auth does, never trimmed: its owner check misses
+// `"member, owner"`, so trimming here would read an owner it never granted.
+const rolesOf = (role: string): string[] => role.split(",");
+
 /** Shared by server and client. Comma-separated roles are unioned. */
 export const hasPermission = (input: {
   role: string;
   permissions: PermissionRequest;
 }): boolean =>
-  input.role
-    .split(",")
-    .map((name) => name.trim())
+  rolesOf(input.role)
     .filter(isAppRole)
     .some(
       (name) => (roles[name] as AnyRole).authorize(input.permissions).success
@@ -129,7 +131,4 @@ export const hasPermission = (input: {
 const PLATFORM_ADMIN_ROLE = "admin";
 
 export const isPlatformAdmin = (role?: string | null): boolean =>
-  (role ?? "")
-    .split(",")
-    .map((name) => name.trim())
-    .includes(PLATFORM_ADMIN_ROLE);
+  rolesOf(role ?? "").includes(PLATFORM_ADMIN_ROLE);

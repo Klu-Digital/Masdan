@@ -146,6 +146,8 @@ export const invitation = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     role: text("role"),
+    /** Set when an account was created through this link: one sign-up per link. */
+    signedUpAt: timestamptz("signed_up_at"),
     status: text("status").default("pending").notNull(),
   },
   (table) => [

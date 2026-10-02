@@ -56,7 +56,7 @@ export const createApp = () => {
   app.use(
     "*",
     cors({
-      allowHeaders: ["Content-Type", "Authorization"],
+      allowHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
       allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       credentials: true,
       exposeHeaders: ["x-request-id"],

@@ -252,6 +252,16 @@ describe("hasPermission", () => {
     ).toBe(true);
   });
 
+  it("reads a space-padded role as unknown, as better-auth does", () => {
+    // better-auth's owner check lets an admin invite `"member, owner"`.
+    expect(
+      hasPermission({
+        permissions: { organization: ["delete"] },
+        role: "member, owner",
+      })
+    ).toBe(false);
+  });
+
   it("fails closed on an empty request, even for an owner", () => {
     // An empty `requirePermission({})` must deny, not open the route.
     expect(
@@ -279,6 +289,10 @@ describe("isPlatformAdmin", () => {
   it("unions across better-auth's comma-separated role storage", () => {
     expect(isPlatformAdmin("member,admin")).toBe(true);
     expect(isPlatformAdmin("admin,member")).toBe(true);
+  });
+
+  it("reads a space-padded role as unknown, as better-auth does", () => {
+    expect(isPlatformAdmin("user, admin")).toBe(false);
   });
 
   it("treats missing or empty role as not a platform admin", () => {

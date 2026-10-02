@@ -19,9 +19,10 @@ const RATE_LIMIT = { limit: 30, window: 60 };
 
 const LINK_WINDOW = LINK_CODE_TTL_MS / 1000;
 
-// Codes are 40 bits for 10 minutes: these limits are the guessing defence.
+// Codes are 40 bits for 10 minutes: 10,000 senders at 5 guesses would need
+// centuries to hit one. No instance-wide bucket: a few accounts could fill it
+// and lock everyone out of linking.
 const LINK_LIMITS = {
-  overall: { limit: 60, window: LINK_WINDOW },
   perCode: { limit: 3, window: LINK_WINDOW },
   perSender: { limit: 5, window: LINK_WINDOW },
 };
@@ -34,7 +35,7 @@ const overRateLimit = async (
   (await countHit(`rl:chat:${channel}:${senderId}`, RATE_LIMIT.window)) >
   RATE_LIMIT.limit;
 
-/** In order, so one sender's rejected guesses never spend the shared budgets. */
+/** In order, so one sender's rejected guesses never spend the code's budget. */
 const overLinkLimit = async (
   channel: ChatChannel,
   senderId: string,
@@ -44,7 +45,6 @@ const overLinkLimit = async (
     [`rl:chat-link:sender:${channel}:${senderId}`, LINK_LIMITS.perSender],
     // Hashed: a raw code in Redis is a live credential for 10 minutes.
     [`rl:chat-link:code:${hashLinkCode(code)}`, LINK_LIMITS.perCode],
-    ["rl:chat-link:overall", LINK_LIMITS.overall],
   ] as const;
   for (const [key, { limit, window }] of buckets) {
     if ((await countHit(key, window)) > limit) {

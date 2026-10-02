@@ -73,6 +73,67 @@ describe("sign-up gate", () => {
     expect(await roleOf("invitee@example.com")).not.toBe("admin");
   });
 
+  it("admits one new account per link", async () => {
+    const inviter = await signUpTestUser();
+    const pending = await pendingInvitationFrom(inviter.headers);
+
+    const first = await httpSignUp("one@example.com", {
+      invitationId: pending.id,
+    });
+    const second = await httpSignUp("two@example.com", {
+      invitationId: pending.id,
+    });
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(403);
+    expect(await roleOf("two@example.com")).toBeUndefined();
+  });
+
+  it("lets only one of two concurrent sign-ups use a link", async () => {
+    const inviter = await signUpTestUser();
+    const pending = await pendingInvitationFrom(inviter.headers);
+
+    const responses = await Promise.all(
+      ["race-a@example.com", "race-b@example.com"].map((email) =>
+        httpSignUp(email, { invitationId: pending.id })
+      )
+    );
+
+    expect(responses.map(({ status }) => status).toSorted()).toEqual([
+      200, 403,
+    ]);
+  });
+
+  it("keeps the link when a sign-up fails validation", async () => {
+    const inviter = await signUpTestUser();
+    const pending = await pendingInvitationFrom(inviter.headers);
+
+    const tooShort = await httpSignUp("typo@example.com", {
+      invitationId: pending.id,
+      password: "short",
+    });
+    const retry = await httpSignUp("typo@example.com", {
+      invitationId: pending.id,
+    });
+
+    expect(tooShort.status).toBe(400);
+    expect(retry.status).toBe(200);
+  });
+
+  it("leaves the link pending for the new account to accept", async () => {
+    const inviter = await signUpTestUser();
+    const pending = await pendingInvitationFrom(inviter.headers);
+    await httpSignUp("joiner@example.com", { invitationId: pending.id });
+
+    const [row] = await getTestDb()
+      .select({ signedUpAt: invitation.signedUpAt, status: invitation.status })
+      .from(invitation)
+      .where(eq(invitation.id, pending.id));
+
+    expect(row?.status).toBe("pending");
+    expect(row?.signedUpAt).toBeInstanceOf(Date);
+  });
+
   it.each(["canceled", "accepted"])(
     "rejects a %s invitation",
     async (status) => {

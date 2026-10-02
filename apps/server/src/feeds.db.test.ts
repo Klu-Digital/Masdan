@@ -2,6 +2,7 @@ import type { AppRouterClient } from "@masdan/api/routers/index";
 import { signUpTestUser } from "@masdan/testing";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
+import { SimpleCsrfProtectionLinkPlugin } from "@orpc/client/plugins";
 import { describe, expect, it } from "vite-plus/test";
 
 import { createApp } from "./app";
@@ -18,6 +19,7 @@ const clientFor = (headers: Headers): AppRouterClient =>
         }
         return await app.request(new Request(request, { headers: merged }));
       },
+      plugins: [new SimpleCsrfProtectionLinkPlugin()],
       url: "http://localhost/rpc",
     })
   );

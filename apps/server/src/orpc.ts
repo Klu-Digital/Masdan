@@ -7,6 +7,7 @@ import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
+import { SimpleCsrfProtectionHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import type { Hono, MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -23,6 +24,9 @@ const logOrpcError = (error: unknown) => {
 
 const rpcHandler = new RPCHandler(appRouter, {
   interceptors: [onError(logOrpcError)],
+  // A custom header forces a CORS preflight, so a cross-site form or fetch
+  // cannot ride the session cookie when SameSite is None.
+  plugins: [new SimpleCsrfProtectionHandlerPlugin()],
 });
 
 interface OrpcHandler {

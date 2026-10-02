@@ -16,6 +16,7 @@ import { resolveRateLimitStorage } from "./rate-limit-storage";
 import { resetPasswordUrl } from "./reset-link";
 import {
   anyUserExists,
+  claimInvitationSignUp,
   isPendingInvitation,
   signUpAllowed,
 } from "./sign-up-gate";
@@ -64,6 +65,13 @@ const EMAIL_MATCHED_INVITATION_PATHS = new Set([
 ]);
 
 const SIGN_UP_PATH = "/sign-up/email";
+
+const inviteOnly = () =>
+  new APIError("FORBIDDEN", {
+    code: "SIGN_UP_INVITE_ONLY",
+    message:
+      "Sign-up is by invitation. Ask a household admin for an invite link.",
+  });
 
 const AVATAR_PATHS = new Set([SIGN_UP_PATH, "/update-user"]);
 
@@ -141,15 +149,28 @@ export const createAuth = () => {
             }
           },
           before: async (user, context) => {
-            // Only HTTP sign-up bootstraps; the seeder and tests must not mint an admin.
-            const bootstrap =
-              context?.path === SIGN_UP_PATH &&
-              context.request !== undefined &&
-              !(await anyUserExists(db));
-            if (!bootstrap) {
+            // Only HTTP sign-up is gated; the seeder and tests must not mint an admin.
+            if (
+              context?.path !== SIGN_UP_PATH ||
+              context.request === undefined
+            ) {
               return;
             }
-            return { data: { ...user, role: "admin" } };
+            if (!(await anyUserExists(db))) {
+              return { data: { ...user, role: "admin" } };
+            }
+            if (env.ALLOW_SIGNUP) {
+              return;
+            }
+            // Here, at the insert, so a sign-up that fails validation keeps the link.
+            const claimed = await claimInvitationSignUp(
+              db,
+              (context.body as { invitationId?: unknown } | undefined)
+                ?.invitationId
+            );
+            if (!claimed) {
+              throw inviteOnly();
+            }
           },
         },
       },
@@ -191,11 +212,7 @@ export const createAuth = () => {
           ),
         });
         if (!allowed) {
-          throw new APIError("FORBIDDEN", {
-            code: "SIGN_UP_INVITE_ONLY",
-            message:
-              "Sign-up is by invitation. Ask a household admin for an invite link.",
-          });
+          throw inviteOnly();
         }
       }),
     },
@@ -213,6 +230,16 @@ export const createAuth = () => {
                 organizationId: createdOrganization.id,
               }))
             );
+          },
+          // better-auth stores an invited role untrimmed, and its owner check misses `"member, owner"`.
+          beforeCreateInvitation: ({ invitation }) => {
+            if (/\s/u.test(invitation.role)) {
+              throw new APIError("BAD_REQUEST", {
+                code: "INVALID_ROLE",
+                message: "Pick a role from the list",
+              });
+            }
+            return Promise.resolve();
           },
         },
         roles,
