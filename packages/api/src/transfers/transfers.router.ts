@@ -39,7 +39,12 @@ export const transfersRouter = {
     .use(requirePermission({ transaction: ["create"] }))
     .input(transferValues)
     .handler(({ context, input }) =>
-      createTransfer(context.db, context.organizationId, input)
+      createTransfer(
+        context.db,
+        context.organizationId,
+        input,
+        context.session.user.id
+      )
     ),
   delete: orgMutationProcedure
     .use(requirePermission({ transaction: ["archive"] }))

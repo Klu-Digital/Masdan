@@ -602,6 +602,7 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
             transactionInsertValues(current.organizationId, destination, {
               amount: row.amount ?? "0",
               categoryId: row.categoryId ?? "",
+              createdByUserId: current.createdByUserId,
               importFingerprint: row.fingerprint,
               notes: row.notes,
               paidStatus: "paid",

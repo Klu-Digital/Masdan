@@ -95,7 +95,8 @@ const postingValues = (
 export const createTransfer = async (
   db: Database,
   organizationId: string,
-  input: TransferValues
+  input: TransferValues,
+  createdByUserId: string | null = null
 ) => {
   const accounts = await selectAccounts(db, organizationId, input);
   const [created] = await db
@@ -107,7 +108,11 @@ export const createTransfer = async (
   }
   await db
     .insert(financialTransaction)
-    .values(postingValues(organizationId, created.id, input, accounts));
+    .values(
+      postingValues(organizationId, created.id, input, accounts).map(
+        (posting) => ({ ...posting, createdByUserId })
+      )
+    );
   return getTransfer(db, organizationId, created.id);
 };
 

@@ -1,3 +1,4 @@
+import { auth } from "@masdan/auth";
 import { relations } from "@masdan/db/relations";
 import {
   category,
@@ -228,6 +229,36 @@ describe("transactions lifecycle", () => {
         context
       )
     ).resolves.toMatchObject({ type: "income" });
+  });
+});
+
+describe("transaction creator", () => {
+  it("records who added a transaction and returns their name and photo", async () => {
+    const user = await signUpTestUser({ name: "Ada Lovelace" });
+    const context = { context: await contextFor(user.headers) };
+    const organizationId = await activeOrganizationId(user.headers);
+    const account = await call(accountsRouter.create, accountInput, context);
+    const image = "data:image/webp;base64,UklGRg==";
+    await auth.api.updateUser({ body: { image }, headers: user.headers });
+
+    const created = await call(
+      transactionsRouter.create,
+      {
+        accountId: account.id,
+        amount: "10",
+        categoryId: await categoryIdFor(organizationId, "Groceries"),
+        paidStatus: "paid",
+        tagIds: [],
+        transactionDate: "2026-01-05",
+      },
+      context
+    );
+
+    await expect(
+      call(transactionsRouter.get, { transactionId: created.id }, context)
+    ).resolves.toMatchObject({
+      createdBy: { id: user.user.id, image, name: "Ada Lovelace" },
+    });
   });
 });
 

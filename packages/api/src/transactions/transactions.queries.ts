@@ -8,6 +8,7 @@ import {
   interestCredit,
   recurringSchedule,
   tag,
+  user,
 } from "@masdan/db/schema/index";
 import {
   and,
@@ -43,6 +44,7 @@ export const transactionFields = {
   archivedAt: financialTransaction.archivedAt,
   categoryId: financialTransaction.categoryId,
   createdAt: financialTransaction.createdAt,
+  createdByUserId: financialTransaction.createdByUserId,
   currencyCode: financialTransaction.currencyCode,
   id: financialTransaction.id,
   notes: financialTransaction.notes,
@@ -429,7 +431,17 @@ export const getTransaction = async (
     throw notFound("Transaction");
   }
 
-  return withDetails(db, result);
+  const [detail, createdBy] = await Promise.all([
+    withDetails(db, result),
+    result.createdByUserId
+      ? db
+          .select({ id: user.id, image: user.image, name: user.name })
+          .from(user)
+          .where(eq(user.id, result.createdByUserId))
+          .limit(1)
+      : [],
+  ]);
+  return { ...detail, createdBy: createdBy[0] ?? null };
 };
 
 export const listTransactions = async (

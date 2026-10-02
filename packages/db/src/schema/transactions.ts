@@ -15,7 +15,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-import { organization } from "./auth";
+import { organization, user } from "./auth";
 import { category } from "./categories";
 import { money, oneOf, timestamps, timestamptz } from "./columns";
 import { currency } from "./finance";
@@ -225,6 +225,10 @@ export const financialTransaction = pgTable(
     archivedAt: timestamptz("archived_at"),
     categoryId: uuid("category_id"),
     ...timestamps(),
+    /** Null for system postings (recurring, interest) and for removed users. */
+    createdByUserId: uuid("created_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
     currencyCode: text("currency_code")
       .notNull()
       .references(() => currency.code, { onDelete: "restrict" }),

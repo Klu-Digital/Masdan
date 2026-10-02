@@ -7,7 +7,6 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useAppFrame } from "@masdan/ui/components/app-frame";
-import { Avatar, AvatarFallback } from "@masdan/ui/components/avatar";
 import {
   Menu,
   MenuGroup,
@@ -28,7 +27,7 @@ import { useSession } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
 import { invalidateSession } from "@/lib/session";
 
-import { initialsOf } from "./initials";
+import { UserAvatar } from "./user-avatar";
 
 export const useSignOut = () => {
   const navigate = useNavigate();
@@ -94,7 +93,7 @@ export const UserMenu = () => {
   if (!session) {
     return null;
   }
-  const { email, name } = session.user;
+  const { email, image, name } = session.user;
 
   return (
     <Menu>
@@ -110,9 +109,7 @@ export const UserMenu = () => {
           />
         }
       >
-        <Avatar size="sm">
-          <AvatarFallback>{initialsOf(name)}</AvatarFallback>
-        </Avatar>
+        <UserAvatar image={image} name={name} size="sm" />
         {collapsed ? null : (
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-sm font-medium">{name}</span>

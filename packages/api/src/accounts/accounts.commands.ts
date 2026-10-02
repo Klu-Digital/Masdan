@@ -380,7 +380,8 @@ export const createStatement = async (
 export const reconcileBalance = async (
   db: Database,
   organizationId: string,
-  input: ReconciliationValues
+  input: ReconciliationValues,
+  createdByUserId: string | null = null
 ) => {
   const account = await lockOwned(
     db,
@@ -426,6 +427,7 @@ export const reconcileBalance = async (
       accountId: account.id,
       adjustmentDirection: delta > 0n ? "increase" : "decrease",
       amount: formatScaledAmount(delta > 0n ? delta : -delta),
+      createdByUserId,
       currencyCode: account.currencyCode,
       notes: input.notes ?? null,
       organizationId,

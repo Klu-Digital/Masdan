@@ -252,6 +252,8 @@ export interface RecurringOccurrence {
 export interface TransactionWrite {
   amount: string;
   categoryId: string;
+  /** Null for system postings: recurring generation, interest. */
+  createdByUserId?: string | null;
   importFingerprint?: string | null;
   notes: string | null;
   paidStatus: TransactionPaidStatus;
@@ -270,6 +272,7 @@ export const transactionInsertValues = (
   accountId: account.id,
   amount: values.amount,
   categoryId: values.categoryId,
+  createdByUserId: values.createdByUserId ?? null,
   currencyCode: account.currencyCode,
   importFingerprint: values.importFingerprint ?? null,
   notes: values.notes,
@@ -286,6 +289,7 @@ export interface TransactionCreate {
   accountId: string;
   amount: string;
   categoryId: string;
+  createdByUserId?: string | null;
   notes: string | null;
   paidStatus: TransactionPaidStatus;
   splits: { amount: string; categoryId: string }[];
@@ -323,6 +327,7 @@ export const createTransaction = async (
         splits.length === 1
           ? (splits[0]?.categoryId ?? input.categoryId)
           : input.categoryId,
+      createdByUserId: input.createdByUserId ?? null,
       notes: input.notes,
       paidStatus: input.paidStatus,
       recurrence: recurrence ?? null,

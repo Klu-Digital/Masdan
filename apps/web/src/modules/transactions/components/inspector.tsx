@@ -24,13 +24,14 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Amount } from "@/components/finance/amount";
+import { UserAvatar } from "@/components/shell/user-avatar";
 import { formatLongDate } from "@/lib/dates";
 import { TransactionRule } from "@/modules/rules/components/transaction-rule";
 import { TransactionSuggestion } from "@/modules/suggestions/components/transaction-suggestion";
 import { householdOrpc } from "@/utils/orpc";
 
 import { describeTransaction } from "../presentation";
-import type { TransactionDetail } from "../types";
+import type { TransactionCreator, TransactionDetail } from "../types";
 import type { LedgerActions } from "../use-ledger-actions";
 import { DeleteTransferDialog } from "./delete-transfer-dialog";
 import { TransactionAttachments } from "./transaction-attachments";
@@ -47,6 +48,18 @@ const Row = ({ children, label }: { children: ReactNode; label: string }) => (
     </ListItemTrailing>
   </ListItem>
 );
+
+const CreatedBy = ({ creator }: { creator: TransactionCreator }) =>
+  creator ? (
+    <List>
+      <Row label="Added by">
+        <span className="flex min-w-0 items-center gap-2">
+          <UserAvatar image={creator.image} name={creator.name} size="sm" />
+          <span className="truncate">{creator.name}</span>
+        </span>
+      </Row>
+    </List>
+  ) : null;
 
 const TransferDetails = ({ detail }: { detail: TransactionDetail }) => {
   const { transfer } = detail;
@@ -277,6 +290,7 @@ export const TransactionInspector = ({
           <EntryDetails detail={detail} />
         )}
         <SplitDetails detail={detail} />
+        <CreatedBy creator={detail.createdBy} />
 
         {detail.notes ? (
           <section className="flex flex-col gap-2">

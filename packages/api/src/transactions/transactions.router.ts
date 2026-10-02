@@ -53,7 +53,12 @@ export const transactionsRouter = {
     .use(requirePermission({ transaction: ["create"] }))
     .input(transactionValues)
     .handler(({ context, input }) =>
-      addTransaction(context.db, context.organizationId, input)
+      addTransaction(
+        context.db,
+        context.organizationId,
+        input,
+        context.session.user.id
+      )
     ),
 
   get: orgProcedure

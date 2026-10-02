@@ -8,6 +8,7 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin, organization } from "better-auth/plugins";
 import { and, asc, eq, isNull } from "drizzle-orm";
 
+import { isAvatarImage } from "./avatar";
 import { deliver } from "./deliver";
 import { ac, roles } from "./permissions";
 import { resolveRateLimitStorage } from "./rate-limit-storage";
@@ -62,6 +63,8 @@ const EMAIL_MATCHED_INVITATION_PATHS = new Set([
 ]);
 
 const SIGN_UP_PATH = "/sign-up/email";
+
+const AVATAR_PATHS = new Set([SIGN_UP_PATH, "/update-user"]);
 
 /** Turn a user's name into a slug candidate: `Ada Lovelace` -> `ada-lovelace`. */
 export const slugifyName = (name: string): string => {
@@ -162,6 +165,15 @@ export const createAuth = () => {
       before: createAuthMiddleware(async (ctx) => {
         if (EMAIL_MATCHED_INVITATION_PATHS.has(ctx.path)) {
           throw new APIError("NOT_FOUND");
+        }
+        if (
+          AVATAR_PATHS.has(ctx.path) &&
+          !isAvatarImage((ctx.body as { image?: unknown } | undefined)?.image)
+        ) {
+          throw new APIError("BAD_REQUEST", {
+            code: "INVALID_AVATAR",
+            message: "Use a JPEG, PNG or WebP photo under 128 KB",
+          });
         }
         // Server-side `auth.api` calls (seeder, tests) carry no request.
         if (ctx.path !== SIGN_UP_PATH || ctx.request === undefined) {

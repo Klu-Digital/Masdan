@@ -106,7 +106,12 @@ export const accountsRouter = {
     )
     .input(reconciliationValues)
     .handler(({ context, input }) =>
-      reconcileBalance(context.db, context.organizationId, input)
+      reconcileBalance(
+        context.db,
+        context.organizationId,
+        input,
+        context.session.user.id
+      )
     ),
 
   restore: orgMutationProcedure

@@ -5,7 +5,6 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { hasPermission } from "@masdan/auth/permissions";
-import { Avatar, AvatarFallback } from "@masdan/ui/components/avatar";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
 import {
@@ -49,7 +48,7 @@ import { useEffect } from "react";
 import { z } from "zod";
 
 import { HouseholdMark } from "@/components/shell/household-switcher";
-import { initialsOf } from "@/components/shell/initials";
+import { UserAvatar } from "@/components/shell/user-avatar";
 import { authClient } from "@/lib/auth-client";
 import {
   activeOrganizationQueryOptions,
@@ -104,7 +103,7 @@ const Members = ({
   members: {
     id: string;
     role: string;
-    user: { email: string; name: string };
+    user: { email: string; image?: string | null; name: string };
     userId: string;
   }[];
 }) => (
@@ -117,9 +116,11 @@ const Members = ({
       {members.map((member) => (
         <ListItem key={member.id}>
           <ListItemLeading>
-            <Avatar size="lg">
-              <AvatarFallback>{initialsOf(member.user.name)}</AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              image={member.user.image}
+              name={member.user.name}
+              size="lg"
+            />
           </ListItemLeading>
           <ListItemContent>
             <ListItemTitle>
@@ -337,6 +338,106 @@ const InviteForm = ({ organizationId }: { organizationId: string }) => {
   );
 };
 
+const HouseholdName = ({
+  name,
+  organizationId,
+}: {
+  name: string;
+  organizationId: string;
+}) => {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  const form = useForm({
+    defaultValues: { name },
+    onSubmit: async ({ formApi, value }) => {
+      const trimmed = value.name.trim();
+      const { error } = await authClient.organization.update({
+        data: { name: trimmed },
+        organizationId,
+      });
+      if (error) {
+        toastManager.add({
+          title: error.message ?? "Could not rename the household",
+          type: "error",
+        });
+        return;
+      }
+      // The switcher and breadcrumbs read the name from these caches.
+      await invalidateOrganizations(queryClient);
+      await router.invalidate();
+      formApi.reset({ name: trimmed });
+      toastManager.add({ title: "Household renamed", type: "success" });
+    },
+    validators: {
+      onSubmit: z.object({
+        name: z
+          .string()
+          .trim()
+          .min(
+            MIN_ORGANIZATION_NAME_LENGTH,
+            `Use at least ${MIN_ORGANIZATION_NAME_LENGTH} characters`
+          ),
+      }),
+    },
+  });
+
+  return (
+    <ListSection aria-label="Household name">
+      <ListSectionHeader>Name</ListSectionHeader>
+      <form
+        className="bg-card dark:ring-hairline flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-start dark:ring-1"
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          form.handleSubmit();
+        }}
+      >
+        <form.Field name="name">
+          {(field) => (
+            <Field className="flex-1" name={field.name}>
+              <FieldLabel className="sr-only" htmlFor="household-name">
+                Household name
+              </FieldLabel>
+              <Input
+                aria-invalid={field.state.meta.errors.length > 0 || undefined}
+                id="household-name"
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                value={field.state.value}
+              />
+              {field.state.meta.errors.map((error) => (
+                <FieldError key={error?.message} match>
+                  {error?.message}
+                </FieldError>
+              ))}
+            </Field>
+          )}
+        </form.Field>
+        <form.Subscribe
+          selector={(state) => ({
+            canSubmit: state.canSubmit,
+            isDirty: state.isDirty,
+            isSubmitting: state.isSubmitting,
+          })}
+        >
+          {({ canSubmit, isDirty, isSubmitting }) => (
+            <Button
+              disabled={!(canSubmit && isDirty)}
+              loading={isSubmitting}
+              type="submit"
+            >
+              Save
+            </Button>
+          )}
+        </form.Subscribe>
+      </form>
+      <ListSectionFooter>Every member sees this name.</ListSectionFooter>
+    </ListSection>
+  );
+};
+
 const CreateHousehold = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -527,6 +628,14 @@ export const HouseholdSettingsPage = () => {
           </span>
         </div>
       </div>
+
+      {canManage ? (
+        <HouseholdName
+          key={organization.data.id}
+          name={organization.data.name}
+          organizationId={organization.data.id}
+        />
+      ) : null}
 
       {householdProfile.isPending || currencies.isPending ? (
         <Skeleton className="h-40 w-full" radius="2xl" />

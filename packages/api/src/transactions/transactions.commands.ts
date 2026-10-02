@@ -171,10 +171,12 @@ export const updateTransaction = async (
 export const addTransaction = async (
   db: Database,
   organizationId: string,
-  input: TransactionCreateInput
+  input: TransactionCreateInput,
+  createdByUserId: string | null = null
 ) => {
   const created = await createTransaction(db, organizationId, {
     ...input,
+    createdByUserId,
     notes: input.notes ?? null,
     splits: input.splits ?? [],
   });

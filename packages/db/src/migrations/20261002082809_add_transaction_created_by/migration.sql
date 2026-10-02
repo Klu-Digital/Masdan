@@ -1,0 +1,2 @@
+ALTER TABLE "financial_transaction" ADD COLUMN "created_by_user_id" uuid;--> statement-breakpoint
+ALTER TABLE "financial_transaction" ADD CONSTRAINT "financial_transaction_created_by_user_id_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "user"("id") ON DELETE SET NULL;

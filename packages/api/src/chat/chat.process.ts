@@ -225,6 +225,7 @@ const addEntry = async (
     return await db.transaction(async (tx) => {
       const created = await createTransaction(tx, link.organizationId, {
         ...input,
+        createdByUserId: link.userId,
         notes: input.notes ?? null,
         splits: input.splits ?? [],
       });
@@ -396,6 +397,7 @@ const addReceipt = async (
     const result = await db.transaction(async (tx) => {
       const created = await createTransaction(tx, link.organizationId, {
         ...input,
+        createdByUserId: link.userId,
         notes: input.notes ?? null,
         splits: input.splits ?? [],
       });
