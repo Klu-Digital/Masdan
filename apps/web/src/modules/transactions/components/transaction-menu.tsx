@@ -64,7 +64,12 @@ export const TransactionMenu = ({
         >
           <HugeiconsIcon icon={MoreHorizontalIcon} strokeWidth={2} />
         </MenuTrigger>
-        <MenuPopup align="end" className="min-w-44">
+        <MenuPopup
+          align="end"
+          className="min-w-44"
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
           {canEdit ? (
             <MenuItem onClick={() => onEdit(transaction)}>
               <HugeiconsIcon icon={PencilEdit02Icon} strokeWidth={1.8} />

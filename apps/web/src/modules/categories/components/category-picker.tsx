@@ -49,6 +49,7 @@ export const CategoryPicker = <T extends PickerCategory>({
         clearProps={{ "aria-label": "Clear category" }}
         placeholder={placeholder}
         showClear={showClear}
+        startAddonWide
         startAddon={
           selected ? (
             <IconTile tint={selected.color} size="xs">

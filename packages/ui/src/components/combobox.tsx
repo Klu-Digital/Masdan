@@ -92,6 +92,7 @@ export const ComboboxInput = ({
   showTrigger = true,
   showClear = false,
   startAddon,
+  startAddonWide = false,
   size,
   triggerProps,
   clearProps,
@@ -100,6 +101,8 @@ export const ComboboxInput = ({
   showTrigger?: boolean;
   showClear?: boolean;
   startAddon?: React.ReactNode;
+  /** Reserve extra start padding for addons wider than an icon, like a tile. */
+  startAddonWide?: boolean;
   size?: "sm" | "default" | "lg" | number;
   ref?: React.Ref<HTMLInputElement>;
   triggerProps?: ComboboxPrimitive.Trigger.Props;
@@ -125,6 +128,9 @@ export const ComboboxInput = ({
         className={cn(
           startAddon &&
             "*:data-[slot=combobox-input]:ps-[calc(--spacing(8.5)-1px)] data-[size=sm]:*:data-[slot=combobox-input]:ps-[calc(--spacing(7.5)-1px)] sm:*:data-[slot=combobox-input]:ps-[calc(--spacing(8)-1px)] sm:data-[size=sm]:*:data-[slot=combobox-input]:ps-[calc(--spacing(7)-1px)]",
+          startAddon &&
+            startAddonWide &&
+            "*:data-[slot=combobox-input]:ps-[calc(--spacing(10)-1px)] sm:*:data-[slot=combobox-input]:ps-[calc(--spacing(10)-1px)]",
           sizeValue === "sm"
             ? "has-[+[data-slot=combobox-trigger],+[data-slot=combobox-clear]]:*:data-[slot=combobox-input]:pe-6.5"
             : "has-[+[data-slot=combobox-trigger],+[data-slot=combobox-clear]]:*:data-[slot=combobox-input]:pe-7",
