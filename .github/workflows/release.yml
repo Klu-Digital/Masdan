@@ -26,9 +26,6 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
-env:
-  REGISTRY: ghcr.io
-
 jobs:
   build:
     name: Build ${{ matrix.app }}
@@ -36,7 +33,6 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      packages: write
     strategy:
       # The builds are independent; one failing should not hide the others.
       fail-fast: false
@@ -50,6 +46,7 @@ jobs:
           - app: workers
             dockerfile: apps/workers/Dockerfile
     env:
+      IMAGE: docker.io/k22i/masdan-${{ matrix.app }}
       # Read at step level to decide whether the source-map upload runs. A
       # job-level `if:` cannot see `secrets`, and a step-level `if:` cannot
       # either — routing it through `env` is the standard way to branch on
@@ -60,21 +57,11 @@ jobs:
       - name: Checkout repository
         uses: useblacksmith/checkout@25227e61ff9dafe400e22fa487b673eac4e4409a # v1.8.1
 
-      # GHCR rejects any uppercase character in a repository path, and
-      # `github.repository` preserves whatever case the owner/repo was created
-      # with. Normalising once here means nothing downstream has to remember.
-      - name: Resolve image name
-        run: |
-          set -euo pipefail
-          repo=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          echo "IMAGE=${REGISTRY}/${repo}/${{ matrix.app }}" >> "$GITHUB_ENV"
-
-      - name: Log in to Container Registry
+      - name: Log in to Docker Hub
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract metadata for Docker
         id: meta
@@ -83,7 +70,7 @@ jobs:
           images: ${{ env.IMAGE }}
           # `sha-<7 chars>` is the only tag anything deploys by: it is immutable,
           # so "the image on production" stays answerable months later. `main` is
-          # a convenience alias for humans browsing GHCR and is deliberately NOT
+          # a convenience alias for humans browsing Docker Hub and is deliberately NOT
           # what deploy.yml resolves — a moving tag makes a promotion ambiguous.
           tags: |
             type=sha,format=short,prefix=sha-
@@ -156,14 +143,12 @@ jobs:
     with:
       environment: staging
       image-sha: ${{ github.sha }}
-    # Caps what the called workflow's jobs can ask for. `packages: read` to pull
-    # the images, `contents: write` for the `deployed/staging` tag the record job
-    # moves — that tag is how a later production promotion knows which commit to
-    # name.
+    # Caps what the called workflow's jobs can ask for. `contents: write` for the
+    # `deployed/staging` tag the record job moves — that tag is how a later
+    # production promotion knows which commit to name.
     permissions:
       contents: write
       id-token: write
-      packages: read
     # `inherit` passes the environment-scoped federation credentials and
     # deployment credentials to the called workflow.
     secrets: inherit
