@@ -2,7 +2,6 @@ import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
   Calendar03Icon,
-  CreditCardIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Badge } from "@masdan/ui/components/badge";
@@ -49,6 +48,7 @@ import {
   formatShortDate,
   parseIsoDate,
 } from "@/lib/dates";
+import { AccountCardThumb } from "@/modules/accounts/components/account-card";
 import { householdOrpc } from "@/utils/orpc";
 
 import {
@@ -217,10 +217,16 @@ const BillRow = ({
 }) => (
   <ListItemButton onClick={onOpen}>
     <ListItemLeading>
-      {bill.kind === "card" ? (
-        <IconTile size="sm" tint={bill.account.color}>
-          <HugeiconsIcon icon={CreditCardIcon} strokeWidth={1.8} />
-        </IconTile>
+      {bill.card ? (
+        <AccountCardThumb
+          account={{
+            ...bill.card,
+            color: bill.account.color,
+            currencyCode: bill.currencyCode,
+            name: bill.account.name,
+          }}
+          size="sm"
+        />
       ) : (
         <IconTile size="sm" tint={bill.category?.color}>
           {bill.category?.icon}

@@ -48,6 +48,13 @@ export interface Bill {
     id: string;
     name: string;
   };
+  /** Card bills: what the card looks like, for drawing it. */
+  card: {
+    cardLastFour: string | null;
+    cardNetwork: string | null;
+    cardProductKey: string | null;
+    institution: string | null;
+  } | null;
   /** Null when the amount is not known yet: a card due day with no statement. */
   amount: string | null;
   category: { color: string | null; icon: string | null; name: string } | null;
@@ -133,10 +140,14 @@ const loadCards = async (db: Database, organizationId: string) => {
   const cards = await db
     .select({
       archivedAt: financialAccount.archivedAt,
+      cardLastFour: financialAccount.cardLastFour,
+      cardNetwork: financialAccount.cardNetwork,
+      cardProductKey: financialAccount.cardProductKey,
       color: financialAccount.color,
       currencyCode: financialAccount.currencyCode,
       icon: financialAccount.icon,
       id: financialAccount.id,
+      institution: financialAccount.institution,
       name: financialAccount.name,
       paymentDueDay: financialAccount.paymentDueDay,
     })
@@ -344,6 +355,7 @@ export const loadBills = async (
           name: schedule.accountName,
         },
         amount: posting?.amount ?? schedule.amount,
+        card: null,
         category: {
           color: schedule.categoryColor,
           icon: schedule.categoryIcon,
@@ -408,6 +420,12 @@ export const loadBills = async (
           name: card.name,
         },
         amount: date.amount,
+        card: {
+          cardLastFour: card.cardLastFour,
+          cardNetwork: card.cardNetwork,
+          cardProductKey: card.cardProductKey,
+          institution: card.institution,
+        },
         category: null,
         currencyCode: card.currencyCode,
         dueDate: date.dueDate,
