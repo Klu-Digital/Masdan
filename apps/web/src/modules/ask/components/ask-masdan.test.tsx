@@ -166,11 +166,63 @@ describe("AskMasdan", () => {
     );
     expect(screen.getByRole("button", { name: "Ask Masdan" })).toHaveFocus();
     await user.click(screen.getByRole("button", { name: "Ask Masdan" }));
-    expect(await screen.findByLabelText("Question")).toHaveValue(
-      "How much did we spend on dining last month?"
-    );
+    expect(await screen.findByLabelText("Question")).toHaveValue("");
     expect(screen.getByText(spending.answer.headline)).toBeVisible();
     expect(question).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the textarea outside the scrolling history and sends multiline messages", async () => {
+    const user = userEvent.setup();
+    question.mockResolvedValue({
+      message: "Which type of category?",
+      options: ["Income", "Expense"],
+      requestId: "turn-1",
+      status: "clarify",
+    });
+    renderWithProviders(<AskMasdan />);
+    await user.click(await screen.findByRole("button", { name: "Ask Masdan" }));
+    const input = screen.getByRole("textbox", { name: "Question" });
+    expect(input.tagName).toBe("TEXTAREA");
+    expect(input).toHaveAttribute("maxLength", "2000");
+    expect(
+      screen.getByRole("log", { name: "Chat history" })
+    ).not.toContainElement(input);
+    await user.type(input, "Create Freelance");
+    await user.keyboard("{Shift>}{Enter}{/Shift}income category");
+    expect(input).toHaveValue("Create Freelance\nincome category");
+    expect(question).not.toHaveBeenCalled();
+    await user.keyboard("{Enter}");
+    expect(await screen.findByText("Which type of category?")).toBeVisible();
+    expect(question).toHaveBeenCalledWith({
+      question: "Create Freelance\nincome category",
+    });
+    expect(screen.getByLabelText("Your message")).toHaveTextContent(
+      "Create Freelance income category"
+    );
+    expect(input).toHaveValue("");
+    await user.click(screen.getByRole("button", { name: "Income" }));
+    expect(input).toHaveValue("Income");
+  });
+
+  it("shows the pending question immediately and prevents duplicate keyboard submissions", async () => {
+    const pending = Promise.withResolvers<unknown>();
+    question.mockReturnValue(pending.promise);
+    await submit("Create an income category called Freelance");
+    expect(screen.getByLabelText("Your message")).toHaveTextContent(
+      "Create an income category called Freelance"
+    );
+    expect(screen.getByLabelText("Question")).toBeDisabled();
+    await userEvent.setup().keyboard("{Enter}");
+    expect(question).toHaveBeenCalledTimes(1);
+    pending.resolve({
+      message: "Review this category.",
+      requestId: "turn-1",
+      sources: [],
+      status: "response",
+    });
+    expect(await screen.findByText("Review this category.")).toBeVisible();
+    expect(screen.getAllByLabelText("Your message")).toHaveLength(1);
+    expect(screen.getByLabelText("Question")).toHaveValue("");
   });
 
   it("shows the answer with the period and filters it was computed over", async () => {
@@ -470,9 +522,7 @@ describe("Ask Masdan actions and conversation", () => {
     expect(
       await screen.findByText("Your bills are ready to review.")
     ).toBeVisible();
-    expect(screen.getByLabelText("Question")).toHaveValue(
-      "Which bills are due?"
-    );
+    expect(screen.getByLabelText("Question")).toHaveValue("");
     expect(question).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole("button", { name: "Close Ask Masdan" }));
     expect(

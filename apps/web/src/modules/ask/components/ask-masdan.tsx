@@ -3,7 +3,6 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Alert, AlertDescription } from "@masdan/ui/components/alert";
 import { Badge } from "@masdan/ui/components/badge";
 import { Button } from "@masdan/ui/components/button";
-import { Input } from "@masdan/ui/components/input";
 import {
   List,
   ListItem,
@@ -12,6 +11,7 @@ import {
   ListItemTitle,
   ListItemTrailing,
 } from "@masdan/ui/components/list";
+import { Textarea } from "@masdan/ui/components/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
@@ -166,7 +166,7 @@ const SourceLink = ({ link }: { link: AskAnswer["link"] }) => {
 const Answer = ({ answer }: { answer: AskAnswer }) => {
   const money = useFormattedMoney();
   return (
-    <div className="bg-card dark:ring-hairline flex flex-col gap-4 rounded-3xl p-5 sm:p-6 dark:ring-1">
+    <div className="flex flex-col gap-4">
       <output className="text-base font-medium">{answer.headline}</output>
       <ContextBadges context={answer.context} />
       {answer.figures.length > 0 ? (
@@ -218,7 +218,7 @@ const Reply = ({
   }
   if (result.status === "response") {
     return (
-      <div className="bg-card flex flex-col gap-3 rounded-2xl p-4">
+      <div className="flex flex-col gap-3">
         <output className="text-sm whitespace-pre-wrap">
           {result.message}
         </output>
@@ -273,7 +273,7 @@ const ChangePreview = ({
   const proposal = turn.result;
   if (turn.applied) {
     return (
-      <div className="bg-card flex flex-col gap-3 rounded-2xl p-4">
+      <div className="flex flex-col gap-3">
         <output>{turn.applied.message}</output>
         <Sources
           sources={turn.applied.outcomes.map((outcome, index) => ({
@@ -293,10 +293,7 @@ const ChangePreview = ({
     );
   }
   return (
-    <section
-      aria-label="Proposed changes"
-      className="bg-card flex flex-col gap-4 rounded-2xl p-4"
-    >
+    <section aria-label="Proposed changes" className="flex flex-col gap-4">
       <output className="text-sm whitespace-pre-wrap">
         {turn.result.message}
       </output>
@@ -379,6 +376,9 @@ export const AskMasdan = ({
           ...previous,
           { id: crypto.randomUUID(), question: variables.question, result },
         ]);
+        if (result.status !== "unavailable") {
+          setQuestion("");
+        }
       },
     })
   );
@@ -462,7 +462,11 @@ export const AskMasdan = ({
           <HugeiconsIcon icon={Cancel01Icon} strokeWidth={1.8} />
         </Button>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div
+        aria-label="Chat history"
+        className="min-h-0 flex-1 overflow-y-auto p-4"
+        role="log"
+      >
         {privacyOn ? (
           <Alert variant="info">
             <AlertDescription>
@@ -476,8 +480,11 @@ export const AskMasdan = ({
               <div aria-label="Conversation" className="flex flex-col gap-5">
                 {turns.map((turn) => (
                   <div className="flex flex-col gap-2" key={turn.id}>
-                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">
-                      You: {turn.question}
+                    <p
+                      aria-label="Your message"
+                      className="bg-muted ms-auto max-w-full rounded-2xl rounded-br-sm px-4 py-2 text-sm break-words whitespace-pre-wrap"
+                    >
+                      {turn.question}
                     </p>
                     {turn.result.status === "confirmation" ? (
                       <ChangePreview
@@ -511,34 +518,6 @@ export const AskMasdan = ({
                 ))}
               </div>
             ) : null}
-            <form
-              className="flex items-center gap-2"
-              onSubmit={async (event) => {
-                event.preventDefault();
-                if (text && !busy) {
-                  await send(text);
-                }
-              }}
-            >
-              <Input
-                aria-label="Question"
-                disabled={busy}
-                maxLength={MAX_LENGTH}
-                onChange={(event) => setQuestion(event.target.value)}
-                placeholder="Ask a question or describe a task…"
-                start={
-                  <HugeiconsIcon icon={AiSearch02Icon} strokeWidth={1.8} />
-                }
-                value={question}
-              />
-              <Button
-                disabled={text === "" || busy}
-                loading={ask.isPending}
-                type="submit"
-              >
-                Ask
-              </Button>
-            </form>
             {turns.length === 0 && !ask.isError ? (
               <div className="flex flex-col items-start gap-2">
                 <p className="text-muted-foreground text-sm">
@@ -559,12 +538,20 @@ export const AskMasdan = ({
               </div>
             ) : null}
             {ask.isPending ? (
-              <output
-                aria-live="polite"
-                className="text-muted-foreground text-sm"
-              >
-                Checking your household’s finances and preparing a response…
-              </output>
+              <div className="flex flex-col gap-2">
+                <p
+                  aria-label="Your message"
+                  className="bg-muted ms-auto max-w-full rounded-2xl rounded-br-sm px-4 py-2 text-sm break-words whitespace-pre-wrap"
+                >
+                  {ask.variables?.question}
+                </p>
+                <output
+                  aria-live="polite"
+                  className="text-muted-foreground text-sm"
+                >
+                  Checking your household’s finances and preparing a response…
+                </output>
+              </div>
             ) : null}
             {ask.isError ? (
               <Alert variant="error">
@@ -613,6 +600,56 @@ export const AskMasdan = ({
           </div>
         )}
       </div>
+      {privacyOn ? null : (
+        <form
+          className="border-sidebar-border flex shrink-0 flex-col gap-2 border-t p-4"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (text && !busy) {
+              await send(text);
+            }
+          }}
+        >
+          <Textarea
+            aria-describedby={`${sidebarId}-composer-hint`}
+            aria-label="Question"
+            className="max-h-40 overflow-y-auto"
+            disabled={busy}
+            maxLength={MAX_LENGTH}
+            onChange={(event) => setQuestion(event.target.value)}
+            onKeyDown={(event) => {
+              if (
+                event.key === "Enter" &&
+                !event.shiftKey &&
+                !event.nativeEvent.isComposing
+              ) {
+                event.preventDefault();
+                if (text && !busy) {
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }
+            }}
+            placeholder="Ask a question or describe a task…"
+            rows={2}
+            value={question}
+          />
+          <div className="flex items-center justify-between gap-2">
+            <p
+              className="text-muted-foreground text-xs"
+              id={`${sidebarId}-composer-hint`}
+            >
+              Enter to send · Shift+Enter for a new line
+            </p>
+            <Button
+              disabled={text === "" || busy}
+              loading={ask.isPending}
+              type="submit"
+            >
+              Ask
+            </Button>
+          </div>
+        </form>
+      )}
     </aside>
   ) : null;
   return children({ sidebar, trigger });

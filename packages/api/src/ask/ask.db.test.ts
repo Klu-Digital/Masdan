@@ -520,6 +520,144 @@ describe("Ask Masdan household actions", () => {
     ).toBe(false);
   });
 
+  it("recovers when a category creation request is misrouted to a report", async () => {
+    const home = await household();
+    await getTestDb()
+      .update(category)
+      .set({ name: "Existing freelance" })
+      .where(
+        and(
+          eq(category.organizationId, home.organizationId),
+          eq(category.name, "Freelance")
+        )
+      );
+    completeJson
+      .mockResolvedValueOnce(
+        assistantStep({
+          report: {
+            ...ai({ intent: "spending" }),
+            dateFrom: "2026-09-01",
+            dateTo: "2026-09-30",
+            preset: "custom",
+          },
+          status: "report",
+          tools: ["reports.spendingByCategory"],
+        })
+      )
+      .mockResolvedValueOnce(
+        assistantStep({
+          message: "Should Freelance be an income or expense category?",
+          options: ["Income", "Expense"],
+          status: "clarify",
+        })
+      );
+
+    const result = await call(
+      askRouter.question,
+      { question: "pls create the \"Freelance' category for me" },
+      home.context
+    );
+
+    expect(result).toMatchObject({
+      options: ["Income", "Expense"],
+      status: "clarify",
+    });
+    expect(completeJson).toHaveBeenCalledTimes(2);
+    expect(
+      await getTestDb()
+        .select()
+        .from(category)
+        .where(eq(category.name, "Freelance"))
+    ).toHaveLength(0);
+    if (!result.requestId) {
+      throw new Error("Missing conversation id");
+    }
+    completeJson
+      .mockResolvedValueOnce(
+        assistantStep({
+          status: "inspect",
+          tools: ["categories.list", "categories.create"],
+        })
+      )
+      .mockResolvedValueOnce(
+        assistantStep({
+          reads: [{ input: "{}", tool: "categories.list" }],
+          status: "read",
+        })
+      )
+      .mockResolvedValueOnce(
+        assistantStep({
+          actions: [
+            action("categories.create", {
+              color: "blue",
+              icon: "💼",
+              name: "Freelance",
+              type: "income",
+            }),
+          ],
+          status: "propose",
+        })
+      );
+    const proposal = await call(
+      askRouter.question,
+      { previousId: result.requestId, question: "Income" },
+      home.context
+    );
+    expect(proposal.status).toBe("confirmation");
+    expect(
+      await getTestDb()
+        .select()
+        .from(category)
+        .where(eq(category.name, "Freelance"))
+    ).toHaveLength(0);
+    if (!proposal.requestId) {
+      throw new Error("Missing proposal id");
+    }
+    await call(
+      askRouter.confirm,
+      { requestId: proposal.requestId },
+      home.context
+    );
+    expect(
+      await getTestDb()
+        .select({ name: category.name, type: category.type })
+        .from(category)
+        .where(
+          and(
+            eq(category.organizationId, home.organizationId),
+            eq(category.name, "Freelance")
+          )
+        )
+    ).toEqual([{ name: "Freelance", type: "income" }]);
+  });
+
+  it("bounds recovery when the model keeps returning a report for a write", async () => {
+    const home = await household();
+    const before = await getTestDb()
+      .select()
+      .from(category)
+      .where(eq(category.organizationId, home.organizationId));
+    completeJson.mockResolvedValue(
+      assistantStep({
+        report: ai({ intent: "spending" }),
+        status: "report",
+      })
+    );
+    const result = await call(
+      askRouter.question,
+      { question: "Create an income category called Freelance" },
+      home.context
+    );
+    expect(result).toMatchObject({ status: "clarify" });
+    expect(completeJson).toHaveBeenCalledTimes(10);
+    expect(
+      await getTestDb()
+        .select()
+        .from(category)
+        .where(eq(category.organizationId, home.organizationId))
+    ).toEqual(before);
+  });
+
   it("queries the entire ledger history without silently limiting dates", async () => {
     const home = await household();
     completeJson.mockResolvedValueOnce(
