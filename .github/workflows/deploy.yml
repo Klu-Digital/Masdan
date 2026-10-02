@@ -223,15 +223,6 @@ jobs:
       # configured in Dokploy itself, not sent here. saveDockerProvider still
       # requires the username/password/registryUrl keys and overwrites them, so
       # the current values are read via application.one and sent back as-is.
-      #
-      # `--insecure` skips TLS verification on these calls, carried over
-      # deliberately because the Dokploy host does not present a certificate that
-      # validates from the runner. It applies only to the two Dokploy endpoints
-      # below, not to the smoke check further down. The API token travels in the
-      # x-api-key header on these requests, so the connection is unauthenticated
-      # in the TLS sense — anything able to intercept the path to DOKPLOY_URL can
-      # read it. Dropping the flag is a one-character change once the host has a
-      # certificate the runner trusts.
       - name: Set image and deploy
         env:
           DOKPLOY_URL: ${{ vars.DOKPLOY_URL }}
@@ -250,7 +241,7 @@ jobs:
             # where Dokploy explains what it rejected.
             local body status
             body="$(mktemp)"
-            status="$(curl -sS --insecure -o "$body" -w '%{http_code}' \
+            status="$(curl -sS -o "$body" -w '%{http_code}' \
               -X POST "${DOKPLOY_URL}/api/$1" \
               -H "x-api-key: ${DOKPLOY_TOKEN}" \
               -H "Content-Type: application/json" \
@@ -271,7 +262,7 @@ jobs:
             # saveDockerProvider overwrites the registry credentials with whatever
             # it is sent, so read the stored ones and echo them back unchanged.
             local current
-            current="$(curl -fsS --insecure -G "${DOKPLOY_URL}/api/application.one" \
+            current="$(curl -fsS -G "${DOKPLOY_URL}/api/application.one" \
               -H "x-api-key: ${DOKPLOY_TOKEN}" \
               --data-urlencode "applicationId=${id}")"
             call application.saveDockerProvider \
