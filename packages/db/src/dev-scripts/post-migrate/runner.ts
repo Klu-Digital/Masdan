@@ -311,14 +311,15 @@ const releaseLock = async (client: PoolClient): Promise<void> => {
 
 /** Runs every pending post-migration in order, stopping at the first failure. */
 export const runPostMigrations = async (
-  options: RunOptions = {}
+  options: RunOptions = {},
+  discover: () => Promise<DiscoveredPostMigration[]> = discoverPostMigrations
 ): Promise<0 | 1> => {
   const pool = createPool();
   try {
     const db = createDb(pool);
     await ensureTrackingTableExists(db);
 
-    const discovered = await discoverPostMigrations();
+    const discovered = await discover();
     const applied = await loadAppliedChecksums(db);
     const targets = selectTargets(discovered, applied, options);
 

@@ -257,8 +257,8 @@ describe("manifest", () => {
 
 describe("write planning", () => {
   it("keeps staging and production apart", () => {
-    const staging = destinationsFor("DATABASE_URL", "staging");
-    const production = destinationsFor("DATABASE_URL", "production");
+    const staging = destinationsFor("DOKPLOY_TOKEN", "staging");
+    const production = destinationsFor("DOKPLOY_TOKEN", "production");
 
     expect(staging.map((write) => write.scope)).toContain("staging");
     expect(staging.map((write) => write.scope)).not.toContain("production");
@@ -340,14 +340,14 @@ describe("write planning", () => {
   it("renders destinations without any value", () => {
     const state = emptyRemoteState();
     const writes = planWrites(
-      ["DATABASE_URL", "DOKPLOY_URL", "BETTER_AUTH_SECRET"],
+      ["DOKPLOY_TOKEN", "DOKPLOY_URL", "BETTER_AUTH_SECRET"],
       "staging",
       state
     );
     const rendered = formatPlan("staging", writes);
 
     expect(rendered).toContain("GitHub Secrets");
-    expect(rendered).toContain("DATABASE_URL");
+    expect(rendered).toContain("DOKPLOY_TOKEN");
     expect(rendered).toContain("No secret values will be displayed.");
     expect(rendered).not.toContain(CANARY);
     expect(rendered).not.toContain("=");
@@ -409,12 +409,12 @@ describe("deployment check", () => {
 
   it("reports required names that are absent as missing", () => {
     const state = configured("staging");
-    state.githubSecrets.delete("DATABASE_URL");
+    state.githubSecrets.delete("DOKPLOY_TOKEN");
 
     const result = evaluateRemote("staging", inspection(state));
     const item = result.items.find(
       (candidate) =>
-        candidate.name === "DATABASE_URL" &&
+        candidate.name === "DOKPLOY_TOKEN" &&
         candidate.group === "GitHub staging"
     );
 
@@ -435,7 +435,7 @@ describe("deployment check", () => {
       (item) => item.group === "Dokploy server"
     );
     const githubItem = result.items.find(
-      (item) => item.name === "DATABASE_URL" && item.group === "GitHub staging"
+      (item) => item.name === "DOKPLOY_TOKEN" && item.group === "GitHub staging"
     );
 
     expect(dokployItem?.status).toBe("unverified");

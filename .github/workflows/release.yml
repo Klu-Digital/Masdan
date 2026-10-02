@@ -21,7 +21,7 @@ permissions: {}
 # Unlike ci.yml, NOT cancel-in-progress. ci.yml can cancel because "nothing in
 # this workflow touches anything outside the runner"; this one pushes images and
 # chains into a real deploy, so a cancelled run can leave a half-tagged registry
-# or a migration applied against code that never rolled.
+# or an environment with only some of its applications rolled.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -41,9 +41,6 @@ jobs:
       # The builds are independent; one failing should not hide the others.
       fail-fast: false
       matrix:
-        # `migrate` is the server Dockerfile's migrate target: the full
-        # workspace, dev tools included, that deploy.yml runs migrations from.
-        # The runtime images carry production dependencies only.
         include:
           - app: web
             dockerfile: apps/web/Dockerfile
@@ -52,9 +49,6 @@ jobs:
             target: runner
           - app: workers
             dockerfile: apps/workers/Dockerfile
-          - app: migrate
-            dockerfile: apps/server/Dockerfile
-            target: migrate
     env:
       # Read at step level to decide whether the source-map upload runs. A
       # job-level `if:` cannot see `secrets`, and a step-level `if:` cannot

@@ -16,7 +16,6 @@ FROM base AS builder
 COPY . .
 RUN --mount=type=cache,target=/pnpm-store pnpm install --frozen-lockfile --store-dir /pnpm-store
 
-# Scoped to this RUN so the migrate target below validates its env for real.
 RUN cd apps/server && SKIP_ENV_VALIDATION=1 NODE_ENV=production pnpm run build
 
 # Production dependencies and the bundle only. `@masdan/*` are devDependencies
@@ -26,14 +25,6 @@ RUN cd apps/server && SKIP_ENV_VALIDATION=1 NODE_ENV=production pnpm run build
 # linking alone.
 RUN --mount=type=cache,target=/pnpm-store pnpm --config.inject-workspace-packages=true deploy --filter=server --prod --store-dir /pnpm-store /prod/server
 
-# Migrations and post-migration scripts need drizzle-kit, tsx and the pg-boss
-# CLI, which the runtime image below deliberately lacks. deploy.yml runs them
-# from this target, built from the same commit as the code that expects them.
-FROM builder AS migrate
-ENV NODE_ENV=production
-USER node
-WORKDIR /app/packages/db
-
 # Last, so it stays the default target for compose and a plain `docker build`.
 # From `base` for pnpm: `pnpm admin:reset-password <email>` is the recovery path
 # for a locked-out production admin. The deployed package.json replaces the root
@@ -42,11 +33,12 @@ FROM base AS runner
 ENV NODE_ENV=production
 # Root-owned and run as `node`: the process cannot rewrite its own code.
 COPY --from=builder /prod/server /app
+COPY --from=builder /app/packages/db/src/migrations /app/migrations
 USER node
 
 EXPOSE 1900
 
-HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
   CMD ["node", "-e", "fetch(`http://127.0.0.1:${process.env.PORT ?? 1900}/`).then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
 
-CMD ["node", "dist/index.mjs"]
+CMD ["node", "dist/start.mjs"]

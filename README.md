@@ -179,7 +179,7 @@ Environment variables are read from each app's `.env` file (baked into web build
 
 The stack mirrors production: only the web container publishes a port (`WEB_PORT`, container port 2600, matching dev, because the unprivileged nginx image cannot bind 80), and the API is reached through its proxy. All three images run as non-root users and declare their own `HEALTHCHECK`.
 
-The server and workers images hold only production dependencies and the bundle. Migrations and post-migration scripts need drizzle-kit and tsx, so `deploy.yml` runs them from the server Dockerfile's `migrate` target, which `release.yml` builds and pushes as a fourth image.
+The server and workers images hold only production dependencies and the bundle. The server image migrates its own database: its entry, `dist/start.mjs` (`apps/server/src/start.ts`), applies the drizzle migrations and pg-boss's schema, starts the server, then runs pending post-migration scripts in the background. CI never connects to the database, which in production sits on a private network CI cannot reach. A failed migration exits the container before it serves traffic; a failed post-migration script is logged and retried on the next boot. The compose stack overrides the entry to `dist/index.mjs`, since the local database is push-built.
 
 The web image serves the SPA through nginx using `apps/web/nginx.conf.template`, which is rendered at container start so the CSP can name this deployment's storage origin — see [Security headers](#security-headers).
 

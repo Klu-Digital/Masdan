@@ -169,5 +169,20 @@ export type QueueClient = ReturnType<typeof createQueueClient>;
 
 export const queue: QueueClient = createQueueClient();
 
+export const migrateQueueSchema = async (): Promise<void> => {
+  const instance = new PgBoss({
+    ...resolveQueueConfig("producer"),
+    application_name: "masdan-queue-migrate",
+    createSchema: true,
+    max: 1,
+    migrate: true,
+  });
+  instance.on("error", (error) => {
+    log.error({ action: "queue.migrate_error", ...parseError(error) });
+  });
+  await instance.start();
+  await instance.stop({ graceful: false });
+};
+
 export { jobNames, jobs } from "./jobs";
 export type { JobDefinition, JobName, JobPayload } from "./jobs";

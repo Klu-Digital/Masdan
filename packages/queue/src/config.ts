@@ -8,7 +8,7 @@ export type QueueRole = "producer" | "consumer";
 export const resolveQueueConfig = (role: QueueRole): ConstructorOptions => {
   const consumer = role === "consumer";
 
-  // Schema DDL belongs to `pnpm queue:migrate`; maintenance is consumer-only.
+  // Schema DDL belongs to `migrateQueueSchema`; maintenance is consumer-only.
   return {
     // Shows up in pg_stat_activity — the fastest way to tell which process is
     // holding a connection.

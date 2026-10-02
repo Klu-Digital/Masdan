@@ -35,6 +35,8 @@ services:
       context: .
       dockerfile: apps/server/Dockerfile
     init: true
+    # Skip migrate-on-boot: the local database is push-built.
+    command: ["node", "dist/index.mjs"]
     # No published port: as in production, the API is reached only through the
     # web container's proxy.
     env_file:

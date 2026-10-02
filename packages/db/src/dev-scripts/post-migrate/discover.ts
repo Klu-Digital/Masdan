@@ -14,16 +14,19 @@ export const postMigrationsDir = path.resolve(
 /** `YYYYMMDDHHMMSS_snake_case_description.ts` — digits sort chronologically. */
 const FILENAME_PATTERN = /^(?<timestamp>\d{14})_(?<slug>[a-z0-9_]+)\.ts$/u;
 
-export interface DiscoveredPostMigration {
+export interface PostMigrationFile {
   /** Filename without extension — the unique key stored in `post_migration.name`. */
   name: string;
   path: string;
   checksum: string;
+}
+
+export interface DiscoveredPostMigration extends PostMigrationFile {
   definition: PostMigrationDefinition;
 }
 
-export const discoverPostMigrations = async (): Promise<
-  DiscoveredPostMigration[]
+export const scanPostMigrationFiles = async (): Promise<
+  PostMigrationFile[]
 > => {
   let entries: string[];
   try {
@@ -36,7 +39,7 @@ export const discoverPostMigrations = async (): Promise<
   }
 
   const files = entries.filter((entry) => entry.endsWith(".ts")).toSorted();
-  const discovered: DiscoveredPostMigration[] = [];
+  const scanned: PostMigrationFile[] = [];
 
   for (const file of files) {
     if (!FILENAME_PATTERN.test(file)) {
@@ -50,23 +53,30 @@ export const discoverPostMigrations = async (): Promise<
     const contents = await readFile(filePath, "utf-8");
     const checksum = createHash("sha256").update(contents).digest("hex");
 
-    const mod = (await import(pathToFileURL(filePath).href)) as {
+    scanned.push({ checksum, name: file.slice(0, -3), path: filePath });
+  }
+
+  return scanned;
+};
+
+export const discoverPostMigrations = async (): Promise<
+  DiscoveredPostMigration[]
+> => {
+  const discovered: DiscoveredPostMigration[] = [];
+
+  for (const file of await scanPostMigrationFiles()) {
+    const mod = (await import(pathToFileURL(file.path).href)) as {
       default?: PostMigrationDefinition;
     };
     const definition = mod.default;
     if (!definition || typeof definition.up !== "function") {
       throw new Error(
-        `post-migration-scripts/${file} has no default export from definePostMigration(...) — ` +
+        `post-migration-scripts/${file.name}.ts has no default export from definePostMigration(...) — ` +
           `see packages/db/src/dev-scripts/post-migrate/README.md.`
       );
     }
 
-    discovered.push({
-      checksum,
-      definition,
-      name: file.slice(0, -3),
-      path: filePath,
-    });
+    discovered.push({ ...file, definition });
   }
 
   return discovered;

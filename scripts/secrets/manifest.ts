@@ -172,8 +172,6 @@ export const configManifest = [
     targets: [
       "local-server",
       "local-workers",
-      "github-staging",
-      "github-production",
       "dokploy-server",
       "dokploy-workers",
     ],
@@ -233,8 +231,6 @@ export const configManifest = [
     targets: [
       "local-server",
       "local-workers",
-      "github-staging",
-      "github-production",
       "dokploy-server",
       "dokploy-workers",
     ],

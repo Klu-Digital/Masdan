@@ -150,14 +150,14 @@ describe("applying a plan to GitHub", () => {
 
   it("writes production values to production and nothing else", () => {
     const writes = planWrites(
-      ["DATABASE_URL"],
+      ["DOKPLOY_TOKEN"],
       "production",
       emptyRemoteState()
     );
 
     applyGitHub(
       writes,
-      collection([["DATABASE_URL", CANARY]]),
+      collection([["DOKPLOY_TOKEN", CANARY]]),
       createGitHubClient(),
       "production"
     );
@@ -169,7 +169,7 @@ describe("applying a plan to GitHub", () => {
   });
 
   it("skips a name that was never collected", () => {
-    const writes = planWrites(["DATABASE_URL"], "staging", emptyRemoteState());
+    const writes = planWrites(["DOKPLOY_TOKEN"], "staging", emptyRemoteState());
 
     applyGitHub(writes, collection([]), createGitHubClient(), "staging");
 
