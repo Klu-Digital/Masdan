@@ -94,6 +94,8 @@ server {
         # whole thing until the upstream closed, turning a stream into one late
         # payload.
         proxy_buffering off;
+        # Bounded multi-step Ask requests can outlive nginx's 60-second default.
+        proxy_read_timeout 360s;
 
         # Just above the server's own 1MiB limit (RPC_MAX_BODY_BYTES in
         # apps/server/src/orpc.ts), so the client gets the server's 413 rather

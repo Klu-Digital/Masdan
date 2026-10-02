@@ -1,29 +1,37 @@
 # Ask Masdan
 
-`ask.question` (`ask.router.ts`) answers one natural-language question about the **active household** from the same queries the Reports and Transactions screens run. It is an `orgProcedure` behind `requireFlag("FF__ASK_MASDAN")` and `transaction: read`, and it is read-only.
+Ask Masdan is the active household’s finance assistant, available from the app header in a closeable, non-modal right sidebar (a docked panel on phones). Conversations and in-flight requests persist while navigating or closing the panel. It answers questions across the full ledger history, accounts, statements, budgets, bills, goals, schedules, categories, tags, rules, imports and other household features. It can propose the same financial operations the member can perform in the normal screens. It cannot administer the platform, ban users, change membership or access other households.
 
-## How a question becomes an answer
+## Reads and conversations
 
-1. **Plan** (`ask.plan.ts`, pure). The model gets the question, today's date and the household's account and category _names_, never an identifier. It returns `askExtraction`: one intent from a fixed set, a report period, and the words to filter on. The output is validated like any other untrusted input. Every name is matched against the household's own rows: categories by exact name, accounts through quick entry's `resolveAccountText`. An account or search word the question never says is dropped, and an unknown or ambiguous name is asked back (`clarify`) instead of guessed.
-2. **Run** (`ask.queries.ts`). `organizationId` comes from the session only. The plan runs through `reports.queries.ts` and the ledger's `transactionListConditions`, so there is one definition of spending, cash flow and net worth.
-3. **Word**. The headline is templated from the query results. The model never writes it, so it cannot invent a number.
+`ask.question` is an `orgProcedure` behind `FF__ASK_MASDAN`, `transaction: read` and the existing rate limiter. `ask.assistant.ts` runs a bounded JSON planning loop through `completeJson`; every model call has the feature’s token cap and charges the household’s daily allowance using the request database, never a transaction handle.
 
-| Intent | Numbers from | Link |
-| --- | --- | --- |
-| `spending`, `income` | `getCategoryTotals`, the Reports split-aware category totals. With a `search`, the Transactions screen's filtered totals | `/transactions` with the same filters |
-| `cash_flow` | `getCashFlow` | `/transactions` with the same range |
-| `largest_transactions` | `transactionListConditions`, by amount, at most 10 rows | `/transactions` with the same filters |
-| `net_worth` | `getNetWorth` today. For a past day, `getNetWorthHistory` at that day | `/reports` |
-| `account_balances` | `getAccountBalances`, which needs `financialAccount: read` | `/accounts` or the account |
+The model discovers input schemas on demand, then calls read tools or proposes writes. `routers/index.ts` supplies only the household product routers to `createAskTools`. Procedure discovery uses the original household and permission middleware, with only the currency list and interest catalog allowed as household-free reference reads. Authentication, invitations, feature-flag administration and the platform router never enter the tool catalog. `files.confirmUpload` is explicitly a write even though its original route is an `orgProcedure`. Other AI planners (quick entry and categorization) are not tools: Ask performs that planning itself, avoiding draft writes before confirmation and token charges through a confirmation transaction. Household member reads support assigning account owners, but membership edits remain unavailable.
 
-Every answer carries `context`: the resolved period, as-of day and the filters actually applied, so the numbers can be checked against those screens.
+Tools execute via oRPC `call()`, never by invoking handlers directly. Existing input validation, permissions, flags, ownership checks and transaction behavior remain authoritative. IDs for changes must have appeared in this request’s authorized read results. Notes and other record contents are untrusted data, not instructions. Bearer links and linking codes are shown to the user but redacted from model sources and conversation context.
 
-## Failing safe
+The six existing report intents retain their deterministic, ledger-computed answers through `ask.plan.ts` and `ask.queries.ts`. Broader answers are model-written with the queried inputs and results shown as verified sources. Transactions have no implicit date filter, and aggregate/paginated reads can cover all history; truncated results are explicitly marked, not passed off as complete. Conversation context comes from server-owned `ask_turn` records, scoped to both household and requesting user, rather than client-supplied assistant messages. Follow-ups retain the relevant question context.
 
-- `unavailable`: `ASK_MASDAN_AI_MODEL` or the gateway is unset, or the call failed, timed out or returned something off-schema. The question is never logged.
-- `unsupported`: the model classed the question as outside the fixed set (advice, predictions, edits, anything else).
-- `clarify`: dates that don't parse or run backwards, or a category or account the household doesn't have or has more than one of.
+The loop permits 10 rounds, 24 reads and 20 proposed actions. Tool results and total model context are bounded. Large requests must be narrowed or split; these limits do not silently apply only the first matching transactions. Uploading actual file bytes and changing personal appearance remain browser controls, not model operations.
 
-## Tests
+## Confirmed writes
 
-`ask.golden.ts` is the eval set: questions paired with model responses and the plan they must produce. `ask.test.ts` scores it. `ask.db.test.ts` runs the real procedure with only the gateway mocked. It checks that answers match the Reports and Transactions procedures and that another household's names and IDs resolve to nothing.
+`ask.question` never executes a financial write. It stores a proposal in Postgres and returns an exact schema-normalized preview with household record labels, references to earlier creation steps and a 15-minute expiry. Multiple actions can create a category/tag/rule and then use the created IDs in later actions using `{"$action":0,"path":"id"}`. A rule application still has to match the existing rule engine; it is not an arbitrary attachment.
+
+`ask.confirm` accepts only the opaque request ID. The plan comes from the stored record, not the client. It:
+
+1. Locks the user’s own household proposal.
+2. Rejects expired/cancelled plans and rechecks current permissions.
+3. Repeats the observed reads and rejects stale previews.
+4. Runs all actions through their original procedures in a serializable transaction, resolving earlier created IDs.
+5. Stores the outcomes and application time atomically, so concurrent confirmations and retries do not duplicate records.
+
+A later failure rolls back the entire batch. The existing bulk operation may deliberately skip ineligible rows; its actual updated/skipped results remain visible rather than claiming all rows changed. Serialization/deadlock retries are bounded. Nested mutations share the outer `afterCommit` queue, and file-byte deletion also waits for commit. Queue writes keep using the transaction.
+
+`ask.cancel` revokes an unapplied proposal. Merely saying “confirmed” in a question does not perform a write. The UI disables duplicate submissions, shows inline failures and saved outcomes, hides financial conversations in privacy mode, remounts on household switches and invalidates household caches after confirmation.
+
+## Deployment and tests
+
+Run `pnpm db:deploy` to create `ask_turn`; no backfill is needed. The existing AI gateway/model configuration and feature flag are still required. The default `askMasdan` output cap is 8,000 tokens to fit compound plans; existing admin overrides remain authoritative.
+
+`ask.golden.ts` and `ask.test.ts` retain the report extraction eval set. `ask.db.test.ts` exercises real household procedures with only the gateway mocked: exact reports, full-history reads, dependent writes, permission changes, isolation, expiry, cancellation, replay, concurrency, stale previews and atomic rollback. The web tests cover conversation context, exact previews, explicit confirmation, cancellation, pending/error states and privacy.

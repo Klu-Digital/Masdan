@@ -116,22 +116,6 @@ beforeEach(() => {
 });
 
 describe("ReportsPage", () => {
-  it("places Ask Masdan beside the report filters", async () => {
-    renderWithProviders(
-      <ReportsPage
-        activeOrganizationId="household-1"
-        ask={<button type="button">Ask Masdan</button>}
-        currency="PHP"
-      />
-    );
-    const periodFilter = await screen.findByRole("combobox", {
-      name: "Period",
-    });
-    expect(periodFilter.closest('[data-slot="page-actions"]')).toContainElement(
-      screen.getByRole("button", { name: "Ask Masdan" })
-    );
-  });
-
   it("points a household with no ledger at its accounts", async () => {
     renderPage();
     expect(

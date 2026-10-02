@@ -23,7 +23,6 @@ import {
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import type { ReactNode } from "react";
 
 import { formatLongDate } from "@/lib/dates";
 import { householdOrpc } from "@/utils/orpc";
@@ -110,12 +109,9 @@ const currencyOptions = (
 
 export const ReportsPage = ({
   activeOrganizationId,
-  ask,
   currency: householdDefault,
 }: {
   activeOrganizationId: string;
-  /** Ask Masdan, when its flag is on; it reads the same reports. */
-  ask?: ReactNode;
   currency: string | null;
 }) => {
   const [range, setRange] = useState<ReportRange>(DEFAULT_RANGE);
@@ -176,7 +172,6 @@ export const ReportsPage = ({
               </SelectPopup>
             </Select>
           ) : null}
-          {ask}
         </PageActions>
       </PageHeader>
 

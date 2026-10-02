@@ -83,6 +83,38 @@ describe("afterCommit", () => {
     expect(await getTestDb().select().from(file)).toHaveLength(0);
   });
 
+  it.each([false, true])(
+    "holds nested callbacks until the outer transaction finishes (rollback: %s)",
+    async (rollback) => {
+      const seen: boolean[] = [];
+      const { headers } = await signUpTestUser();
+      const context = await contextFor(headers);
+      let ranInside = false;
+      const outer = orgMutationProcedure.handler(
+        async ({ context: nestedContext }) => {
+          await call(
+            writeThenQueue((visible) => seen.push(visible)),
+            undefined,
+            { context: nestedContext }
+          );
+          ranInside = seen.length > 0;
+          if (rollback) {
+            throw new Error("outer rollback");
+          }
+        }
+      );
+      const mutation = call(outer, undefined, { context });
+      await (rollback
+        ? expect(mutation).rejects.toThrow("outer rollback")
+        : mutation);
+      expect(ranInside).toBe(false);
+      expect(seen).toEqual(rollback ? [] : [true]);
+      expect(await getTestDb().select().from(file)).toHaveLength(
+        rollback ? 0 : 1
+      );
+    }
+  );
+
   it("does not fail the mutation when a queued task throws", async () => {
     const { headers } = await signUpTestUser();
     const context = await contextFor(headers);

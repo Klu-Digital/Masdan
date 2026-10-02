@@ -4,6 +4,7 @@ import { member } from "@masdan/db/schema/auth";
 import type { FeatureFlagName } from "@masdan/env/flags";
 import { orpcLogger } from "@masdan/observability/orpc";
 import { ORPCError, os } from "@orpc/server";
+import type { AnyProcedure } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 
 import type { Context } from "./context";
@@ -73,6 +74,10 @@ const transaction = o.middleware(({ context, next }) =>
 // Defers cache invalidation until commit. Keep `.use(afterCommit)` before
 // `.use(transaction)`, or the task runs inside the transaction again.
 const afterCommit = o.middleware(async ({ context, next }) => {
+  // Nested mutations must wait for the outer commit, not a savepoint release.
+  if (context.afterCommit) {
+    return next({ context: { afterCommit: context.afterCommit } });
+  }
   const tasks: (() => Promise<unknown>)[] = [];
 
   // `next` is oRPC's continuation, not a Node-style callback.
@@ -140,9 +145,11 @@ type OrgContext = Context & { organizationId: string; memberRole: string };
 
 const orgContext = os.$context<OrgContext>();
 
+const permissionChecks = new WeakMap<object, PermissionRequest>();
+
 // Permissions are ANDed, stacked `.use()` calls included.
-export const requirePermission = (permissions: PermissionRequest) =>
-  orgContext.middleware(({ context, next }) => {
+export const requirePermission = (permissions: PermissionRequest) => {
+  const middleware = orgContext.middleware(({ context, next }) => {
     if (!hasPermission({ permissions, role: context.memberRole })) {
       throw new ORPCError("FORBIDDEN", {
         message: `Missing permission: ${JSON.stringify(permissions)}`,
@@ -150,6 +157,22 @@ export const requirePermission = (permissions: PermissionRequest) =>
     }
     return next();
   });
+  permissionChecks.set(middleware, permissions);
+  return middleware;
+};
+
+/** Tool discovery shares the route's checks; execution still runs middleware. */
+export const procedureAccess = (procedure: AnyProcedure) => {
+  const { middlewares } = procedure["~orpc"];
+  return {
+    household: middlewares.includes(requireOrganization),
+    permissions: middlewares.flatMap((middleware) => {
+      const permissions = permissionChecks.get(middleware);
+      return permissions ? [permissions] : [];
+    }),
+    write: middlewares.includes(transaction),
+  };
+};
 
 export const assertPermission = (
   context: { memberRole: string },

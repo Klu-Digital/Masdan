@@ -4,7 +4,7 @@ import type { ReasoningEffort } from "openai/resources/shared";
 // Callers name a feature, never a model, so each can move independently.
 export const AI_FEATURES = {
   askMasdan: {
-    defaultMaxTokens: 500,
+    defaultMaxTokens: 8000,
     label: "Ask Masdan",
     model: () => env.ASK_MASDAN_AI_MODEL,
     reasoningEffort: "medium",

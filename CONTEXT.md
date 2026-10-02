@@ -86,7 +86,7 @@ A self-hosted household finance tracker: accounts, an income/expense ledger, bud
 
 **Chat entry**: Quick entry through a linked chat app instead of the web. Telegram is the first channel.
 
-**Ask**: Answering a natural-language question about a household from the same queries its reports use. The model plans the query and never writes the answer or the SQL.
+**Ask Masdan**: The household’s conversational finance assistant, covering its financial history and the actions its members are permitted to take. Changes are proposed for review and saved only after confirmation.
 
 **Rule**: A household-defined match that assigns a category and tags to matching transactions.
 

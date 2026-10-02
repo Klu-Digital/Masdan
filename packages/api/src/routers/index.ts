@@ -1,7 +1,8 @@
 import type { RouterClient } from "@orpc/server";
 
 import { accountsRouter } from "../accounts/accounts.router";
-import { askRouter } from "../ask/ask.router";
+import { createAskRouter } from "../ask/ask.router";
+import { createAskTools } from "../ask/ask.tools";
 import { attachmentsRouter } from "../attachments/attachments.router";
 import { billsRouter } from "../bills/bills.router";
 import { budgetsRouter } from "../budgets/budgets.router";
@@ -28,10 +29,8 @@ import { transfersRouter } from "../transfers/transfers.router";
 import { adminRouter } from "./admin";
 
 // Mount routers through this or `./admin.ts`, never inline.
-export const appRouter = {
+const householdRouters = {
   accounts: accountsRouter,
-  admin: adminRouter,
-  ask: askRouter,
   attachments: attachmentsRouter,
   bills: billsRouter,
   categories: categoriesRouter,
@@ -40,13 +39,11 @@ export const appRouter = {
   currencies: currenciesRouter,
   exchangeRates: exchangeRatesRouter,
   exports: exportsRouter,
-  featureFlags: featureFlagsRouter,
   files: filesRouter,
   goals: goalsRouter,
   households: householdsRouter,
   imports: importsRouter,
   interest: interestRouter,
-  invitations: invitationsRouter,
   recurringSchedules: recurringRouter,
   reminders: remindersRouter,
   reports: reportsRouter,
@@ -55,5 +52,15 @@ export const appRouter = {
   tags: tagsRouter,
   transactions: transactionsRouter,
   transfers: transfersRouter,
+};
+
+// Only household product routes reach the model, even for a platform admin.
+export const askTools = createAskTools(householdRouters);
+export const appRouter = {
+  ...householdRouters,
+  admin: adminRouter,
+  ask: createAskRouter(askTools),
+  featureFlags: featureFlagsRouter,
+  invitations: invitationsRouter,
 };
 export type AppRouterClient = RouterClient<typeof appRouter>;

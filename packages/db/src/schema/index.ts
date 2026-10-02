@@ -10,6 +10,7 @@ export {
   verification,
 } from "./auth";
 export { aiTokenCap, aiUsage } from "./ai";
+export { askTurn } from "./ask";
 export { categoryBudget } from "./budgets";
 export { category } from "./categories";
 export { tag } from "./tags";

@@ -26,6 +26,18 @@ const LEDGER = [
 // Erring wide costs a request; erring narrow shows the wrong money.
 const STALE_AFTER = {
   accounts: [...LEDGER, "exchangeRates"],
+  ask: [
+    ...LEDGER,
+    "attachments",
+    "categories",
+    "chatIntegrations",
+    "exchangeRates",
+    "exports",
+    "files",
+    "households",
+    "imports",
+    "tags",
+  ],
   categories: ["categories", ...LEDGER],
   categoryBudgets: ["categoryBudgets", "reports"],
   chatIntegrations: ["chatIntegrations"],

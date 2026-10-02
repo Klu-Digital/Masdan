@@ -26,4 +26,6 @@ export const createContext = async ({
   };
 };
 
-export type Context = Awaited<ReturnType<typeof createContext>>;
+export type Context = Awaited<ReturnType<typeof createContext>> & {
+  afterCommit?: (task: () => Promise<unknown>) => void;
+};

@@ -50,7 +50,10 @@ import { useAppActions } from "@/components/app-actions";
 import AppBreadcrumbs from "@/components/app-breadcrumbs";
 import { PrivacyToggle } from "@/components/privacy-toggle";
 import { useTheme } from "@/components/theme-provider";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import { useHousehold } from "@/hooks/use-household";
+import { AskMasdan } from "@/modules/ask/components/ask-masdan";
+import type { AskLayout } from "@/modules/ask/components/ask-masdan";
 import { RemindersMenu } from "@/modules/reminders/components/reminders-menu";
 
 import { HouseholdSwitcher } from "./household-switcher";
@@ -153,7 +156,26 @@ const HouseholdReminders = () => {
   );
 };
 
-const TopBar = () => {
+const HouseholdAsk = ({
+  children,
+}: {
+  children: (layout: AskLayout) => ReactNode;
+}) => {
+  const { activeOrganizationId, can } = useHousehold();
+  const enabled = useFeatureFlag("FF__ASK_MASDAN");
+  return enabled && activeOrganizationId && can({ transaction: ["read"] }) ? (
+    <AskMasdan
+      activeOrganizationId={activeOrganizationId}
+      key={activeOrganizationId}
+    >
+      {children}
+    </AskMasdan>
+  ) : (
+    children({ sidebar: null, trigger: null })
+  );
+};
+
+const TopBar = ({ ask }: { ask: ReactNode }) => {
   const { openCommandMenu } = useAppActions();
   return (
     <AppTopBar>
@@ -184,6 +206,7 @@ const TopBar = () => {
       >
         <HugeiconsIcon icon={Search01Icon} strokeWidth={1.8} />
       </Button>
+      {ask}
       <PrivacyToggle />
       <HouseholdReminders />
     </AppTopBar>
@@ -388,34 +411,39 @@ export const AppShell = ({
   const [moreOpen, setMoreOpen] = useState(false);
 
   return (
-    <AppFrame>
-      <a
-        className="bg-primary text-primary-foreground sr-only z-50 rounded-lg px-3 py-2 focus:not-sr-only focus:fixed focus:start-3 focus:top-3"
-        href="#main"
-      >
-        Skip to content
-      </a>
-      <Sidebar
-        activeOrganizationId={activeOrganizationId}
-        isPlatformAdmin={isPlatformAdmin}
-      />
-      <AppMain>
-        {banner}
-        <div className="relative flex min-h-0 flex-1 flex-col">
-          <TopBar />
-          <AppScroll>
-            <ScrollReset />
-            {children}
-          </AppScroll>
-        </div>
-      </AppMain>
-      <TabBar onMore={() => setMoreOpen(true)} />
-      <MoreSheet
-        activeOrganizationId={activeOrganizationId}
-        isPlatformAdmin={isPlatformAdmin}
-        onOpenChange={setMoreOpen}
-        open={moreOpen}
-      />
-    </AppFrame>
+    <HouseholdAsk>
+      {({ sidebar, trigger }) => (
+        <AppFrame className="max-md:flex-col">
+          <a
+            className="bg-primary text-primary-foreground sr-only z-50 rounded-lg px-3 py-2 focus:not-sr-only focus:fixed focus:start-3 focus:top-3"
+            href="#main"
+          >
+            Skip to content
+          </a>
+          <Sidebar
+            activeOrganizationId={activeOrganizationId}
+            isPlatformAdmin={isPlatformAdmin}
+          />
+          <AppMain className="min-h-0">
+            {banner}
+            <div className="relative flex min-h-0 flex-1 flex-col">
+              <TopBar ask={trigger} />
+              <AppScroll>
+                <ScrollReset />
+                {children}
+              </AppScroll>
+            </div>
+          </AppMain>
+          {sidebar}
+          <TabBar onMore={() => setMoreOpen(true)} />
+          <MoreSheet
+            activeOrganizationId={activeOrganizationId}
+            isPlatformAdmin={isPlatformAdmin}
+            onOpenChange={setMoreOpen}
+            open={moreOpen}
+          />
+        </AppFrame>
+      )}
+    </HouseholdAsk>
   );
 };

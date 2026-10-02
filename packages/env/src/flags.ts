@@ -15,7 +15,7 @@ export const featureFlagRegistry = {
   FF__ASK_MASDAN: {
     defaultEnabled: false,
     description:
-      "Ask Masdan: natural-language questions answered from household reports.",
+      "Ask Masdan: household financial history, conversations and confirmed finance actions.",
   },
   FF__CHAT_ENTRY: {
     defaultEnabled: false,

@@ -9,6 +9,7 @@ import {
   requirePermission,
 } from "../procedures";
 import { notFound } from "../shared/errors";
+import { listHouseholdMembers } from "./households.queries";
 
 // The handler checks `currency` so a bad code is BAD_REQUEST, not a 500.
 const currencyCodeInput = z
@@ -37,6 +38,11 @@ const profileFields = {
 };
 
 export const householdsRouter = {
+  // Like the household switcher's member list, this grants no membership edits.
+  members: orgProcedure.handler(({ context }) =>
+    listHouseholdMembers(context.db, context.organizationId)
+  ),
+
   profile: orgProcedure.handler(async ({ context }) => {
     const [household] = await context.db
       .select(profileFields)

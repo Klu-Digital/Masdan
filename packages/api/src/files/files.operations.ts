@@ -29,6 +29,7 @@ export const presignFileDownload = async (row: {
 
 export const deleteHouseholdFile = async (
   context: {
+    afterCommit: (task: () => Promise<unknown>) => void;
     db: Database;
     memberRole: string;
     organizationId: string;
@@ -65,9 +66,10 @@ export const deleteHouseholdFile = async (
     throw notFound("File");
   }
 
-  // After the row write: the transaction can still roll back, and an orphaned
-  // object is recoverable in a way a deleted one is not.
-  await storage.deleteObject({ key: row.key });
+  // A later action may roll back the row deletion; keep its bytes until commit.
+  context.afterCommit(async () => {
+    await storage.deleteObject({ key: row.key });
+  });
 
   return { fileId: row.id };
 };

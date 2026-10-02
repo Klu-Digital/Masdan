@@ -9,7 +9,7 @@ import type { QuickEntryAccount } from "../transactions/quick-entry";
 
 // The model picks a query and copies words; it never sees or returns an id.
 
-export const ASK_QUESTION_MAX_LENGTH = 300;
+export const ASK_QUESTION_MAX_LENGTH = 2000;
 
 /** Largest-transaction answers list at most this many rows. */
 const ASK_MAX_RECORDS = 10;
