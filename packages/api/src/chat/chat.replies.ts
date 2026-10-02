@@ -43,7 +43,7 @@ export const chatReplies = {
     ]
       .filter(Boolean)
       .join("\n"),
-  help: `Send a transaction like ${EXAMPLE}, or send a receipt photo with an optional caption naming the account or a note.\n\nNot linked yet? ${WHERE_TO_LINK}`,
+  help: `Send a transaction like ${EXAMPLE}, a transfer like “transfer 4.5k from gcash to maribank”, or send a receipt photo with an optional caption naming the account or a note.\n\nNot linked yet? ${WHERE_TO_LINK}`,
   linkFailed:
     "That code didn’t work. Codes work once and expire after 10 minutes — make a new one in Masdan under Settings → Household → Chat apps.",
   linkRateLimited:
@@ -118,6 +118,13 @@ export const chatReplies = {
   receiptUnsupported:
     "Send a receipt photo or JPEG, PNG or WebP image. PDFs aren’t supported yet.",
   tooLong: `Keep it to ${QUICK_ENTRY_MAX_LENGTH} characters, so nothing was added.`,
+  transferCreated: (transfer: {
+    sourceAmount: string;
+    sourceCurrencyCode: string;
+    sourceAccountName: string;
+    destinationAccountName: string;
+  }) =>
+    `Transferred ${formatAmount(transfer.sourceAmount, transfer.sourceCurrencyCode)}\n${transfer.sourceAccountName} → ${transfer.destinationAccountName}`,
   unlinked: `This account isn’t linked to Masdan yet. ${WHERE_TO_LINK}`,
 };
 

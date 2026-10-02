@@ -10,7 +10,11 @@ import type {
   TransactionPrefill,
 } from "./transaction-form";
 import { TransferForm } from "./transfer-form";
-import type { AmountSuggestion, Transfer } from "./transfer-form";
+import type {
+  AmountSuggestion,
+  Transfer,
+  TransferPrefill,
+} from "./transfer-form";
 
 export type ComposerKind = TransactionKindChoice | "transfer";
 
@@ -29,6 +33,7 @@ export type ComposerRequest =
       /** Paying a card: title, asset-only sources and quick amounts. */
       payCard?: { name: string; suggestions: AmountSuggestion[] };
       sourceAccountId?: string;
+      prefill?: TransferPrefill;
       transfer?: Transfer;
       type: "transfer";
     };
@@ -45,10 +50,8 @@ const initialKind = (request: ComposerRequest): ComposerKind => {
 
 /** Paying a card explains itself; quick entry shows the text it came from. */
 const sheetDescription = (request: ComposerRequest): string | undefined => {
-  if (request.type === "transfer") {
-    return request.payCard
-      ? "Moves money from one of your accounts to the card. It isn’t counted as spending."
-      : undefined;
+  if (request.type === "transfer" && request.payCard) {
+    return "Moves money from one of your accounts to the card. It isn’t counted as spending.";
   }
   return request.prefill ? `From “${request.prefill.source}”` : undefined;
 };
@@ -65,6 +68,7 @@ const SUBMIT: Record<ComposerKind, string> = {
   transfer: "Record transfer",
 };
 
+// oxlint-disable-next-line complexity -- Transaction and transfer requests share the same sheet.
 export const Composer = ({
   activeOrganizationId,
   householdCurrency,
@@ -89,6 +93,7 @@ export const Composer = ({
   const payCard = request.type === "transfer" ? request.payCard : undefined;
   const transactionRequest =
     request.type === "transaction" ? request : undefined;
+  const transferRequest = request.type === "transfer" ? request : undefined;
 
   let title = TITLES[kind];
   if (payCard) {
@@ -145,9 +150,7 @@ export const Composer = ({
             <TabsList aria-label="Entry type" className="w-full">
               {kinds.map((option) => (
                 <TabsTab key={option} value={option}>
-                  {option === "expense" ? "Expense" : null}
-                  {option === "income" ? "Income" : null}
-                  {option === "transfer" ? "Transfer" : null}
+                  {option.charAt(0).toUpperCase() + option.slice(1)}
                 </TabsTab>
               ))}
             </TabsList>
@@ -157,13 +160,10 @@ export const Composer = ({
           <TransferForm
             actions={actions}
             activeOrganizationId={activeOrganizationId}
-            destinationAccountId={
-              request.type === "transfer"
-                ? request.destinationAccountId
-                : undefined
-            }
+            destinationAccountId={transferRequest?.destinationAccountId}
             lockDestination={Boolean(payCard)}
             onSaved={close}
+            prefill={transferRequest?.prefill}
             sourceAccountId={
               request.type === "transfer"
                 ? request.sourceAccountId

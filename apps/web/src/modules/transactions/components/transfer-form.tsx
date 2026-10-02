@@ -53,6 +53,12 @@ const transferSchema = z
 
 type TransferFormValues = z.infer<typeof transferSchema>;
 
+export interface TransferPrefill {
+  issues: string[];
+  source: string;
+  values: Partial<TransferFormValues>;
+}
+
 const NO_SUGGESTIONS: AmountSuggestion[] = [];
 
 export interface AmountSuggestion {
@@ -67,6 +73,7 @@ export const TransferForm = ({
   destinationAccountId,
   lockDestination = false,
   onSaved,
+  prefill,
   sourceAccountId,
   suggestions = NO_SUGGESTIONS,
   timezone,
@@ -78,6 +85,7 @@ export const TransferForm = ({
   /** Paying a card: the card is fixed and only asset accounts can pay it. */
   lockDestination?: boolean;
   onSaved: (transferId: string) => void;
+  prefill?: TransferPrefill;
   sourceAccountId?: string;
   suggestions?: AmountSuggestion[];
   timezone: string;
@@ -97,12 +105,26 @@ export const TransferForm = ({
 
   const defaultValues: TransferFormValues = {
     destinationAccountId:
-      transfer?.destinationAccountId ?? destinationAccountId ?? "",
-    destinationAmount: trimDecimal(transfer?.destinationAmount),
-    notes: transfer?.notes ?? "",
-    sourceAccountId: transfer?.sourceAccountId ?? sourceAccountId ?? "",
-    sourceAmount: trimDecimal(transfer?.sourceAmount),
-    transactionDate: transfer?.transactionDate ?? householdToday(timezone),
+      transfer?.destinationAccountId ??
+      prefill?.values.destinationAccountId ??
+      destinationAccountId ??
+      "",
+    destinationAmount: trimDecimal(
+      transfer?.destinationAmount ?? prefill?.values.destinationAmount
+    ),
+    notes: transfer?.notes ?? prefill?.values.notes ?? "",
+    sourceAccountId:
+      transfer?.sourceAccountId ??
+      prefill?.values.sourceAccountId ??
+      sourceAccountId ??
+      "",
+    sourceAmount: trimDecimal(
+      transfer?.sourceAmount ?? prefill?.values.sourceAmount
+    ),
+    transactionDate:
+      transfer?.transactionDate ??
+      prefill?.values.transactionDate ??
+      householdToday(timezone),
   };
 
   const currencyOf = (accountId: string) =>
@@ -180,6 +202,13 @@ export const TransferForm = ({
         form.handleSubmit();
       }}
     >
+      {prefill?.issues.length ? (
+        <output className="text-muted-foreground text-sm">
+          {prefill.issues.map((issue) => (
+            <p key={issue}>{issue}</p>
+          ))}
+        </output>
+      ) : null}
       <form.Subscribe selector={(state) => state.values.sourceAccountId}>
         {(source) => {
           const currency =

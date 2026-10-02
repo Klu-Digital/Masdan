@@ -21,11 +21,16 @@ vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 const parseQuickEntry = vi.hoisted(() => vi.fn());
 const create = vi.hoisted(() => vi.fn());
 const archive = vi.hoisted(() => vi.fn());
+const createTransfer = vi.hoisted(() => vi.fn());
+const deleteTransfer = vi.hoisted(() => vi.fn());
 
 vi.mock("@/utils/client", async () => {
   const { mockClient } = await import("@/test/client");
   return {
-    client: mockClient({ transactions: { archive, create, parseQuickEntry } }),
+    client: mockClient({
+      transactions: { archive, create, parseQuickEntry },
+      transfers: { create: createTransfer, delete: deleteTransfer },
+    }),
   };
 });
 
@@ -111,6 +116,13 @@ beforeEach(() => {
   for (const mock of [toast, closeToast, compose, navigate, create]) {
     mock.mockClear();
   }
+  createTransfer.mockReset().mockResolvedValue({
+    destinationAccount: { currencyCode: "PHP", name: "MariBank" },
+    id: "transfer-1",
+    sourceAccount: { currencyCode: "PHP", name: "GCash" },
+    sourceAmount: "4500",
+  });
+  deleteTransfer.mockReset().mockResolvedValue({ id: "transfer-1" });
   parseQuickEntry.mockReset();
   archive.mockReset().mockResolvedValue({ id: "transaction-1" });
   create.mockReset().mockResolvedValue({
@@ -124,6 +136,57 @@ beforeEach(() => {
 });
 
 describe("useQuickEntry", () => {
+  const transferInput = {
+    destinationAccountId: "00000000-0000-4000-8000-000000000002",
+    destinationAmount: "4500",
+    notes: "transfer 4.5k from gcash to maribank",
+    sourceAccountId: ACCOUNT,
+    sourceAmount: "4500",
+    transactionDate: "2026-09-26",
+  };
+  const transferParse = {
+    ai: "ok",
+    input: transferInput,
+    issues: [],
+    kind: "transfer",
+    prefill: transferInput,
+  };
+
+  it("creates a transfer instead of an expense, and undo removes the transfer", async () => {
+    parseQuickEntry.mockResolvedValue(transferParse);
+    await setup().add(transferInput.notes);
+    expect(createTransfer).toHaveBeenCalledWith(transferInput);
+    expect(create).not.toHaveBeenCalled();
+    expect(compose).not.toHaveBeenCalled();
+    toastTitled("Transfer recorded").onClick();
+    await waitFor(() =>
+      expect(deleteTransfer).toHaveBeenCalledWith({ transferId: "transfer-1" })
+    );
+  });
+
+  it("reviews linked transfers in the transfer form without creating", async () => {
+    parseQuickEntry.mockResolvedValue(transferParse);
+    await setup().review(transferInput.notes);
+    expect(createTransfer).not.toHaveBeenCalled();
+    expect(compose).toHaveBeenCalledWith({
+      prefill: {
+        issues: [],
+        source: transferInput.notes,
+        values: transferInput,
+      },
+      type: "transfer",
+    });
+  });
+
+  it("preserves transfer values when creation fails", async () => {
+    parseQuickEntry.mockResolvedValue(transferParse);
+    createTransfer.mockRejectedValue(new Error("Account archived"));
+    await setup().add(transferInput.notes);
+    expect(compose).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "transfer" })
+    );
+    expect(create).not.toHaveBeenCalled();
+  });
   it("creates a complete line at once and offers Undo, with no form", async () => {
     parseQuickEntry.mockResolvedValue(complete);
 

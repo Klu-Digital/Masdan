@@ -18,6 +18,8 @@ import type {
   QuickEntryHousehold,
   QuickEntryResult,
 } from "./quick-entry";
+import { resolveQuickTransfer } from "./quick-transfer";
+import type { QuickTransferResult } from "./quick-transfer";
 
 /** Long enough for a slow model, short enough that typing it by hand isn't faster. */
 const QUICK_ENTRY_AI_TIMEOUT_MS = 8000;
@@ -30,9 +32,9 @@ export const quickEntryText = z
 
 type QuickEntryAiStatus = "failed" | "ok" | "unavailable";
 
-export interface QuickEntryParse extends QuickEntryResult {
+export type QuickEntryParse = (QuickEntryResult | QuickTransferResult) & {
   ai: QuickEntryAiStatus;
-}
+};
 
 /** Only this household's active accounts and categories can ever be matched. */
 export const quickEntryHousehold = async (
@@ -114,5 +116,9 @@ export const parseQuickEntryText = async (
     }
   }
 
-  return { ai, ...resolveQuickEntry(note, household, extraction, rules) };
+  return {
+    ai,
+    ...(resolveQuickTransfer(note, household, extraction) ??
+      resolveQuickEntry(note, household, extraction, rules)),
+  };
 };

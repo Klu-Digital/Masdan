@@ -8,6 +8,7 @@ import {
   file,
   financialTransactionAttachment,
   financialAccount,
+  financialTransaction,
   member,
   organization,
 } from "@masdan/db/schema/index";
@@ -31,6 +32,7 @@ import {
   sniffReceiptContentType,
 } from "../transactions/receipt-entry.parse";
 import { createTransaction } from "../transactions/transactions.write";
+import { createTransfer } from "../transfers/transfers.commands";
 import type { ChatChannelAdapter } from "./chat.channel";
 import { hashLinkCode } from "./chat.link";
 import { chatReplies, quickEntryLink } from "./chat.replies";
@@ -212,8 +214,7 @@ const addEntry = async (
     log.warn({ action: "chat.ai.failed", ai: parsed.ai, channel: job.channel });
     return chatReplies.aiFailed(deepLink);
   }
-  const { input } = parsed;
-  if (!input) {
+  if (!parsed.input) {
     await claimMessage(db, job);
     return chatReplies.needsReview(
       parsed.issues.map((issue) => issue.message),
@@ -223,6 +224,48 @@ const addEntry = async (
 
   try {
     return await db.transaction(async (tx) => {
+      if (parsed.kind === "transfer" && parsed.input) {
+        const transfer = await createTransfer(
+          tx,
+          link.organizationId,
+          parsed.input,
+          link.userId
+        );
+        const [posting] = await tx
+          .select({ id: financialTransaction.id })
+          .from(financialTransaction)
+          .where(
+            and(
+              eq(financialTransaction.organizationId, link.organizationId),
+              eq(financialTransaction.transferId, transfer.id),
+              eq(financialTransaction.transferSide, "source")
+            )
+          )
+          .limit(1);
+        if (!posting) {
+          throw new ORPCError("INTERNAL_SERVER_ERROR");
+        }
+        await claimMessage(tx, job, {
+          id: posting.id,
+          organizationId: link.organizationId,
+        });
+        log.info({
+          action: "chat.transfer.created",
+          channel: job.channel,
+          organizationId: link.organizationId,
+          transferId: transfer.id,
+        });
+        return chatReplies.transferCreated({
+          destinationAccountName: transfer.destinationAccount.name,
+          sourceAccountName: transfer.sourceAccount.name,
+          sourceAmount: transfer.sourceAmount,
+          sourceCurrencyCode: transfer.sourceAccount.currencyCode,
+        });
+      }
+      if (parsed.kind === "transfer" || !parsed.input) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+      const { input } = parsed;
       const created = await createTransaction(tx, link.organizationId, {
         ...input,
         createdByUserId: link.userId,

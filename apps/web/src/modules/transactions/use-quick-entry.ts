@@ -17,33 +17,53 @@ type QuickEntryParse = RouterOutputs["transactions"]["parseQuickEntry"];
 export const QUICK_ENTRY_MAX_LENGTH = 300;
 
 // The form has no type field to flag, and the type decides the category.
-const reviewField = (field: QuickEntryParse["issues"][number]["field"]) =>
+const reviewField = (field: ReviewField | "kind") =>
   (field === "kind" ? "categoryId" : field) satisfies ReviewField;
 
 /** What a parse resolved, as the composer request that lets you finish it. */
 const quickEntryRequest = (
   parsed: QuickEntryParse,
   source: string
-): Extract<ComposerRequest, { type: "transaction" }> => ({
-  kind: parsed.kind,
-  prefill: {
-    issues: parsed.issues.map((issue) => ({
-      field: reviewField(issue.field),
-      message: issue.message,
-    })),
-    source,
-    values: {
-      accountId: parsed.prefill.accountId ?? undefined,
-      amount: parsed.prefill.amount ?? undefined,
-      categoryId: parsed.prefill.categoryId ?? undefined,
-      notes: parsed.prefill.notes ?? undefined,
-      paidStatus: parsed.prefill.paidStatus,
-      tagIds: parsed.prefill.tagIds,
-      transactionDate: parsed.prefill.transactionDate,
+): ComposerRequest => {
+  if (parsed.kind === "transfer") {
+    return {
+      prefill: {
+        issues: parsed.issues.map((issue) => issue.message),
+        source,
+        values: {
+          destinationAccountId:
+            parsed.prefill.destinationAccountId ?? undefined,
+          destinationAmount: parsed.prefill.destinationAmount ?? undefined,
+          notes: parsed.prefill.notes ?? undefined,
+          sourceAccountId: parsed.prefill.sourceAccountId ?? undefined,
+          sourceAmount: parsed.prefill.sourceAmount ?? undefined,
+          transactionDate: parsed.prefill.transactionDate,
+        },
+      },
+      type: "transfer",
+    };
+  }
+  return {
+    kind: parsed.kind,
+    prefill: {
+      issues: parsed.issues.map((issue) => ({
+        field: reviewField(issue.field),
+        message: issue.message,
+      })),
+      source,
+      values: {
+        accountId: parsed.prefill.accountId ?? undefined,
+        amount: parsed.prefill.amount ?? undefined,
+        categoryId: parsed.prefill.categoryId ?? undefined,
+        notes: parsed.prefill.notes ?? undefined,
+        paidStatus: parsed.prefill.paidStatus,
+        tagIds: parsed.prefill.tagIds,
+        transactionDate: parsed.prefill.transactionDate,
+      },
     },
-  },
-  type: "transaction",
-});
+    type: "transaction",
+  };
+};
 
 const summaryOf = (
   transaction: TransactionDetail,
@@ -138,6 +158,43 @@ export const useQuickEntry = ({
     }
     if (review || !parsed.input) {
       compose(quickEntryRequest(parsed, source));
+      return;
+    }
+    if (parsed.kind === "transfer") {
+      try {
+        const transfer = await orpc.transfers.create.call(parsed.input);
+        await refresh();
+        toastManager.add({
+          actionProps: canArchive
+            ? {
+                children: "Undo",
+                onClick: async () => {
+                  try {
+                    await orpc.transfers.delete.call({
+                      transferId: transfer.id,
+                    });
+                    await refresh();
+                    toastManager.add({
+                      title: "Transfer removed",
+                      type: "success",
+                    });
+                  } catch (error) {
+                    toastManager.add({
+                      title: errorMessage(error),
+                      type: "error",
+                    });
+                  }
+                },
+              }
+            : undefined,
+          description: `${money(transfer.sourceAmount, transfer.sourceAccount.currencyCode)} · ${transfer.sourceAccount.name} → ${transfer.destinationAccount.name}`,
+          title: "Transfer recorded",
+          type: "success",
+        });
+      } catch (error) {
+        toastManager.add({ title: errorMessage(error), type: "error" });
+        compose(quickEntryRequest(parsed, source));
+      }
       return;
     }
     let transaction: TransactionDetail;

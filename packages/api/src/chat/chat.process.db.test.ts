@@ -275,6 +275,65 @@ describe("linking", () => {
 });
 
 describe("messages", () => {
+  it("creates a transfer with two postings and dedupes retries", async () => {
+    const home = await household();
+    await link(home);
+    const createAccount = (name: string, accountType: "bank" | "e_wallet") =>
+      call(
+        accountsRouter.create,
+        {
+          accountClass: "asset",
+          accountType,
+          liquidity: "liquid",
+          name,
+          openingBalance: "0",
+          openingBalanceDate: "2026-01-01",
+          ownerMemberIds: [],
+        },
+        home.context
+      );
+    const source = await createAccount("GCash", "e_wallet");
+    const destination = await createAccount("MariBank", "bank");
+    completeJson.mockResolvedValue(
+      ai({ account: "gcash", amount: "4.5k", kind: "expense" })
+    );
+    const entry = await job(home, {
+      text: "transfer 4.5k from gcash to maribank",
+      type: "entry",
+    });
+    expect(await processChatMessage(getTestDb(), entry, APP_URL)).toBe(
+      "Transferred ₱4,500\nGCash → MariBank"
+    );
+    expect(await processChatMessage(getTestDb(), entry, APP_URL)).toBeNull();
+    const postings = await getTestDb()
+      .select()
+      .from(financialTransaction)
+      .where(eq(financialTransaction.organizationId, home.organizationId));
+    expect(postings).toHaveLength(2);
+    expect(postings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          accountId: source.id,
+          amount: "4500.000000",
+          createdByUserId: home.userId,
+          transferSide: "source",
+        }),
+        expect.objectContaining({
+          accountId: destination.id,
+          amount: "4500.000000",
+          transferId: postings[0]?.transferId,
+          transferSide: "destination",
+        }),
+      ])
+    );
+    const [inbound] = await getTestDb()
+      .select()
+      .from(chatInboundMessage)
+      .where(eq(chatInboundMessage.messageId, entry.messageId));
+    expect(inbound?.transactionId).toBe(
+      postings.find((posting) => posting.transferSide === "source")?.id
+    );
+  });
   it("creates a complete entry through the quick-entry pipeline and confirms it", async () => {
     const home = await household();
     await link(home);

@@ -5,34 +5,13 @@ import {
   orgProcedure,
   requirePermission,
 } from "../procedures";
-import { isoDate } from "../shared/dates";
-import { positiveAmount } from "../shared/money";
+import { transferValues } from "./schema";
 import {
   createTransfer,
   deleteTransfer,
   updateTransfer,
 } from "./transfers.commands";
 import { getTransfer } from "./transfers.queries";
-
-const transferValues = z
-  .object({
-    destinationAccountId: z.uuid(),
-    destinationAmount: positiveAmount,
-    notes: z.string().trim().max(2000).nullable().optional(),
-    sourceAccountId: z.uuid(),
-    sourceAmount: positiveAmount,
-    transactionDate: isoDate,
-  })
-  .strict()
-  .superRefine((value, context) => {
-    if (value.sourceAccountId === value.destinationAccountId) {
-      context.addIssue({
-        code: "custom",
-        message: "Choose two different accounts",
-        path: ["destinationAccountId"],
-      });
-    }
-  });
 
 export const transfersRouter = {
   create: orgMutationProcedure
