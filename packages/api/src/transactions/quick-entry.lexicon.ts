@@ -15,7 +15,6 @@ export const INCOME_WORDS: ReadonlySet<string> = new Set([
   "payroll",
   "received",
   "refund",
-  "reimbursement",
   "sahod",
   "salary",
   "sweldo",

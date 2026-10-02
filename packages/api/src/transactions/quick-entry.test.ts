@@ -37,7 +37,7 @@ describe("quick entry golden set", () => {
 
   it("covers both outcomes, so a parser that always reviews cannot pass", () => {
     const outcomes = GOLDEN_CASES.map((golden) => golden.expected.outcome);
-    expect(outcomes.filter((outcome) => outcome === "create").length).toBe(12);
+    expect(outcomes.filter((outcome) => outcome === "create").length).toBe(14);
     expect(outcomes.filter((outcome) => outcome === "review").length).toBe(20);
   });
 });

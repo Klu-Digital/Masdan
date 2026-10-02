@@ -113,6 +113,7 @@ const NOTHING: QuickEntryExtraction = {
   date: null,
   dateText: null,
   kind: null,
+  notes: null,
   paidStatus: null,
 };
 
@@ -151,6 +152,42 @@ export interface GoldenCase {
 
 export const GOLDEN_CASES: readonly GoldenCase[] = [
   // --- Complete: created without the form ---------------------------------
+  {
+    expected: {
+      accountId: GOLDEN_IDS.gcash,
+      amount: "2999",
+      categoryId: GOLDEN_IDS.shopping,
+      kind: "expense",
+      notes: "iPad Reimbursement",
+      outcome: "create",
+    },
+    extraction: ai({
+      account: "gcash",
+      amount: "2999",
+      category: "Shopping",
+      notes: "iPad Reimbursement",
+    }),
+    name: "an ambiguous word stays an expense, with the note tidied",
+    text: "ipad reimbursement 2999 gcash",
+  },
+  {
+    expected: {
+      accountId: GOLDEN_IDS.gcash,
+      amount: "2999",
+      categoryId: GOLDEN_IDS.shopping,
+      kind: "expense",
+      notes: "ipad reimbursement",
+      outcome: "create",
+    },
+    extraction: ai({
+      account: "gcash",
+      amount: "2999",
+      category: "Shopping",
+      notes: "Apple iPad Reimbursement Payment",
+    }),
+    name: "a reworded note with added words falls back to the typed words",
+    text: "ipad reimbursement 2999 gcash",
+  },
   {
     expected: {
       accountId: GOLDEN_IDS.metrobankTitanium,
