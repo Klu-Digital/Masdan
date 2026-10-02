@@ -12,6 +12,7 @@ export type CardPatternName =
   | "hexagons"
   | "pinstripes"
   | "pixels"
+  | "rounded-panels"
   | "scallops"
   | "topographic";
 
@@ -48,7 +49,8 @@ export type CardMotifName =
   | "travel-seal"
   | "wave-ribbon"
   | "wing-stripe"
-  | "wordmark";
+  | "wordmark"
+  | "wordmark-left";
 
 /** A card's field, declared as data: every product composes the same primitives. */
 export interface CardArt {

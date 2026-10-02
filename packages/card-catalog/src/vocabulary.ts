@@ -41,6 +41,7 @@ export const CARD_PATTERNS = [
   "hexagons",
   "pinstripes",
   "pixels",
+  "rounded-panels",
   "scallops",
   "topographic",
 ] as const;
@@ -81,6 +82,7 @@ export const CARD_MOTIFS = [
   "wave-ribbon",
   "wing-stripe",
   "wordmark",
+  "wordmark-left",
 ] as const;
 export type CardMotif = (typeof CARD_MOTIFS)[number];
 
@@ -89,6 +91,7 @@ export const LETTERED_MOTIFS: readonly CardMotif[] = [
   "monogram",
   "oversized-letter",
   "wordmark",
+  "wordmark-left",
 ];
 
 /** Motifs drawn from `visual.palette`, and so needing two colours or more. */

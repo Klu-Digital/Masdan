@@ -37,7 +37,10 @@ import { Tiles } from "@/components/finance/card-art/motifs/tiles";
 import { TravelSeal } from "@/components/finance/card-art/motifs/travel-seal";
 import { WaveRibbon } from "@/components/finance/card-art/motifs/wave-ribbon";
 import { WingStripe } from "@/components/finance/card-art/motifs/wing-stripe";
-import { Wordmark } from "@/components/finance/card-art/motifs/wordmark";
+import {
+  Wordmark,
+  WordmarkLeft,
+} from "@/components/finance/card-art/motifs/wordmark";
 
 /**
  * Every motif, by the name the card catalog uses. Adding a name to
@@ -77,4 +80,5 @@ export const MOTIFS: Record<CardMotifName, Motif> = {
   "wave-ribbon": WaveRibbon,
   "wing-stripe": WingStripe,
   wordmark: Wordmark,
+  "wordmark-left": WordmarkLeft,
 };

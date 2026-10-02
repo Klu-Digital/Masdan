@@ -207,6 +207,57 @@ export const CardPattern = ({
         </g>
       );
     }
+    case "rounded-panels": {
+      // Lit from their rounded top-left corners; the accent tints them (BDO).
+      const glow = "[stop-color:var(--card-face-accent,currentColor)]";
+      return (
+        <>
+          <defs>
+            <linearGradient id={`${id}-a`} x1="0" x2="0.6" y1="0" y2="1">
+              <stop className={glow} offset="0" stopOpacity="0.32" />
+              <stop className={glow} offset="1" stopOpacity="0.04" />
+            </linearGradient>
+            <linearGradient id={`${id}-b`} x1="0" x2="1" y1="0" y2="0.8">
+              <stop className={glow} offset="0" stopOpacity="0.3" />
+              <stop className={glow} offset="0.6" stopOpacity="0.06" />
+            </linearGradient>
+          </defs>
+          <rect
+            className="fill-current"
+            height="230"
+            opacity="0.07"
+            width="200"
+            x="146"
+            y="-10"
+          />
+          <rect
+            fill={`url(#${id}-a)`}
+            height="200"
+            rx="16"
+            width="212"
+            x="-30"
+            y="34"
+          />
+          <rect
+            className="fill-current"
+            height="12"
+            opacity="0.1"
+            rx="6"
+            width="176"
+            x="-30"
+            y="80"
+          />
+          <rect
+            fill={`url(#${id}-b)`}
+            height="140"
+            rx="16"
+            width="250"
+            x="104"
+            y="94"
+          />
+        </>
+      );
+    }
     case "crossed-light": {
       return (
         <>

@@ -11,10 +11,10 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#123a8c", "#0b2766"],
+        stops: ["#0a7fc2", "#055a8c", "#0a74b4"],
       },
       foreground: "light",
-      pattern: "angular-panels",
+      pattern: "rounded-panels",
     },
   },
   {
@@ -25,11 +25,11 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#b08a3a", "#8a6620"],
+        stops: ["#b48e1a", "#91700c", "#ad8918"],
       },
       chipTone: "gold",
       foreground: "light",
-      pattern: "angular-panels",
+      pattern: "rounded-panels",
     },
   },
   {
@@ -40,10 +40,10 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#8a9098", "#5e646b"],
+        stops: ["#8f8f95", "#606066", "#8a8a90"],
       },
       foreground: "light",
-      pattern: "angular-panels",
+      pattern: "rounded-panels",
     },
   },
   {
@@ -52,13 +52,14 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     key: "ph-bdo-visa-signature",
     network: "visa",
     visual: {
-      accent: "#2f5fb8",
+      accent: "#2f6fd8",
       background: {
         angle: 135,
-        stops: ["#0e1a36", "#07101f"],
+        stops: ["#151b28", "#0b1730", "#121726"],
       },
+      chipTone: "gold",
       foreground: "light",
-      motif: "tiles",
+      pattern: "rounded-panels",
     },
   },
   {
@@ -70,10 +71,10 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#133b8f", "#0a2462"],
+        stops: ["#0b4a70", "#03263f", "#0a4466"],
       },
       foreground: "light",
-      pattern: "angular-panels",
+      pattern: "rounded-panels",
     },
   },
   {
@@ -84,11 +85,11 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#b58c38", "#8c681f"],
+        stops: ["#b48e1a", "#91700c", "#ad8918"],
       },
       chipTone: "gold",
       foreground: "light",
-      pattern: "angular-panels",
+      pattern: "rounded-panels",
     },
   },
   {
@@ -99,10 +100,10 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#8c9299", "#60666d"],
+        stops: ["#86868a", "#57575b", "#808084"],
       },
       foreground: "light",
-      pattern: "angular-panels",
+      pattern: "rounded-panels",
     },
   },
   {
@@ -112,13 +113,14 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     key: "ph-bdo-shopmore-mastercard-purple",
     network: "mastercard",
     visual: {
+      accent: "#ffffff",
       background: {
         angle: 135,
-        stops: ["#7f80cf", "#7475c6"],
+        stops: ["#8186c4", "#777cb9"],
       },
       foreground: "light",
       monogram: "Shop\nMore",
-      motif: "wordmark",
+      motif: "wordmark-left",
     },
   },
   {
@@ -128,13 +130,14 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     key: "ph-bdo-shopmore-mastercard-yellow-green",
     network: "mastercard",
     visual: {
+      accent: "#ffffff",
       background: {
         angle: 135,
-        stops: ["#c8db3a", "#bcd02e"],
+        stops: ["#cfd920", "#c6d00c"],
       },
       foreground: "dark",
       monogram: "Shop\nMore",
-      motif: "wordmark",
+      motif: "wordmark-left",
     },
   },
   {
@@ -144,13 +147,14 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     key: "ph-bdo-shopmore-mastercard-orange",
     network: "mastercard",
     visual: {
+      accent: "#ffffff",
       background: {
         angle: 135,
-        stops: ["#e8664f", "#de5a43"],
+        stops: ["#eb6d57", "#e5604a"],
       },
       foreground: "light",
       monogram: "Shop\nMore",
-      motif: "wordmark",
+      motif: "wordmark-left",
     },
   },
   {
@@ -163,7 +167,7 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
       accent: "#ffffff",
       background: {
         angle: 135,
-        stops: ["#9cc7ea", "#7fb3df"],
+        stops: ["#b4d6ef", "#6fa6d2", "#9cc8e6"],
       },
       foreground: "dark",
       motif: "medallion",
@@ -176,10 +180,10 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     key: "ph-bdo-american-express-cashback",
     network: "amex",
     visual: {
-      accent: "#9cc7ea",
+      accent: "#4f86e0",
       background: {
         angle: 135,
-        stops: ["#123d8f", "#0b2a6a"],
+        stops: ["#0f2f8c", "#03104a", "#0a2577"],
       },
       foreground: "light",
       motif: "medallion",
@@ -192,13 +196,14 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     key: "ph-bdo-american-express-explorer",
     network: "amex",
     visual: {
-      accent: "#8fc3ea",
+      accent: "#8fa9c2",
       background: {
         angle: 135,
-        stops: ["#1a2233", "#0d121c"],
+        stops: ["#3a4654", "#151b23", "#2a3542"],
       },
       foreground: "light",
       motif: "frame",
+      pattern: "dot-matrix",
     },
   },
   {
@@ -208,10 +213,10 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     key: "ph-bdo-american-express-platinum",
     network: "amex",
     visual: {
-      accent: "#8a9098",
+      accent: "#5a5d61",
       background: {
         angle: 135,
-        stops: ["#d3d7db", "#b5babf"],
+        stops: ["#e2e3e4", "#a4a6a8", "#d6d7d9"],
       },
       foreground: "dark",
       motif: "medallion",
@@ -224,10 +229,10 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     key: "ph-bdo-jcb-lucky-cat",
     network: "jcb",
     visual: {
-      accent: "#f2c230",
+      accent: "#ffffff",
       background: {
         angle: 135,
-        stops: ["#2f7fd6", "#1f63b8"],
+        stops: ["#1c93d8", "#0a74c2"],
       },
       foreground: "light",
       motif: "medallion",
@@ -241,11 +246,11 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#ad8836", "#86641e"],
+        stops: ["#b48e1a", "#91700c", "#ad8918"],
       },
       chipTone: "gold",
       foreground: "light",
-      pattern: "angular-panels",
+      pattern: "rounded-panels",
     },
   },
   {
@@ -256,10 +261,10 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#878d95", "#5b6168"],
+        stops: ["#8d8d98", "#62626d", "#8a8a95"],
       },
       foreground: "light",
-      pattern: "angular-panels",
+      pattern: "rounded-panels",
     },
   },
   {
@@ -271,11 +276,11 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#dcdee1", "#c3c6ca"],
+        stops: ["#c7c6ca", "#a9a8ad"],
       },
       foreground: "dark",
       motif: "contours",
-      palette: ["#e63946", "#f4a261", "#2a9d8f", "#457b9d", "#9b5de5"],
+      palette: ["#ef4f7c", "#f59a3a", "#e8d23a", "#3fb59a", "#6a62e0"],
     },
   },
   {
@@ -287,10 +292,12 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#8f959c", "#62686f"],
+        stops: ["#c8c9ca", "#9fa1a2"],
       },
-      foreground: "light",
-      pattern: "angular-panels",
+      foreground: "dark",
+      monogram: "HOPE",
+      motif: "wordmark",
+      pattern: "brushed",
     },
   },
   {
@@ -302,7 +309,7 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#2a2a2c", "#101011"],
+        stops: ["#38373a", "#1c1b1d"],
       },
       foreground: "light",
       pattern: "brushed",
@@ -317,10 +324,10 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#1f6fe0", "#1554c0"],
+        stops: ["#0a8fd4", "#0570c0", "#0a88cc"],
       },
       foreground: "light",
-      motif: "tiles",
+      pattern: "rounded-panels",
     },
   },
   {
@@ -332,11 +339,11 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#b38b38", "#8f6c24"],
+        stops: ["#ad8a1c", "#8a6a0e", "#a8861a"],
       },
       chipTone: "gold",
       foreground: "light",
-      pattern: "angular-panels",
+      pattern: "rounded-panels",
     },
   },
   {
@@ -348,10 +355,10 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#1d1f24", "#0c0d10"],
+        stops: ["#2e2d3a", "#1b1b25", "#2a2a35"],
       },
       foreground: "light",
-      pattern: "angular-panels",
+      pattern: "rounded-panels",
     },
   },
   {
@@ -363,7 +370,7 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#b9bec3", "#9aa0a6"],
+        stops: ["#c4c5ca", "#989aa1"],
       },
       foreground: "dark",
       motif: "globe",
@@ -378,7 +385,7 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#2c3036", "#15171b"],
+        stops: ["#5c5c66", "#393942"],
       },
       foreground: "light",
       motif: "globe",
@@ -393,10 +400,10 @@ export const BDO_PRODUCTS: readonly CardProduct<PhIssuerKey>[] = [
     visual: {
       background: {
         angle: 135,
-        stops: ["#1b4aa6", "#0f3278"],
+        stops: ["#0a7fc2", "#055a8c", "#0a74b4"],
       },
       foreground: "light",
-      pattern: "angular-panels",
+      pattern: "rounded-panels",
     },
   },
 ];
