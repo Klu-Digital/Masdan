@@ -120,7 +120,7 @@ const CardContext = ({
   }
 
   return (
-    <span className="flex min-w-0 items-center gap-2">
+    <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
       {utilization === null ? null : (
         <Meter
           aria-label={`${account.name} utilization`}
@@ -134,7 +134,7 @@ const CardContext = ({
         </Meter>
       )}
       {utilization === null ? null : (
-        <span className="text-muted-foreground tabular-nums">
+        <span className="text-muted-foreground whitespace-nowrap tabular-nums">
           {Math.round(utilization)}% used
         </span>
       )}
@@ -258,9 +258,10 @@ export const CardTile = ({
       <AccountCard account={account} size="compact" />
     </span>
     <span className="flex min-w-0 flex-col gap-1 px-0.5">
-      <span className="flex items-baseline justify-between gap-2">
+      {/* Half a phone is too narrow to set the name beside the balance. */}
+      <span className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-2">
         <span className="truncate text-sm font-medium">{account.name}</span>
-        <span className="flex flex-col items-end gap-1">
+        <span className="flex flex-col items-start gap-1 sm:items-end">
           <Amount
             currency={account.currencyCode}
             value={account.balance}

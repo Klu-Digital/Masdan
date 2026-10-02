@@ -138,10 +138,18 @@ const GoalRow = ({ actions, goal }: { actions: ReactNode; goal: Goal }) => {
             <Badge variant="success">Target reached</Badge>
           ) : null}
         </ListItemTitle>
-        <ListItemDescription>
+        {/* Amounts are too wide to truncate meaningfully, so they wrap. */}
+        <ListItemDescription className="block whitespace-normal">
           <Amount currency={goal.currencyCode} value={goal.saved} /> of{" "}
           <Amount currency={goal.currencyCode} value={goal.targetAmount} />
           {goal.targetDate ? ` · by ${formatLongDate(goal.targetDate)}` : null}
+          {goal.reached ? null : (
+            <span className="sm:hidden">
+              {" · "}
+              <Amount currency={goal.currencyCode} value={goal.remaining} /> to
+              go
+            </span>
+          )}
         </ListItemDescription>
         <Progress
           aria-label={`${goal.name} progress`}
@@ -167,7 +175,7 @@ const GoalRow = ({ actions, goal }: { actions: ReactNode; goal: Goal }) => {
           {goal.reached ? (
             <span className="text-positive-foreground text-xs">Reached</span>
           ) : (
-            <span className="text-muted-foreground text-xs">
+            <span className="text-muted-foreground text-xs max-sm:hidden">
               <Amount currency={goal.currencyCode} value={goal.remaining} /> to
               go
             </span>

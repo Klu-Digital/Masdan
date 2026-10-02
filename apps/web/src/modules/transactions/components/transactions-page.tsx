@@ -22,6 +22,7 @@ import {
   PageTitle,
 } from "@masdan/ui/components/page";
 import { Skeleton } from "@masdan/ui/components/skeleton";
+import { useMediaQuery } from "@masdan/ui/hooks/use-media-query";
 import {
   keepPreviousData,
   useInfiniteQuery,
@@ -103,45 +104,94 @@ const TotalsStrip = ({
   const expense = Number(primary?.expense ?? 0);
 
   return (
-    <StatGroup aria-label="Totals for these transactions">
-      <Stat>
-        <StatLabel>Money in</StatLabel>
-        <StatValue>
-          <Amount
-            currency={code}
-            sign={income > 0 ? "in" : "none"}
-            tone="auto"
-            value={income}
-          />
-        </StatValue>
-      </Stat>
-      <Stat>
-        <StatLabel>Money out</StatLabel>
-        <StatValue>
-          <Amount
-            currency={code}
-            sign={expense > 0 ? "out" : "none"}
-            value={expense}
-          />
-        </StatValue>
-      </Stat>
-      <Stat>
-        <StatLabel>Net</StatLabel>
-        <StatValue>
+    <>
+      <section
+        aria-label="Totals for these transactions"
+        className="bg-card dark:ring-hairline flex flex-col gap-3 rounded-2xl px-4 py-3.5 md:hidden dark:ring-1"
+      >
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-muted-foreground text-xs">Net</span>
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {totals.data.count.toLocaleString()}{" "}
+            {totals.data.count === 1 ? "transaction" : "transactions"}
+          </span>
+        </div>
+        <span className="-mt-2 truncate text-2xl font-semibold tabular-nums">
           <Amount currency={code} sign="auto" value={income - expense} />
-        </StatValue>
+        </span>
+        <div className="border-hairline grid grid-cols-2 gap-3 border-t pt-3">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-muted-foreground text-xs">Money in</span>
+            <span className="truncate text-sm font-semibold tabular-nums">
+              <Amount
+                currency={code}
+                sign={income > 0 ? "in" : "none"}
+                tone="auto"
+                value={income}
+              />
+            </span>
+          </div>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-muted-foreground text-xs">Money out</span>
+            <span className="truncate text-sm font-semibold tabular-nums">
+              <Amount
+                currency={code}
+                sign={expense > 0 ? "out" : "none"}
+                value={expense}
+              />
+            </span>
+          </div>
+        </div>
         {others.length > 0 ? (
-          <StatDetail>
+          <p className="text-muted-foreground truncate text-xs">
             Plus activity in{" "}
             {others.map((entry) => entry.currencyCode).join(", ")}
-          </StatDetail>
+          </p>
         ) : null}
-      </Stat>
-      <Stat>
-        <StatLabel>Transactions</StatLabel>
-        <StatValue>{totals.data.count.toLocaleString()}</StatValue>
-      </Stat>
-    </StatGroup>
+      </section>
+      <StatGroup
+        aria-label="Totals for these transactions"
+        className="max-md:hidden"
+      >
+        <Stat>
+          <StatLabel>Money in</StatLabel>
+          <StatValue>
+            <Amount
+              currency={code}
+              sign={income > 0 ? "in" : "none"}
+              tone="auto"
+              value={income}
+            />
+          </StatValue>
+        </Stat>
+        <Stat>
+          <StatLabel>Money out</StatLabel>
+          <StatValue>
+            <Amount
+              currency={code}
+              sign={expense > 0 ? "out" : "none"}
+              value={expense}
+            />
+          </StatValue>
+        </Stat>
+        <Stat>
+          <StatLabel>Net</StatLabel>
+          <StatValue>
+            <Amount currency={code} sign="auto" value={income - expense} />
+          </StatValue>
+          {others.length > 0 ? (
+            <StatDetail>
+              Plus activity in{" "}
+              {others.map((entry) => entry.currencyCode).join(", ")}
+            </StatDetail>
+          ) : null}
+        </Stat>
+        <Stat>
+          <StatLabel>Transactions</StatLabel>
+          <StatValue>{totals.data.count.toLocaleString()}</StatValue>
+        </Stat>
+      </StatGroup>
+    </>
   );
 };
 
@@ -203,6 +253,15 @@ export const TransactionsPage = ({
   const { clearSelection, selectedIds, toggleAll, toggleSelection } =
     useLedgerSelection(search);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const wide = useMediaQuery({ min: 768 });
+  // Phones select through an explicit mode: a checkbox on every row crowds
+  // out the transaction itself.
+  const [selecting, setSelecting] = useState(false);
+  const showSelection = canBulkEdit && (wide || selecting);
+  const stopSelecting = () => {
+    setSelecting(false);
+    clearSelection();
+  };
 
   const accountOptions = useMemo(
     () =>
@@ -361,7 +420,7 @@ export const TransactionsPage = ({
           onOpen={(transaction) => openTransaction(transaction)}
           scoped={search.accountIds.length > 0}
           selection={
-            canBulkEdit
+            showSelection
               ? {
                   onToggle: toggleSelection,
                   onToggleAll: toggleAll,
@@ -446,10 +505,32 @@ export const TransactionsPage = ({
 
   return (
     <Page>
-      <PageHeader>
+      <PageHeader className="max-md:flex-nowrap max-md:items-center">
         <PageHeading>
           <PageTitle>Transactions</PageTitle>
         </PageHeading>
+        <div className="flex items-center gap-1 md:hidden">
+          {can({ transaction: ["create"] }) && !selecting ? (
+            <Button
+              aria-label="Import"
+              render={<Link to="/imports" />}
+              size="icon"
+              variant="ghost"
+            >
+              <HugeiconsIcon icon={FileImportIcon} strokeWidth={1.8} />
+            </Button>
+          ) : null}
+          {canBulkEdit && items.length > 0 ? (
+            <Button
+              aria-pressed={selecting}
+              onClick={() => (selecting ? stopSelecting() : setSelecting(true))}
+              size="sm"
+              variant={selecting ? "default" : "secondary"}
+            >
+              {selecting ? "Done" : "Select"}
+            </Button>
+          ) : null}
+        </div>
         <PageActions className="max-md:hidden">
           {can({ transaction: ["create"] }) ? (
             <Button render={<Link to="/imports" />} variant="secondary">
@@ -483,7 +564,7 @@ export const TransactionsPage = ({
             : "group/ledger flex flex-col gap-3"
         }
       >
-        <div className="bg-background/95 border-hairline supports-[backdrop-filter]:bg-background/85 sticky top-13 z-20 -mx-4 flex flex-col gap-2 border-b px-4 py-3 shadow-sm supports-[backdrop-filter]:backdrop-blur-md sm:mx-0 sm:rounded-xl sm:border sm:px-3">
+        <div className="md:bg-background/95 md:border-hairline md:supports-[backdrop-filter]:bg-background/85 flex flex-col gap-2 md:sticky md:top-0 md:z-20 md:rounded-xl md:border md:px-3 md:py-3 md:shadow-sm md:supports-[backdrop-filter]:backdrop-blur-md">
           <LedgerSearch
             onChange={(value) => onSearchChange({ search: value })}
             value={search.search}
@@ -513,7 +594,7 @@ export const TransactionsPage = ({
         <>
           <BulkActionBar
             count={selectedIds.size}
-            onClear={clearSelection}
+            onClear={wide ? clearSelection : stopSelecting}
             onEdit={() => setBulkOpen(true)}
           />
           <BulkEditDialog
@@ -523,7 +604,7 @@ export const TransactionsPage = ({
             transactionIds={[...selectedIds]}
             open={bulkOpen}
             onOpenChange={setBulkOpen}
-            onSaved={clearSelection}
+            onSaved={wide ? clearSelection : stopSelecting}
           />
         </>
       ) : null}

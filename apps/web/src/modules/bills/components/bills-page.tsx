@@ -145,7 +145,7 @@ const MonthGrid = ({
                     aria-label={`${formatLongDate(day)}, ${daySummary(dayBills)}`}
                     aria-pressed={isSelected}
                     className={cn(
-                      "border-border hover:bg-accent focus-visible:ring-ring/50 flex min-h-24 w-full flex-col items-start gap-1 rounded-lg border p-1 text-sm tabular-nums outline-none focus-visible:ring-3 sm:min-h-36 sm:p-2",
+                      "hover:bg-accent focus-visible:ring-ring/50 sm:border-border flex min-h-12 w-full flex-col items-center gap-1 rounded-lg p-1 text-sm tabular-nums outline-none focus-visible:ring-3 sm:min-h-36 sm:items-start sm:border sm:p-2",
                       isSelected && "bg-accent font-semibold",
                       day === today && "text-brand-text font-semibold",
                       dayBills.length === 0 && "text-muted-foreground"
@@ -172,10 +172,21 @@ const MonthGrid = ({
                     type="button"
                   >
                     {parseIsoDate(day).getDate()}
+                    {/* Phones get dots; the agenda below carries the names. */}
                     {dayBills.length > 0 ? (
                       <span
                         aria-hidden="true"
-                        className="flex w-full flex-col gap-1"
+                        className="flex items-center gap-0.5 sm:hidden"
+                      >
+                        {dayBills.slice(0, 3).map((bill) => (
+                          <span className={dotClassName(bill)} key={bill.key} />
+                        ))}
+                      </span>
+                    ) : null}
+                    {dayBills.length > 0 ? (
+                      <span
+                        aria-hidden="true"
+                        className="flex w-full flex-col gap-1 max-sm:hidden"
                       >
                         {dayBills.slice(0, 3).map((bill) => (
                           <span

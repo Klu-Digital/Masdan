@@ -64,7 +64,9 @@ export const ScrollArea = ({
       data-slot="scroll-area-viewport"
     >
       <ScrollAreaPrimitive.Content
-        className={cn(fill && "size-full", clampContentMinWidth && "min-w-0")}
+        // Important, or Base UI's inline `min-width: fit-content` wins and a
+        // wide child stretches the page sideways.
+        className={cn(fill && "size-full", clampContentMinWidth && "min-w-0!")}
         data-slot="scroll-area-content"
       >
         {children}

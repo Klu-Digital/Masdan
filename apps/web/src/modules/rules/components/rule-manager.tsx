@@ -215,8 +215,10 @@ export const RuleManager = ({
           <div className="flex items-center gap-1">
             {canUpdate ? (
               <>
+                {/* Phones reorder from the menu, keeping room for the rule. */}
                 <Button
                   aria-label={`Move ${rule.name} up`}
+                  className="max-sm:hidden"
                   disabled={index === 0 || reorder.isPending}
                   onClick={() =>
                     reorder.mutate({ ruleIds: moved(rules.data, index, -1) })
@@ -228,6 +230,7 @@ export const RuleManager = ({
                 </Button>
                 <Button
                   aria-label={`Move ${rule.name} down`}
+                  className="max-sm:hidden"
                   disabled={
                     index === rules.data.length - 1 || reorder.isPending
                   }
@@ -258,6 +261,39 @@ export const RuleManager = ({
                   <HugeiconsIcon icon={MoreHorizontalIcon} strokeWidth={2} />
                 </MenuTrigger>
                 <MenuPopup align="end" className="min-w-40">
+                  {canUpdate ? (
+                    <>
+                      <MenuItem
+                        className="sm:hidden"
+                        disabled={index === 0 || reorder.isPending}
+                        onClick={() =>
+                          reorder.mutate({
+                            ruleIds: moved(rules.data, index, -1),
+                          })
+                        }
+                      >
+                        <HugeiconsIcon icon={ArrowUp01Icon} strokeWidth={1.8} />
+                        Move up
+                      </MenuItem>
+                      <MenuItem
+                        className="sm:hidden"
+                        disabled={
+                          index === rules.data.length - 1 || reorder.isPending
+                        }
+                        onClick={() =>
+                          reorder.mutate({
+                            ruleIds: moved(rules.data, index, 1),
+                          })
+                        }
+                      >
+                        <HugeiconsIcon
+                          icon={ArrowDown01Icon}
+                          strokeWidth={1.8}
+                        />
+                        Move down
+                      </MenuItem>
+                    </>
+                  ) : null}
                   {canUpdate ? (
                     <MenuItem
                       onClick={() =>

@@ -13,7 +13,7 @@ export const AllocationMeter = ({
   allocation: LabelledAllocation;
   className?: string;
 }) => (
-  <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs font-normal tabular-nums">
+  <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs font-normal whitespace-nowrap tabular-nums">
     {/* The label already says it; a second meter announcement is noise. */}
     <Meter
       aria-hidden="true"

@@ -24,7 +24,7 @@ export const Stat = ({
 }: React.ComponentProps<"div">): React.ReactElement => (
   <div
     className={cn(
-      "in-data-[slot=stat-group]:max-sm:border-hairline in-data-[layout=grid]:border-hairline flex min-w-0 flex-1 flex-col gap-1 px-4 py-3.5 in-data-[layout=grid]:not-nth-[-n+2]:border-t in-data-[layout=grid]:odd:border-e in-data-[slot=stat-group]:max-sm:not-nth-[-n+2]:border-t in-data-[slot=stat-group]:max-sm:odd:border-e",
+      "in-data-[slot=stat-group]:max-sm:border-hairline in-data-[layout=grid]:border-hairline flex min-w-0 flex-1 flex-col gap-1 px-4 py-3.5 in-data-[layout=grid]:not-nth-[-n+2]:border-t in-data-[layout=grid]:odd:border-e in-data-[layout=grid]:last:odd:border-e-0 in-data-[slot=stat-group]:max-sm:not-nth-[-n+2]:border-t in-data-[slot=stat-group]:max-sm:odd:border-e in-data-[slot=stat-group]:max-sm:last:odd:border-e-0",
       className
     )}
     data-slot="stat"

@@ -116,7 +116,10 @@ export const SectionHeader = ({
   ...props
 }: React.ComponentProps<"div">): React.ReactElement => (
   <div
-    className={cn("flex min-h-7 items-center justify-between gap-4", className)}
+    className={cn(
+      "flex min-h-7 flex-wrap items-center justify-between gap-x-4 gap-y-1",
+      className
+    )}
     data-slot="section-header"
     {...props}
   />

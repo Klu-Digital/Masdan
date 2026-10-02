@@ -3,6 +3,7 @@ import { useRender } from "@base-ui/react/use-render";
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { cn } from "@masdan/ui/lib/utils";
+import { Children, isValidElement } from "react";
 import type React from "react";
 
 export const List = ({
@@ -104,7 +105,36 @@ export const ListItemContent = ({
   />
 );
 
+// Bare text in a flex row cannot shrink, so it clips without an ellipsis;
+// each run of text gets its own truncating span.
+const truncateText = (children: React.ReactNode): React.ReactNode => {
+  const out: React.ReactNode[] = [];
+  let run: string[] = [];
+  const flush = () => {
+    if (run.length > 0) {
+      out.push(
+        <span className="min-w-0 truncate" key={`text:${out.length}`}>
+          {run.join("")}
+        </span>
+      );
+      run = [];
+    }
+  };
+  // oxlint-disable-next-line react/no-react-children -- text runs need their own box to ellipsize
+  for (const child of Children.toArray(children)) {
+    if (typeof child === "string" || typeof child === "number") {
+      run.push(String(child));
+    } else {
+      flush();
+      out.push(isValidElement(child) ? child : null);
+    }
+  }
+  flush();
+  return out;
+};
+
 export const ListItemTitle = ({
+  children,
   className,
   ...props
 }: React.ComponentProps<"div">): React.ReactElement => (
@@ -115,10 +145,13 @@ export const ListItemTitle = ({
     )}
     data-slot="list-item-title"
     {...props}
-  />
+  >
+    {truncateText(children)}
+  </div>
 );
 
 export const ListItemDescription = ({
+  children,
   className,
   ...props
 }: React.ComponentProps<"div">): React.ReactElement => (
@@ -129,7 +162,9 @@ export const ListItemDescription = ({
     )}
     data-slot="list-item-description"
     {...props}
-  />
+  >
+    {truncateText(children)}
+  </div>
 );
 
 export const ListItemTrailing = ({

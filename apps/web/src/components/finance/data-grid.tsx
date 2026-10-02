@@ -65,7 +65,7 @@ const DataGridHead = ({
 }: React.ComponentProps<"th">): React.ReactElement => (
   <th
     className={cn(
-      "bg-background/92 text-muted-foreground border-hairline sticky top-13 z-10 h-9 border-b px-3 text-left align-middle text-xs font-medium whitespace-nowrap group-data-[sticky]/ledger:top-40 first:ps-2 last:pe-2 supports-[backdrop-filter]:backdrop-blur-md",
+      "bg-background/92 text-muted-foreground border-hairline sticky top-0 z-10 h-9 border-b px-3 text-left align-middle text-xs font-medium whitespace-nowrap group-data-[sticky]/ledger:top-25.5 first:ps-2 last:pe-2 supports-[backdrop-filter]:backdrop-blur-md",
       className
     )}
     data-slot="data-grid-head"
@@ -100,7 +100,7 @@ export const DataGridGroupRow = ({
 }): React.ReactElement => (
   <tr data-slot="data-grid-group-row" {...props}>
     <th
-      className="bg-background/92 sticky top-22 z-[5] px-2 pt-5 pb-1.5 text-left align-bottom font-normal group-data-[sticky]/ledger:top-49 supports-[backdrop-filter]:backdrop-blur-md"
+      className="bg-background/92 sticky top-9 z-[5] px-2 pt-5 pb-1.5 text-left align-bottom font-normal group-data-[sticky]/ledger:top-34.5 supports-[backdrop-filter]:backdrop-blur-md"
       colSpan={colSpan}
       scope="colgroup"
     >

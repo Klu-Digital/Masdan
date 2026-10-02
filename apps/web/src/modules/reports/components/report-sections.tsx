@@ -125,33 +125,36 @@ const ChartTable = <Row extends ChartRow>({
   const [privacyOn] = usePrivacyMode();
   const money = useFormattedMoney();
   return (
-    <table className="sr-only">
-      <caption>{caption}</caption>
-      <thead>
-        <tr>
-          <th scope="col">Period</th>
-          {columns.map((column) => (
-            <th key={column.key} scope="col">
-              {column.label}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => (
-          <tr key={row.period}>
-            <th scope="row">{row.period}</th>
+    // A table ignores sr-only's 1px width, so the clip goes on a wrapper.
+    <div className="sr-only">
+      <table>
+        <caption>{caption}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Period</th>
             {columns.map((column) => (
-              <td key={column.key}>
-                {privacyOn
-                  ? "Amount hidden"
-                  : cellText(column, row, currency, money)}
-              </td>
+              <th key={column.key} scope="col">
+                {column.label}
+              </th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.period}>
+              <th scope="row">{row.period}</th>
+              {columns.map((column) => (
+                <td key={column.key}>
+                  {privacyOn
+                    ? "Amount hidden"
+                    : cellText(column, row, currency, money)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 };
 

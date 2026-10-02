@@ -295,7 +295,30 @@ describe("Ledger (phone)", () => {
     expect(
       await screen.findByRole("heading", { name: "September 2026" })
     ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Today" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Yesterday" })
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Salary/u }));
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "t-3" }));
+  });
+
+  it("picks rows by tap while selecting", async () => {
+    const user = userEvent.setup();
+    const onOpen = vi.fn();
+    const onToggle = vi.fn();
+    renderWithProviders(
+      <Ledger
+        onOpen={onOpen}
+        selection={{ onToggle, onToggleAll: vi.fn(), selectedIds: new Set() }}
+        today="2026-09-24"
+        transactions={rows}
+      />
+    );
+    await user.click(
+      await screen.findByRole("button", { name: /Weekly market/u })
+    );
+    expect(onToggle).toHaveBeenCalledWith("t-1");
+    expect(onOpen).not.toHaveBeenCalled();
   });
 });

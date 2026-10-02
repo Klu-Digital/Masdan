@@ -176,11 +176,13 @@ const openOnKey =
 
 type LedgerEntry =
   | { kind: "group"; month: string }
+  | { kind: "day"; date: string }
   | { kind: "item"; transaction: Transaction };
 
 const OVERSCAN = 12;
-const ESTIMATED_ITEM_HEIGHT = { desktop: 57, mobile: 72 };
-const ESTIMATED_GROUP_HEIGHT = { desktop: 44, mobile: 40 };
+const ESTIMATED_ITEM_HEIGHT = { desktop: 57, mobile: 60 };
+const ESTIMATED_GROUP_HEIGHT = { desktop: 44, mobile: 48 };
+const ESTIMATED_DAY_HEIGHT = 32;
 
 const flattenEntries = (
   groups: LedgerProps["groups"],
@@ -198,6 +200,47 @@ const flattenEntries = (
   ]);
 };
 
+/** Phones read a date-sorted ledger by day, so each day gets a header. */
+const withDayHeaders = (entries: LedgerEntry[]): LedgerEntry[] => {
+  const out: LedgerEntry[] = [];
+  let day: string | null = null;
+  for (const entry of entries) {
+    if (entry.kind === "group") {
+      day = null;
+    } else if (
+      entry.kind === "item" &&
+      entry.transaction.transactionDate !== day
+    ) {
+      day = entry.transaction.transactionDate;
+      out.push({ date: day, kind: "day" });
+    }
+    out.push(entry);
+  }
+  return out;
+};
+
+const entryKey = (entry: LedgerEntry | undefined, index: number) => {
+  if (entry?.kind === "group") {
+    return `group:${entry.month}`;
+  }
+  if (entry?.kind === "day") {
+    return `day:${entry.date}`;
+  }
+  return entry?.transaction.id ?? index;
+};
+
+const estimateEntry = (
+  entry: LedgerEntry | undefined,
+  variant: "desktop" | "mobile"
+) => {
+  if (entry?.kind === "group") {
+    return ESTIMATED_GROUP_HEIGHT[variant];
+  }
+  return entry?.kind === "day"
+    ? ESTIMATED_DAY_HEIGHT
+    : ESTIMATED_ITEM_HEIGHT[variant];
+};
+
 // Mounted rows keep normal flow so sticky headers and table semantics work.
 const useVirtualLedger = <T extends HTMLElement>(
   entries: LedgerEntry[],
@@ -205,11 +248,10 @@ const useVirtualLedger = <T extends HTMLElement>(
 ) => {
   const listRef = useRef<T>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
-  const groupIndexes = useMemo(
+  // The sticky header above the first visible row has to stay mounted.
+  const headerIndexes = useMemo(
     () =>
-      entries.flatMap((entry, index) =>
-        entry.kind === "group" ? [index] : []
-      ),
+      entries.flatMap((entry, index) => (entry.kind === "item" ? [] : [index])),
     [entries]
   );
 
@@ -241,16 +283,8 @@ const useVirtualLedger = <T extends HTMLElement>(
   // oxlint-disable-next-line react/incompatible-library -- rows read straight from the virtualizer each render
   const virtualizer = useVirtualizer({
     count: entries.length,
-    estimateSize: (index) =>
-      entries[index]?.kind === "group"
-        ? ESTIMATED_GROUP_HEIGHT[variant]
-        : ESTIMATED_ITEM_HEIGHT[variant],
-    getItemKey: (index) => {
-      const entry = entries[index];
-      return entry?.kind === "group"
-        ? `group:${entry.month}`
-        : (entry?.transaction.id ?? index);
-    },
+    estimateSize: (index) => estimateEntry(entries[index], variant),
+    getItemKey: (index) => entryKey(entries[index], index),
     getScrollElement: () => scroller,
     // Until the scroll container is found (and where there is none, as in
     // jsdom) assume a viewport-sized window so the first rows still render.
@@ -258,7 +292,7 @@ const useVirtualLedger = <T extends HTMLElement>(
     overscan: OVERSCAN,
     rangeExtractor: (range) => {
       const rendered = defaultRangeExtractor(range);
-      const pinned = groupIndexes.findLast(
+      const pinned = headerIndexes.findLast(
         (index) => index <= range.startIndex
       );
       return pinned === undefined || rendered.includes(pinned)
@@ -461,7 +495,7 @@ const DesktopLedger = (props: LedgerProps) => {
             );
           }
           const entry = entries[item.index];
-          if (!entry) {
+          if (!entry || entry.kind === "day") {
             return null;
           }
           return entry.kind === "group" ? (
@@ -482,29 +516,68 @@ const DesktopLedger = (props: LedgerProps) => {
   );
 };
 
+const mobileSubtitle = (
+  transaction: Transaction,
+  view: TransactionView,
+  {
+    hideAccount,
+    showDate,
+    today,
+  }: {
+    hideAccount?: boolean;
+    showDate: boolean;
+    today: string;
+  }
+) => {
+  const categorized = view.kind === "expense" || view.kind === "income";
+  let detail: string | null = view.subtitle;
+  // One account's ledger has no use for the account name on every row.
+  if (hideAccount && categorized) {
+    detail =
+      view.title === transaction.categoryName ? null : transaction.categoryName;
+  }
+  const date = showDate
+    ? formatShortDate(transaction.transactionDate, today)
+    : null;
+  return [date, detail].filter(Boolean).join(" · ");
+};
+
 const MobileRow = ({
   dataIndex,
+  hideAccount,
   measureRef,
   onOpen,
   scoped,
   selection,
+  showDate,
   today,
   transaction,
 }: {
   dataIndex: number;
+  hideAccount?: boolean;
   measureRef: (node: HTMLElement | null) => void;
   selection?: LedgerProps["selection"];
   onOpen: (transaction: Transaction) => void;
   scoped?: boolean;
+  showDate: boolean;
   today: string;
   transaction: Transaction;
 }) => {
   const view = describeTransaction(transaction, { scoped });
   const label = rowLabel(transaction, view.title, today);
+  const subtitle = mobileSubtitle(transaction, view, {
+    hideAccount,
+    showDate,
+    today,
+  });
   return (
-    <div className="flex items-center" data-index={dataIndex} ref={measureRef}>
+    <div
+      className="flex min-w-0 items-center"
+      data-index={dataIndex}
+      ref={measureRef}
+    >
       {selection ? (
-        <div className="pl-2">
+        <div className="flex shrink-0 ps-2">
           <RowCheckbox
             transaction={transaction}
             selection={selection}
@@ -512,18 +585,23 @@ const MobileRow = ({
           />
         </div>
       ) : null}
-      <ListItemButton aria-label={label} onClick={() => onOpen(transaction)}>
+      <ListItemButton
+        aria-label={label}
+        // While selecting, a tap picks the row; the inspector waits.
+        onClick={() =>
+          selection && selectable(transaction)
+            ? selection.onToggle(transaction.id)
+            : onOpen(transaction)
+        }
+      >
         <ListItemLeading>
           <TransactionTile transaction={transaction} />
         </ListItemLeading>
         <ListItemContent>
           <ListItemTitle>{view.title}</ListItemTitle>
-          <ListItemDescription>
-            {formatShortDate(transaction.transactionDate, today)} ·{" "}
-            {view.subtitle}
-          </ListItemDescription>
+          <ListItemDescription>{subtitle}</ListItemDescription>
         </ListItemContent>
-        <ListItemTrailing stacked>
+        <ListItemTrailing className="max-w-1/2" stacked>
           <Amount
             weight="medium"
             currency={transaction.currencyCode}
@@ -531,7 +609,7 @@ const MobileRow = ({
             tone={amountTone(transaction, view)}
             value={transaction.amount}
           />
-          <span className="flex gap-1">
+          <span className="flex gap-1 empty:hidden">
             <StatusBadges transaction={transaction} />
           </span>
         </ListItemTrailing>
@@ -542,6 +620,7 @@ const MobileRow = ({
 
 const MobileLedger = ({
   groups,
+  hideAccount,
   onOpen,
   scoped,
   selection,
@@ -549,13 +628,17 @@ const MobileLedger = ({
   transactions,
 }: LedgerProps) => {
   const entries = useMemo(
-    () => flattenEntries(groups, transactions),
+    () =>
+      groups
+        ? withDayHeaders(flattenEntries(groups, transactions))
+        : flattenEntries(groups, transactions),
     [groups, transactions]
   );
   const { listRef, scrollMargin, virtualizer } =
     useVirtualLedger<HTMLDivElement>(entries, "mobile");
   return (
-    <div className="flex flex-col" ref={listRef}>
+    // The plain variant gives the rows a page-width inset rather than a card's.
+    <div className="flex min-w-0 flex-col" data-variant="plain" ref={listRef}>
       {withSpacers(
         virtualizer.getVirtualItems(),
         scrollMargin,
@@ -568,23 +651,40 @@ const MobileLedger = ({
         if (!entry) {
           return null;
         }
-        return entry.kind === "group" ? (
-          <h3
-            className="bg-background/92 sticky top-13 z-10 px-2 pt-4 pb-1.5 text-xs font-semibold group-data-[sticky]/ledger:top-40 supports-[backdrop-filter]:backdrop-blur-md"
-            data-index={item.index}
-            key={item.key}
-            ref={virtualizer.measureElement}
-          >
-            {formatMonthYear(entry.month)}
-          </h3>
-        ) : (
+        if (entry.kind === "group") {
+          return (
+            <h3
+              className="px-2 pt-5 pb-1 text-base font-semibold"
+              data-index={item.index}
+              key={item.key}
+              ref={virtualizer.measureElement}
+            >
+              {formatMonthYear(entry.month)}
+            </h3>
+          );
+        }
+        if (entry.kind === "day") {
+          return (
+            <h4
+              className="bg-background/92 text-muted-foreground sticky top-0 z-10 px-2 pt-2.5 pb-1.5 text-xs font-medium supports-[backdrop-filter]:backdrop-blur-md"
+              data-index={item.index}
+              key={item.key}
+              ref={virtualizer.measureElement}
+            >
+              {formatDay(entry.date, today)}
+            </h4>
+          );
+        }
+        return (
           <MobileRow
             dataIndex={item.index}
+            hideAccount={hideAccount}
             key={item.key}
             measureRef={virtualizer.measureElement}
             onOpen={onOpen}
             scoped={scoped}
             selection={selection}
+            showDate={!groups}
             today={today}
             transaction={entry.transaction}
           />
