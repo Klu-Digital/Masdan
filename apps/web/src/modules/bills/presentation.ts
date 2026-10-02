@@ -27,10 +27,6 @@ export const calendarWeeks = (month: string): (string | null)[][] => {
   return weeks;
 };
 
-/**
- * Where a grid key moves focus, kept inside the month: arrows by a day or a
- * week, Home and End to the ends of the week. Null for any other key.
- */
 export const moveWithinMonth = (day: string, key: string): string | null => {
   const weekday = parseIsoDate(day).getDay();
   const offsets: Record<string, number> = {

@@ -35,11 +35,7 @@ import type { ChatChannelAdapter } from "./chat.channel";
 import { hashLinkCode } from "./chat.link";
 import { chatReplies, quickEntryLink } from "./chat.replies";
 
-/**
- * Worker-side chat entry, the same for every channel. No procedure ladder: a
- * message carries no session, so the household comes from `chat_link` and
- * every message re-checks what `orgProcedure` and `requirePermission` would.
- */
+// No procedure ladder: every message re-checks what `orgProcedure` would.
 
 /** A `chat.process` payload whose channel has been checked against the registry. */
 export type ChatJob = JobPayload<"chat.process"> & { channel: ChatChannel };
@@ -54,10 +50,7 @@ class AlreadyProcessedError extends Error {
 
 type Executor = Pick<Database, "update">;
 
-/**
- * Marks the message handled. Called in the same transaction as the write it
- * guards, so a retried job either sees it claimed or finds nothing written.
- */
+// Same transaction as the write, so a retry sees it claimed or nothing written.
 const claimMessage = async (
   db: Executor,
   job: ChatJob,
@@ -83,10 +76,7 @@ const claimMessage = async (
   }
 };
 
-/**
- * Membership and `transaction:create`, read now rather than at linking, so a
- * member removed or demoted since stops posting into the household.
- */
+// Checked per message, so a removed or demoted member stops posting.
 const TRANSACTION_CREATE: PermissionRequest = { transaction: ["create"] };
 
 const householdAccess = async (
@@ -481,11 +471,7 @@ const addReceipt = async (
   }
 };
 
-/**
- * Returns the reply to send, or `null` when there is nothing to say: chat entry
- * is off, or a repeat delivery already handled this message. Side effects are
- * committed before the reply is returned, so a failed send never re-creates.
- */
+// Side effects commit before the reply, so a failed send never re-creates.
 export const processChatMessage = async (
   db: Database,
   job: ChatJob,

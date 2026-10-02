@@ -25,10 +25,6 @@ interface ReviewCategory {
 const plural = (count: number, one: string, many: string): string =>
   `${count.toLocaleString()} ${count === 1 ? one : many}`;
 
-/**
- * Asks for suggestions on rows still on the import's default category, a
- * batch at a time, and accepts every pending one in one go.
- */
 export const ImportSuggestionsBar = ({
   activeOrganizationId,
   importId,

@@ -17,10 +17,6 @@ const caught = async (p: Promise<unknown>): Promise<unknown> => {
   }
 };
 
-/**
- * The bucket is faked, so this suite needs only Postgres. `buildObjectKey` and
- * friends stay real.
- */
 const bucket = vi.hoisted(() => ({
   objects: new Map<
     string,

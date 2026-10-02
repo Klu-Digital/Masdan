@@ -289,8 +289,6 @@ const PreviewTable = ({
   );
 };
 
-/** The preview runs the worker's own normalizer, so it shows what commits. */
-// One form with conditional amount fields; splitting it scatters the state.
 // oxlint-disable-next-line complexity
 export const MappingForm = ({
   accounts,

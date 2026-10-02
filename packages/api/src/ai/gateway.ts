@@ -12,12 +12,6 @@ import type { AiHousehold } from "./usage";
 
 type AiErrorReason = "malformed" | "over_budget" | "unavailable";
 
-/**
- * `unavailable`: no gateway or model is configured for the feature.
- * `over_budget`: the household has spent `AI_DAILY_TOKEN_BUDGET` today.
- * `malformed`: the model answered, but not with JSON matching the schema.
- * Transport errors and timeouts surface as the SDK's own errors.
- */
 export class AiError extends Error {
   readonly reason: AiErrorReason;
 
@@ -53,13 +47,7 @@ const gatewayClient = (baseURL: string): OpenAI =>
     maxRetries: 0,
   });
 
-/**
- * One chat completion through Cloudflare AI Gateway's OpenAI-compatible
- * endpoint, server-side only, constrained to `schema` and charged to
- * `household`'s daily budget. Throws `AiError`, or the SDK's own error on
- * transport failure or timeout — the result is only ever returned after
- * `schema` has parsed it.
- */
+/** Throws `AiError`; only returns once `schema` has parsed the answer. */
 export const completeJson = async <Schema extends z.ZodType>({
   feature,
   household,

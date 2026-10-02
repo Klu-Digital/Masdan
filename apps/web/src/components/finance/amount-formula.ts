@@ -23,11 +23,7 @@ export const sanitizeDecimal = (text: string): string => {
     : whole;
 };
 
-/**
- * Evaluates `+ − × ÷` with parentheses and unary signs by recursive descent —
- * never `eval`. Returns the decimal string the API expects, or `null` when the
- * text is incomplete, malformed or not a non-negative finite amount.
- */
+// Recursive descent, never `eval`. `null` for incomplete or negative input.
 export const evaluateFormula = (text: string): string | null => {
   const source = text
     .replaceAll("×", "*")

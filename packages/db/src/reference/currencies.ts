@@ -1,21 +1,5 @@
-/**
- * ISO 4217 reference data, seeded into the `currency` table.
- *
- * Generated, not hand-maintained. `code` and `minorUnits` come from ICU
- * (`Intl.supportedValuesOf("currency")` and the currency formatter's resolved
- * fraction digits): minor units drive money math, and the widely copied gist
- * snapshot below has them wrong for AMD, CRC, MUR, RSD, TZS and UZS while
- * missing 50 codes entirely. `name`, `symbol` and `symbolNative` come from
- * that gist where it has the code — the thing it is genuinely good at — and
- * from ICU for the rest.
- *
- * ICU follows CLDR, which records what a currency is actually quoted in rather
- * than ISO 4217's formal exponent. The two disagree for a handful of
- * currencies whose subunit has fallen out of use (ALL and AFN are 0 here, 2 in
- * ISO). CLDR is the one that matches what a person expects to type.
- *
- * Source: https://gist.github.com/gp187/4393cbc6dd761225071270c29b341b7b
- */
+// Generated. Minor units come from ICU (CLDR), not the gist below, which has
+// several wrong. Source: https://gist.github.com/gp187/4393cbc6dd761225071270c29b341b7b
 export interface CurrencyReference {
   code: string;
   /** Fraction digits for the currency's minor unit — JPY 0, PHP 2, KWD 3. */

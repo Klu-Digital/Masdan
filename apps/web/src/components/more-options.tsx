@@ -7,10 +7,6 @@ import {
 } from "@masdan/ui/components/collapsible";
 import type { ReactNode } from "react";
 
-/**
- * Progressive disclosure for forms: the common path stays short, and the
- * rarely-needed fields wait one click away.
- */
 export const MoreOptions = ({
   children,
   defaultOpen = false,

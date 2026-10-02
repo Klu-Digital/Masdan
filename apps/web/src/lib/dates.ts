@@ -1,7 +1,4 @@
-/**
- * Ledger dates are calendar days (`YYYY-MM-DD`) in the household's timezone,
- * never instants — so they are parsed as local dates and compared as strings.
- */
+// Calendar days, never instants: parse as local dates, compare as strings.
 
 export const parseIsoDate = (value: string): Date => {
   const [year = 1970, month = 1, day = 1] = value.split("-").map(Number);
@@ -135,10 +132,6 @@ export const formatRelativeDays = (iso: string, today: string): string => {
   return delta > 0 ? `in ${delta} days` : `${-delta} days ago`;
 };
 
-/**
- * The next calendar date carrying `day` on or after `today`, clamped to the
- * month's length so a 31st lands on the 30th in short months.
- */
 export const nextDayOfMonth = (day: number, today: string): string => {
   const base = parseIsoDate(today);
   for (let offset = 0; offset < 2; offset += 1) {

@@ -70,10 +70,6 @@ const publicPeriod = (
   today: period.today,
 });
 
-/**
- * Household reports over the canonical ledger. Every amount is exact numeric
- * text per currency; only consolidatedNetWorth converts currencies.
- */
 export const reportsRouter = {
   budgetPerformance: orgProcedure
     .use(requirePermission({ budget: ["read"], transaction: ["read"] }))

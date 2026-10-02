@@ -32,19 +32,12 @@ const postingDelta = sql<string>`
   END
 `;
 
-/**
- * The one balance formula. Aggregate it over `financial_account` joined with
- * `balancePostings()` and `balanceCategory`, grouped by the account.
- */
+/** The one balance formula. */
 export const balanceExpression = sql<string>`
   ${financialAccount.openingBalance} + COALESCE(SUM(${postingDelta}), 0)
 `;
 
-/**
- * Join condition for the postings that move a balance. Rows dated before the
- * opening balance date are already inside the opening balance; `asOf` stops
- * at that calendar day, and without it every posting counts, future-dated too.
- */
+// Without `asOf` every posting counts, future-dated too.
 export const balancePostings = (asOf?: SQL | string): SQL | undefined =>
   and(
     eq(financialTransaction.accountId, financialAccount.id),

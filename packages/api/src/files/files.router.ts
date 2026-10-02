@@ -29,11 +29,7 @@ const createUploadInput = z.object({
 });
 
 export const filesRouter = {
-  /**
-   * Size and content type come from the bucket, never the request. Deliberately
-   * not an `orgMutationProcedure`: the miss path records `status: "failed"` and
-   * then throws, which a transaction would roll straight back.
-   */
+  // Not a mutation procedure: the transaction would roll back `status: "failed"`.
   confirmUpload: orgProcedure
     .use(requirePermission({ attachment: ["create"] }))
     .input(fileIdInput)
@@ -81,10 +77,6 @@ export const filesRouter = {
       return updated;
     }),
 
-  /**
-   * The row exists before the bytes do, so an abandoned upload is a visible
-   * `pending` row.
-   */
   createUpload: orgMutationProcedure
     .use(requirePermission({ attachment: ["create"] }))
     .input(createUploadInput)

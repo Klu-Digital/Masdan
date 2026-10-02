@@ -16,11 +16,7 @@ const FORMULA_TRIGGER = /^[=+\-@\t\r]/u;
 export const escapeCsvField = (field: string): string =>
   NEEDS_QUOTING.test(field) ? `"${field.replaceAll('"', '""')}"` : field;
 
-/**
- * Spreadsheets execute a cell starting with `= + - @`; the apostrophe makes
- * them show it as text. Typed columns (amounts) never pass through here, or a
- * negative amount would stop being a number.
- */
+// Typed columns never pass through here, or negatives stop being numbers.
 export const neutralizeFormula = (field: string): string =>
   FORMULA_TRIGGER.test(field) ? `'${field}` : field;
 

@@ -10,13 +10,7 @@ import type { Plugin } from "vite-plus";
 const require = createRequire(import.meta.url);
 const EMOJIBASE_FILES = ["data", "messages"] as const;
 
-/**
- * Serves the English Emojibase dataset the emoji picker fetches at
- * `/emojibase-data/en/*.json`. frimousse defaults to jsDelivr, which the
- * production CSP (`connect-src 'self'`) blocks and which a self-hosted install
- * should not depend on anyway. Dev has no CSP, so this only matters in the
- * built image, but serving it in dev too keeps both topologies identical.
- */
+// frimousse defaults to jsDelivr, which the production CSP blocks.
 const emojibaseData = (): Plugin => {
   const read = (file: string) =>
     readFileSync(require.resolve(`emojibase-data/en/${file}.json`), "utf-8");
@@ -72,9 +66,7 @@ export default defineConfig({
   },
   server: {
     port,
-    // Puts `pnpm dev` on a deployed stack's topology — same-origin SPA, a proxy
-    // forwarding the API prefixes — so CORS and cookie problems do not wait
-    // until staging to show up.
+    // Same-origin like production, so CORS and cookie bugs show up in dev.
     proxy: {
       "/api/auth": { target: apiTarget },
       "/feeds": { target: apiTarget },

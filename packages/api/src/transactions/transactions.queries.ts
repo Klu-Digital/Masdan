@@ -133,10 +133,6 @@ const groupBy = <T, K>(items: T[], key: (item: T) => K): Map<K, T[]> => {
   return groups;
 };
 
-/**
- * Tags, splits and transfers for a page of rows: one query each, so a list
- * costs the same few round trips at 10 rows as at 100.
- */
 const withDetailsList = async <T extends TransactionRow>(
   db: Database,
   organizationId: string,

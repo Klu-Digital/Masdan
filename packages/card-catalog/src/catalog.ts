@@ -152,11 +152,7 @@ export interface CardIdentity {
   institution?: string | null;
 }
 
-/**
- * Lookups over the countries loaded into it. Free text (an institution, a
- * card's name) resolves only within the countries a caller names, because
- * "Citi" is UnionBank in the Philippines and Citi everywhere else.
- */
+// Free text resolves per country: "Citi" is UnionBank in the Philippines.
 export interface CardCatalog {
   countries: readonly CardCountryCode[];
   issuers: readonly CardIssuer[];

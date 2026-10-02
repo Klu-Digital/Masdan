@@ -28,10 +28,6 @@ import { orpc } from "@/utils/orpc";
 
 const routeApi = getRouteApi("/_auth/admin/organizations/$organizationId");
 
-/**
- * Read-only: better-auth's organization endpoints act on the caller's own
- * active organization, so a cross-org write would have to bypass its hooks.
- */
 const RouteComponent = () => {
   const { organizationId } = routeApi.useParams();
   const detail = useQuery(
@@ -144,11 +140,7 @@ const RouteComponent = () => {
   );
 };
 
-/**
- * `loader` before `head` in deliberate violation of `sort-keys`: TypeScript
- * resolves this literal in source order, so with `head` first `loaderData`
- * widens to `never`.
- */
+// `loader` before `head`, or `loaderData` infers as `never`.
 /* oxlint-disable sort-keys */
 export const Route = createFileRoute(
   "/_auth/admin/organizations/$organizationId"

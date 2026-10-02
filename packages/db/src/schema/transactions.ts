@@ -48,13 +48,7 @@ export type RecurringFrequency = (typeof recurringFrequencies)[number];
 /** Upper bound on "every N days/weeks/months"; keeps date math in range. */
 export const MAX_RECURRING_INTERVAL = 366;
 
-/**
- * A template that posts an income or expense on a calendar rhythm. Occurrences
- * are household calendar days counted from `startDate`; `nextOccurrenceDate`
- * is the next one still to post, and is null once the schedule is stopped.
- * With an `endDate`, the schedule stops itself once no occurrence is left on
- * or before it.
- */
+// `nextOccurrenceDate` is null once the schedule stops.
 export const recurringSchedule = pgTable(
   "recurring_schedule",
   {

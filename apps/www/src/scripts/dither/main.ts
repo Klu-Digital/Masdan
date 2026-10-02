@@ -12,10 +12,6 @@ import { cards, iris, ledger } from "./scenes";
 
 const SCALE = 0.0042;
 
-/**
- * Flowing noise, advected by a slower warp, heavier toward the bottom. The
- * whole cloud lags the page as one plane, set back behind the panels.
- */
 const drift: Field = (x, y, t, _w, h, s) => {
   const back = y + s * 0.45;
   const nx = x * SCALE;

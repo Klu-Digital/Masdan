@@ -1,12 +1,6 @@
 import { env } from "@masdan/env/server";
 
-/**
- * The caller's IP, for rate limiting and auditing. `undefined` when nothing is
- * available, which callers handle by falling back to the session id. Forwarding
- * headers are opt-in via `TRUST_PROXY_HEADERS`: without a proxy overwriting it,
- * any direct caller can forge a fresh rate-limit identity. `env` is read in the
- * body, not at module scope.
- */
+// Forwarding headers only with `TRUST_PROXY_HEADERS`, or anyone can forge one.
 export const resolveClientIp = (
   headers: Headers,
   remoteAddress?: string | undefined

@@ -17,11 +17,6 @@ import {
   occurrenceAfter,
 } from "./recurrence";
 
-/**
- * Worker-side generation. No procedure ladder: apps/workers runs it. Every
- * occurrence goes through `createTransaction`, the same path as manual entry.
- */
-
 /** Bounds one run's catch-up after downtime; the next sweep continues it. */
 export const MAX_OCCURRENCES_PER_RUN = 62;
 
@@ -43,12 +38,7 @@ const EMPTY_RESULT: GenerationResult = {
   skipped: 0,
 };
 
-/**
- * Posts every occurrence of one schedule that is due in its household's
- * timezone. The row lock serializes overlapping runs; the unique
- * (schedule, occurrence date) index is what makes a duplicate impossible even
- * without it.
- */
+// The unique (schedule, occurrence date) index makes duplicates impossible.
 export const generateDueOccurrences = (
   db: Database,
   scheduleId: string,
@@ -155,11 +145,7 @@ export const generateDueOccurrences = (
     return result;
   });
 
-/**
- * Active schedules with an occurrence due in their own household's timezone.
- * No zone is more than a day ahead of UTC, so SQL narrows by date and the
- * zone check runs here, through the same `householdToday` as everything else.
- */
+// No zone is more than a day ahead of UTC, so SQL narrows by date first.
 export const findDueSchedules = async (
   db: Database,
   now: Date,

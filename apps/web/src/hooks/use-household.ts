@@ -11,11 +11,7 @@ const authRoute = getRouteApi("/_auth");
 
 const FALLBACK_TIMEZONE = "Asia/Manila";
 
-/**
- * The active household as every screen needs it: who the viewer is there,
- * what they may do, and its money defaults. Permission checks here are
- * cosmetic — the procedures enforce.
- */
+// Permission checks here are cosmetic; the procedures enforce.
 export const useHousehold = () => {
   const { activeOrganizationId, session } = authRoute.useRouteContext();
   const organization = useQuery(

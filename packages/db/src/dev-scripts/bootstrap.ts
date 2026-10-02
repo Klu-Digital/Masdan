@@ -5,13 +5,8 @@ import path from "node:path";
 
 import dotenv from "dotenv";
 
-/**
- * Fills `process.env` from the server's `.env`, resolved relative to this file.
- * Real environment variables win — `override: false` only fills gaps. Call this
- * before importing anything that reads `@masdan/env/shared-server` at module scope, and
- * reach for `await import(...)` for those: a formatter is free to reorder the
- * static list.
- */
+// Call before importing anything that reads `@masdan/env/shared-server`, and
+// load those with `await import(...)`: a formatter may reorder static imports.
 export const loadEnv = (): void => {
   const here = import.meta.dirname;
   const repoRoot = path.resolve(here, "../../../..");

@@ -356,10 +356,7 @@ const TabBar = ({ onMore }: { onMore: () => void }) => {
 
 const sectionOf = (pathname: string) => pathname.split("/")[1] ?? "";
 
-/**
- * Scroll the content pane back to the top on navigation, like a new page —
- * except when a ledger row opens its detail, which keeps the list in place.
- */
+// Except when a ledger row opens its detail, which keeps the list in place.
 const ScrollReset = () => {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,

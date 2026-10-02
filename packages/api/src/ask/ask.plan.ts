@@ -7,13 +7,7 @@ import { isoDate } from "../shared/dates";
 import { resolveAccountText } from "../transactions/quick-entry";
 import type { QuickEntryAccount } from "../transactions/quick-entry";
 
-/**
- * Ask Masdan reads a question into one of a fixed set of report queries. The
- * model only chooses the query and copies words from the question; it never
- * sees or returns an identifier, and it never writes the answer. Names are
- * matched here against the household's own rows, anything it claims that the
- * question does not say is dropped, and anything unclear is asked back.
- */
+// The model picks a query and copies words; it never sees or returns an id.
 
 export const ASK_QUESTION_MAX_LENGTH = 300;
 
@@ -195,10 +189,6 @@ const resolveCategory = (
   };
 };
 
-/**
- * Pure: the same question, household and extraction always give the same
- * plan. Only ever returns identifiers from `household`.
- */
 // oxlint-disable-next-line complexity
 export const resolveAskPlan = (
   question: string,

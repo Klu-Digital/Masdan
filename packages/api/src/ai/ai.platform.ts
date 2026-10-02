@@ -15,10 +15,7 @@ import { invalidateAiTokenCaps } from "./token-caps.cache";
 /** Rejects anything not in the registry, so a typo can never become a dead row. */
 const feature = z.enum(AI_FEATURE_NAMES);
 
-/**
- * Instance-wide AI settings. Token caps are global, not per household, so this
- * ignores `organizationId` like every `*.platform.ts`.
- */
+// Platform surface: token caps are global, so this ignores `organizationId`.
 export const aiPlatformRouter = {
   /** Drops the override so the feature falls back to its default cap. */
   resetTokenCap: adminMutationProcedure

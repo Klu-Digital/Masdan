@@ -27,11 +27,7 @@ import {
 import { transactionListConditions } from "../transactions/transactions.queries";
 import type { AskHousehold, AskKind, AskQuery } from "./ask.plan";
 
-/**
- * Runs a resolved plan through the same queries the Reports and Transactions
- * screens use, and words the answer from their results. The model is not
- * involved here: every number and every sentence comes from the ledger.
- */
+// No model here: every number and sentence comes from the ledger.
 
 interface AskAmount {
   amount: string;
@@ -280,11 +276,6 @@ const transactionsLink = (
   to: "/transactions",
 });
 
-/**
- * Spending or income. Without a text filter the totals are the Reports
- * screen's split-aware category totals; with one they are the Transactions
- * screen's filtered totals, which is where that filter lives.
- */
 const flowAnswer = async (
   db: Database,
   organizationId: string,

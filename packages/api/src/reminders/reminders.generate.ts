@@ -24,12 +24,6 @@ import {
   resolutionOf,
 } from "./reminders.queries";
 
-/**
- * Worker-side generation. No procedure ladder: apps/workers runs it, one
- * household per job, so every read and write below stays inside that
- * household.
- */
-
 export interface RefreshResult {
   /** Reminders inserted in this run. */
   created: number;
@@ -37,12 +31,7 @@ export interface RefreshResult {
   resolved: number;
 }
 
-/**
- * Inserts the reminders the household's cards are owed today and resolves
- * the ones that stopped being actionable. Safe to run twice or concurrently:
- * the unique (card, kind, date) index turns a repeat insert into a no-op, and
- * a resolution only ever moves an `active` row.
- */
+// Safe to run twice: inserts hit the unique index and resolution needs `active`.
 export const refreshHouseholdReminders = async (
   db: Database,
   organizationId: string,
@@ -108,10 +97,6 @@ export const refreshHouseholdReminders = async (
   });
 };
 
-/**
- * Households with something to generate or resolve: an open card with a
- * closing or due day, a statement, or a reminder still active.
- */
 export const findHouseholdsToRefresh = async (
   db: Database
 ): Promise<string[]> => {

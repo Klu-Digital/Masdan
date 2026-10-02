@@ -12,10 +12,6 @@ import { vi } from "vite-plus/test";
 
 import { createQueryClient } from "@/utils/orpc";
 
-/**
- * Renders a component inside a fresh query client and a memory router, so
- * `<Link>`s and menus that contain them work without the real route tree.
- */
 export const renderWithProviders = (
   ui: ReactElement,
   queryClient: QueryClient = createQueryClient()

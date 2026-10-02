@@ -2,9 +2,7 @@
 import path from "node:path";
 import { parseArgs } from "node:util";
 
-// Must finish before anything below is imported: `@masdan/db` and
-// `@masdan/observability` both read validated env at module scope. See
-// bootstrap.ts.
+// Must run before the imports below: they read env at module scope.
 import { loadEnv, runLifecycle } from "../bootstrap";
 // Type-only, so it is erased and carries none of that ordering risk.
 import type { StatusRow } from "./runner";

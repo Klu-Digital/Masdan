@@ -12,10 +12,6 @@ export type TableProps = React.ComponentProps<"table"> & {
   render?: useRender.ComponentProps<"div">["render"];
 };
 
-/**
- * Dense, hairline-separated rows. `card` sets the table on a grouped surface
- * instead of the canvas; rows never get their own boxes.
- */
 export const Table = ({
   className,
   variant = "default",

@@ -4,11 +4,7 @@ import { check, pgTable, text, uuid } from "drizzle-orm/pg-core";
 import { INSTITUTION_TYPES } from "../reference/interest";
 import { oneOf, timestamps } from "./columns";
 
-/**
- * Reference data shipped by Masdan, like `currency`: no `organization_id`, and
- * seeded from `src/reference/interest-presets.ts` by post-migration scripts.
- * `key` is what the seed matches on, so a renamed bank keeps its accounts.
- */
+// Seeds match on `key`, so a renamed bank keeps its accounts.
 export const financialInstitution = pgTable(
   "financial_institution",
   {

@@ -8,11 +8,7 @@ import { env } from "@masdan/env/workers";
 import { log, parseError } from "@masdan/observability";
 import type { JobOf } from "@masdan/queue";
 
-/**
- * Throws only before anything is committed, so a pg-boss retry is safe. The
- * reply is sent after the write and never throws: a retry would find the
- * message already processed and could not resend it anyway.
- */
+// Throws only before commit, so a retry is safe. The reply never throws.
 export const handleChatProcess = async (
   job: JobOf<"chat.process">
 ): Promise<void> => {

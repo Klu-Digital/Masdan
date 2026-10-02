@@ -43,9 +43,7 @@ describe("session cache", () => {
     expect(getSession).toHaveBeenCalledTimes(1);
   });
 
-  // The regression this file exists for: without a forced refetch the guard
-  // keeps reading the cached "signed out" entry and a successful sign-in
-  // bounces back to /login.
+  // Without a forced refetch, a successful sign-in bounces back to /login.
   it("gives the guard the new session after signing in, with nothing observing", async () => {
     getSession.mockResolvedValue({ data: null, error: null });
     await expect(resolveGuard(queryClient)).resolves.toBeNull();

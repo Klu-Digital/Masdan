@@ -34,11 +34,6 @@ import type React from "react";
 export interface ResponsiveSheetProps {
   children: React.ReactNode;
   description?: React.ReactNode;
-  /**
-   * How the surface presents on a tablet or desktop: a centred `dialog` for a
-   * focused task (composers), a side `sheet` for context kept beside the page
-   * (inspectors). Phones always get a swipeable bottom sheet.
-   */
   desktop?: "dialog" | "sheet";
   footer?: React.ReactNode;
   /** Visually hide the header title (it still names the surface). */

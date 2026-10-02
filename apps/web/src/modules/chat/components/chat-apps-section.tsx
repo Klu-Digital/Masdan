@@ -107,11 +107,6 @@ const LinkCode = ({
   </ListItem>
 );
 
-/**
- * Links the viewer's own chat-app accounts to the active household. Links are
- * personal: other members link their own, and see only theirs. One code works
- * on whichever channel it is sent from.
- */
 const ChatApps = ({
   activeOrganizationId,
   canLink,

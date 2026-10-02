@@ -8,12 +8,7 @@ interface Aim {
   y: number;
 }
 
-/**
- * Returns a tone index plus a density: `2.6` is tone 2 at 60% ink, and 0 is
- * paper. `u` and `v` run 0 to 1 across the canvas; `aspect` is width / height.
- * `lift` is how far the canvas sits below the viewport's centre, in viewport
- * heights clamped to [-1, 1], so a scene can move its layers at their own depth.
- */
+/** Tone index plus density: `2.6` is tone 2 at 60% ink, 0 is paper. */
 export type Scene = (
   u: number,
   v: number,

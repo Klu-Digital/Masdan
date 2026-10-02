@@ -33,10 +33,6 @@ const codeOf = async (
   return caught instanceof ORPCError ? caught.code : undefined;
 };
 
-/**
- * One representative procedure per admin router, proving the `adminProcedure`
- * gate is wired on all of them.
- */
 describe("admin router access", () => {
   it("rejects an ordinary authenticated user with FORBIDDEN", async () => {
     const { headers } = await signUpTestUser();

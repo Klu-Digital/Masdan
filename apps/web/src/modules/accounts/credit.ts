@@ -33,10 +33,6 @@ export interface PaymentDue {
   statement: CardStatement | null;
 }
 
-/**
- * The next payment a card needs. Its latest statement wins when that is due in
- * the future (or very recently); otherwise the card's due day projects one.
- */
 export const nextPaymentDue = (
   card: { balance: string; paymentDueDay: number | null },
   latest: CardStatement | undefined,

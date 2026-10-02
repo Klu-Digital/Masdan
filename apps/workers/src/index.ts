@@ -20,11 +20,7 @@ const server = serve(
 await queue.start("consumer");
 await registerWorkers();
 
-/**
- * Shutdown order matters: health server first so an orchestrator stops
- * checking, then drain the queue rather than abandon in-flight jobs, then flush
- * logs.
- */
+// Order: health server, then drain the queue, then flush logs.
 let shuttingDown = false;
 
 const handleShutdownSignal = (signal: "SIGTERM" | "SIGINT") => {

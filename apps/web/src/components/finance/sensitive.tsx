@@ -7,10 +7,7 @@ import {
   usePrivacyMode,
 } from "@/components/finance/privacy-mode";
 
-/**
- * A figure written as plain text that privacy mode should mask. `<Amount>`
- * masks itself; reach for this only where a figure is formatted by hand.
- */
+// `<Amount>` masks itself; use this only for hand-formatted figures.
 export const Sensitive = ({
   children,
   ...props

@@ -73,10 +73,6 @@ const moved = (rules: Rule[], index: number, offset: -1 | 1): string[] => {
   return ids;
 };
 
-/**
- * A household's categorization rules, in the order they run. The first
- * enabled rule that matches a transaction is the only one applied.
- */
 export const RuleManager = ({
   activeOrganizationId,
   canCreate,

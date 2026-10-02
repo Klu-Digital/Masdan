@@ -1,7 +1,3 @@
-/**
- * What a chat message asks for. Channel-neutral: `/link CODE` is typed text on
- * WhatsApp and a menu command on Telegram, and reads the same either way.
- */
 import type { InboundChatAttachment } from "./chat.channel";
 
 export type ChatCommand =

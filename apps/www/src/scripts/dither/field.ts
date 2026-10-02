@@ -3,11 +3,7 @@ import type { Actor } from "./loop";
 import type { Matrix } from "./matrix";
 import { readTones, Surface } from "./surface";
 
-/**
- * Ink density in [0, 1] at a point in CSS pixels, `t` in seconds. `s` is the
- * canvas's scroll offset from `parallax`: sampling at `y + s * depth` makes a
- * layer lag the page, so depth 0 rides with it and depth 1 stays put.
- */
+/** Ink density in [0, 1]. `s` is the scroll offset for parallax. */
 export type Field = (
   x: number,
   y: number,
@@ -91,10 +87,6 @@ export const fieldActor = (
     });
   }
 
-  /**
-   * Shadows land where a light above the viewport puts them, so they stretch
-   * as a caster sinks down the screen and shrink as it rises.
-   */
   const castShadows = (): Shadow[] => {
     const frame = canvas.getBoundingClientRect();
     return casters.map((caster) => {
@@ -113,11 +105,7 @@ export const fieldActor = (
     });
   };
 
-  /**
-   * Fades only toward the bottom and right edges: the light is up and to the
-   * left, so the other two lie under the caster, and fading them would leave
-   * a pale seam where two neighbouring panels' shadows meet.
-   */
+  // Fading the top/left edges would leave a seam between neighbouring shadows.
   const shadowAt = (px: number, py: number, shadows: Shadow[]): number => {
     let shade = 0;
     for (const shadow of shadows) {

@@ -11,10 +11,7 @@ let cachedTableList: string | undefined;
 /** pg-boss job table, `""` when not installed, `undefined` = not discovered. */
 let cachedQueueTable: string | undefined;
 
-/**
- * Reads `process.env.DATABASE_URL` at call time: `setup/db.ts` sets it per
- * worker, possibly after this module was imported.
- */
+// Read at call time: `setup/db.ts` sets it per worker after import.
 export const getTestPool = (): Pool => {
   if (!pool) {
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -30,12 +27,7 @@ export const getTestDb = (): Database => {
   return db;
 };
 
-/**
- * Seeded into the template and shared by every test, the same way pg-boss's
- * `queue` and `schedule` are: reference rows are schema, not fixtures, and
- * truncating them breaks the `organization.default_currency` foreign key for
- * every test that signs a user up.
- */
+// Truncating these breaks `organization.default_currency` for every sign-up.
 const REFERENCE_TABLES = [
   "currency",
   "financial_institution",
@@ -43,10 +35,6 @@ const REFERENCE_TABLES = [
   "interest_rate_schedule",
 ];
 
-/**
- * Only the job table. `queue` and `schedule` are schema-shaped rather than
- * data, and every test needs them.
- */
 const truncateQueueJobs = async (client: Pool): Promise<void> => {
   if (cachedQueueTable === undefined) {
     const schema = process.env.PGBOSS_SCHEMA ?? "pgboss";
@@ -66,12 +54,7 @@ const truncateQueueJobs = async (client: Pool): Promise<void> => {
   await client.query(`TRUNCATE ${cachedQueueTable} CASCADE`);
 };
 
-/**
- * Truncates every `public` table — drizzle's migration bookkeeping lives in its
- * own schema — plus pg-boss's jobs, which the `public`-only discovery misses.
- * Quoting goes through Postgres's own `format('%I', ...)` so reserved words
- * like `"user"` come out right. {@link REFERENCE_TABLES} is held back.
- */
+// pg-boss's jobs live outside `public`, so they are truncated separately.
 export const truncateAll = async (): Promise<void> => {
   const client = getTestPool();
 

@@ -11,9 +11,6 @@ import { count, eq, gt, sql } from "drizzle-orm";
 import { adminProcedure } from "../procedures";
 
 export const overviewPlatformRouter = {
-  /**
-   * One row per day with at least one signup; missing days are simply absent.
-   */
   signupsLast30Days: adminProcedure.handler(async ({ context }) => {
     const rows = await context.db.execute<{ day: string; count: string }>(
       sql`select (${user.createdAt} at time zone 'UTC')::date as day, count(*) as count
@@ -29,10 +26,7 @@ export const overviewPlatformRouter = {
     }));
   }),
 
-  /**
-   * Cross-tenant on purpose. Five cheap counts in parallel rather than one
-   * folded query.
-   */
+  // Platform surface: deliberately ignores `organizationId`.
   stats: adminProcedure.handler(async ({ context }) => {
     const now = new Date();
 

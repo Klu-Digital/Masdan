@@ -24,10 +24,7 @@ const logOrpcError = (error: unknown) => {
   log.error({ action: "orpc.error", code, message, status });
 };
 
-/**
- * `getConnInfo` throws when there is no Node socket, as in `app.request(...)`
- * from tests.
- */
+// `getConnInfo` throws without a Node socket, as in tests.
 const remoteAddressOf = (
   c: HonoRequestContext<EvlogVariables>
 ): string | undefined => {

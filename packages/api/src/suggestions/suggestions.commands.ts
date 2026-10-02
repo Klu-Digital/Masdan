@@ -78,11 +78,6 @@ const assertHouseholdProposal = async (
   }
 };
 
-/**
- * Accepts a single-transaction suggestion through the manual edit path, as
- * the user left it: `categoryId` and `tagIds` are what they kept, and
- * `suggested` is what was proposed, recorded next to it as provenance.
- */
 export const acceptForTransaction = async (
   db: Database,
   organizationId: string,
@@ -192,10 +187,6 @@ const rowUpdate = (
   };
 };
 
-/**
- * Every accepted category and tag goes through the same household, archive
- * and direction checks as a manual edit before any row changes.
- */
 const applyImportDecisions = async (
   db: Database,
   organizationId: string,
@@ -353,11 +344,6 @@ export const acceptAllForImport = async (
   };
 };
 
-/**
- * Suggests for the next batch of distinct descriptions in an import under
- * review. Rows are only annotated: a row's category changes on accept.
- * Rows sharing a description share one suggestion, so each is sent once.
- */
 export const suggestForImport = async (
   db: Database,
   organizationId: string,

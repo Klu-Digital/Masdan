@@ -15,10 +15,6 @@ import type { ReportRange } from "../period";
 const isPreset = (value: unknown): value is ReportRange["preset"] =>
   typeof value === "string" && Object.hasOwn(PRESET_LABELS, value);
 
-/**
- * Preset or custom range. Only complete, ordered ranges are reported through
- * `onChange`; switching to custom starts from the range currently shown.
- */
 export const PeriodPicker = ({
   onChange,
   resolved,

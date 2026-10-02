@@ -7,18 +7,9 @@ declare module "vite-plus/test" {
   }
 }
 
-/**
- * Redis has no `CREATE DATABASE`, so workers share one container and take a
- * numbered logical database each. Raise it in lockstep with the identical
- * constant in `setup/db.ts`.
- */
+// Keep in sync with `setup/db.ts`.
 export const REDIS_TEST_DATABASES = 64;
 
-/**
- * Starts one Redis container per `vp test` invocation. A separate `globalSetup`
- * entry rather than folded into `global-postgres.ts`, so each service tears
- * down independently and a startup failure names the right one.
- */
 export default async function setup(
   project: TestProject
 ): Promise<() => Promise<void>> {

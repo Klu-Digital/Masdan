@@ -395,11 +395,6 @@ export const minorUnitsOf = async (
   return row?.minorUnits ?? 2;
 };
 
-/**
- * An estimate from the ledger and the account's terms: what has accrued this
- * period, the next credit, and a year ahead at today's balance. It never
- * writes: the bank's real credit arrives as a transaction.
- */
 export const interestProjection = async (
   db: Database,
   organizationId: string,

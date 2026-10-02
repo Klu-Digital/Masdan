@@ -22,11 +22,6 @@ export interface DiscoveredPostMigration {
   definition: PostMigrationDefinition;
 }
 
-/**
- * Reads every script in `post-migration-scripts/` in filename order, hashes it,
- * and imports it. A malformed script is a hard error naming the file, not a
- * silent skip.
- */
 export const discoverPostMigrations = async (): Promise<
   DiscoveredPostMigration[]
 > => {

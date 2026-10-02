@@ -14,12 +14,7 @@ import { notFound } from "../shared/errors";
 
 const HOURS_TO_MS = 60 * 60 * 1000;
 
-/**
- * `./files.router.ts` without the `organizationId` filter: reading across
- * tenants is the point. Storage is optional and fails open — rows still list
- * when it is unconfigured, while `downloadUrl` and the object half of
- * `deleteFile` degrade.
- */
+// Platform surface: deliberately ignores `organizationId`.
 export const filesPlatformRouter = {
   deleteFile: adminMutationProcedure
     .input(z.object({ fileId: z.uuid() }))
@@ -129,10 +124,6 @@ export const filesPlatformRouter = {
       );
     }),
 
-  /**
-   * Rows stuck in `pending`: a client that vanished mid-upload, or one that
-   * never confirmed. Nothing here fixes them.
-   */
   pendingOlderThan: adminProcedure
     .input(z.object({ hours: z.number().int().positive().default(24) }))
     .handler(({ context, input }) => {

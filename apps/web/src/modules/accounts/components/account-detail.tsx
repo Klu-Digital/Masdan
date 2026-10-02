@@ -116,8 +116,6 @@ const paymentSuggestions = (
   return suggestions;
 };
 
-// Card figures, payment status and statements read as one panel; the branches
-// are display states, not logic worth splitting further.
 // oxlint-disable-next-line complexity
 const CreditCardPanel = ({
   account,

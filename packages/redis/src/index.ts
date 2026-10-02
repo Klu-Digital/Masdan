@@ -1,7 +1,3 @@
-/**
- * The client singleton lives in `./client` rather than here so `./cache` can
- * import it without a cycle back through this file.
- */
 export { createRedis, redis } from "./client";
 export type { RedisHandle } from "./client";
 export { isRedisConfigured, resolveRedisConfig } from "./config";

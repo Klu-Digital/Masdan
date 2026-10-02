@@ -209,12 +209,7 @@ export const evaluateRemote = (
   return summarize(items);
 };
 
-/**
- * Reads only NAMES from each provider. GitHub secret values are never
- * retrievable and are never asked for; Dokploy env text is parsed for keys.
- * Dokploy needs a token, which lives in GitHub Secrets and cannot be read back —
- * so it is verified only when DOKPLOY_TOKEN is exported for this command.
- */
+// Reads names only; secret values are never fetched.
 export const inspectRemote = async (
   environment: DeploymentEnvironment
 ): Promise<RemoteInspection> => {

@@ -3,19 +3,11 @@ import path from "node:path";
 
 import { describe, expect, it } from "vite-plus/test";
 
-/**
- * .env.example falls out of date silently, so every variable declared by the
- * backend schemas must appear in at least one app example.
- */
-
 const repoRoot = path.join(import.meta.dirname, "..", "..", "..");
 
 const EXAMPLES = ["apps/server/.env.example", "apps/workers/.env.example"];
 
-/**
- * Reads the names out of the schema's source, not the `env` object: t3-env's
- * proxy throws on an unset optional.
- */
+// Parse source, not `env`: t3-env's proxy throws on an unset optional.
 const declaredServerVars = (): string[] => {
   const sources = [
     "shared-server.ts",

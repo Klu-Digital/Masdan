@@ -8,9 +8,7 @@ export const createObservability = (options?: { service?: string }) => {
 
   initLogger({
     drain,
-    // Falls back to env so apps/workers gets its own service name without
-    // re-running this — calling it again would strand the first drain's
-    // batching timer.
+    // Calling init again would strand the first drain's batching timer.
     env: {
       environment: env.NODE_ENV,
       service: options?.service ?? env.SERVICE_NAME,

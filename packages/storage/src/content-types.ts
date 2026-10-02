@@ -1,8 +1,4 @@
-/**
- * Keep it leaf: the web client imports this directly to validate a file before
- * upload, so anything pulled in here lands in the bundle. An allowlist, not a
- * denylist — an unknown type is a bug or an attack.
- */
+// Leaf module: the web bundle imports it.
 export const allowedContentTypes = [
   "image/jpeg",
   "image/png",

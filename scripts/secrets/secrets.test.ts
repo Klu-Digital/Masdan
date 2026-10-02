@@ -493,9 +493,7 @@ describe("deployment check", () => {
   });
 
   it("never produces a write scoped to the other environment", () => {
-    // Repository-scoped names are shared by design; environment-scoped ones
-    // must never cross. This is the property the whole apply path rests on,
-    // since applyGitHub passes `write.scope` straight to `gh --env`.
+    // Environment-scoped names must never cross: `gh --env` uses `write.scope`.
     for (const environment of ["staging", "production"] as const) {
       const other = environment === "staging" ? "production" : "staging";
       const writes = planWrites(

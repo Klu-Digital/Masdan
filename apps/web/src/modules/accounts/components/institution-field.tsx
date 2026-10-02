@@ -48,10 +48,6 @@ const matches = (option: Option, query: string): boolean =>
     .split(" ")
     .every((word) => option.search.includes(word));
 
-/**
- * A bank Masdan knows, with its logo, or "Other" with the name typed in. The
- * name is stored either way, so an account never depends on the catalog.
- */
 export const InstitutionField = ({
   institutions,
   onBlur,

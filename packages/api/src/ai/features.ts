@@ -1,15 +1,7 @@
 import { env } from "@masdan/env/integrations";
 import type { ReasoningEffort } from "openai/resources/shared";
 
-/**
- * Every AI feature. Callers name a feature, never a model: each reads its own
- * variable, so one can move to a cheaper or stronger model — or another
- * provider — without touching the others or its caller. `defaultMaxTokens`
- * caps an answer at what its schema can hold, with headroom; admins override
- * it at /admin/ai. Categorize answers for a whole batch of descriptions.
- * `reasoningEffort` is sent with every call: none for plain extraction, low by
- * default, medium only for Ask Masdan's open-ended questions.
- */
+// Callers name a feature, never a model, so each can move independently.
 export const AI_FEATURES = {
   askMasdan: {
     defaultMaxTokens: 500,

@@ -132,10 +132,7 @@ const RouteComponent = () => {
   );
 };
 
-/**
- * No guard either way: someone signed in on this device may be resetting a
- * different account's password.
- */
+// No guard: a signed-in user may be resetting another account's password.
 export const Route = createFileRoute("/forgot-password")({
   component: RouteComponent,
   head: () => ({ meta: [{ title: "Forgot password" }] }),

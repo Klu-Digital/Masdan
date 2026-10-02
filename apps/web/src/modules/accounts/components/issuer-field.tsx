@@ -13,11 +13,6 @@ import { useCardCatalog } from "../card-catalog";
 
 const OTHERS = "others";
 
-/**
- * The card's issuing bank: one of the banks the card catalog knows, or
- * "Others" with the name typed in. Stores the bank's name, as before. Offers
- * the banks of the currency's country, else of every country loaded.
- */
 export const IssuerField = ({
   currencyCode,
   onBlur,

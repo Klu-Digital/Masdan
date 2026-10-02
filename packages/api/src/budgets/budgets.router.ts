@@ -62,10 +62,6 @@ const budgetableCategory = async (
   }
 };
 
-/**
- * Monthly category budgets. Actual spending is always read from the ledger
- * through the reports' category totals, never stored beside the budget.
- */
 export const budgetsRouter = {
   clear: orgMutationProcedure
     .use(requirePermission({ budget: ["delete"] }))

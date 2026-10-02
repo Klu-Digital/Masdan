@@ -2,18 +2,12 @@ import { log } from "@masdan/observability";
 
 import { redis } from "./client";
 
-/**
- * A best-effort JSON cache over the shared Redis client. Every method swallows
- * Redis failures, degrading to a cache miss and logging `cache.<op>.failed`. No
- * stampede protection: N concurrent callers missing the same key all call `fn`.
- */
+/** Best-effort: Redis failures become misses. No stampede protection. */
 export interface Cache {
   get: <T>(key: string) => Promise<T | undefined>;
   set: <T>(key: string, value: T, ttlSeconds: number) => Promise<void>;
   del: (...keys: string[]) => Promise<void>;
-  /**
-   * `undefined` is never cached — indistinguishable from a miss. `null` is.
-   */
+  /** `undefined` is never cached; `null` is. */
   remember: <T>(
     key: string,
     ttlSeconds: number,
@@ -21,9 +15,6 @@ export interface Cache {
   ) => Promise<T>;
 }
 
-/**
- * Keys become `${namespace}:${key}`, on top of ioredis's global `keyPrefix`.
- */
 export const createCache = (namespace: string): Cache => {
   const namespaced = (key: string): string => `${namespace}:${key}`;
 

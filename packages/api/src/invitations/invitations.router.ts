@@ -14,11 +14,7 @@ const PENDING_INVITATION_STATUS = "pending";
 
 const invitationInput = z.object({ invitationId: z.uuid() });
 
-/**
- * The link is the credential: whoever holds the unguessable id may accept it,
- * whatever their email. Never match invitations by email; that is how an
- * attacker who registers the invitee's address used to join the household.
- */
+// The link is the credential. Never match invitations by email.
 const claimable = (invitationId: string) =>
   and(
     eq(invitation.id, invitationId),

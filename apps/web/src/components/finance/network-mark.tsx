@@ -50,10 +50,6 @@ const GLYPHS: Record<
 export const networkMarkLabel = (network: NetworkMarkKind): string =>
   LABELS[network];
 
-/**
- * A card network's acceptance mark. Monochrome in the current text colour so
- * it sits on any card field; Mastercard keeps its interlocking circles.
- */
 export const NetworkMark = ({
   className,
   network,

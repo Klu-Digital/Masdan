@@ -7,10 +7,6 @@ import { describe, expect, it } from "vite-plus/test";
 import type { Context } from "./context";
 import { appRouter } from "./routers/index";
 
-/**
- * The chain end to end. The role matrix itself is covered as pure data in
- * `permissions.test.ts`.
- */
 const contextFor = async (headers: Headers): Promise<Context> =>
   ({
     auth: null,
@@ -19,10 +15,6 @@ const contextFor = async (headers: Headers): Promise<Context> =>
     session: await getSessionFor(headers),
   }) as unknown as Context;
 
-/**
- * Writes the column directly — what `organization.updateMemberRole` does, minus
- * a second user.
- */
 const setRole = async (context: Context, role: string) => {
   const { session } = context;
   if (!session?.session.activeOrganizationId) {

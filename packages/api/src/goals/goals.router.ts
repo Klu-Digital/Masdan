@@ -66,10 +66,6 @@ const requireStatus = (
   }
 };
 
-/**
- * The account must be this household's and hold assets. An archived account
- * is only accepted where the goal already tracks it.
- */
 const assertTrackingAccount = async (
   db: Database,
   organizationId: string,
@@ -122,10 +118,6 @@ const setLifecycle = async (
   return findGoal(db, organizationId, goalId);
 };
 
-/**
- * Savings goals: a planning layer over one account's ledger balance. Nothing
- * here writes to the ledger, and completing or archiving keeps the goal.
- */
 export const goalsRouter = {
   archive: orgMutationProcedure
     .use(requirePermission({ savingsGoal: ["archive"] }))

@@ -6,11 +6,7 @@ import { Hono } from "hono";
 
 import { mountMetrics } from "./metrics";
 
-/**
- * Not an API: a Docker healthcheck and a Prometheus scrape. No request logger,
- * or a 10s healthcheck would dominate the logs. A factory, so tests can
- * `app.request(...)` without a port.
- */
+// No request logger: the 10s healthcheck would dominate the logs.
 export const createApp = () => {
   const app = new Hono();
 

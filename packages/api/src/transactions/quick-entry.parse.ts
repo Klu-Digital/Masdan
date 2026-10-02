@@ -83,11 +83,7 @@ export const quickEntryHousehold = async (
   };
 };
 
-/**
- * Reads one line of text into create input, side-effect free. The caller must
- * already have authorized `organizationId`: this function checks nothing.
- * Throws a `ZodError` for empty or overlong text, before any model call.
- */
+// The caller must already have authorized `organizationId`.
 export const parseQuickEntryText = async (
   db: Database,
   organizationId: string,

@@ -29,11 +29,7 @@ const STALE_TIME_MS = 30_000;
 const MAX_RETRIES = 2;
 const GENERIC_ERROR = "Something went wrong. Try again in a moment.";
 
-/**
- * What a person is told when a call fails. Only defined errors carry messages
- * the server wrote for people; an undefined `ORPCError` is a crash whose
- * message is not for them.
- */
+// Only defined errors carry messages written for people.
 export const errorMessage = (error: unknown): string => {
   // `isDefinedError` checks at runtime; the cast only lends it the types.
   const routerError = error as RouterError;
@@ -75,11 +71,7 @@ export const failureKind = (error: unknown): FailureKind => {
   return error instanceof TypeError ? "unreachable" : "unexpected";
 };
 
-/**
- * For loaders whose screen renders its own not-found state: only a missing
- * record becomes `null`, so a 403 or a dead network reaches the error page
- * instead of reading as "not found".
- */
+// Only a missing record becomes `null`; a 403 still reaches the error page.
 export const orNullIfMissing = async <T>(
   load: Promise<T>
 ): Promise<T | null> => {
@@ -149,11 +141,7 @@ export const householdPath = (activeOrganizationId: string | null) => [
 
 const householdUtils = new Map<string | null, AppRouterUtils>();
 
-/**
- * Utils for tenant data. The household is part of every key, so switching
- * households — in this tab or another — never serves the previous one's cache.
- * `null` builds keys no enabled query should use; gate those on `enabled`.
- */
+// `null` builds keys no enabled query should use; gate those on `enabled`.
 export const householdOrpc = (
   activeOrganizationId: string | null
 ): AppRouterUtils => {

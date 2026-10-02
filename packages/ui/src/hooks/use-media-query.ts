@@ -35,8 +35,7 @@ const resolveMax = (value: Breakpoint | number): string => {
   return `(max-width: ${px - 1}px)`;
 };
 
-// Widened via `& {}` — the "loose autocomplete" trick — so a bare `string` does
-// not swallow the `BreakpointQuery` literal union.
+// Loose autocomplete: keeps `string` from swallowing the literal union.
 // oxlint-disable-next-line typescript/ban-types
 type LooseString = string & {};
 

@@ -36,10 +36,7 @@ const attachmentFields = {
   userId: file.userId,
 };
 
-/**
- * Locked when changing attachments, so an attach cannot race an archive or
- * slip past the per-transaction cap.
- */
+// Locked so an attach cannot race an archive or slip past the cap.
 const householdTransaction = async (
   db: Database,
   organizationId: string,
@@ -115,11 +112,6 @@ const findAttachment = async (
   return row;
 };
 
-/**
- * Upload, confirm and delete stay on `files`; this router only links a
- * confirmed file to an entry. Removing an attachment deletes the file and its
- * object, since a file is only ever attached to one transaction.
- */
 export const attachmentsRouter = {
   attach: orgMutationProcedure
     .use(requirePermission({ attachment: ["create"], transaction: ["update"] }))

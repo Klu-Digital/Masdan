@@ -431,11 +431,6 @@ const countedThrough = (data: MonthBudgets): string => {
   return "Spending from the whole month.";
 };
 
-/**
- * Monthly category budgets against what the ledger says was spent. The
- * server does every sum; this screen only lays the numbers out.
- */
-// One screen for the month switcher, both lists and the editor.
 // oxlint-disable-next-line complexity
 export const BudgetsPage = ({
   activeOrganizationId,

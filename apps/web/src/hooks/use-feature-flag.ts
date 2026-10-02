@@ -4,11 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 
 import { orpc } from "@/utils/orpc";
 
-/**
- * `featureFlags.all` is a `protectedProcedure`, so this belongs under
- * `src/routes/_auth/*`. Cached for the same window the server uses; holding it
- * longer only hides the staleness.
- */
 const useFeatureFlags = () =>
   useQuery({
     ...orpc.featureFlags.all.queryOptions(),

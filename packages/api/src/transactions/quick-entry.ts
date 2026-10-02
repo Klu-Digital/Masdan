@@ -31,14 +31,7 @@ import {
 import { transactionValues } from "./schema";
 import type { TransactionCreateInput } from "./schema";
 
-/**
- * Quick entry turns one line of text into the create procedure's input. The
- * model only reads language — which words name the amount, the account, the
- * day, and which listed category fits. Every identifier comes from a
- * deterministic match against the household's own rows, every model claim is
- * checked against the text or against that match, and anything missing,
- * ambiguous or contradicted is left for the form instead of guessed.
- */
+// Every id comes from a deterministic match; the model only reads language.
 
 export const QUICK_ENTRY_MAX_LENGTH = 300;
 
@@ -771,10 +764,6 @@ const notesOf = (
   return notes === "" ? null : notes.slice(0, 2000);
 };
 
-/**
- * The model's tidy rewording, only when it is the unclaimed words as typed,
- * reordered or recased. Anything it adds falls back to the raw words.
- */
 const tidyNotes = (
   proposed: string | null | undefined,
   raw: string | null
@@ -813,11 +802,6 @@ export const validIso = (value: string | null): value is string =>
     Number(value.slice(8, 10))
   ) === value;
 
-/**
- * `scanned` is what the whole text matched, `mentioned` what the model's
- * account words matched. They must agree, and a weak match needs the model to
- * point at it too.
- */
 const resolveAccount = (
   scanned: AccountResolution,
   mentioned: AccountResolution,
@@ -883,11 +867,6 @@ const resolveAccount = (
       };
 };
 
-/**
- * Pure: the same text, household and extraction always give the same result.
- * `extraction` is null when the model was unavailable or failed; the result
- * then only ever prefills the form.
- */
 // oxlint-disable-next-line complexity, max-statements
 export const resolveQuickEntry = (
   text: string,

@@ -1,17 +1,7 @@
 import { boolean, pgTable, smallint, text } from "drizzle-orm/pg-core";
 
-/**
- * ISO 4217 reference data, not tenant data: no `organizationId`, no id column —
- * the code is the key, and `organization.default_currency` points at it.
- *
- * The table exists for what it carries, not to police a three-letter string.
- * `minorUnits` is the one every ledger path needs (JPY 0, PHP 2, KWD 3) and is
- * wrong often enough in hand-copied currency lists to be worth storing once.
- *
- * Seeded from `packages/db/src/reference/currencies.ts` by a post-migration
- * script, not the migration, so a migrate-only database has no rows and every
- * household insert fails its `default_currency` foreign key.
- */
+// Seeded by a post-migration script: a migrate-only database can't create a
+// household.
 export const currency = pgTable("currency", {
   code: text("code").primaryKey(),
   /** Hides a currency from pickers without orphaning rows that reference it. */

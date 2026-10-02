@@ -42,11 +42,7 @@ const STATUS_LABELS: Record<Bill["status"], string> = {
   paid: "Paid",
 };
 
-/**
- * Names and due dates only. A calendar app syncs this to its own servers and
- * shares it with whoever the subscriber shares the calendar with, so amounts,
- * balances and account details stay out.
- */
+// Names and dates only: calendar apps sync this to third parties.
 const feedEvents = (bills: readonly Bill[]): CalendarEvent[] =>
   bills.map((bill) => {
     let summary =
@@ -64,12 +60,7 @@ const feedEvents = (bills: readonly Bill[]): CalendarEvent[] =>
     };
   });
 
-/**
- * The iCal text for a feed token, or null for any token that does not resolve
- * to a current member who may read bills. Membership and role are re-checked
- * on every request, so removing someone from the household kills their feed
- * without anyone remembering to revoke it.
- */
+// Membership is re-checked per request, so removal kills the feed.
 export const renderBillFeed = async (
   db: Database,
   token: string,

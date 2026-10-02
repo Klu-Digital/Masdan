@@ -5,11 +5,7 @@ import type {
 
 import { scaledAmount } from "../shared/money";
 
-/**
- * Leaf module: the rule matcher shared by the API, the import worker and the
- * web rule tester. Deliberately a fixed set of typed conditions ANDed
- * together, not an expression language.
- */
+// Leaf module: shared with the import worker and the web rule tester.
 
 export const RULE_TEXT_OPERATORS = [
   "contains",
@@ -211,10 +207,6 @@ export const applyRuleActions = (
   };
 };
 
-/**
- * Whether a transaction still carries what a rule — or an accepted
- * suggestion — set, after a manual edit.
- */
 export const ruleApplicationHolds = (
   application: Pick<RuleApplication, "categoryId" | "tagIds">,
   values: { categoryId: string; tagIds: readonly string[] }
@@ -225,10 +217,6 @@ export const ruleApplicationHolds = (
 
 const quote = (value: string): string => `“${value}”`;
 
-/**
- * Plain-language reasons, one per condition, for "why did this rule match?".
- * The caller supplies names so this stays free of lookups.
- */
 export const describeRuleConditions = (
   conditions: RuleConditions,
   names: {

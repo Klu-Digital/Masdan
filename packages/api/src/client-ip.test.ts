@@ -1,10 +1,6 @@
 import type * as TypeImport__masdan_env_server from "@masdan/env/server";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-/**
- * `env` is frozen at import, but `resolveClientIp` reads it at call time, so a
- * Proxy can override per test.
- */
 const overrides = vi.hoisted(() => ({
   current: {} as Record<string, unknown>,
 }));

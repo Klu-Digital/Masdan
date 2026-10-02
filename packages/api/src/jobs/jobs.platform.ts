@@ -6,11 +6,7 @@ import { z } from "zod";
 
 import { adminMutationProcedure, adminProcedure } from "../procedures";
 
-/**
- * pg-boss owns its own schema (`env.PGBOSS_SCHEMA`) and drizzle never models
- * it, so every query below reaches it with raw `sql` — always through
- * `sql.identifier`, never string interpolation.
- */
+// pg-boss's schema: always `sql.identifier`, never string interpolation.
 const pgBossSchema = () => sql.identifier(env.PGBOSS_SCHEMA);
 
 const jobStates = [
@@ -42,10 +38,6 @@ export const jobsPlatformRouter = {
     }));
   }),
 
-  /**
-   * Enqueues on the producer's own pool (no `tx`): an operator action, not a
-   * side effect of another write.
-   */
   enqueue: adminMutationProcedure
     .input(
       z.object({
@@ -135,11 +127,7 @@ export const jobsPlatformRouter = {
     })
   ),
 
-  /**
-   * Cron rows are registered by apps/workers from this same registry, so a
-   * schedule with no registry entry means a job was deleted without being
-   * unscheduled — pg-boss never removes one itself.
-   */
+  // pg-boss never removes an orphaned schedule itself.
   schedules: adminProcedure.handler(async ({ context }) => {
     const result = await context.db.execute<{
       cron: string;

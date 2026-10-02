@@ -22,10 +22,6 @@ const tileVariants = cva(
   }
 );
 
-/**
- * A tinted glyph square — category emoji, account kind, transfer arrows. The
- * tint comes from the household palette; `neutral` falls back to a grey fill.
- */
 export const IconTile = ({
   className,
   shape,

@@ -25,11 +25,6 @@ const inEffect = (version: RateVersion, date: string): boolean =>
   (version.effectiveFrom === null || version.effectiveFrom <= date) &&
   (version.effectiveTo === null || date <= version.effectiveTo);
 
-/**
- * The schedule for `term` in effect on `date`; failing that the latest one
- * that had started, then the earliest: a placement booked after a weekly
- * rate lapsed still gets the rate it was most likely offered.
- */
 export const scheduleOn = <T extends ScheduleVersion>(
   schedules: readonly T[],
   term: InterestTerm | null,

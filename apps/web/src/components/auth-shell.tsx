@@ -3,10 +3,6 @@ import type { ReactNode } from "react";
 import { BrandMark } from "./brand-mark";
 import { ModeToggle } from "./mode-toggle";
 
-/**
- * Every signed-out screen: the mark, one question, one form. No card — the
- * form sits on the canvas with room to breathe.
- */
 const AuthShell = ({
   children,
   description,

@@ -70,11 +70,7 @@ export const transactionsRouter = {
       listTransactions(context.db, context.organizationId, input)
     ),
 
-  /**
-   * Reads one line of text into create input. Side-effect free: the client
-   * creates with `create`, which validates everything again. Any AI failure
-   * leaves `input` null, so the caller falls back to the prefilled form.
-   */
+  // Any AI failure leaves `input` null; the client falls back to the form.
   parseQuickEntry: orgProcedure
     .use(requirePermission({ transaction: ["create"] }))
     .use(rateLimit({ limit: 30, window: 60 }))

@@ -21,11 +21,6 @@ import type { Context } from "../context";
 import { transactionsRouter } from "../transactions/transactions.router";
 import { transfersRouter } from "../transfers/transfers.router";
 
-/**
- * Two transactions racing on one ledger row: the first holds its locks open
- * while the second runs, which is the interleaving the row locks exist for.
- */
-
 interface Household {
   accountId: string;
   expenseCategoryId: string;

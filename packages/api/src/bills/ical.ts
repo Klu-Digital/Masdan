@@ -1,10 +1,6 @@
 import { addDays } from "../recurring/recurrence";
 
-/**
- * Leaf module: RFC 5545 text for the bill feed. All-day events only, so no
- * VTIMEZONE is needed — a due date is a household calendar day and a calendar
- * app shows it on that day wherever the subscriber is.
- */
+// All-day events only, so no VTIMEZONE is needed.
 
 export interface CalendarEvent {
   /** `YYYY-MM-DD`. */
@@ -26,10 +22,7 @@ export const escapeText = (value: string): string =>
 
 const encoder = new TextEncoder();
 
-/**
- * RFC 5545 §3.1: lines longer than 75 octets continue on the next line after a
- * single space. Splits on code points, so a multi-byte character is never cut.
- */
+// Splits on code points, so a multi-byte character is never cut.
 export const foldLine = (line: string): string => {
   const parts: string[] = [];
   let current = "";

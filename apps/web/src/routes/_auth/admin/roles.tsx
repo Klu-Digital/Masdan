@@ -18,11 +18,6 @@ import {
 } from "@masdan/ui/components/table";
 import { createFileRoute } from "@tanstack/react-router";
 
-/**
- * Static config: every cell is `hasPermission` over `@masdan/auth/permissions`,
- * the same data the server enforces with. These are per-organization
- * `member.role`, not the global `user.role`.
- */
 const RouteComponent = () => (
   <div className="space-y-6">
     <h1 className="text-2xl font-bold">Roles</h1>

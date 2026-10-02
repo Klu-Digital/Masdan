@@ -185,11 +185,6 @@ const Reply = ({ result }: { result: AskResult }) => {
   );
 };
 
-/**
- * One question in, one answer out, read from the same reports as the rest of
- * this screen. The server words the answer from query results; this only
- * shows it with the period and filters it was computed over.
- */
 export const AskMasdan = () => {
   const [question, setQuestion] = useState("");
   const [open, setOpen] = useState(false);

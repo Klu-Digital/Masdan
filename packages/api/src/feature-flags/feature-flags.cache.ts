@@ -13,10 +13,7 @@ const ERROR_GRACE_MS = 5000;
 
 let cached: { expiresAt: number; values: FeatureFlags } | null = null;
 
-/**
- * Shared in-flight read, so expiry under load does not fan out one query per
- * concurrent request.
- */
+// Shared so expiry under load doesn't fan out one query per request.
 let inflight: Promise<FeatureFlags> | null = null;
 
 const readFlags = async (db: Database): Promise<FeatureFlags> => {
@@ -51,13 +48,7 @@ const loadFlags = async (db: Database): Promise<FeatureFlags> => {
   }
 };
 
-/**
- * Every flag's effective value, cached per process for `FEATURE_FLAG_TTL_MS` —
- * immediate on the instance that toggled it, and within the TTL everywhere
- * else. Never call inside a mutation's transaction: `context.db` there is the
- * transaction, so a read-after-write would cache a value that can still roll
- * back.
- */
+// Never call inside a mutation's transaction: it would cache uncommitted values.
 export const getFeatureFlags = async (db: Database): Promise<FeatureFlags> => {
   const current = cached;
   if (current && current.expiresAt > Date.now()) {
@@ -86,10 +77,7 @@ export const isFeatureEnabled = async (
   return flags[name];
 };
 
-/**
- * Call from `context.afterCommit()`, never inline — inline it repopulates from
- * a transaction that can roll back.
- */
+/** Call from `context.afterCommit()`, never inline. */
 export const invalidateFeatureFlags = (): void => {
   cached = null;
 };

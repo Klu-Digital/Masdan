@@ -99,10 +99,6 @@ const RateLadder = ({
   );
 };
 
-/**
- * A set of interest terms read at a glance: the headline rate, a ladder of
- * tiers with the balance's own tier lit, and the rules under it as facts.
- */
 export const InterestTermsView = ({
   balance = null,
   bonusCounted,

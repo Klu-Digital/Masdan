@@ -42,10 +42,6 @@ import {
   WordmarkLeft,
 } from "@/components/finance/card-art/motifs/wordmark";
 
-/**
- * Every motif, by the name the card catalog uses. Adding a name to
- * `CardMotifName` without a drawing here fails to compile.
- */
 export const MOTIFS: Record<CardMotifName, Motif> = {
   "arc-lines": ArcLines,
   bolt: Bolt,

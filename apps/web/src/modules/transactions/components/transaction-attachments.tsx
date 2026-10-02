@@ -128,12 +128,6 @@ const PendingRow = ({
   </ListItem>
 );
 
-/**
- * Receipts and other files on one income or expense entry. Changes apply
- * immediately, not on the surrounding form's save, because each one is its own
- * upload. `editable` is false for archived entries, which the API also refuses.
- */
-// Loading, error, empty, pending uploads and the list share one section.
 // oxlint-disable-next-line complexity
 export const TransactionAttachments = ({
   editable,

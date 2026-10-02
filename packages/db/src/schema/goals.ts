@@ -13,10 +13,6 @@ import { organization } from "./auth";
 import { money, timestamps, timestamptz } from "./columns";
 import { financialAccount } from "./financial-accounts";
 
-/**
- * A savings target measured by one asset account's ledger balance. Progress
- * is never stored; the lifecycle is derived from the two timestamps.
- */
 export const savingsGoal = pgTable(
   "savings_goal",
   {

@@ -33,12 +33,7 @@ const OVER_BUDGET_MESSAGE =
   "Your household has used today’s AI allowance. Ask again tomorrow; Reports and Transactions have the same numbers.";
 
 export const askRouter = {
-  /**
-   * Read-only. The model picks one of a fixed set of report queries and names
-   * what to filter on; the household comes from the session, every name is
-   * matched against that household's rows, and the answer is worded from
-   * query results. Any AI failure is `unavailable`, never a guessed answer.
-   */
+  // Any AI failure is `unavailable`, never a guessed answer.
   question: orgProcedure
     .use(requireFlag("FF__ASK_MASDAN"))
     .use(requirePermission({ transaction: ["read"] }))

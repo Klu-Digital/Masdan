@@ -235,10 +235,6 @@ beforeEach(async () => {
   away = await seedHousehold("Away");
 });
 
-/**
- * Each write is otherwise valid for `home` and points one reference at `away`,
- * so the named constraint is the only thing that can reject it.
- */
 const crossHouseholdWrites: [string, () => PromiseLike<unknown>][] = [
   [
     "financial_transaction_account_id_fkey",

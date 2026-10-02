@@ -7,10 +7,7 @@ export interface GitHubSnapshot {
   environmentVariables: Map<string, string>;
 }
 
-// Secret material reaches `gh` through stdin, never argv — a process listing is
-// world-readable on a shared machine. The catch is bare on purpose: execFileSync
-// attaches stdout and stderr to the thrown error, and for `secret set` that
-// output can echo the value we just piped in.
+// Secrets go through stdin, never argv. Bare catch: the error echoes stdout.
 const runGh = (args: string[], input?: string): string => {
   try {
     return execFileSync("gh", args, {
@@ -48,10 +45,6 @@ export interface GitHubAvailability {
   repository?: string;
 }
 
-/**
- * Probes `gh` without throwing. An unauthenticated CLI degrades the wizard to a
- * manual checklist rather than aborting a run that may already have written.
- */
 export const probeGitHub = (): GitHubAvailability => {
   try {
     execFileSync("gh", ["auth", "status"], { stdio: "ignore" });
@@ -226,11 +219,7 @@ export interface DiscoveredApplication {
   label: string;
 }
 
-/**
- * Dokploy has moved these field names between versions, so every property is
- * read defensively — discovery failing back to a manual id prompt is fine,
- * a crash mid-wizard is not.
- */
+// Dokploy renames fields between versions, so read every property defensively.
 const readApplications = (payload: unknown): DiscoveredApplication[] => {
   if (!Array.isArray(payload)) {
     return [];

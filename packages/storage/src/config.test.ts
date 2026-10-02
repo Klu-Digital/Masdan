@@ -1,10 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-/**
- * t3-env freezes `env` at module load, so mock the module instead.
- * `resolveStorageConfig` reads it at call time, so mutating that object between
- * tests is enough.
- */
 const mockEnv = vi.hoisted(() => ({
   S3_ACCESS_KEY_ID: undefined as string | undefined,
   S3_BUCKET: undefined as string | undefined,

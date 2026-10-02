@@ -3,10 +3,7 @@ import type { QuickEntryKind } from "../transactions/quick-entry";
 import { QUICK_ENTRY_MAX_LENGTH } from "../transactions/quick-entry";
 import type { ReceiptEntryResult } from "../transactions/receipt-entry";
 
-/**
- * Every message chat entry sends, on any channel, as plain text: nothing a
- * user typed or named an account can turn into markup.
- */
+// Plain text only: nothing a user typed can become markup.
 
 const EXAMPLE = "“dinner at jollibee 400 metrobank mc”";
 const WHERE_TO_LINK =

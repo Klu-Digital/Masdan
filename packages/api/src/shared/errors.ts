@@ -1,12 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-/**
- * Codes whose messages are written for the person using the app. Declared once
- * on the base builder, so every procedure answers them as defined errors and
- * the web client (`isDefinedError`) can show their messages; anything else —
- * INTERNAL_SERVER_ERROR, a crash — reaches it undefined and is never shown raw.
- */
+// Only these codes' messages are shown to people; everything else stays hidden.
 export const domainErrors = {
   BAD_REQUEST: {},
   CONFLICT: {},

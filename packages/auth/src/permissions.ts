@@ -7,15 +7,10 @@ import {
   ownerAc,
 } from "better-auth/plugins/organization/access";
 
-/**
- * Spreading `defaultStatements` keeps better-auth's own endpoints gated. Keep
- * this file dependency-free: the web client imports it too.
- */
+// Dependency-free: the web client imports this too.
 export const statement = {
   ...defaultStatements,
-  // Stored files: receipts, transaction attachments and CSV imports, through
-  // `@masdan/api`'s files router. `:any` is the convention for "act on rows you
-  // do not own".
+  // `:any` means "act on rows you do not own".
   attachment: ["create", "read", "delete", "delete:any"],
   // The bill calendar. `confirm` covers marking an occurrence paid and undoing
   // it; subscribing to the feed only needs `read`.
@@ -43,11 +38,7 @@ export type Statement = typeof statement;
 
 export const ac = createAccessControl(statement);
 
-/**
- * Each role is a subset of `statement`, checked at compile time. `owner` and
- * `member` must exist — better-auth writes those two names into `member.role`
- * itself.
- */
+// better-auth writes `owner` and `member` into `member.role` itself.
 export const roles = {
   admin: ac.newRole({
     ...adminAc.statements,
@@ -121,11 +112,7 @@ export type PermissionRequest = {
 
 type AnyRole = Role<Statements, Statement>;
 
-/**
- * Pure set math, used unchanged to enforce on the server and to render on the
- * client. `role` is the raw `member.role`; better-auth comma-separates
- * multiples and grants are unioned.
- */
+/** Shared by server and client. Comma-separated roles are unioned. */
 export const hasPermission = (input: {
   role: string;
   permissions: PermissionRequest;
@@ -138,11 +125,7 @@ export const hasPermission = (input: {
       (name) => (roles[name] as AnyRole).authorize(input.permissions).success
     );
 
-/**
- * The global back-office role from better-auth's `admin()` plugin, stored on
- * `user.role` — unrelated to `roles.admin` above, which is an organization
- * membership role that happens to share the name.
- */
+// `user.role` from the `admin()` plugin, unrelated to `roles.admin`.
 const PLATFORM_ADMIN_ROLE = "admin";
 
 export const isPlatformAdmin = (role?: string | null): boolean =>

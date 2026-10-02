@@ -1,10 +1,4 @@
-/**
- * An in-memory ioredis stand-in, for unit tests that need cache or rate-limit
- * behaviour. Lives here, not in `@masdan/testing`, which depends on `@masdan/auth`
- * -> `@masdan/redis`. Imports nothing from `@masdan/*`: it loads inside `vi.mock`
- * factories, where an `@masdan/env/shared-server` import would freeze `env` against
- * placeholders. Only the commands this repo issues.
- */
+// Imports nothing from `@masdan/*`: it loads inside `vi.mock` factories.
 
 interface Entry {
   value: string;
@@ -72,11 +66,7 @@ export const createFakeRedis = (
   };
 
   const fake: FakeRedis = {
-    /**
-     * No Lua interpreter: the name is matched and a JS equivalent attached, so
-     * this proves nothing about the script's atomicity — that is what
-     * `redis.db.test.ts` is for.
-     */
+    // No Lua: atomicity is proven by `redis.db.test.ts`, not here.
     defineCommand(name) {
       if (name !== "masdanIncrementWithTtl") {
         throw new Error(`fake-redis: unknown custom command "${name}"`);

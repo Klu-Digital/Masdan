@@ -1,7 +1,5 @@
 #!/usr/bin/env node
-// Must finish before anything below is imported: `@masdan/auth` reads validated
-// env at module scope. See bootstrap.ts for why this is a call rather than a
-// side-effecting import.
+// Must run before the imports below: `@masdan/auth` reads env at module scope.
 import { randomBytes } from "node:crypto";
 import { createInterface } from "node:readline/promises";
 import { Writable } from "node:stream";

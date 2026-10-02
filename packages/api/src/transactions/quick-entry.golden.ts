@@ -5,12 +5,7 @@ import type {
   QuickEntryKind,
 } from "./quick-entry";
 
-/**
- * The quick-entry eval set: representative Masdan input, each paired with the
- * model response it is scored against. `create` cases must resolve without
- * review; `review` cases must open the form and flag exactly `fields`. Grow
- * it whenever a real entry parses wrong.
- */
+// Grow this whenever a real entry parses wrong.
 
 const id = (n: number): string =>
   `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;

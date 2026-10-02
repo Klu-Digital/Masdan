@@ -11,11 +11,6 @@ import { formatScaledAmount, scaledAmount } from "../shared/money";
 import { sortRules } from "./engine";
 import type { EvaluableRule } from "./engine";
 
-/**
- * Rule reads shared by the rules router and the import worker. Kept free of
- * the procedure ladder so apps/workers can import it.
- */
-
 export interface StoredRule extends EvaluableRule {
   category: {
     archivedAt: Date | null;

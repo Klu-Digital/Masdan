@@ -50,10 +50,6 @@ export const HouseholdMark = ({
   </span>
 );
 
-/**
- * Which household you are looking at, and the door to the others. Switching
- * rewrites the session's active organization, so every cache is refreshed.
- */
 export const HouseholdSwitcher = ({
   activeOrganizationId,
   placement = "sidebar",

@@ -12,11 +12,6 @@ import { invalidateFeatureFlags } from "./feature-flags.cache";
 const flagName = z.enum(FEATURE_FLAG_NAMES);
 
 export const featureFlagsPlatformRouter = {
-  /**
-   * One entry per declared flag. Reads the table directly rather than the
-   * cache: this screen is about to overwrite these values, and it needs the
-   * override/default split the cache flattens.
-   */
   list: adminProcedure.handler(async ({ context }) => {
     const rows = await context.db
       .select({
@@ -68,11 +63,6 @@ export const featureFlagsPlatformRouter = {
       return { enabled: featureFlagRegistry[name].defaultEnabled, name };
     }),
 
-  /**
-   * The invalidation goes through `afterCommit`: `context.db` here is the
-   * transaction, so a read would populate the process cache from writes that
-   * can still roll back.
-   */
   set: adminMutationProcedure
     .input(z.object({ enabled: z.boolean(), name: flagName }))
     .handler(async ({ context, input }) => {

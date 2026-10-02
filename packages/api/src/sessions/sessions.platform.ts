@@ -4,11 +4,7 @@ import { z } from "zod";
 
 import { adminProcedure } from "../procedures";
 
-/**
- * Read-only, and not scoped to `organizationId` — a session belongs to a user.
- * Revocation goes through better-auth's own mutation path, and `session.token`
- * is never selected: it is a bearer credential.
- */
+// Platform surface: ignores `organizationId`. Never select `session.token`.
 export const sessionsPlatformRouter = {
   list: adminProcedure
     .input(

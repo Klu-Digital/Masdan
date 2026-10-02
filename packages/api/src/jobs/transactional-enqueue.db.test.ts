@@ -7,11 +7,6 @@ import {
 } from "@masdan/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 
-/**
- * The reason this project runs a Postgres-backed queue: a job enqueued inside a
- * transaction is part of it.
- */
-
 beforeAll(startTestQueue);
 afterAll(stopTestQueue);
 

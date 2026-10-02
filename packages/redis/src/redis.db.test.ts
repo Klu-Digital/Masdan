@@ -4,12 +4,6 @@ import { afterAll, describe, expect, it } from "vite-plus/test";
 import { redis } from "./client";
 import { incrementWithTtl } from "./increment";
 
-/**
- * Against a real server rather than `fake.ts`, for the one thing the fake
- * cannot prove: atomicity under real concurrency. The client is built inline
- * rather than via `@masdan/testing`, which depends on `@masdan/auth` ->
- * `@masdan/redis` and would close a workspace cycle.
- */
 const client = new Redis(process.env.REDIS_URL as string);
 
 // An ioredis client with no `error` listener crashes the process on a connection

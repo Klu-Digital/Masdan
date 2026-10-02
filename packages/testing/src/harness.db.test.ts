@@ -4,10 +4,7 @@ import { getTestDb } from "@masdan/testing";
 import { getTestRedis } from "@masdan/testing/redis";
 import { describe, expect, it } from "vite-plus/test";
 
-// Regression test for the module-load ordering bug in `setup/db.ts`: a static
-// `@masdan/*` import there used to freeze `@masdan/env/shared-server` against the
-// placeholder DATABASE_URL, so every test ran against `127.0.0.1:1`. Same for
-// REDIS_URL.
+// A static `@masdan/*` import in `setup/db.ts` once froze env to placeholders.
 describe("test harness module-load ordering", () => {
   it("resolves @masdan/env/shared-server's env.DATABASE_URL to this worker's real database URL", () => {
     expect(env.DATABASE_URL).toBe(process.env.DATABASE_URL);

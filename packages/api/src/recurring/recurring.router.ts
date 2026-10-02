@@ -238,11 +238,6 @@ const templateColumns = (values: ScheduleValues) => ({
   startDate: values.startDate,
 });
 
-/**
- * Posts an occurrence due today without waiting for the next sweep. On the
- * mutation's transaction, so the job only exists if the change commits; the
- * sweep still covers it when the queue is down.
- */
 const enqueueIfDue = async (
   db: Database,
   scheduleId: string,
@@ -378,12 +373,7 @@ export const recurringRouter = {
         .limit(50);
     }),
 
-  /**
-   * Picks up from today: occurrences that fell due while paused are skipped,
-   * not backfilled. Rechecks the template, since a paused schedule's account,
-   * category or tags may have been archived since. One whose end date passed
-   * while paused stops instead.
-   */
+  // Occurrences that fell due while paused are skipped, not backfilled.
   resume: orgMutationProcedure
     .use(requirePermission({ recurringTransaction: ["update"] }))
     .input(scheduleIdInput)
@@ -433,10 +423,6 @@ export const recurringRouter = {
       return findSchedule(context.db, context.organizationId, current.id);
     }),
 
-  /**
-   * Permanent: a stopped schedule never posts again and cannot be resumed.
-   * Transactions it already posted stay as they are.
-   */
   stop: orgMutationProcedure
     .use(requirePermission({ recurringTransaction: ["stop"] }))
     .input(scheduleIdInput)
@@ -459,12 +445,7 @@ export const recurringRouter = {
       return findSchedule(context.db, context.organizationId, current.id);
     }),
 
-  /**
-   * Changes what future occurrences post. Transactions already posted are
-   * never touched. New timing restarts from today, so past days are not
-   * backfilled and today's occurrence, if already posted, is not repeated.
-   * An end date before the next occurrence stops the schedule.
-   */
+  // Posted transactions are never touched; past days are not backfilled.
   update: orgMutationProcedure
     .use(requirePermission({ recurringTransaction: ["update"] }))
     .input(

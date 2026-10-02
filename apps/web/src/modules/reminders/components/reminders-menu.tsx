@@ -109,10 +109,6 @@ const ReminderRow = ({
   );
 };
 
-/**
- * The household's card statement and payment reminders, a week ahead.
- * Dismissing is household-wide and undoable from the toast.
- */
 export const RemindersMenu = ({
   activeOrganizationId,
   canDismiss,

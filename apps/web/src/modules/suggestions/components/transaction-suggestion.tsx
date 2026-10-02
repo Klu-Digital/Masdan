@@ -32,10 +32,6 @@ const isEligible = (
   transaction.splits.length === 0 &&
   Boolean(transaction.notes?.trim());
 
-/**
- * Asks for a category and tags on request, and shows whether the current
- * ones came from an accepted suggestion. Nothing changes until Accept.
- */
 export const TransactionSuggestion = ({
   canAccept,
   transaction,

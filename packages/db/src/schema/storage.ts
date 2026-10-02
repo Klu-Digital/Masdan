@@ -19,11 +19,7 @@ const uuidv7 = sql`uuidv7()`;
 export const fileStatuses = ["pending", "ready", "failed"] as const;
 export type FileStatus = (typeof fileStatuses)[number];
 
-/**
- * One row per object, written before the client gets its presigned URL and left
- * `pending` until `confirmUpload` verifies the object landed. Every read path
- * filters on `organizationId`: that is the tenant boundary.
- */
+// `pending` until `confirmUpload` verifies the object landed.
 export const file = pgTable(
   "file",
   {

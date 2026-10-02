@@ -1,7 +1,5 @@
 #!/usr/bin/env node
-// Must finish before anything below is imported: `@masdan/db` reads validated env
-// at module scope. See bootstrap.ts for why this is a call rather than a
-// side-effecting import.
+// Must run before the imports below: `@masdan/db` reads env at module scope.
 import { loadEnv, runLifecycle } from "../bootstrap";
 
 const USAGE = `Usage:

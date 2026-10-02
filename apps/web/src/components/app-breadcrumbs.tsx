@@ -11,11 +11,6 @@ import {
 import { Link, rootRouteId, useMatches } from "@tanstack/react-router";
 import { Fragment } from "react";
 
-/**
- * Crumbs come from each matched route's `head()` title, so a screen names
- * itself once. On a phone only the current title shows, with a back arrow to
- * its parent; wider screens get the whole trail.
- */
 const AppBreadcrumbs = () => {
   const crumbs = useMatches().flatMap((match) => {
     // The root route's title is the product name — for the tab, not the trail.

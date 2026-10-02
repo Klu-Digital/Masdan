@@ -5,12 +5,6 @@ import { authClient } from "@/lib/auth-client";
 
 const sessionQueryKey = ["session"] as const;
 
-/**
- * The one session read in the app: resolved once by the root route into router
- * context, since three guards need the same answer on a single navigation.
- * `staleTime` keeps ordinary navigation off the network; the events that change
- * the answer invalidate explicitly.
- */
 export const sessionQueryOptions = () =>
   queryOptions({
     queryFn: async () => {
@@ -27,13 +21,8 @@ export const sessionQueryOptions = () =>
     staleTime: 5 * 60 * 1000,
   });
 
-/**
- * `refetchType: "all"` is load-bearing. A plain `invalidateQueries` only
- * refetches queries with a mounted observer, and the root guard reads through
- * `ensureQueryData`, which serves stale data — together that is a sign-in that
- * appears to work and bounces back to /login. Await this before navigating
- * anywhere behind a guard.
- */
+// `refetchType: "all"` is load-bearing: without it sign-in bounces back to
+// /login. Await this before navigating behind a guard.
 export const invalidateSession = (queryClient: QueryClient) =>
   queryClient.invalidateQueries({
     queryKey: sessionQueryKey,

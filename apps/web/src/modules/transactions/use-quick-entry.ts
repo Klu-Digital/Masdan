@@ -57,13 +57,7 @@ const summaryOf = (
     .filter(Boolean)
     .join(" · ");
 
-/**
- * One line of text in, one transaction out, from anywhere in the app. `add` is
- * the create intent: a complete, unambiguous line is created at once and
- * reported by a toast with Undo (or View, for roles that cannot archive);
- * anything else opens the normal form prefilled. `review`, for text that came
- * from a link, only ever opens the form: following a link never creates.
- */
+// `review` (text from a link) only opens the form: a link never creates.
 export const useQuickEntry = ({
   activeOrganizationId,
   canArchive,

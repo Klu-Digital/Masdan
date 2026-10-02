@@ -43,10 +43,6 @@ const grantPlatformAdmin = async (userId: string) => {
     .where(eq(user.id, userId));
 };
 
-/**
- * Inserts a `ready` row directly — this suite is the admin read path, not the
- * upload lifecycle.
- */
 const insertReadyFile = (options: {
   name: string;
   organizationId: string;

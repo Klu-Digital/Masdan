@@ -1,13 +1,5 @@
 #!/usr/bin/env node
-/**
- * Points Telegram at the public webhook, or shows where it points now:
- *
- *   pnpm telegram:webhook set https://bot.example.com
- *   pnpm telegram:webhook info
- *
- * Reads TELEGRAM_BOT_TOKEN and TELEGRAM_WEBHOOK_SECRET from apps/server/.env
- * (or the shell). The URL is the public ingress origin, not the private API.
- */
+// pnpm telegram:webhook set https://bot.example.com | info
 import { existsSync } from "node:fs";
 
 const WEBHOOK_PATH = "/chat/telegram/webhook";

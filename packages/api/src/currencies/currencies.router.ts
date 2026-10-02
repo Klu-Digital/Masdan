@@ -3,11 +3,7 @@ import { asc, eq } from "drizzle-orm";
 
 import { protectedProcedure } from "../procedures";
 
-/**
- * ISO 4217 reference data, deliberately not tenant-scoped: every household
- * picks from the same list, so this sits on `protectedProcedure` rather than
- * `orgProcedure` and carries no `organizationId` filter.
- */
+// Reference data: deliberately not tenant-scoped.
 export const currenciesRouter = {
   list: protectedProcedure.handler(({ context }) =>
     context.db

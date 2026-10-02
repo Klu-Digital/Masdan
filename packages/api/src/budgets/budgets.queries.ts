@@ -140,12 +140,6 @@ const sumTotals = (lines: BudgetLine[], currencyCode: string): BudgetTotals => {
   };
 };
 
-/**
- * Budgets for one household-local month beside what the ledger says was
- * spent, through the same category totals the spending report uses. Like
- * the reports, the current month counts up to today and a future month has
- * no actuals yet.
- */
 export const getMonthBudgets = async (
   db: Database,
   organizationId: string,

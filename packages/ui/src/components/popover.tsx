@@ -36,10 +36,6 @@ export const PopoverPopup = ({
   portalProps,
   ...props
 }: PopoverPrimitive.Popup.Props & {
-  /**
-   * Content padding: `none` for lists that manage their own edges; `list` is
-   * `none` for a list that scrolls itself, so the popup doesn't scroll too.
-   */
   inset?: "default" | "tight" | "none" | "list";
   portalProps?: PopoverPrimitive.Portal.Props;
   side?: PopoverPrimitive.Positioner.Props["side"];

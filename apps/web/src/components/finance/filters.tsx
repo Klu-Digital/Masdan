@@ -9,10 +9,6 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { cn } from "@masdan/ui/lib/utils";
 import type * as React from "react";
 
-/**
- * One row of filters above the content they scope. Chips wrap on narrow
- * screens and scroll horizontally on phones rather than stacking into a form.
- */
 export const FilterBar = ({
   children,
   className,
@@ -47,10 +43,6 @@ export const FilterBar = ({
   </div>
 );
 
-/**
- * A filter as a pill. Idle it names the dimension ("Account"); set it shows
- * the value and tints. Render it as the trigger of a menu or popover.
- */
 export const FilterChip = ({
   active = false,
   children,

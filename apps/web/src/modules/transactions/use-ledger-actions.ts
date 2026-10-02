@@ -8,10 +8,6 @@ import type { RouterOutputs } from "@/utils/orpc";
 type SkipReason =
   RouterOutputs["transactions"]["bulkUpdate"]["skipped"][number]["reason"];
 
-/**
- * Archive, restore and transfer deletion with their cache fallout in one
- * place. Archiving is soft, so its toast offers Undo instead of a confirm.
- */
 export const useLedgerActions = (activeOrganizationId: string | null) => {
   const queryClient = useQueryClient();
   const orpc = householdOrpc(activeOrganizationId);

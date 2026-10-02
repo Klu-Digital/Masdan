@@ -12,11 +12,6 @@ export interface StorageConfig {
   maxUploadBytes: number;
 }
 
-/**
- * Reads settings at call time, so an unconfigured deployment boots normally and
- * only fails when something reaches for the bucket. `null` unless the bucket
- * and both credentials are present.
- */
 export const resolveStorageConfig = (): StorageConfig | null => {
   const bucket = env.S3_BUCKET;
   const accessKeyId = env.S3_ACCESS_KEY_ID;

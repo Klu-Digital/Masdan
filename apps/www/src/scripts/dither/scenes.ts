@@ -41,10 +41,6 @@ const ring = (r: number, turn: number): number => {
   return 0;
 };
 
-/**
- * An eye whose outer ring is a spending breakdown; the pupil follows the
- * pointer. Inner layers sit nearer, so scrolling slides them off-centre.
- */
 export const iris: Scene = (u, v, t, aspect, aim, lift) => {
   const x = (u - 0.5) * aspect;
   const y = v - 0.5;
@@ -106,10 +102,6 @@ const rowTone = (i: number): number => {
   return kind < 0.42 ? BLUE : INK;
 };
 
-/**
- * Transactions, abstracted to bars, scrolling up an endless ledger that
- * runs ahead of the page as it scrolls.
- */
 export const ledger: Scene = (u, v, t, _aspect, _aim, lift) => {
   const position =
     v * ROWS_VISIBLE + t * SPEED * ROWS_VISIBLE - lift * SCROLL_ROWS;
@@ -208,11 +200,6 @@ const cardDistance = (
   return { distance, q: ly / height + 0.5, s: lx / width + 0.5 };
 };
 
-/**
- * Credit cards hovering over the paper, each drawn as a dithered card face.
- * Their shadows stay on the paper while the cards bob and ride the scroll
- * above it, which is what makes them read as lifted.
- */
 export const cards: Scene = (u, v, t, aspect, _aim, lift) => {
   const x = u * aspect;
   const width = Math.min(0.6, aspect * 0.235);

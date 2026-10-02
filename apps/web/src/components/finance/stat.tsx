@@ -1,11 +1,6 @@
 import { cn } from "@masdan/ui/lib/utils";
 import type React from "react";
 
-/**
- * A strip of related figures separated by hairlines — limit, balance,
- * available. Wraps to a 2-up grid on narrow screens; `grid` keeps that 2-up
- * layout at every width, for figures too wide to share one row.
- */
 export const StatGroup = ({
   className,
   grid = false,

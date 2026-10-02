@@ -17,11 +17,7 @@ import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { notFound } from "../shared/errors";
 import type { TransactionPaidStatus } from "./constants";
 
-/**
- * Transaction writes shared by manual entry, CSV import and recurring
- * schedules. Kept free of the procedure ladder so apps/workers can import it
- * without auth or server env.
- */
+// No procedure ladder, so apps/workers can import it.
 
 export interface LedgerAccount {
   currencyCode: string;
@@ -29,10 +25,7 @@ export interface LedgerAccount {
   openingBalanceDate: string;
 }
 
-/**
- * `FOR SHARE` so a concurrent class or currency change waits for this posting
- * to commit and then sees it, rather than passing its "no history" check.
- */
+// `FOR SHARE` so a concurrent class or currency change waits for this posting.
 export const activeAccount = async (
   db: Database,
   organizationId: string,
@@ -221,11 +214,6 @@ export const validateSplitCategories = async (
   }
 };
 
-/**
- * Every id a stored template (a rule, a schedule) points at must belong to
- * the household and be usable for a new transaction. Archived references are
- * tolerated only where `existing` already held them. Returns the category.
- */
 export const assertReferences = async (
   db: Database,
   organizationId: string,
@@ -305,13 +293,7 @@ export interface TransactionCreate {
   transactionDate: string;
 }
 
-/**
- * The one create path for an income or expense: manual entry and recurring
- * schedules both go through it, so they share account, category, split and
- * tag validation. With `recurrence`, an occurrence that already has its
- * transaction is a no-op returning null — the unique index decides, not a
- * prior read, so concurrent generators cannot both insert.
- */
+// The unique index, not a prior read, dedupes recurring occurrences.
 export const createTransaction = async (
   db: Database,
   organizationId: string,

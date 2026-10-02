@@ -1,9 +1,4 @@
-/**
- * The words quick entry's deterministic pass recognises, in English and
- * Tagalog. Entries are matched after `normalizeCardText`: lowercase,
- * accent-free, space-separated. Category inference is the model's job, so
- * there are no merchant or category keywords here.
- */
+// Matched after `normalizeCardText`. No category keywords: that's the model's.
 
 /** Say money came in; they only set the type. */
 export const INCOME_WORDS: ReadonlySet<string> = new Set([

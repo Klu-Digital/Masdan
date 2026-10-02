@@ -3,13 +3,7 @@ import { z } from "zod";
 
 import { sharedServerVariables } from "./shared-server";
 
-/**
- * Optional third-party integrations read by both the API process and the
- * workers: chat entry parses and replies from a worker, so AI and chat-app
- * settings cannot live in `./server`, whose Better Auth variables a worker
- * does not have. Every variable is optional; a missing one turns its feature
- * off rather than failing boot.
- */
+// Read by workers too, so not in `./server`. Unset turns a feature off.
 export const integrationVariables = {
   /** Tokens each household may spend on AI per UTC day, all features together. 0 turns AI off. */
   AI_DAILY_TOKEN_BUDGET: z.coerce.number().int().nonnegative().default(500_000),

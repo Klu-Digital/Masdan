@@ -272,12 +272,6 @@ const ScheduleDetails = ({
   );
 };
 
-/**
- * A household's recurring schedules. Each is a template that posts normal
- * transactions on its dates; pausing, editing or stopping it changes what it
- * posts next, never what it already posted.
- */
-// One screen for the list, its details sheet and every lifecycle action.
 // oxlint-disable-next-line complexity
 export const ScheduleManager = ({
   activeOrganizationId,

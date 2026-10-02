@@ -66,10 +66,6 @@ describe("defaultCookieAttributes", () => {
     });
   });
 
-  /**
-   * Covers a value that skipped validation: an unrecognised one must not
-   * produce cookies no browser stores.
-   */
   it("treats an unrecognised environment as not deployed", () => {
     expect(defaultCookieAttributes("qa", CROSS_SITE)).toEqual({
       httpOnly: true,
@@ -78,10 +74,7 @@ describe("defaultCookieAttributes", () => {
     });
   });
 
-  /**
-   * An unparseable URL must not read as same-site — that downgrades a
-   * cross-site deployment to `Lax` and breaks sign-in silently.
-   */
+  // An unparseable URL read as same-site would downgrade to `Lax` and break sign-in.
   it("treats an unparseable API URL as cross-site", () => {
     expect(
       defaultCookieAttributes("production", {

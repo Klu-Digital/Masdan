@@ -5,10 +5,6 @@ import { isAllowedContentType } from "@masdan/storage/content-types";
 import { client } from "@/utils/client";
 import type { RouterOutputs } from "@/utils/orpc";
 
-/**
- * Mirrors the `state` prop on `@masdan/ui`'s `Attachment`. `processing` is the
- * confirm round-trip.
- */
 export type UploadState =
   | "idle"
   | "uploading"
@@ -70,10 +66,6 @@ const putWithProgress = (
     request.send(file);
   });
 
-/**
- * Reserve a row and get a presigned PUT, send the bytes straight to the bucket,
- * then have the server verify them. The bytes never touch the API server.
- */
 export const uploadFile = async (
   file: File,
   options: UploadFileOptions = {}

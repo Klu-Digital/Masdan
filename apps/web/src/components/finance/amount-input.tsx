@@ -11,12 +11,6 @@ import {
   sanitizeFormula,
 } from "./amount-formula";
 
-/**
- * The hero field of a money form: one large, borderless figure with the
- * currency beside it. Accepts a formula (`12.5*3`) while editing: it shows the result once blurred
- * and the formula again on refocus, but reports only the decimal string the API
- * expects.
- */
 export const AmountInput = ({
   className,
   currencySymbol,

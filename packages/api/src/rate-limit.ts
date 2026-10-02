@@ -16,13 +16,7 @@ export interface RateLimitOptions {
   key?: (context: Context) => string | undefined;
 }
 
-/**
- * Buckets by procedure path, and prefers the session id over `context.ip` — the
- * latter is only as trustworthy as `TRUST_PROXY_HEADERS` allows. Every limit
- * here guards security or AI spend, so with Redis absent or failing it counts
- * in-process (`countHit`) rather than failing open. Only an unattributable
- * caller passes uncounted.
- */
+// Counts in-process when Redis is down rather than failing open.
 export const rateLimit = ({ limit, window, key }: RateLimitOptions) =>
   o.middleware(async ({ context, next, path }) => {
     const identity =

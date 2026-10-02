@@ -106,11 +106,7 @@ export const organization = pgTable(
     metadata: text("metadata"),
     name: text("name").notNull(),
     slug: text("slug").notNull(),
-    /**
-     * IANA zone, deliberately not a table: tzdb ships several releases a year
-     * and the runtime doing the conversion (ICU, `pg_timezone_names`) is the
-     * only list that cannot desync from it. Validated at the API boundary.
-     */
+    // IANA zone, not a table: the runtime's list can't desync from tzdb.
     timezone: text("timezone").default("Asia/Manila").notNull(),
   },
   (table) => [uniqueIndex("organization_slug_uidx").on(table.slug)]

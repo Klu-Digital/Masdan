@@ -24,10 +24,6 @@ export const STATUS_LABELS = {
   stopped: "Stopped",
 } as const;
 
-/**
- * "Monthly on the 15th · next Oct 15, 2026 · until Dec 15, 2026", or why it
- * isn't posting.
- */
 export const scheduleTiming = (
   schedule: Recurrence & {
     nextOccurrenceDate: string | null;
@@ -47,10 +43,6 @@ export const scheduleTiming = (
     : next;
 };
 
-/**
- * The next dates a schedule would post from `from`, for the form preview;
- * fewer, or none, when it ends first. Null while the recurrence is incomplete.
- */
 export const previewOccurrences = (
   recurrence: Partial<Recurrence>,
   from: string,

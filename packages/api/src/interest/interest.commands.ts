@@ -176,12 +176,7 @@ const removeInterest = async (
   }
 };
 
-/**
- * Sets, changes or removes (`null`) an account's interest. A change to the
- * rate from today closes the open version instead of rewriting it, so what
- * was estimated for past days stays as it was; a different product, tenor or
- * placement date is a different deposit and starts its history over.
- */
+// A rate change closes the open version, so past estimates stay as they were.
 export const saveAccountInterest = async (
   db: Database,
   organizationId: string,

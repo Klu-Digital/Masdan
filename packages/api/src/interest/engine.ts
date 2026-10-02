@@ -14,11 +14,7 @@ import {
   nextAnniversary,
 } from "./calendar";
 
-/**
- * Interest as estimated from a balance and a set of terms. Pure, and BigInt
- * throughout: amounts and rates are scaled by 1e6 like the ledger, daily
- * accruals are held at 1e18 so rounding happens once, at each credit.
- */
+// Amounts and rates scale by 1e6 like the ledger; accruals by 1e18.
 
 const SCALE = 1_000_000n;
 const PERCENT = 100n;

@@ -205,11 +205,6 @@ const SplitDetails = ({ detail }: { detail: TransactionDetail }) => {
   );
 };
 
-/**
- * Everything about one ledger entry, beside the page it was opened from.
- * Transfers show both legs; entries show allocation, tags and the full note.
- */
-// One surface for transfers and entries, each with permission-gated actions.
 // oxlint-disable-next-line complexity
 export const TransactionInspector = ({
   actions,

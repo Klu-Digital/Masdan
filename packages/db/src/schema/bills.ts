@@ -19,11 +19,7 @@ import { financialTransaction, recurringSchedule } from "./transactions";
 export const billKinds = ["recurring", "card"] as const;
 export type BillKind = (typeof billKinds)[number];
 
-/**
- * Proof that one bill occurrence was paid: a linked payment, or a member's
- * explicit confirmation when `transactionId` is null. A schedule posting its
- * own transaction never writes one of these — that is the point of the table.
- */
+// A schedule posting its own transaction never writes one of these.
 export const billPayment = pgTable(
   "bill_payment",
   {
@@ -89,11 +85,7 @@ export const billPayment = pgTable(
   ]
 );
 
-/**
- * A member's read-only iCal subscription to one household's due dates. Only
- * the SHA-256 of the URL token is stored; replacing the row rotates the link
- * and deleting it revokes the link.
- */
+// Only the token's SHA-256 is stored.
 export const billCalendarFeed = pgTable(
   "bill_calendar_feed",
   {

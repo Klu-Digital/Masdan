@@ -102,9 +102,7 @@ export const setupLocalEnvironment = (root: string): SetupResult => {
         path.join(root, LOCAL_FILES[target as keyof typeof LOCAL_FILES])
       );
 
-    // One value per name across every file that wants it. PROMETHEUS_METRICS_TOKEN
-    // goes to both the server and the workers, and a scrape config configured
-    // against one of two different tokens would 401 on the other.
+    // Server and workers must share one PROMETHEUS_METRICS_TOKEN.
     const existing = paths
       .map((filePath) => valuesByFile.get(filePath)?.get(entry.name))
       .find(Boolean);

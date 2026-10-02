@@ -5,11 +5,6 @@ import { useRender } from "@base-ui/react/use-render";
 import { cn } from "@masdan/ui/lib/utils";
 import type React from "react";
 
-/**
- * A grouped surface. Separation comes from a luminance step, not an outline:
- * light mode is a soft fill, dark mode adds a hairline because fills alone
- * disappear against a dark canvas.
- */
 export const Card = ({
   className,
   render,

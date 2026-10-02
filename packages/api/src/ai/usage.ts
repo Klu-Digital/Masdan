@@ -27,10 +27,7 @@ export const aiTokensSpentToday = async (
   return row?.tokens ?? 0;
 };
 
-/**
- * Checked before a call and charged after it, so concurrent calls can each
- * overshoot by one completion. The feature rate limits bound how many.
- */
+// Concurrent calls can each overshoot by one completion.
 export const hasAiBudget = async (
   household: AiHousehold,
   now = new Date()

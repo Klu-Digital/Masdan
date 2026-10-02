@@ -208,8 +208,6 @@ const OptionSelect = ({
   </Select>
 );
 
-/** Create or edit one rule: what it matches, then what it sets. */
-// One form with a field per condition and action.
 // oxlint-disable-next-line complexity
 export const RuleComposer = ({
   accounts,

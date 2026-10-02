@@ -236,10 +236,6 @@ export const AccountRow = ({
   );
 };
 
-/**
- * A credit card listed as the card itself, with what is owed and when it is
- * due beneath it.
- */
 export const CardTile = ({
   account,
   allocation,

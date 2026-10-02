@@ -8,10 +8,6 @@ import { useLedgerActions } from "@/modules/transactions/use-ledger-actions";
 
 const routeApi = getRouteApi("/_auth/transactions/$transactionId");
 
-/**
- * A deep-linkable detail: the inspector opens over the ledger, and closing it
- * returns to the list with its filters intact.
- */
 const TransactionDetailRoute = () => {
   const { transactionId } = routeApi.useParams();
   const navigate = routeApi.useNavigate();

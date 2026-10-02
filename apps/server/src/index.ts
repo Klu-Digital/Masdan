@@ -44,10 +44,7 @@ const close = async (httpServer: ServerType): Promise<"closed"> => {
   return "closed";
 };
 
-/**
- * Stops accepting connections and waits for in-flight requests. A streamed
- * response can hold a connection open indefinitely, hence the deadline.
- */
+// Deadline because a streamed response can hold a connection open forever.
 const drain = async (httpServer: ServerType): Promise<void> => {
   const outcome = await Promise.race([
     close(httpServer),

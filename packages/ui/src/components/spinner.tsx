@@ -14,8 +14,6 @@ export const Spinner = ({
     aria-label="Loading"
     className={cn("animate-spin", className)}
     icon={LoaderCircleIcon}
-    // `HugeiconsIcon` renders an `<svg>`, so there is no `<output>` to swap the
-    // role for.
     // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role
     role="status"
     strokeWidth={2}

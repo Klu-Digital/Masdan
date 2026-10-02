@@ -1,11 +1,6 @@
 import type { AskExtraction, AskHousehold, AskQuery } from "./ask.plan";
 
-/**
- * The Ask Masdan eval set: representative questions, each paired with the
- * model response it is scored against. `ready` cases must resolve to exactly
- * `query`; `clarify` and `unsupported` cases must not run anything. Grow it
- * whenever a real question plans wrong.
- */
+// Grow this whenever a real question plans wrong.
 
 const id = (n: number): string =>
   `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;

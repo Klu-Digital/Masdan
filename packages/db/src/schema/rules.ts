@@ -38,10 +38,7 @@ export interface TransactionRuleConditions {
   type: TransactionRuleType | null;
 }
 
-/**
- * What a rule matched on and changed, captured when it ran so a later edit or
- * deletion of the rule doesn't rewrite the explanation.
- */
+// Captured at run time so editing the rule doesn't rewrite history.
 export interface TransactionRuleApplication {
   categoryId: string | null;
   conditions: TransactionRuleConditions;
@@ -50,10 +47,7 @@ export interface TransactionRuleApplication {
   tagIds: string[];
 }
 
-/**
- * A household's categorization rule. Rules run in `position` order, unique
- * within the household, and the first enabled match wins.
- */
+// Runs in `position` order; first enabled match wins.
 export const transactionRule = pgTable(
   "transaction_rule",
   {

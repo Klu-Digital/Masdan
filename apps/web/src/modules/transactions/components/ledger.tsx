@@ -198,12 +198,7 @@ const flattenEntries = (
   ]);
 };
 
-/**
- * Windows the ledger against the app shell's scroll container. The rows that are mounted keep
- * their normal flow (so sticky headers and table semantics still work) and
- * spacers stand in for the ones that are not. The month band above the
- * viewport stays mounted so it can keep sticking.
- */
+// Mounted rows keep normal flow so sticky headers and table semantics work.
 const useVirtualLedger = <T extends HTMLElement>(
   entries: LedgerEntry[],
   variant: "desktop" | "mobile"
@@ -599,11 +594,6 @@ const MobileLedger = ({
   );
 };
 
-/**
- * The ledger: a sortable, month-grouped grid on wide screens and a touch list
- * on phones. Row actions live in a contextual menu; opening a row shows its
- * detail.
- */
 export const Ledger = (props: LedgerProps) => {
   const wide = useMediaQuery({ min: 768 });
   return wide ? <DesktopLedger {...props} /> : <MobileLedger {...props} />;

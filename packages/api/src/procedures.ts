@@ -27,10 +27,6 @@ const requireAuth = o.middleware(({ context, next }) => {
 
 export const protectedProcedure = publicProcedure.use(requireAuth);
 
-/**
- * Resolves the caller's role once here, so downstream permission checks are
- * in-memory comparisons.
- */
 const requireOrganization = o.middleware(async ({ context, next }) => {
   const organizationId = context.session?.session.activeOrganizationId;
   const userId = context.session?.user.id;
@@ -62,9 +58,7 @@ const requireOrganization = o.middleware(async ({ context, next }) => {
 
 export const orgProcedure = protectedProcedure.use(requireOrganization);
 
-// `async` on purpose: drizzle's `.transaction()` wants a real `Promise`, and
-// the `await` is what holds the SQL transaction open until the rest of the
-// chain has settled.
+// `async` on purpose: the `await` holds the SQL transaction open.
 const transaction = o.middleware(({ context, next }) =>
   context.db.transaction(
     async (db) =>
@@ -76,14 +70,8 @@ const transaction = o.middleware(({ context, next }) =>
   )
 );
 
-/**
- * Lets a mutation queue work — cache invalidation, typically — to run after its
- * transaction commits. Called inline, a `cache.del()` purges a key the
- * transaction may still roll back. The `.use()` order below is load-bearing:
- * middleware wraps outside-in, so `.use(transaction).use(afterCommit)` nests
- * the transaction inside this `await` and silently reintroduces the bug. Task
- * errors are logged, never rethrown.
- */
+// Defers cache invalidation until commit. Keep `.use(afterCommit)` before
+// `.use(transaction)`, or the task runs inside the transaction again.
 const afterCommit = o.middleware(async ({ context, next }) => {
   const tasks: (() => Promise<unknown>)[] = [];
 
@@ -119,12 +107,7 @@ export const orgMutationProcedure = orgProcedure
   .use(afterCommit)
   .use(transaction);
 
-/**
- * Gates on the global back-office role from better-auth's `admin()` plugin
- * (`user.role`), not the per-organization `member.role` that
- * `requirePermission` reads. Admin read paths built on this deliberately ignore
- * `organizationId`.
- */
+// `user.role`, not `member.role`. Ignores `organizationId` by design.
 const requirePlatformAdmin = o.middleware(({ context, next }) => {
   if (!isPlatformAdmin(context.session?.user.role)) {
     // FORBIDDEN, not NOT_FOUND: the caller is authenticated, and hiding the
@@ -140,12 +123,7 @@ export const adminMutationProcedure = adminProcedure
   .use(afterCommit)
   .use(transaction);
 
-/**
- * Read through the per-process flag cache, so this is a map lookup rather than
- * a query per call. Use it when a flag should make something unreachable — the
- * web app's `useFeatureFlag` is cosmetic, and the procedure stays callable by
- * anyone who knows its name.
- */
+// Makes a procedure unreachable; `useFeatureFlag` in the web app is cosmetic.
 export const requireFlag = (name: FeatureFlagName) =>
   o.middleware(async ({ context, next }) => {
     if (!(await isFeatureEnabled(context.db, name))) {
@@ -162,10 +140,7 @@ type OrgContext = Context & { organizationId: string; memberRole: string };
 
 const orgContext = os.$context<OrgContext>();
 
-/**
- * Permissions are ANDed, and stacking two `.use()` calls is still an all-of.
- * Model an either-or as one role that has both.
- */
+// Permissions are ANDed, stacked `.use()` calls included.
 export const requirePermission = (permissions: PermissionRequest) =>
   orgContext.middleware(({ context, next }) => {
     if (!hasPermission({ permissions, role: context.memberRole })) {
@@ -176,10 +151,6 @@ export const requirePermission = (permissions: PermissionRequest) =>
     return next();
   });
 
-/**
- * The same check as an expression, for authorization that depends on the row
- * rather than the route.
- */
 export const assertPermission = (
   context: { memberRole: string },
   permissions: PermissionRequest

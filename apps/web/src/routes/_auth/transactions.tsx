@@ -35,10 +35,6 @@ declare module "@tanstack/react-router" {
 
 const routeApi = getRouteApi("/_auth/transactions");
 
-/**
- * The ledger stays mounted while a row's detail opens over it, so the list,
- * its filters and its scroll position survive opening and closing entries.
- */
 const TransactionsLayout = () => {
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
@@ -100,9 +96,7 @@ export const Route = createFileRoute("/_auth/transactions")({
   head: () => ({ meta: [{ title: "Transactions" }] }),
   // `validateSearch` and `loaderDeps` above `loader`, or `deps` infers as `{}`.
   validateSearch: transactionSearch,
-  // A bare `/transactions` opens on the filters last used here, only when entering the
-  // route: clearing filters while on it is also a default search. Any search in
-  // the URL (a shared link, a drill-down from another page) wins over storage.
+  // Restore saved filters only on entry, and never over a search in the URL.
   beforeLoad: ({ cause, context, location, search }) => {
     if (
       cause !== "enter" ||

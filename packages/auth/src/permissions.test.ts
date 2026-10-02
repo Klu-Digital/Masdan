@@ -253,9 +253,7 @@ describe("hasPermission", () => {
   });
 
   it("fails closed on an empty request, even for an owner", () => {
-    // `authorize` needs at least one resource to match, so
-    // `requirePermission({})` denies — a check emptied out by a refactor locks
-    // the route rather than opening it.
+    // An empty `requirePermission({})` must deny, not open the route.
     expect(
       Object.keys(roles).some((role) =>
         hasPermission({ permissions: {}, role })

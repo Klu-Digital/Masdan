@@ -29,12 +29,6 @@ const firstLine = (text: string | null): string | null => {
   return line || null;
 };
 
-/**
- * How a ledger row reads. Transactions have no payee, so the title is the
- * first line of the note when there is one and the category otherwise.
- * `scoped` means the list is filtered to accounts, so a transfer posting shows
- * which way money moved for that account.
- */
 // oxlint-disable-next-line complexity
 export const describeTransaction = (
   transaction: Presentable,

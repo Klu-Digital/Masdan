@@ -178,10 +178,6 @@ interface ClassifiedRow {
   type: ImportDirection | null;
 }
 
-/**
- * Rules run after mapping, on the note the transaction will carry, so a rule
- * matches an imported row exactly as it would the saved transaction.
- */
 const applyImportRules = (
   rules: readonly StoredRule[],
   accountId: string | null,
@@ -702,10 +698,7 @@ const commitImport = async (db: Database, importId: string): Promise<void> => {
   });
 };
 
-/**
- * Failures are recorded on the import rather than thrown: the user retries
- * from the UI, and a queue retry would find the import already `failed`.
- */
+// Failures are recorded, not thrown: a queue retry would find it `failed`.
 export const processImport = async (
   db: Database,
   importId: string

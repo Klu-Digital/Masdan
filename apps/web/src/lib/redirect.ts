@@ -5,10 +5,7 @@ import { optionalSearchString } from "./search";
 /** Where an authenticated user belongs when nothing more specific is known. */
 export const DEFAULT_AUTHENTICATED_PATH = "/dashboard";
 
-/**
- * Never a post-login destination: an auth entry point loops, and `/` only
- * forwards on.
- */
+// An auth entry point would loop, and `/` only forwards on.
 const AUTH_ENTRY_PATHS = new Set([
   "/",
   "/forgot-password",
@@ -17,12 +14,8 @@ const AUTH_ENTRY_PATHS = new Set([
   "/signup",
 ]);
 
-/**
- * Narrows an attacker-controlled `?redirect=` to a same-origin path.
- * `startsWith("/")` is not enough: `//evil.com` is protocol-relative, and
- * browsers normalise `/\evil.com` to the same thing. Both are rejected before
- * parsing.
- */
+// `startsWith("/")` is not enough: `//evil.com` and `/\evil.com` are
+// protocol-relative.
 export const safeRedirect = (
   raw: string | undefined,
   origin: string
@@ -52,10 +45,7 @@ export const redirectSearch = z.object({
   redirect: optionalSearchString,
 });
 
-/**
- * The invite link a signed-out visitor was bounced from, so sign-up can present
- * it: with sign-up closed, a pending invitation is what lets the account in.
- */
+// With sign-up closed, a pending invitation is what lets the account in.
 export const invitationFromRedirect = (
   redirectTo: string,
   origin: string

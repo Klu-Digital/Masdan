@@ -11,11 +11,7 @@ export interface LocalCounter {
   clear: () => void;
 }
 
-/**
- * A fixed-window counter in this process's memory: what a limiter counts
- * against when Redis cannot answer. Per process, so N replicas allow N times
- * the limit — still a ceiling, where failing open is none.
- */
+// Per process, so N replicas allow N times the limit. Still beats failing open.
 export const createLocalCounter = (
   options: { maxKeys?: number; now?: () => number } = {}
 ): LocalCounter => {
@@ -62,11 +58,7 @@ export const createLocalCounter = (
 
 const localCounter = createLocalCounter();
 
-/**
- * Counts one hit against `key` in a fixed window and returns the running
- * total. Redis when it answers, otherwise the in-process counter: security
- * and cost limits must not vanish with Redis the way the cache does.
- */
+/** Falls back to the in-process counter: limits must not vanish with Redis. */
 export const countHit = async (
   key: string,
   windowSeconds: number

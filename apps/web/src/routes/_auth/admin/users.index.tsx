@@ -214,9 +214,7 @@ const CreateUserDialog = () => {
   );
 };
 
-/**
- * Spelled out by hand: better-auth's client infers the array element as `any`.
- */
+// By hand: better-auth's client infers the element as `any`.
 interface AdminListedUser {
   banned?: boolean | null;
   createdAt: string | Date;

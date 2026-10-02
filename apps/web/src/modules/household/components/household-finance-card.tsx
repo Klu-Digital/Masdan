@@ -38,11 +38,7 @@ export interface HouseholdFinanceProfile {
   timezone: string;
 }
 
-/**
- * Read from the runtime rather than a table: tzdb ships several releases a year
- * and ICU is the list the formatting actually uses. The server validates
- * against its own copy of the same list.
- */
+// The runtime's list, not a table: it is what ICU formats with.
 const TIMEZONE_ITEMS: PickerItem[] = Intl.supportedValuesOf("timeZone").map(
   (zone) => ({ label: zone.replaceAll("_", " "), value: zone })
 );
@@ -96,11 +92,7 @@ const Picker = ({
   </Combobox>
 );
 
-/**
- * The household's money defaults. Every member sees them; only a role with
- * `organization:update` can change them, and that check is cosmetic —
- * `households.updateProfile` is the authority.
- */
+// The permission check here is cosmetic; `households.updateProfile` enforces.
 export const HouseholdFinanceCard = ({
   activeOrganizationId,
   canManage,

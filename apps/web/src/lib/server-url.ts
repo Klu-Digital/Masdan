@@ -1,7 +1,3 @@
-/**
- * Resolution order: explicit `SERVER_URL`, an absolute `url`, the browser's
- * origin, the Vercel URL, localhost.
- */
 export const getServerUrl = (url: string) => {
   const processEnv = (
     globalThis as {

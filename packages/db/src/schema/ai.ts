@@ -11,11 +11,7 @@ import {
 import { organization, user } from "./auth";
 import { timestamptz } from "./columns";
 
-/**
- * AI tokens a household spent per UTC day, checked against
- * `AI_DAILY_TOKEN_BUDGET` before every model call. In Postgres, not Redis: a
- * spending cap that resets whenever Redis is flushed or absent is no cap.
- */
+// In Postgres, not Redis: a cap that resets on a flush is no cap.
 export const aiUsage = pgTable(
   "ai_usage",
   {
@@ -29,12 +25,6 @@ export const aiUsage = pgTable(
   (table) => [primaryKey({ columns: [table.organizationId, table.day] })]
 );
 
-/**
- * An admin's override of one AI feature's `max_tokens`. Defaults live in code
- * (`AI_FEATURES` in `@masdan/api`), so a row exists only once an admin has
- * changed one. Feature is plain text: removing a feature from code leaves a
- * harmless orphan row rather than needing a migration.
- */
 export const aiTokenCap = pgTable("ai_token_cap", {
   feature: text("feature").primaryKey(),
   maxTokens: integer("max_tokens").notNull(),

@@ -27,11 +27,6 @@ import {
   periodStart,
 } from "./interest.queries";
 
-/**
- * Worker-side posting of estimated interest. No procedure ladder: apps/workers
- * runs it, and every credit goes through `createTransaction` like manual entry.
- */
-
 /** Bounds one run's catch-up after downtime; the next sweep continues it. */
 const MAX_CREDITS_PER_RUN = 62;
 
@@ -210,11 +205,7 @@ const postCredits = async (
   return result;
 };
 
-/**
- * Posts each finished credit period of one account as income, dated on its
- * credit date. The config row lock serializes overlapping runs; the unique
- * (account, credit date) key is what makes a duplicate impossible without it.
- */
+// The unique (account, credit date) key makes duplicates impossible.
 export const postAccountInterest = (
   db: Database,
   accountId: string,

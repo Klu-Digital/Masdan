@@ -88,10 +88,6 @@ const greeting = (now: Date): string => {
   return "Good evening";
 };
 
-/* ------------------------------------------------------------------ */
-/* Net worth + this month                                              */
-/* ------------------------------------------------------------------ */
-
 const NetWorthCard = ({
   currency,
   failed,
@@ -262,10 +258,6 @@ const MonthCard = ({
   </section>
 );
 
-/* ------------------------------------------------------------------ */
-/* Spending this month                                                 */
-/* ------------------------------------------------------------------ */
-
 const SpendingRows = ({
   currency,
   report,
@@ -388,10 +380,6 @@ const SpendingHighlights = ({
   </Section>
 );
 
-/* ------------------------------------------------------------------ */
-/* Recent activity                                                     */
-/* ------------------------------------------------------------------ */
-
 const NoTransactions = ({ canCreate }: { canCreate: boolean }) => {
   const { compose } = useAppActions();
   return (
@@ -485,10 +473,6 @@ const RecentActivity = ({
     </Section>
   );
 };
-
-/* ------------------------------------------------------------------ */
-/* First run                                                           */
-/* ------------------------------------------------------------------ */
 
 const Welcome = ({ household }: { household: OverviewHousehold }) => {
   const { compose, composeAccount } = useAppActions();

@@ -40,11 +40,6 @@ const entryFor = (name: string) =>
 
 const isSecret = (name: string): boolean => entryFor(name)?.kind !== "config";
 
-/**
- * Every destination the manifest declares for `name` in this environment.
- * Environment isolation lives here: `github-staging` and `github-production` are
- * distinct targets, so a staging run can never resolve a production scope.
- */
 export const destinationsFor = (
   name: string,
   environment: DeploymentEnvironment
@@ -99,11 +94,7 @@ const alreadyPresent = (write: PlannedWrite, remote: RemoteState): boolean => {
     : remote.githubVariables.has(write.name);
 };
 
-/**
- * Writes needed to place `names` in their manifest destinations. Destinations
- * that already hold the name are dropped, which is what makes a rerun resume
- * rather than overwrite — an existing secret is never rotated.
- */
+// Existing names are skipped: a rerun resumes and never rotates a secret.
 export const planWrites = (
   names: readonly string[],
   environment: DeploymentEnvironment,
@@ -163,12 +154,6 @@ export interface DerivedUrls {
   SMOKE_URL: string;
 }
 
-/**
- * One URL answers all three in the deployed topology: nginx in the web image
- * proxies /api/auth and /rpc, so the API needs no public hostname of its own.
- * `apiUrl` covers the split-hostname case. SMOKE_URL is the origin root because
- * that is the server's health route — apps/server/src/app.ts serves "OK" at "/".
- */
 export const deriveUrls = (webUrl: string, apiUrl?: string): DerivedUrls => {
   const web = trimSlash(webUrl);
   const api = apiUrl ? trimSlash(apiUrl) : web;

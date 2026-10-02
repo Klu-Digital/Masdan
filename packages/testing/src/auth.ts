@@ -14,12 +14,7 @@ export interface SignedUpTestUser {
   headers: Headers;
 }
 
-/**
- * Signs up through the real endpoint rather than inserting rows, so
- * better-auth's `databaseHooks` fire — in particular `user.create.after`, which
- * creates the personal organization. `returnHeaders: true` is what surfaces the
- * `Set-Cookie` written during sign-up.
- */
+// Through the real endpoint so `databaseHooks` create the personal household.
 export const signUpTestUser = async (
   overrides: SignUpTestUserOverrides = {}
 ): Promise<SignedUpTestUser> => {

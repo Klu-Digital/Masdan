@@ -2,10 +2,7 @@ import Redis from "ioredis";
 
 let client: Redis | undefined;
 
-/**
- * Reads `process.env.REDIS_URL` at call time: `setup/db.ts` sets it per worker,
- * possibly after this import.
- */
+// Read at call time: `setup/db.ts` sets it per worker after import.
 export const getTestRedis = (): Redis => {
   if (!client) {
     client = new Redis(process.env.REDIS_URL as string);
@@ -19,18 +16,12 @@ export const getTestRedis = (): Redis => {
   return client;
 };
 
-/**
- * `FLUSHDB`, deliberately never `FLUSHALL`: each worker has its own numbered
- * logical database, and `FLUSHALL` would wipe every other worker's too.
- */
+// Never `FLUSHALL`: it would wipe every other worker's database.
 export const flushTestRedis = async (): Promise<void> => {
   await getTestRedis().flushdb();
 };
 
-/**
- * `quit()` rejects with "Connection is closed." on a client that never dialled,
- * so fall back to `disconnect()` rather than reject out of an `afterAll`.
- */
+// `quit()` rejects on a client that never dialled.
 export const closeTestRedis = async (): Promise<void> => {
   if (!client) {
     return;

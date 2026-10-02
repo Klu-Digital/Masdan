@@ -1,8 +1,4 @@
-/**
- * Money formatting for display only. Amounts arrive as decimal strings and are
- * never summed here — arithmetic belongs to the server, which keeps 6-place
- * precision end to end.
- */
+// Display only: arithmetic belongs to the server's 6-place precision.
 
 export type MoneySign = "auto" | "in" | "out" | "none";
 

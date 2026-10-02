@@ -16,11 +16,7 @@ export interface PostMigrationContext {
   /** Re-exported so raw statements need no second import. */
   sql: typeof sql;
   log: PostMigrationLogger;
-  /**
-   * True under `--dry-run`. With `transaction: true` the runner rolls back for
-   * you, so most scripts can ignore it; one that opts out must check it before
-   * writing.
-   */
+  /** True under `--dry-run`. A script with `transaction: false` must check it. */
   dryRun: boolean;
 }
 
@@ -29,11 +25,7 @@ export interface PostMigrationDefinition {
   description: string;
   /** The work. Throw to fail the run — a transactional script rolls back automatically. */
   up: (ctx: PostMigrationContext) => Promise<void>;
-  /**
-   * Default `true`. Set `false` only for statements that cannot run in a
-   * transaction (`CREATE INDEX CONCURRENTLY`) or a script batching its own
-   * commits.
-   */
+  /** Default `true`. `false` for `CREATE INDEX CONCURRENTLY` or self-batching. */
   transaction?: boolean;
   /** `statement_timeout` for the run, in ms. Default 300_000 (5 minutes). */
   timeoutMs?: number;

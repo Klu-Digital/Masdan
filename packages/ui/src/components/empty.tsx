@@ -1,10 +1,6 @@
 import { cn } from "@masdan/ui/lib/utils";
 import type React from "react";
 
-/**
- * Empty, error, and first-run states. Quiet by design: a tinted glyph, one line
- * of title, one line of guidance, and at most one primary action.
- */
 export const Empty = ({
   className,
   size = "default",

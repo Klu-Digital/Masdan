@@ -24,10 +24,7 @@ const COMMANDS = [
   "rollback",
 ] as const;
 
-/**
- * Must finish before `@masdan/env/shared-server` is imported below: t3-env freezes `env`
- * at module load.
- */
+// Must run before `@masdan/env/shared-server` loads: t3-env freezes at import.
 const loadEnv = (): void => {
   const here = import.meta.dirname;
   const repoRoot = path.resolve(here, "../../../..");

@@ -23,11 +23,7 @@ const LEDGER = [
   "transfers",
 ] as const satisfies readonly Router[];
 
-/**
- * Which routers' reads a write can make stale. Invalidating a router refetches
- * only its mounted queries, so erring wide costs a request and erring narrow
- * shows the wrong money.
- */
+// Erring wide costs a request; erring narrow shows the wrong money.
 const STALE_AFTER = {
   accounts: [...LEDGER, "exchangeRates"],
   categories: ["categories", ...LEDGER],

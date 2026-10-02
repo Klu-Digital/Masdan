@@ -17,11 +17,6 @@ import { householdSettings } from "../shared/household";
 import { reminderResolution } from "./reminder-rules";
 import type { ReminderCard, ReminderStatement } from "./reminder-rules";
 
-/**
- * Everything here is scoped by `organizationId`: a household's reminders are
- * judged only against its own cards, statements and payments.
- */
-
 interface HouseholdCard extends ReminderCard {
   cardLastFour: string | null;
   cardNetwork: string | null;

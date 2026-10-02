@@ -15,10 +15,6 @@ const uuidv7 = sql`uuidv7()`;
 export const postMigrationStatuses = ["running", "success", "failed"] as const;
 export type PostMigrationStatus = (typeof postMigrationStatuses)[number];
 
-/**
- * One row per script `name`, overwritten on each attempt — a failed row is the
- * debugging trail.
- */
 export const postMigration = pgTable(
   "post_migration",
   {

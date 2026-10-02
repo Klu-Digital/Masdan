@@ -51,9 +51,6 @@ const askHidden = async (question: string): Promise<string> => {
     }
   }
   output.write(question);
-  // A raw keypress stream has no promise form: the value is only complete once
-  // Enter arrives, so the resolver has to outlive this call. The handler is a
-  // const arrow that detaches itself by name once Enter or Ctrl+C arrives.
   // oxlint-disable-next-line promise/avoid-new
   return new Promise((resolve, reject) => {
     let value = "";
@@ -127,11 +124,7 @@ const requiredValue = async (
 const optionalValue = async (label: string): Promise<string | undefined> =>
   (await ask(`${label} (press Enter to skip): `)) || undefined;
 
-/**
- * Collected values live here and nowhere else — never on disk. The wizard holds
- * them only between the prompt that produced them and the write that consumes
- * them, then clears the map.
- */
+// Values never touch disk.
 interface Collection {
   order: string[];
   values: Map<string, string>;
@@ -548,9 +541,7 @@ export const applyDokploy = async (
   dokploy: ReturnType<typeof createDokployClient>,
   applications: readonly Application[]
 ): Promise<void> => {
-  // One save per application rather than one per variable: fewer requests, and
-  // a failure leaves that application's environment untouched rather than half
-  // written.
+  // One save per application, so a failure never half-writes an environment.
   for (const application of applications) {
     const target = `dokploy-${application.name}`;
     const applicable = writes.filter(
@@ -648,9 +639,6 @@ export const runDeploymentWizard = async (
   const repository = availability.repository ?? "this repository";
 
   try {
-    // Dokploy sits in the middle because its application ids are what make the
-    // runtime destinations knowable: every later "is this already set?" question
-    // depends on having read those two applications.
     const githubOnly = remoteStateFrom(snapshot, []);
     await collectTailscale(collection, githubOnly, environment, repository);
     await collectPostHog(collection, githubOnly, environment);

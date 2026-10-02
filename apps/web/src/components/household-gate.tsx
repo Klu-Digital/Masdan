@@ -26,10 +26,6 @@ export const PageSkeleton = () => (
   </Page>
 );
 
-/**
- * Household-scoped screens render only inside an active household. Without
- * one, the person is pointed at creating or joining one instead.
- */
 export const HouseholdGate = ({
   children,
   permission,

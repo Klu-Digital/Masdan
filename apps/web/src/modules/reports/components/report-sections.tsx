@@ -154,10 +154,6 @@ const ChartTable = <Row extends ChartRow>({
   );
 };
 
-/* ------------------------------------------------------------------ */
-/* Net worth today                                                     */
-/* ------------------------------------------------------------------ */
-
 export const NetWorthSummary = ({
   currency,
   report,
@@ -224,10 +220,6 @@ export const NetWorthSummary = ({
     </section>
   );
 };
-
-/* ------------------------------------------------------------------ */
-/* Net worth history                                                   */
-/* ------------------------------------------------------------------ */
 
 export const NetWorthHistoryChart = ({
   action,
@@ -327,10 +319,6 @@ export const NetWorthHistoryChart = ({
     </Section>
   );
 };
-
-/* ------------------------------------------------------------------ */
-/* Cash flow                                                           */
-/* ------------------------------------------------------------------ */
 
 export const CashFlowSection = ({
   currency,
@@ -469,10 +457,6 @@ export const CashFlowSection = ({
     </Section>
   );
 };
-
-/* ------------------------------------------------------------------ */
-/* Budget performance                                                  */
-/* ------------------------------------------------------------------ */
 
 export const BudgetPerformanceSection = ({
   currency,
@@ -625,10 +609,6 @@ export const BudgetPerformanceSection = ({
     </Section>
   );
 };
-
-/* ------------------------------------------------------------------ */
-/* Spending by category                                                */
-/* ------------------------------------------------------------------ */
 
 export const SpendingSection = ({
   currency,

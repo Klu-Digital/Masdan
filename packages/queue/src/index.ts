@@ -26,12 +26,7 @@ const jobEntries = Object.entries(jobs) as [JobName, JobDefinition][];
 type Transaction = DrizzleTransactionLike;
 
 type EnqueueOptions = Omit<SendOptions, "db"> & {
-  /**
-   * In practice `context.db` inside a `mutationProcedure`: the job row is
-   * written on the caller's connection, so it commits with the rows it depends
-   * on and disappears if they roll back. Omitting it enqueues on pg-boss's own
-   * pool, which commits immediately.
-   */
+  /** Pass the transaction so the job commits or rolls back with its rows. */
   tx?: Transaction;
 };
 
@@ -55,11 +50,6 @@ const createQueueClient = () => {
     return boss;
   };
 
-  /**
-   * Idempotent: concurrent callers share one in-flight start. Queues are
-   * registered here rather than in a migration, so a new job needs no migration
-   * to work.
-   */
   const start = (role: QueueRole): Promise<PgBoss> => {
     starting ??= (async () => {
       const instance = new PgBoss(resolveQueueConfig(role));
@@ -114,11 +104,7 @@ const createQueueClient = () => {
     return starting;
   };
 
-  /**
-   * `async` so every failure path is a rejection: both guards below throw
-   * synchronously, and a `Promise`-typed function that throws before returning
-   * one never reaches `.catch()`.
-   */
+  // `async` so the synchronous guards below reject instead of throwing.
   const enqueue = async <N extends JobName>(
     name: N,
     payload: JobPayload<N>,
@@ -135,11 +121,7 @@ const createQueueClient = () => {
     });
   };
 
-  /**
-   * `batchSize` defaults to 1, so a throw fails exactly the job that threw.
-   * Raise it and a throw retries the whole batch, including jobs in it that
-   * already succeeded.
-   */
+  // Raising `batchSize` makes one throw retry already-succeeded jobs.
   const work = <N extends JobName>(
     name: N,
     handler: (job: JobOf<N>) => Promise<void>,

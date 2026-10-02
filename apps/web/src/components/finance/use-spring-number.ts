@@ -6,12 +6,6 @@ const RESPONSE_SECONDS = 0.45;
 const OMEGA = (2 * Math.PI) / RESPONSE_SECONDS;
 const SETTLE_EPSILON = 0.005;
 
-/**
- * Tweens a displayed number toward `target` on a critically damped spring.
- * Retargeting mid-flight starts from the on-screen value and keeps the current
- * velocity, so rapid updates never jump or stall. The first render is exact,
- * and with motion disabled the target is returned as-is.
- */
 export const useSpringNumber = (target: number, enabled = true): number => {
   const reducedMotion = usePrefersReducedMotion();
   const active = enabled && !reducedMotion;

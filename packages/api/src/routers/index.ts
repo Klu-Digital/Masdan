@@ -27,13 +27,7 @@ import { transactionsRouter } from "../transactions/transactions.router";
 import { transfersRouter } from "../transfers/transfers.router";
 import { adminRouter } from "./admin";
 
-/**
- * The tenant-scoped surface: everything here needs no organization, or runs on
- * `orgProcedure` and can filter on `organizationId`. `admin` is the one subtree
- * that spans tenants — see `./admin.ts`. Mount new routers through one of these
- * two barrels, never inline, so "what reads across organizations?" stays a
- * single file to read.
- */
+// Mount routers through this or `./admin.ts`, never inline.
 export const appRouter = {
   accounts: accountsRouter,
   admin: adminRouter,

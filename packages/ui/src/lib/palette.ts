@@ -1,8 +1,3 @@
-/**
- * The 22 household colours categories, tags and accounts can carry. They only
- * ever tint small things — tiles, dots, chips — never surfaces or text blocks,
- * so a page of twenty categories stays calm.
- */
 export const PALETTE = {
   amber: {
     dot: "bg-amber-500",

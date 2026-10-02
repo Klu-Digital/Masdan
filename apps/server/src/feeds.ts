@@ -6,12 +6,7 @@ import type { Hono } from "hono";
 
 const ICS_SUFFIX = ".ics";
 
-/**
- * Calendar subscriptions. A calendar app sends no cookie, so the unguessable
- * token in the path is the whole credential; mounted ahead of CORS and session
- * lookup like the chat webhooks. Every miss is the same 404, so a caller
- * cannot tell a revoked token from one that never existed.
- */
+// The path token is the whole credential. Every miss is the same 404.
 export const mountFeeds = (app: Hono<EvlogVariables>) => {
   app.get("/feeds/bills/:file", async (c) => {
     const file = c.req.param("file");

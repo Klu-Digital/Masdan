@@ -42,15 +42,10 @@ const RootComponent = () => (
 );
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
-  /**
-   * Resolved once here: three guards need this answer on a single navigation.
-   */
   beforeLoad: async ({ context }) => ({
     session: await context.queryClient.ensureQueryData({
       ...sessionQueryOptions(),
-      // `ensureQueryData` is cache-first and never revalidates, so without this
-      // a session revoked elsewhere would keep waving people through until the
-      // entry was garbage collected.
+      // `ensureQueryData` never revalidates, so a revoked session would linger.
       revalidateIfStale: true,
     }),
   }),

@@ -10,21 +10,13 @@ import {
 } from "../procedures";
 import { notFound } from "../shared/errors";
 
-/**
- * Shape only — a code that passes this still has to exist in `currency`, which
- * the handler checks so the answer is a BAD_REQUEST rather than a foreign-key
- * violation surfacing as a 500.
- */
+// The handler checks `currency` so a bad code is BAD_REQUEST, not a 500.
 const currencyCodeInput = z
   .string()
   .trim()
   .toUpperCase()
   .regex(/^[A-Z]{3}$/u, "Use a three-letter currency code");
 
-/**
- * No `timezone` table on purpose: tzdb ships several releases a year, and the
- * runtime that does the conversion is the only list that cannot fall behind it.
- */
 const supportedTimezones = new Set(Intl.supportedValuesOf("timeZone"));
 const timezoneInput = z
   .string()

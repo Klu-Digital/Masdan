@@ -1,10 +1,6 @@
 import { motion } from "./loop";
 import type { Actor } from "./loop";
 
-/**
- * Lifts an element off the page: a positive depth makes it outrun the scroll,
- * as something nearer the reader would.
- */
 export const planeActor = (el: HTMLElement, depth: number): Actor => {
   let shift = 0;
   const actor: Actor = {

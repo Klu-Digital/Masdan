@@ -3,11 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AdminUserDetailPage } from "@/modules/admin/components/user-detail-page";
 import { orpc } from "@/utils/orpc";
 
-/**
- * `loader` before `head` in deliberate violation of `sort-keys`: TypeScript
- * resolves this literal in source order, so with `head` first `loaderData`
- * widens to `never`.
- */
+// `loader` before `head`, or `loaderData` infers as `never`.
 /* oxlint-disable sort-keys */
 export const Route = createFileRoute("/_auth/admin/users/$userId")({
   component: AdminUserDetailPage,

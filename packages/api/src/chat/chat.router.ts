@@ -21,16 +21,7 @@ const ownLinks = (context: {
     eq(chatLink.organizationId, context.organizationId)
   );
 
-/**
- * The caller's own chat-app links in the active household. Linking needs
- * `transaction:create`, the same permission every message is checked against;
- * unlinking needs nothing, so anyone can take their account back.
- */
 export const chatRouter = {
-  /**
-   * Issues a single-use code bound to the active household, good on any
-   * channel. Replaces any unused one.
-   */
   createLinkCode: orgMutationProcedure
     .use(requireFlag("FF__CHAT_ENTRY"))
     .use(requirePermission({ transaction: ["create"] }))

@@ -18,12 +18,7 @@ import {
   signUpAllowed,
 } from "./sign-up-gate";
 
-/**
- * Scheme and hostname, no port, so `localhost:2600` -> `localhost:1900` is
- * already same-site. Conservative on purpose: calling two same-site subdomains
- * cross-site only loosens a cookie, while the opposite mistake breaks sign-in.
- * `null` is treated as cross-site.
- */
+// Port-agnostic. Unsure means cross-site: that only loosens a cookie.
 const siteOf = (url: string): string | null => {
   try {
     const parsed = new URL(url);
@@ -33,14 +28,8 @@ const siteOf = (url: string): string | null => {
   }
 };
 
-/**
- * `Secure` follows deployment, `SameSite` follows topology, deliberately
- * independent. Deriving both from one flag is the trap: `SameSite=None` is only
- * legal alongside `Secure`. `Secure` is off outside production because Safari
- * does not special-case `http://localhost` and none of the browsers extend the
- * exception to a LAN IP. That failure is silent — the cookie is dropped and
- * every request just looks signed out.
- */
+// `Secure` follows deployment, `SameSite` topology: `SameSite=None` needs
+// `Secure`, and Safari drops `Secure` cookies on http://localhost silently.
 export const defaultCookieAttributes = (
   nodeEnv: string,
   origins: { apiUrl: string; webOrigin: string }
@@ -56,11 +45,7 @@ export const defaultCookieAttributes = (
   };
 };
 
-/**
- * better-auth's defaults, stated so a version bump cannot move them. No
- * `cookieCache`: a cached session outlives the revocation an admin-issued
- * password reset performs.
- */
+// No `cookieCache`: a cached session outlives an admin-issued reset's revocation.
 const SESSION = {
   cookieCache: { enabled: false },
   expiresIn: 60 * 60 * 24 * 7,
@@ -68,11 +53,7 @@ const SESSION = {
   updateAge: 60 * 60 * 24,
 };
 
-/**
- * better-auth's own invitation endpoints match the invitee by email, which is
- * exactly what link-based invitations replace. `invitations.*` in @masdan/api
- * is the only way in.
- */
+// These match invitees by email; link invitations in @masdan/api replace them.
 const EMAIL_MATCHED_INVITATION_PATHS = new Set([
   "/organization/accept-invitation",
   "/organization/get-invitation",
@@ -154,9 +135,7 @@ export const createAuth = () => {
             }
           },
           before: async (user, context) => {
-            // Only the HTTP door bootstraps: the seeder and test helpers call
-            // `auth.api` directly and must not mint an admin. Two simultaneous
-            // first sign-ups can both win; acceptable on an empty instance.
+            // Only HTTP sign-up bootstraps; the seeder and tests must not mint an admin.
             const bootstrap =
               context?.path === SIGN_UP_PATH &&
               context.request !== undefined &&
@@ -225,9 +204,7 @@ export const createAuth = () => {
       }),
     ],
     rateLimit: {
-      // No `storage` key: "secondary-storage" makes better-auth's
-      // `getRateLimitStorage()` throw without `secondaryStorage`, which we do
-      // not use. `customStorage` wins anyway.
+      // No `storage` key: "secondary-storage" throws without `secondaryStorage`.
       customStorage: resolveRateLimitStorage(),
       // better-auth resolves `enabled ?? isProduction`. Spread rather than pass
       // `undefined` so a future version checking key presence still sees none.

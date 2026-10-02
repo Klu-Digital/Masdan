@@ -179,11 +179,6 @@ const GoalRow = ({ actions, goal }: { actions: ReactNode; goal: Goal }) => {
   );
 };
 
-/**
- * Savings goals over the ledger: each measures one account's balance against
- * a target. Completing or archiving keeps the goal for the history.
- */
-// One screen for three lifecycle lists, their actions and the composer.
 // oxlint-disable-next-line complexity
 export const GoalsPage = ({
   activeOrganizationId,

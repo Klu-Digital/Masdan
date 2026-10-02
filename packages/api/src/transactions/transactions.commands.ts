@@ -44,13 +44,7 @@ const keptApplication = <
     ? application
     : null;
 
-/**
- * The one edit path for an income or expense: the update procedure, rule
- * application and accepted suggestions all go through it. `provenance`
- * records a rule that just ran or a suggestion just accepted; without one,
- * earlier provenance survives only while the category and tags it set are
- * still there.
- */
+// The one edit path for income and expenses.
 // oxlint-disable-next-line complexity
 export const updateTransaction = async (
   db: Database,

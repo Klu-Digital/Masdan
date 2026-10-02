@@ -36,10 +36,6 @@ const setFlagRow = async (name: string, enabled: boolean) => {
     .onConflictDoUpdate({ set: { enabled }, target: featureFlag.name });
 };
 
-/**
- * The cache is module state, so it survives between tests here; every test
- * starts from a cold one.
- */
 beforeEach(async () => {
   await getTestDb().delete(featureFlag);
   invalidateFeatureFlags();

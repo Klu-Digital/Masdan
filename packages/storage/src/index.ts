@@ -71,9 +71,7 @@ const buildClient = (
   });
 
 const createStorage = () => {
-  // Built on first use: `storage` below is a module-scope singleton, so eager
-  // construction would make merely importing this package throw wherever
-  // storage is unconfigured.
+  // Lazy so importing this package never throws when storage is unconfigured.
   let commandClient: S3Client | undefined;
   let signingClient: S3Client | undefined;
 
@@ -83,10 +81,7 @@ const createStorage = () => {
     return commandClient;
   };
 
-  /**
-   * A presigned URL bakes in the host it was signed against, so inside Docker
-   * this must be the reachable `S3_PUBLIC_ENDPOINT`.
-   */
+  // Presigned URLs bake in the host, so sign against `S3_PUBLIC_ENDPOINT`.
   const getSigningClient = (config: StorageConfig): S3Client => {
     if (config.publicEndpoint === config.endpoint) {
       return getCommandClient(config);
@@ -174,10 +169,6 @@ const createStorage = () => {
       return getSignedUrl(getSigningClient(config), command, { expiresIn });
     },
 
-    /**
-     * Content type and length are signed into the URL, so a client cannot
-     * upload a different type or a larger body than the one it declared.
-     */
     presignUpload({
       key,
       contentType,

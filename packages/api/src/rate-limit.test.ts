@@ -14,10 +14,6 @@ const caught = async (p: Promise<unknown>): Promise<unknown> => {
   }
 };
 
-/**
- * Only `redis.client()` is mocked, at the module `countHit` imports it from;
- * `incrementWithTtl` runs for real against `createFakeRedis`.
- */
 const redisMock = vi.hoisted(() => ({ client: vi.fn() }));
 
 vi.mock("@masdan/redis/client", () => ({

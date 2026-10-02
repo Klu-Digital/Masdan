@@ -26,11 +26,6 @@ import {
 } from "./bill-rules";
 import type { BillSource, BillStatus, CardTransfer } from "./bill-rules";
 
-/**
- * Everything here is scoped by `organizationId`: a household's bills come only
- * from its own schedules, cards, statements, payments and confirmations.
- */
-
 interface BillPaymentRecord {
   confirmedAt: Date;
   confirmedByName: string | null;

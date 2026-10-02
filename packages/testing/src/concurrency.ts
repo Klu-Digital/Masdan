@@ -39,12 +39,7 @@ const lockWait = async (signal: AbortSignal): Promise<void> => {
   }
 };
 
-/**
- * Runs `hold` in a transaction and keeps it open, its locks held, while
- * `contender` runs. The holder commits once the contender is seen waiting on
- * a lock, or has already finished (the missing-lock bug a test is looking
- * for). Returns the contender's result or rethrows its error.
- */
+/** Holds `hold`'s locks open until `contender` waits on one or finishes. */
 export const whileHolding = async <T>(
   db: Database,
   hold: (tx: Database) => Promise<unknown>,

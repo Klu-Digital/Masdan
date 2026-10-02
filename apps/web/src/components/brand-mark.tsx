@@ -1,9 +1,5 @@
 import { cn } from "@masdan/ui/lib/utils";
 
-/**
- * The Masdan mark: two rising bars inside a rounded square — money that
- * grows, drawn with the restraint of the rest of the product.
- */
 export const BrandMark = ({ className }: { className?: string }) => (
   <svg
     aria-hidden="true"

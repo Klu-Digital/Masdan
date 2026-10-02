@@ -106,14 +106,6 @@ export const resolveReportPeriod = async (
   };
 };
 
-/* ------------------------------------------------------------------ */
-/* Net worth                                                           */
-/* ------------------------------------------------------------------ */
-
-/**
- * Current balances of the accounts net worth counts: active, included. No
- * `asOf`, so this matches the balances the accounts screen shows.
- */
 const includedBalances = (db: Database, organizationId: string) =>
   db
     .select({
@@ -277,10 +269,6 @@ interface HistoryRow extends Record<string, unknown> {
   net_worth: string;
 }
 
-/**
- * The shared balance formula as of each bucket end. An account counts from
- * its opening date until the household-local day it was archived.
- */
 export const getNetWorthHistory = async (
   db: Database,
   organizationId: string,
@@ -380,20 +368,13 @@ export const getNetWorthHistory = async (
   return { dateFrom, dateTo, granularity, points };
 };
 
-/* ------------------------------------------------------------------ */
-/* Cash flow and categories                                            */
-/* ------------------------------------------------------------------ */
-
 export interface LedgerRange {
   accountIds?: string[];
   dateFrom: string;
   dateTo: string;
 }
 
-/**
- * Income and expense events: categorized, unarchived, in range. Transfers
- * move money between the household's own accounts and are never counted.
- */
+// Transfers are never counted.
 const flowConditions = (organizationId: string, range: LedgerRange) => {
   const conditions = [
     eq(financialTransaction.organizationId, organizationId),

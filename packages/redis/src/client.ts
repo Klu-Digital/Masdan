@@ -5,9 +5,7 @@ import { resolveRedisConfig } from "./config";
 import type { RedisConfig } from "./config";
 
 export const createRedis = () => {
-  // Built on first use: `redis` below is a module-scope singleton, so eager
-  // construction would make merely importing this package dial out in an
-  // unconfigured environment.
+  // Lazy so importing this package never dials out.
   let client: Redis | undefined;
 
   const getClient = (): Redis | null => {
@@ -20,18 +18,14 @@ export const createRedis = () => {
       client = new Redis(config.url, {
         lazyConnect: true,
         ...(config.keyPrefix ? { keyPrefix: config.keyPrefix } : {}),
-        // Do NOT set `enableOfflineQueue: false`: with `lazyConnect`, ioredis
-        // needs the offline queue to hold the first command while it dials, and
-        // disabling it makes that command throw "Stream isn't writeable".
-        // `commandTimeout` bounds the wait instead.
+        // Do NOT set `enableOfflineQueue: false`: with `lazyConnect` the first command
+        // throws "Stream isn't writeable".
         commandTimeout: 1000,
         maxRetriesPerRequest: 1,
         retryStrategy: (times) => Math.min(times * 200, 5000),
       });
 
-      // Never remove: without an `error` listener ioredis re-emits connection
-      // errors as an unhandled Node `'error'` and crashes the process on
-      // ECONNREFUSED.
+      // Never remove: without it ECONNREFUSED crashes the process.
       client.on("error", (error: Error) => {
         log.warn({ action: "redis.error", message: error.message });
       });
@@ -56,9 +50,7 @@ export const createRedis = () => {
   };
 
   return {
-    /**
-     * `null` when unconfigured, never a throw — every caller handles `null`.
-     */
+    /** `null` when unconfigured, never a throw. */
     client: getClient,
 
     isConfigured(): boolean {

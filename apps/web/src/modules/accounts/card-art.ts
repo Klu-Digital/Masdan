@@ -52,11 +52,7 @@ export const networkMarkOf = (
 ): NetworkMarkKind | null =>
   network === null || network === "unknown" ? null : network;
 
-/**
- * What a card account looks like: its product's art, else its bank's colours,
- * else the account's own tint. An unknown or retired product key falls
- * through to the bank, never to a broken card.
- */
+// An unknown product key falls through to the bank, never a broken card.
 export const cardPresentation = (
   catalog: CardCatalog,
   card: CardIdentity

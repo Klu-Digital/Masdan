@@ -61,10 +61,6 @@ export interface AmountProps extends Omit<
   animate?: boolean;
   compact?: boolean;
   currency: string;
-  /**
-   * `in` / `out` describe money movement; `auto` shows a minus only for
-   * negative values; `none` prints the magnitude.
-   */
   sign?: MoneySign;
   size?: VariantProps<typeof amountVariants>["size"];
   weight?: VariantProps<typeof amountVariants>["weight"];
@@ -73,10 +69,7 @@ export interface AmountProps extends Omit<
   value: string | number;
 }
 
-/**
- * The one way the product prints money. Large sizes step the currency symbol
- * and minor units down so the magnitude reads first.
- */
+/** The one way the product prints money. */
 export const Amount = ({
   animate = false,
   className,

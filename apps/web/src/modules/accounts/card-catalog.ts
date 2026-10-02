@@ -63,10 +63,6 @@ export const cardCountriesOf = (card: {
   ];
 };
 
-/**
- * The catalog as loaded so far, loading `countries` if it lacks them. Until a
- * country arrives its cards draw generic, then re-render with their art.
- */
 export const useCardCatalog = (
   countries: readonly CardCountryCode[] = []
 ): CardCatalog => {

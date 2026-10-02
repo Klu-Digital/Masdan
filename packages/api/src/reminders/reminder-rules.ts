@@ -7,11 +7,7 @@ import { addDays } from "../recurring/recurrence";
 import { daysBetween } from "../reports/periods";
 import { signedScaledAmount } from "../shared/money";
 
-/**
- * Leaf module: which reminders a card is owed on a given household day, and
- * when one stops being actionable. Dates are household calendar days
- * (`YYYY-MM-DD`); "today" is the caller's, from the household's timezone.
- */
+// Leaf module. Nothing here reads a clock.
 
 /** A reminder surfaces this many days before its date. */
 export const REMINDER_LEAD_DAYS = 7;
@@ -154,10 +150,6 @@ const projectedPaymentCandidate = (
   };
 };
 
-/**
- * The reminders a card is owed today. Generation may repeat freely: the
- * caller inserts on the unique (card, kind, date) key and ignores conflicts.
- */
 export const reminderCandidates = (
   card: ReminderCard,
   latest: ReminderStatement | null,

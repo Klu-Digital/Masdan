@@ -47,11 +47,6 @@ declare module "vite-plus/test" {
   }
 }
 
-/**
- * Starts one postgres container per `vp test` invocation and migrates it into a
- * template database; `setup/db.ts` clones a database off the template per
- * worker.
- */
 export default async function setup(
   project: TestProject
 ): Promise<() => Promise<void>> {

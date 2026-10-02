@@ -9,10 +9,7 @@ export interface InstitutionIdentity {
   institutionId?: string | null;
 }
 
-/**
- * The catalog bank an account belongs to: by its stored id, else by the name
- * typed for it, so accounts saved before the catalog (or typed "BPI") match.
- */
+// Falls back to the typed name, so pre-catalog accounts still match.
 export const resolveInstitution = (
   institutions: readonly CatalogInstitution[],
   { institution, institutionId }: InstitutionIdentity

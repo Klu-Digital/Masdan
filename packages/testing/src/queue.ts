@@ -2,10 +2,7 @@ import { queue } from "@masdan/queue";
 import type { JobName, JobOf, JobPayload } from "@masdan/queue";
 import type { JobWithMetadata } from "pg-boss";
 
-/**
- * Starts against this worker's own database — `setup/db.ts` has already
- * repointed `@masdan/env/server` at it. Must not be called from module scope.
- */
+// Must not be called from module scope.
 export const startTestQueue = async (): Promise<void> => {
   await queue.start("producer");
 };
@@ -16,10 +13,7 @@ export const stopTestQueue = async (): Promise<void> => {
   await queue.stop({ graceful: false });
 };
 
-/**
- * `boss.work()` without the worker: no polling, no timers. Returns how many
- * jobs were processed.
- */
+/** `boss.work()` without polling or timers. Returns jobs processed. */
 export const drainQueue = async <N extends JobName>(
   name: N,
   handler: (job: JobOf<N>) => Promise<void>,

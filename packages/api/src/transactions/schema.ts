@@ -5,11 +5,6 @@ import { isoDate } from "../shared/dates";
 import { positiveAmount, scaledAmount } from "../shared/money";
 import { TRANSACTION_PAID_STATUSES } from "./constants";
 
-/**
- * The transaction procedures' input schemas. Quick entry runs a parsed
- * payload through `transactionValues` before it may skip the form.
- */
-
 const splitTotal = (splits: { amount: string }[]): bigint => {
   let total = 0n;
   for (const split of splits) {

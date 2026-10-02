@@ -25,11 +25,7 @@ export const percent = (name: string) =>
 export const rate = (name: string) =>
   numeric(name, { precision: 30, scale: 12 });
 
-/**
- * `col IN (...)` for a CHECK, built from the same `as const` array the column's
- * TS type comes from, so the two cannot drift. Text plus CHECK rather than a
- * pg enum because `ALTER TYPE ... ADD VALUE` cannot run in a transaction.
- */
+// Text plus CHECK, not a pg enum: `ADD VALUE` can't run in a transaction.
 export const oneOf = (column: AnyPgColumn, values: readonly string[]) =>
   sql`${column} IN (${sql.join(
     values.map((value) => sql.raw(`'${value}'`)),

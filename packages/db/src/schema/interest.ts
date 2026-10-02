@@ -113,11 +113,7 @@ const termsChecks = (name: string, table: TermsTable) => [
   ),
 ];
 
-/**
- * A product's rates from `effective_from` to `effective_to`, one row per tenor
- * for a time deposit. Never updated once shipped: a rate change is a new row,
- * so a projection over last month still reads last month's rate.
- */
+// Never updated once shipped: a rate change is a new row.
 export const interestRateSchedule = pgTable(
   "interest_rate_schedule",
   {
@@ -198,11 +194,6 @@ export const financialAccountInterest = pgTable(
   ]
 );
 
-/**
- * The account's own rate history. A row either follows its product's
- * schedules or carries terms of its own (a booked time deposit, a custom
- * rate); an edit closes the open row rather than rewriting it.
- */
 export const financialAccountInterestRate = pgTable(
   "financial_account_interest_rate",
   {
@@ -245,12 +236,7 @@ export const financialAccountInterestRate = pgTable(
   ]
 );
 
-/**
- * One credit period the worker has posted. The unique (account, credit date)
- * key makes a retried or overlapping run a no-op, and the latest `period_end`
- * is where the next run starts, so an archived interest transaction is never
- * posted again. `transaction_id` is null for a period that earned nothing.
- */
+// Unique (account, credit date) makes retries no-ops.
 export const interestCredit = pgTable(
   "interest_credit",
   {

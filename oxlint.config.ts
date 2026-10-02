@@ -39,15 +39,8 @@ export default defineConfig({
       rules: { "no-restricted-imports": "off" },
     },
     {
-      // packages/ui *is* the design system, so its own source may style itself and
-      // reach for structural one-offs like `px-[calc(--spacing(3)-1px)]` that no
-      // token can express. src/** rather than src/components/**, because
-      // `src/lib/segmented-control.ts` is component source in all but location.
-      // `no-raw-colors` and `no-inline-styles` stay on: even a primitive should
-      // take its colors from the theme.
-      // The finance renderers (card art, amounts) are bespoke drawing code with
-      // container-query sizing that no token can express, so they get the same
-      // exemptions.
+      // packages/ui is the design system; the finance renderers need
+      // container-query sizing no token expresses. Colors still come from the theme.
       files: ["packages/ui/src/**", "apps/web/src/components/finance/**"],
       rules: {
         "shadcn/no-arbitrary-values": "off",

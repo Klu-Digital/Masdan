@@ -10,11 +10,7 @@ import { z } from "zod";
 
 import { adminProcedure } from "../procedures";
 
-/**
- * The `metadata` blob is how `packages/auth/src/index.ts` marks a personal
- * workspace. Parsed defensively: malformed or absent metadata is "not
- * personal", never a throw.
- */
+// Malformed metadata is "not personal", never a throw.
 const isPersonalOrg = (metadata: string | null): boolean => {
   if (!metadata) {
     return false;
@@ -26,12 +22,7 @@ const isPersonalOrg = (metadata: string | null): boolean => {
   }
 };
 
-/**
- * Cross-organization by design — listing every organization is the point of a
- * platform-admin surface. Read-only: better-auth's organization endpoints act
- * on the caller's own active organization, so a cross-org write would have to
- * bypass its hooks.
- */
+// Platform surface: deliberately ignores `organizationId`. Read-only.
 export const organizationsPlatformRouter = {
   detail: adminProcedure
     .input(z.object({ organizationId: z.uuid() }))

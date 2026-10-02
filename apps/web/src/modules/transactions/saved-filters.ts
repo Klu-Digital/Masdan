@@ -1,11 +1,6 @@
 import { transactionSearch } from "./search";
 import type { TransactionSearch } from "./search";
 
-/**
- * The ledger's filters and sort remembered per household in this browser.
- * Free-text search and a linked `quickEntry` line are left out: they describe
- * one visit, not a way of looking at the ledger.
- */
 export type SavedFilters = Pick<
   TransactionSearch,
   | "accountIds"
@@ -40,11 +35,7 @@ const pick = (search: TransactionSearch): SavedFilters => ({
 
 const DEFAULTS = pick(transactionSearch.parse({}) as TransactionSearch);
 
-/**
- * Whether the URL asks for nothing in particular. The router writes the
- * schema's defaults into every `/transactions` link, so a bare visit is not an
- * empty search string but one that equals the defaults.
- */
+// The router writes schema defaults into every link, so compare to defaults.
 export const isDefaultSearch = (search: TransactionSearch): boolean =>
   !search.search &&
   !search.quickEntry &&
@@ -64,11 +55,7 @@ export const saveFilters = (
   }
 };
 
-/**
- * What to restore, or `null` when nothing is saved or what is saved is just
- * the defaults. Stored JSON goes back through the URL schema, so a stale or
- * hand-edited value degrades to defaults instead of breaking the page.
- */
+// Stored JSON goes back through the URL schema, so bad values degrade.
 export const loadSavedFilters = (householdId: string): SavedFilters | null => {
   try {
     const raw = window.localStorage.getItem(storageKey(householdId));

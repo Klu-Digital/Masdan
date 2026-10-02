@@ -14,10 +14,6 @@ const reduce = matchMedia("(prefers-reduced-motion: reduce)");
 
 export const motion = { still: reduce.matches };
 
-/**
- * CSS pixels the element's centre sits below the viewport's, which scenes
- * scale by a depth to drift against the page. Zero while motion is still.
- */
 export const parallax = (el: Element): number => {
   if (motion.still) {
     return 0;

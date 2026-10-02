@@ -49,11 +49,7 @@ const isTyping = (target: EventTarget | null): boolean =>
   (target.isContentEditable ||
     ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName));
 
-/**
- * Hosts the app's modal surfaces once, above every page, so "New expense",
- * "Pay card" or a transaction's detail open the same way from anywhere. Each
- * surface is keyed per opening: its form state starts fresh every time.
- */
+// Each surface is keyed per opening, so its form state starts fresh.
 export const AppActionsProvider = ({ children }: { children: ReactNode }) => {
   const household = useHousehold();
   const navigate = useNavigate();

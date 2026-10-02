@@ -3,11 +3,7 @@ import { describe, expect, it, vi } from "vite-plus/test";
 
 import type { Context } from "../context";
 
-/**
- * `env` is frozen at import, so mock the module rather than reaching for
- * `vi.stubEnv`. Every field the handler might read has to exist here, or it
- * reads `undefined`.
- */
+// Every field the handler reads must exist here, or it reads `undefined`.
 const mockEnv = vi.hoisted(() => ({
   AUTH_RATE_LIMIT_ENABLED: true,
   AUTH_RATE_LIMIT_MAX: 100,

@@ -9,10 +9,6 @@ import {
 } from "@masdan/ui/components/alert-dialog";
 import { Button } from "@masdan/ui/components/button";
 
-/**
- * Transfers hard-delete (both postings go), so this is the one ledger action
- * that asks first. Archiving a transaction is soft and offers Undo instead.
- */
 export const DeleteTransferDialog = ({
   destination,
   loading = false,

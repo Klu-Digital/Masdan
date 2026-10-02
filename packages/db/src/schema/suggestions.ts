@@ -1,8 +1,3 @@
-/**
- * AI categorization provenance. Types only: the values live in jsonb columns
- * on `financial_transaction` and `transaction_import_row`.
- */
-
 /** Category and tags a model proposed, already resolved to household ids. */
 export interface CategorizationProposal {
   /** `null` when no listed category fit. */
@@ -10,10 +5,6 @@ export interface CategorizationProposal {
   tagIds: string[];
 }
 
-/**
- * A suggestion the user accepted: what the model proposed next to what the
- * user kept, so an edited suggestion reads differently from one taken as-is.
- */
 export interface TransactionSuggestionApplication {
   acceptedAt: string;
   acceptedByUserId: string;

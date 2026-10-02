@@ -19,22 +19,14 @@ const RATE_LIMIT = { limit: 30, window: 60 };
 
 const LINK_WINDOW = LINK_CODE_TTL_MS / 1000;
 
-/**
- * A code is 40 bits that live 10 minutes, so these limits are all that stands
- * between guessing and a linked stranger. Per sender stops one account; the
- * overall ceiling stops many accounts at once, at the price of a crowd briefly
- * blocking linking for everyone. Per code bounds how many senders race one code.
- */
+// Codes are 40 bits for 10 minutes: these limits are the guessing defence.
 const LINK_LIMITS = {
   overall: { limit: 60, window: LINK_WINDOW },
   perCode: { limit: 3, window: LINK_WINDOW },
   perSender: { limit: 5, window: LINK_WINDOW },
 };
 
-/**
- * Keyed on the chat account, not the IP: every delivery comes from the
- * channel's own servers. Counts in-process when Redis cannot, like `rateLimit()`.
- */
+// Keyed on the chat account: every delivery comes from the channel's servers.
 const overRateLimit = async (
   channel: ChatChannel,
   senderId: string
@@ -63,12 +55,7 @@ const overLinkLimit = async (
   return false;
 };
 
-/**
- * The shared half of every webhook, after the adapter has verified the caller
- * and read the message. It deduplicates and enqueues; parsing and creating run
- * in apps/workers, because channels retry anything not answered promptly and
- * the AI parse alone can take 8s.
- */
+// Enqueues only: channels retry slow answers and the AI parse can take 8s.
 export const receiveChatMessage = async (
   db: Database,
   channel: ChatChannel,

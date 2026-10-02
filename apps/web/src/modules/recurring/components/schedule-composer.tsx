@@ -204,11 +204,6 @@ const TimingPreview = ({
   );
 };
 
-/**
- * Create or edit one recurring schedule: the transaction it posts, then when.
- * Edits change future occurrences only; posted transactions stay as they are.
- */
-// One form with a field per template and timing setting.
 // oxlint-disable-next-line complexity
 export const ScheduleComposer = ({
   accounts,

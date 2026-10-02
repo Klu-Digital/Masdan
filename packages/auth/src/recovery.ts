@@ -13,10 +13,7 @@ export interface PasswordResetLink {
   url: string;
 }
 
-/**
- * Mints the same `reset-password:<token>` verification better-auth's
- * `requestPasswordReset` does, so its `/reset-password` endpoint consumes it.
- */
+/** Same verification shape as `requestPasswordReset`, so `/reset-password` consumes it. */
 export const issuePasswordResetLink = async (
   userId: string
 ): Promise<PasswordResetLink> => {

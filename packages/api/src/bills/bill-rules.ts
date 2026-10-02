@@ -17,11 +17,7 @@ import {
 import { daysBetween, monthStart } from "../reports/periods";
 import { fixedAmountText, signedScaledAmount } from "../shared/money";
 
-/**
- * Leaf module: which bills fall in a date range and whether each is paid.
- * Dates are household calendar days (`YYYY-MM-DD`); "today" is the caller's,
- * from the household's timezone. Nothing here reads a clock.
- */
+// Leaf module. Nothing here reads a clock.
 
 export type BillStatus = "expected" | "overdue" | "paid";
 
@@ -52,11 +48,7 @@ export interface ScheduleTiming {
   status: RecurringScheduleStatus;
 }
 
-/**
- * A schedule's bill dates in `[from, to]`: every occurrence it posted, then —
- * while active — every one it is still due to post. Days skipped by a pause or
- * a re-timing were never owed, so they are not bills.
- */
+// Days skipped by a pause or re-timing were never owed.
 export const scheduleBillDates = (
   schedule: ScheduleTiming,
   postedDates: readonly string[],
@@ -140,11 +132,6 @@ const coveredByStatement = (
       Math.abs(daysBetween(statement.dueDate, dueDate)) <= STATEMENT_COVERS_DAYS
   );
 
-/**
- * A card's due dates in `[from, to]`. Recorded statements with a balance are
- * bills on their due date; the card's due day fills in only from the current
- * cycle on, while the card owes something and no statement covers the date.
- */
 export const cardBillDates = (
   card: BillCard,
   statements: readonly BillStatement[],
@@ -285,10 +272,7 @@ export interface BillTotals {
   unknownAmountCount: number;
 }
 
-/**
- * Per currency, never combined: a household with a USD card and PHP rent sees
- * two sets of totals rather than one number that means nothing.
- */
+// Per currency, never combined.
 export const billTotals = (bills: readonly BillTotalsInput[]): BillTotals[] => {
   const totals = new Map<
     string,

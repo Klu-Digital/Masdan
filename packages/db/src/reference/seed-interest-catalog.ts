@@ -8,11 +8,6 @@ import {
 } from "../schema";
 import { INSTITUTION_PRESETS, PRODUCT_PRESETS } from "./interest-presets";
 
-/**
- * Upserts the shipped catalog by key. Safe to run again: a schedule already
- * seeded is left exactly as it is, and a newer one only closes the open end
- * of the one it replaces. Nothing here reads or writes household rows.
- */
 export const seedInterestCatalog = async (
   db: Database
 ): Promise<{ institutions: number; products: number; schedules: number }> => {

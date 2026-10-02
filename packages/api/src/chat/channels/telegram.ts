@@ -122,10 +122,7 @@ const secretMatches = (expected: string, received: string | null) =>
     createHash("sha256").update(received).digest()
   );
 
-/**
- * One Bot API call. The token is part of the URL, so errors are rebuilt from
- * Telegram's `description` rather than passed through with the request.
- */
+// The token is in the URL, so errors are rebuilt rather than passed through.
 const callTelegram = async (
   botToken: string,
   method: string,
@@ -161,12 +158,7 @@ const callTelegram = async (
   return json.result;
 };
 
-/**
- * Verified by the `secret_token` given to `setWebhook`. Anything that isn't a
- * rejection answers 200, since any other status makes Telegram redeliver the
- * update indefinitely. A shared-half reply rides back in the response body as
- * a Bot API call Telegram performs, so the server needs no outbound request.
- */
+// Non-rejections answer 200: any other status makes Telegram redeliver forever.
 export const telegramChannel: ChatChannelAdapter = {
   canSend: () => Boolean(env.TELEGRAM_BOT_TOKEN),
   download: async (ref, maxBytes) => {

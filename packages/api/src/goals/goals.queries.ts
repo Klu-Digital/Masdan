@@ -38,12 +38,7 @@ const closedAt = sql`coalesce(${savingsGoal.completedAt}, ${savingsGoal.archived
 
 const LIFECYCLE_ORDER = sql`CASE WHEN ${savingsGoal.archivedAt} IS NOT NULL THEN 2 WHEN ${savingsGoal.completedAt} IS NOT NULL THEN 1 ELSE 0 END`;
 
-/**
- * Goals with progress from the shared balance formula over their account.
- * An active goal reads the balance the accounts screen shows; a completed or
- * archived one reads it as of the household-local day it closed, so later
- * spending from the account does not rewrite a finished goal.
- */
+// A closed goal reads the balance as of the day it closed.
 export const loadGoals = async (
   db: Database,
   organizationId: string,

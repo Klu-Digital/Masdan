@@ -34,12 +34,7 @@ export const findOwned = async <T extends OwnedTable>(
   return row as InferSelectModel<T>;
 };
 
-/**
- * `findOwned` holding a row lock until the caller's transaction ends, so a
- * read-then-write on the row cannot interleave with another. `"update"` is for
- * the writer of the row; `"share"` is for a writer that only depends on it
- * (posting to an account) and must wait out a concurrent change to it.
- */
+/** `findOwned` plus a row lock held until the caller's transaction ends. */
 export const lockOwned = async <T extends OwnedTable>(
   db: Database,
   table: T,

@@ -3,10 +3,6 @@ import { useRender } from "@base-ui/react/use-render";
 import { cn } from "@masdan/ui/lib/utils";
 import type React from "react";
 
-/**
- * The content column every screen sits in. `width` picks the reading measure:
- * `wide` for overviews and ledgers, `narrow` for details, forms and settings.
- */
 export const Page = ({
   className,
   width = "wide",

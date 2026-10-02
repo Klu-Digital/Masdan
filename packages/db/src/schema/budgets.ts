@@ -15,11 +15,7 @@ import { category } from "./categories";
 import { money, timestamps } from "./columns";
 import { currency } from "./finance";
 
-/**
- * A planned monthly spend for one expense category. Actuals are never stored:
- * they are summed from the ledger when read. `month` is the first calendar day
- * of the household-local month.
- */
+// Actuals are summed from the ledger, never stored.
 export const categoryBudget = pgTable(
   "category_budget",
   {

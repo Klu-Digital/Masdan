@@ -15,8 +15,5 @@ const link = new RPCLink({
   url: `${getServerUrl(env.VITE_SERVER_URL)}/rpc`,
 });
 
-/**
- * The raw transport, for multi-step flows outside React (uploads, downloads).
- * Screens go through `orpc` / `householdOrpc` in `./orpc`.
- */
+// Screens go through `orpc` / `householdOrpc` in `./orpc`.
 export const client: AppRouterClient = createORPCClient(link);

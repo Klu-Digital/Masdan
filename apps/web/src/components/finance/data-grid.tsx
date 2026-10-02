@@ -11,11 +11,6 @@ import type * as React from "react";
 
 export type DataGridSortDirection = "asc" | "desc";
 
-/**
- * The ledger grid: a real table for assistive tech and keyboard users, drawn
- * as dense hairline rows. Headers stick under the app's top bar; group rows
- * (a day, a month) stick beneath them.
- */
 export const DataGrid = ({
   className,
   ...props

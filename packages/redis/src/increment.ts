@@ -1,10 +1,6 @@
 import type Redis from "ioredis";
 
-/**
- * `INCR` then a separate `EXPIRE` is not atomic: a crash between them leaves a
- * counter with no TTL, locking that key's caller out of a rate limit that now
- * never resets.
- */
+// Atomic: a crash between INCR and EXPIRE would leave a limit that never resets.
 const INCREMENT_WITH_TTL = `
 local n = redis.call('INCR', KEYS[1])
 if n == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
@@ -20,10 +16,7 @@ type ClientWithIncrement = Redis & {
   ) => Promise<number>;
 };
 
-/**
- * Idempotent: both rate limiters call this on the same singleton, and
- * `defineCommand` throws on a redefine.
- */
+// Idempotent: `defineCommand` throws on a redefine.
 export const defineIncrementWithTtl = (client: Redis): void => {
   const withIncrement = client as ClientWithIncrement;
   if (typeof withIncrement[COMMAND_NAME] === "function") {
@@ -36,10 +29,7 @@ export const defineIncrementWithTtl = (client: Redis): void => {
   });
 };
 
-/**
- * Pass `key` unprefixed: ioredis applies the client's `keyPrefix` to `KEYS[1]`
- * for custom commands too.
- */
+// Pass `key` unprefixed: ioredis applies `keyPrefix` to custom commands too.
 export const incrementWithTtl = (
   client: Redis,
   key: string,

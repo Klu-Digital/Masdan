@@ -1,8 +1,5 @@
 import { ORPCError } from "@orpc/server";
-/**
- * Report periods are calendar days in the household's timezone. Everything
- * here is pure string/UTC arithmetic so the web client can import it too.
- */
+// Pure, so the web client imports it too.
 
 export const REPORT_PRESETS = [
   "this_month",
@@ -84,10 +81,7 @@ export const householdToday = (timeZone: string, now: Date): string => {
   return `${part("year")}-${part("month")}-${part("day")}`;
 };
 
-/**
- * Ranges that include this month end today, so a future-dated entry is not
- * reported as having happened. `earliest` only matters for `all_time`.
- */
+// Ranges end today, so a future-dated entry is not reported.
 export const presetRange = (
   preset: Exclude<ReportPreset, "custom">,
   today: string,

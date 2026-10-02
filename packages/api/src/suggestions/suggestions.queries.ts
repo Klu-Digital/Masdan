@@ -170,10 +170,6 @@ export type TransactionSuggestionResult =
       status: "ineligible" | "none" | "rule" | "unavailable";
     };
 
-/**
- * Suggests a category and tags for one saved transaction. Read-only: a rule
- * that matches answers first, and nothing changes until accepted.
- */
 export const suggestForTransaction = async (
   db: Database,
   organizationId: string,
@@ -237,10 +233,6 @@ export type ImportDefaults = Pick<
   "defaultExpenseCategoryId" | "defaultIncomeCategoryId" | "id"
 >;
 
-/**
- * Rows no rule and no mapped category column already decided: ready, still on
- * the import's default category, and not yet sent for a suggestion.
- */
 export const unsuggestedRows = (
   organizationId: string,
   current: ImportDefaults

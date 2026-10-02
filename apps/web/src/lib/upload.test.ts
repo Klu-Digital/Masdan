@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-/**
- * Pins the `Attachment` state machine and that this module stays client-safe —
- * hence the import at the bottom, which fails loudly under jsdom if a server
- * dependency creeps back in.
- */
+// The import at the bottom fails under jsdom if a server dependency creeps in.
 const rpc = vi.hoisted(() => ({
   confirmUpload: vi.fn(),
   createUpload: vi.fn(),

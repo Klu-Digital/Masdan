@@ -7,10 +7,6 @@ import { resolveClientIp } from "./client-ip";
 
 export interface CreateContextOptions {
   context: HonoContext<EvlogVariables>;
-  /**
-   * Supplied by the caller: this package does not depend on
-   * `@hono/node-server`. Last fallback only.
-   */
   remoteAddress?: string | undefined;
 }
 

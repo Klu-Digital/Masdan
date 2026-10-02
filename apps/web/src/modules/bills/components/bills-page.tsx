@@ -79,11 +79,6 @@ const dotClassName = (bill: Bill): string => {
   return "bg-destructive size-1.5 shrink-0 rounded-full";
 };
 
-/**
- * The month as a keyboard grid: one tab stop, arrows move between days, Enter
- * or Space picks a day to filter the list below. Each day's name carries its
- * bill count, so the dots are never the only signal.
- */
 const MonthGrid = ({
   bills,
   month,

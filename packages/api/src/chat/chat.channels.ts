@@ -4,10 +4,7 @@ import type { ChatChannel } from "@masdan/db/schema/index";
 import { telegramChannel } from "./channels/telegram";
 import type { ChatChannelAdapter } from "./chat.channel";
 
-/**
- * Every channel chat entry can use. The mapped type is the point: a name in
- * `chatChannels` without an adapter here is a compile error, and the reverse.
- */
+// Mapped type: a channel without an adapter is a compile error.
 export const chatChannelAdapters: Record<ChatChannel, ChatChannelAdapter> = {
   telegram: telegramChannel,
 };

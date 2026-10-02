@@ -50,11 +50,6 @@ const MatchPreview = ({
   );
 };
 
-/**
- * Which rule set this transaction's category or tags, and which rule would
- * run on it now. Applying is explicit: saved transactions never change just
- * because a rule was added.
- */
 export const TransactionRule = ({
   canApply,
   transaction,

@@ -3,13 +3,7 @@ import { ORPCError } from "@orpc/server";
 
 import { householdToday } from "../reports/periods";
 
-/**
- * Leaf module: recurrence math shared by the API, the generation worker and
- * the web schedule preview. Occurrences are household calendar days
- * (`YYYY-MM-DD`), so everything here is UTC date arithmetic with no clock and
- * no server timezone; "which day is today" is decided by the caller from the
- * household's timezone.
- */
+// Leaf module, shared with the web preview. No clock or server timezone.
 
 export const RECURRING_FREQUENCIES = [
   "daily",
@@ -69,11 +63,7 @@ const stepDays = (recurrence: Recurrence): number =>
     ? recurrence.interval * 7
     : recurrence.interval;
 
-/**
- * The `index`-th occurrence, counted from `startDate` rather than from the
- * previous occurrence, so a schedule anchored on the 31st lands on Feb 28 and
- * returns to the 31st in March instead of drifting to the 28th for good.
- */
+// Counted from `startDate`, so the 31st lands on Feb 28 then back on the 31st.
 export const occurrenceAt = (recurrence: Recurrence, index: number): string => {
   if (recurrence.frequency !== "monthly") {
     return addDays(recurrence.startDate, index * stepDays(recurrence));
@@ -145,19 +135,11 @@ export const upcomingOccurrences = (
   return dates;
 };
 
-/**
- * Where a new or re-timed schedule starts posting: its first occurrence from
- * today on. Days already past are never backfilled.
- */
 export const initialNextOccurrence = (
   recurrence: Recurrence,
   today: string
 ): string => firstOccurrenceOnOrAfter(recurrence, today);
 
-/**
- * Where a resumed schedule picks up: occurrences that fell due while it was
- * paused are skipped, and one still ahead of today is kept.
- */
 export const resumedNextOccurrence = (
   recurrence: Recurrence,
   pausedNext: string,
@@ -165,10 +147,6 @@ export const resumedNextOccurrence = (
 ): string =>
   firstOccurrenceOnOrAfter(recurrence, pausedNext > today ? pausedNext : today);
 
-/**
- * An occurrence is due from the start of its day in the household's
- * timezone — never the server's, and never UTC unless the household is.
- */
 export const isOccurrenceDue = (
   occurrenceDate: string,
   timeZone: string,

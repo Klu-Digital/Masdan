@@ -12,10 +12,5 @@ const node = (value: unknown): unknown =>
     }
   );
 
-/**
- * The transport for `vi.mock("@/utils/client")`. Procedures get only their
- * input, which is what tests assert on — oRPC's query utils also pass a signal
- * and context. Unmocked procedures resolve `undefined`, so `householdOrpc`
- * still finds every router.
- */
+// Unmocked procedures resolve `undefined`, so `householdOrpc` finds every router.
 export const mockClient = (procedures: object): unknown => node(procedures);

@@ -33,9 +33,7 @@ export interface StatusRow {
   durationMs: number | null;
 }
 
-/**
- * Fixed `pg_try_advisory_lock` key, so two runs cannot double-apply a backfill.
- */
+/** So two runs cannot double-apply a backfill. */
 const ADVISORY_LOCK_KEY = 894_201_736;
 
 type Queryable = Pick<Database, "insert" | "update">;

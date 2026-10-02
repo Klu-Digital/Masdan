@@ -248,11 +248,6 @@ const useTilt = (ref: React.RefObject<HTMLDivElement | null>) => {
   return { settle, tilt };
 };
 
-/**
- * A payment card as an object: the product's own field and motif, the bank,
- * the masked last four and the network mark. Decorative — the figures beside
- * it carry the information — so it is hidden from assistive tech.
- */
 export const CreditCardVisual = ({
   art,
   className,

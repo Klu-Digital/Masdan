@@ -25,10 +25,7 @@ import { householdOrpc } from "@/utils/orpc";
 const feedUrl = (path: string): string =>
   `${getServerUrl(env.VITE_SERVER_URL)}${path}`;
 
-/**
- * The viewer's own read-only calendar subscription. The link is shown once,
- * when made — only its hash is kept — so losing it means replacing it.
- */
+// Only the hash is kept, so the link is shown once.
 export const FeedSection = ({
   activeOrganizationId,
 }: {

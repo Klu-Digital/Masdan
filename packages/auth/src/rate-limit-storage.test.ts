@@ -3,11 +3,6 @@ import { createFakeRedis } from "@masdan/redis/fake";
 import type { FakeRedis } from "@masdan/redis/fake";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-/**
- * Both "Redis off" and "Redis up" run in this file, so `vi.hoisted` gives the
- * mock factory a mutable box. `incrementWithTtl` stays real — it runs against
- * the fake exactly as against ioredis.
- */
 const state = vi.hoisted(() => ({ client: null as unknown }));
 
 vi.mock("@masdan/redis/client", () => ({

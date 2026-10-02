@@ -14,9 +14,6 @@ const shared = {
   xFrameOptions: "DENY",
 } as const;
 
-/**
- * JSON only, never rendered, so the policy is the strictest CSP can express.
- */
 const apiCsp = {
   baseUri: ["'none'"],
   defaultSrc: ["'none'"],
@@ -24,10 +21,7 @@ const apiCsp = {
   frameAncestors: ["'none'"],
 };
 
-/**
- * `@orpc/openapi` builds its own inline `<script>` with nowhere to put a nonce,
- * hence `'unsafe-inline'`.
- */
+// `@orpc/openapi` injects an inline script with no nonce slot.
 const docsCsp = {
   baseUri: ["'self'"],
   connectSrc: ["'self'"],
@@ -52,11 +46,7 @@ const docsCsp = {
 const isDocsPath = (path: string): boolean =>
   path === DOCS_PREFIX || path.startsWith(`${DOCS_PREFIX}/`);
 
-/**
- * Mount before CORS and any route. One middleware rather than two overlapping
- * `app.use()` routes: `secureHeaders()` writes after `await next()`, so the
- * outer would overwrite the inner's CSP.
- */
+// One middleware: `secureHeaders()` writes after `next()`, so nesting overwrites.
 export const mountSecurityHeaders = (app: Hono<EvlogVariables>) => {
   const api = secureHeaders({ ...shared, contentSecurityPolicy: apiCsp });
   const docs = secureHeaders({ ...shared, contentSecurityPolicy: docsCsp });

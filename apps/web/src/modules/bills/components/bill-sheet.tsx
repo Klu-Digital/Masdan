@@ -174,10 +174,6 @@ const CardPaid = ({ bill }: { bill: Bill }) =>
     </p>
   ) : null;
 
-/**
- * One bill: what it is, why it counts as paid, and — for members who may —
- * linking a payment, confirming it outright, or undoing either.
- */
 export const BillSheet = ({
   activeOrganizationId,
   bill,

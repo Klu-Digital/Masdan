@@ -61,18 +61,10 @@ interface CommandSection {
   label: string;
 }
 
-/**
- * Only text that reads like an entry (a few words and an amount) is offered
- * as one, so Enter on "acc" still goes to Accounts and never creates anything.
- */
+// So Enter on "acc" goes to Accounts and never creates anything.
 const looksLikeEntry = (text: string): boolean =>
   /\d/u.test(text) && text.split(/\s+/u).filter(Boolean).length >= 2;
 
-/**
- * ⌘K: every destination and every "new" action, plus a jump to any account.
- * Filtering matches the label and a few synonyms. Typing a line such as
- * "lunch 250 gcash" offers to add it as a transaction, ahead of everything else.
- */
 export const CommandMenu = ({
   compose,
   composeAccount,

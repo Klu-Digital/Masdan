@@ -27,17 +27,6 @@ import {
   useState,
 } from "react";
 
-/*
- * The application frame. Three shapes, one component tree:
- *
- * - phone (< 768): no sidebar; a tab bar sits at the bottom.
- * - tablet (768–1279): an icon rail, expandable.
- * - desktop (>= 1280): the full sidebar, collapsible to the rail.
- *
- * The person's explicit choice wins over the breakpoint default and is kept
- * per browser.
- */
-
 const STORAGE_KEY = "masdan.sidebar";
 
 type SidebarPreference = "auto" | "expanded" | "collapsed";
@@ -225,10 +214,6 @@ export const AppNavSection = ({
 const navItemClassName =
   "group/nav text-sidebar-foreground relative flex h-9 w-full min-w-0 items-center gap-3 rounded-lg px-2.5 text-sm font-medium outline-none transition-[background-color,color,transform] duration-150 select-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:active:scale-100 aria-[current=page]:bg-background aria-[current=page]:text-foreground aria-[current=page]:shadow-xs dark:aria-[current=page]:bg-sidebar-accent dark:aria-[current=page]:shadow-none data-active:bg-background data-active:text-foreground data-active:shadow-xs dark:data-active:bg-sidebar-accent dark:data-active:shadow-none [&_svg]:size-4.5 [&_svg]:shrink-0";
 
-/**
- * A sidebar destination. Pass the router link as `render`; the link's own
- * `aria-current` marks it active. In the rail its label moves into a tooltip.
- */
 export const AppNavItem = ({
   badge,
   className,
@@ -334,10 +319,6 @@ export const AppMain = ({
   />
 );
 
-/**
- * Scroll container for page content. It sits below the top bar, so its
- * scrollbar lives entirely within the main body.
- */
 export const AppScroll = ({
   className,
   ...props

@@ -144,12 +144,7 @@ const RouteComponent = () => {
 };
 
 export const Route = createFileRoute("/accept-invite")({
-  /**
-   * Guards in neither of the usual directions: accepting needs a session, but
-   * an already-authenticated visitor must be left alone, or the "signed in? go
-   * to the dashboard" rule throws the invitation away. Signed-out visitors land
-   * on sign-up, which reads the invitation back out of `redirect`.
-   */
+  // An authenticated visitor must stay, or the invitation is thrown away.
   beforeLoad: ({ context, location }) => {
     if (!context.session) {
       throw redirect({ search: { redirect: location.href }, to: "/signup" });

@@ -7,12 +7,6 @@ import { describe, expect, it } from "vite-plus/test";
 import type { Context } from "./context";
 import { orgMutationProcedure } from "./procedures";
 
-/**
- * The queued task reads the row back on a different pool connection from the
- * handler's transaction, so it sees the row only once that transaction
- * committed.
- */
-
 const contextFor = async (headers: Headers): Promise<Context> =>
   ({
     auth: null,
@@ -21,10 +15,6 @@ const contextFor = async (headers: Headers): Promise<Context> =>
     session: await getSessionFor(headers),
   }) as unknown as Context;
 
-/**
- * Writes one row, then queues a task reporting whether it was visible from
- * outside the transaction.
- */
 const writeThenQueue = (
   report: (seenFromOutside: boolean) => void,
   afterQueueing?: () => void

@@ -75,10 +75,6 @@ const OptionLabel = ({
   </span>
 );
 
-/**
- * Search that updates the URL as you type (debounced) and answers "/" from
- * anywhere on the page.
- */
 export const LedgerSearch = ({
   onChange,
   value,

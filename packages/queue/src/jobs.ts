@@ -1,11 +1,6 @@
 import type { Queue } from "pg-boss";
 import { z } from "zod";
 
-/**
- * The single source of truth shared by the producer (`@masdan/api`) and the
- * consumer (apps/workers), so neither declares a queue name or payload shape of
- * its own.
- */
 export interface JobDefinition<T extends z.ZodType = z.ZodType> {
   /** Validated on the way in at `enqueue`, and again on the way out in the worker. */
   schema: T;
@@ -15,43 +10,22 @@ export interface JobDefinition<T extends z.ZodType = z.ZodType> {
   cron?: { expression: string; data: unknown; tz?: string };
 }
 
-/**
- * Identity function, so the literal below keeps the exact key and schema types
- * `JobName` / `JobPayload` derive from while still being checked.
- */
 const defineJobs = <T extends Record<string, JobDefinition>>(
   definitions: T
 ): T => definitions;
 
-/**
- * Pairs with the instance-level `useListenNotify`: without it workers wait out
- * their polling interval instead of waking on insert.
- */
+// Without it workers poll instead of waking on insert.
 export const DEFAULT_QUEUE_OPTIONS = { notify: true } satisfies Omit<
   Queue,
   "name"
 >;
 
-/**
- * Where a job lands once its retries are spent, instead of expiring silently.
- * Not in `jobs`: nothing works it, so it is inspected by hand (and shows up in
- * the `masdan_queue_jobs` gauge like any other queue).
- */
+/** Exhausted retries land here; nothing works it. */
 export const DEAD_LETTER_QUEUE = "dead-letter";
 
-/**
- * Keep payload schemas free of `.default()` and other transforms: `enqueue`
- * accepts the inferred output type, so a mismatch makes the call site's type a
- * lie.
- */
+// No `.default()` or transforms: `enqueue` takes the output type.
 export const jobs = defineJobs({
-  /**
-   * Links, or parses and creates, from one chat-app message, then replies
-   * through the same channel. Safe to deliver twice:
-   * `chat_inbound_message.processed_at` is claimed in the same transaction as
-   * the write, so a repeat finds it set and does nothing. Carries the message
-   * text or receipt caption, which is why the payload is never logged.
-   */
+  // Idempotent via `processed_at`. Payload holds message text: never log it.
   "chat.process": {
     queue: { retryBackoff: true, retryDelay: 5, retryLimit: 2 },
     schema: z.object({
@@ -83,11 +57,6 @@ export const jobs = defineJobs({
       }),
     }),
   },
-  /**
-   * Fetches ECB rates via Frankfurter after the weekday publication window
-   * (16:00 UTC). Retries and duplicate ticks are safe: rows upsert on
-   * (source, base, quote, date).
-   */
   "fx.refresh": {
     cron: { data: {}, expression: "0 16 * * 1-5", tz: "UTC" },
     queue: {
@@ -98,20 +67,10 @@ export const jobs = defineJobs({
     },
     schema: z.object({}).strict(),
   },
-  /**
-   * Validates or commits a CSV import, whichever its status asks for, so a
-   * duplicate or retried job is a no-op once the import has moved on.
-   */
   "imports.process": {
     queue: { retryBackoff: true, retryDelay: 5, retryLimit: 2 },
     schema: z.object({ importId: z.uuid() }),
   },
-  /**
-   * Posts one account's finished interest credits as income. Safe to deliver
-   * twice or retry: the unique (account, credit date) key on `interest_credit`
-   * turns a repeat into a no-op. `stately` with the account as `singletonKey`,
-   * so overlapping sweeps queue one job per account.
-   */
   "interest.post": {
     queue: {
       policy: "stately",
@@ -121,11 +80,6 @@ export const jobs = defineJobs({
     },
     schema: z.object({ accountId: z.uuid() }),
   },
-  /**
-   * Enqueues `interest.post` for every account set to post interest.
-   * Hourly because credits are day-granular: a household's day turns over at
-   * its own midnight, so a credit lands at most an hour after it.
-   */
   "interest.sweep": {
     cron: { data: {}, expression: "23 * * * *", tz: "UTC" },
     // `singleton` so a slow sweep can't stack up behind the next; the next tick
@@ -133,12 +87,6 @@ export const jobs = defineJobs({
     queue: { policy: "singleton", retryLimit: 0 },
     schema: z.object({}).strict(),
   },
-  /**
-   * Posts one schedule's due occurrences. Safe to deliver twice or retry: the
-   * unique (schedule, occurrence date) index turns a repeat into a no-op.
-   * `stately` with the schedule as `singletonKey`, so overlapping sweeps queue
-   * one job per schedule rather than one per tick.
-   */
   "recurring.generate": {
     queue: {
       policy: "stately",
@@ -148,12 +96,7 @@ export const jobs = defineJobs({
     },
     schema: z.object({ scheduleId: z.uuid() }),
   },
-  /**
-   * Finds schedules due in their household's timezone and enqueues
-   * `recurring.generate` for each. The cron only sets how often to look —
-   * `tz` is stated so no one reads it as the household's clock, which it is
-   * not: due-ness is decided per household when the sweep runs.
-   */
+  // Due-ness is per household timezone; the cron only sets how often to look.
   "recurring.sweep": {
     cron: { data: {}, expression: "*/15 * * * *", tz: "UTC" },
     // `singleton` so a slow sweep can't stack up behind the next; the next tick
@@ -161,12 +104,6 @@ export const jobs = defineJobs({
     queue: { policy: "singleton", retryLimit: 0 },
     schema: z.object({}).strict(),
   },
-  /**
-   * Generates and resolves one household's credit-card reminders. Safe to
-   * deliver twice: the unique (card, kind, date) index turns a repeat into a
-   * no-op. `stately` with the household as `singletonKey` keeps at most one
-   * queued refresh per household however many edits ask for one.
-   */
   "reminders.refresh": {
     queue: {
       policy: "stately",
@@ -176,11 +113,6 @@ export const jobs = defineJobs({
     },
     schema: z.object({ organizationId: z.uuid() }),
   },
-  /**
-   * Enqueues `reminders.refresh` for every household with cards to remind
-   * about. Hourly because reminders are day-granular: a household's day turns
-   * over at its own midnight, so the lag is at most an hour.
-   */
   "reminders.sweep": {
     cron: { data: {}, expression: "7 * * * *", tz: "UTC" },
     // `singleton` so a slow sweep can't stack up behind the next; the next tick

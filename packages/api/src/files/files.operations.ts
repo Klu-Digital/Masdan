@@ -27,10 +27,6 @@ export const presignFileDownload = async (row: {
   return { downloadUrl };
 };
 
-/**
- * Deletes the row, then the object. Shared by `files.deleteFile` and
- * attachment removal so ownership and `delete:any` are decided in one place.
- */
 export const deleteHouseholdFile = async (
   context: {
     db: Database;

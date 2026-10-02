@@ -19,10 +19,7 @@ type Handlers = {
   [N in JobName]: (job: JobOf<N>) => Promise<void>;
 };
 
-/**
- * The mapped type is the point: a registry entry with no handler here is a
- * compile error.
- */
+// Mapped type: a job with no handler is a compile error.
 const handlers: Handlers = {
   "chat.process": handleChatProcess,
   "fx.refresh": handleFxRefresh,

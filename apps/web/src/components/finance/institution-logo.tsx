@@ -94,12 +94,6 @@ const toneOf = (institution: LogoInstitution | null, logo?: string) => {
     : "bg-(--institution-brand) text-on-tint";
 };
 
-/**
- * A bank's mark in one shared frame: its logo when one is bundled, its
- * initials on its brand colour otherwise, a plain bank glyph for one Masdan
- * doesn't know. The inset hairline and sheen are what let a white logo, a
- * black one and a saturated one sit side by side.
- */
 export const InstitutionLogo = ({
   channel,
   className,

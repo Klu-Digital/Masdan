@@ -12,10 +12,7 @@ interface PlannedUser {
   role?: string;
 }
 
-/**
- * The same two accounts every reset. `K1@gmail.com` uses its own address as its
- * password.
- */
+// `K1@gmail.com` uses its own address as its password.
 const FIXED_USERS: PlannedUser[] = [
   {
     email: "K1@gmail.com",

@@ -31,9 +31,7 @@ export const systemPlatformRouter = {
     },
     serviceName: env.SERVICE_NAME,
     storageMaxUploadBytes: env.STORAGE_MAX_UPLOAD_BYTES,
-    // A warning, not an error: this panel cannot tell whether a proxy actually
-    // sits in front. Behind one, `false` silently keys every rate limit to the
-    // proxy's own IP.
+    // Behind a proxy, `false` keys every rate limit to the proxy's IP.
     trustProxyHeaders: env.TRUST_PROXY_HEADERS,
   })),
 

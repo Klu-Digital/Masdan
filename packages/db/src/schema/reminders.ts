@@ -34,11 +34,7 @@ export const cardReminderResolutions = [
 ] as const;
 export type CardReminderResolution = (typeof cardReminderResolutions)[number];
 
-/**
- * One reminder per card, kind and date, written by the reminders worker. The
- * row outlives dismissal and resolution on purpose: the unique index is what
- * stops a handled date from being generated again.
- */
+// Kept after dismissal: the unique index stops the date regenerating.
 export const creditCardReminder = pgTable(
   "credit_card_reminder",
   {

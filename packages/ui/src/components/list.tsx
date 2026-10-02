@@ -5,11 +5,6 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { cn } from "@masdan/ui/lib/utils";
 import type React from "react";
 
-/**
- * A grouped list: one soft surface, rows separated by inset hairlines that
- * start after the leading icon — the Settings pattern, sized for a pointer.
- * `plain` drops the surface for lists that sit directly on the canvas.
- */
 export const List = ({
   className,
   variant = "grouped",

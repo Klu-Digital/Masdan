@@ -14,19 +14,10 @@ import { organization, user } from "./auth";
 import { oneOf, timestamptz } from "./columns";
 import { financialTransaction } from "./transactions";
 
-/**
- * Messaging apps a user can add transactions from. Adding one is a code change
- * (an adapter in `@masdan/api/chat/channels`), not a migration: the columns
- * below are plain text.
- */
 export const chatChannels = ["telegram"] as const;
 export type ChatChannel = (typeof chatChannels)[number];
 
-/**
- * A short-lived, single-use code a user sends from any chat app as
- * `/link <code>`. Only the SHA-256 of the code is stored. In Postgres, not
- * Redis: Redis is optional, so linking would silently break without it.
- */
+// Only the code's SHA-256 is stored. Postgres, since Redis is optional.
 export const chatLinkCode = pgTable(
   "chat_link_code",
   {
@@ -54,11 +45,7 @@ export const chatLinkCode = pgTable(
   ]
 );
 
-/**
- * A chat-app account bound to one user in one household: a message carries no
- * session, so the household has to come from here. Membership and permission
- * are re-checked on every message, not trusted from the time of linking.
- */
+// Membership is re-checked on every message, not trusted from linking.
 export const chatLink = pgTable(
   "chat_link",
   {
@@ -93,11 +80,7 @@ export const chatLink = pgTable(
   ]
 );
 
-/**
- * One row per delivered message. The key is what turns a channel's retries
- * into no-ops; `processedAt` does the same for a retried worker job. The
- * household is unknown until processing, so it is set with the transaction.
- */
+// The key dedupes channel retries; `processedAt` dedupes job retries.
 export const chatInboundMessage = pgTable(
   "chat_inbound_message",
   {

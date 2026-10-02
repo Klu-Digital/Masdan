@@ -1,13 +1,7 @@
 import type { CategorizationProposal } from "@masdan/db/schema/index";
 import { z } from "zod";
 
-/**
- * Category and tag suggestions, pure. The model sees only each transaction's
- * masked text and direction plus the household's category and tag _names_,
- * never an amount, account, date or identifier. Its answer is untrusted: every
- * name is matched against that household's active rows of the right type, and
- * anything that doesn't match is dropped rather than guessed.
- */
+// The model sees masked text and names only. Unmatched answers are dropped.
 
 /** Descriptions per model call; the prompt and the reply both stay small. */
 export const SUGGESTION_BATCH_SIZE = 40;
@@ -110,11 +104,6 @@ export const EMPTY_PROPOSAL: CategorizationProposal = {
 export const isEmptyProposal = (proposal: CategorizationProposal): boolean =>
   proposal.categoryId === null && proposal.tagIds.length === 0;
 
-/**
- * One proposal per subject key. Unknown refs, names outside the household,
- * categories of the other direction and repeated tags are all dropped; a
- * subject the model skipped gets the empty proposal.
- */
 export const resolveSuggestions = (
   subjects: readonly SuggestionSubject[],
   household: SuggestionHousehold,

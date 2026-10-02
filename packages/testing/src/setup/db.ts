@@ -1,13 +1,5 @@
-/**
- * Points `process.env.DATABASE_URL` / `REDIS_URL` at this worker's own Postgres
- * database and Redis logical database, before any "db" project test file loads
- * `@masdan/*`. Keep the static imports here limited to `pg`, `vite-plus/test` and
- * `./env`: static imports evaluate first, so anything reaching
- * `@masdan/env/shared-server` freezes its `env` against the dead placeholders for the
- * rest of the worker's life. Load `@masdan/*` with a dynamic `import()` below —
- * and at the top level, since `beforeAll` runs after the module graph has
- * resolved.
- */
+// Only `pg`, `vite-plus/test` and `./env` may be imported statically: anything
+// reaching `@masdan/env/shared-server` freezes `env` against the placeholders.
 import "./env";
 import { Client } from "pg";
 import { afterAll, beforeEach, inject } from "vite-plus/test";
@@ -56,9 +48,7 @@ const workerUrl = new URL(base);
 workerUrl.pathname = `/${workerDbName}`;
 process.env.DATABASE_URL = workerUrl.toString();
 
-// One numbered Redis logical database per worker. Ids start at 1, so an
-// accidental default-database connection is obvious. Kept in sync with
-// setup/global-redis.ts by hand.
+// Keep in sync with setup/global-redis.ts.
 const REDIS_TEST_DATABASES = 64;
 const poolId = Number(process.env.VITEST_POOL_ID ?? "1");
 if (!Number.isInteger(poolId) || poolId < 1 || poolId >= REDIS_TEST_DATABASES) {
@@ -76,9 +66,7 @@ process.env.REDIS_URL = redisWorkerUrl.toString();
 const { truncateAll, closeTestPool } = await import("../db");
 const { flushTestRedis, closeTestRedis } = await import("../redis");
 
-// Fail loudly if a static `@masdan/*` import creeps back in. Every Redis-backed
-// path degrades quietly, so a frozen `undefined` REDIS_URL throws nothing — the
-// suite just goes green while covering nothing.
+// A frozen `undefined` REDIS_URL throws nothing; the suite would go green empty.
 const { env } = await import("@masdan/env/shared-server");
 if (
   env.DATABASE_URL !== process.env.DATABASE_URL ||

@@ -65,11 +65,6 @@ const SUBMIT: Record<ComposerKind, string> = {
   transfer: "Record transfer",
 };
 
-/**
- * One composer for every ledger entry. Creating lets you switch between
- * expense, income and transfer without losing your place; editing keeps the
- * kind fixed except for the expense ↔ income flip the API allows.
- */
 export const Composer = ({
   activeOrganizationId,
   householdCurrency,

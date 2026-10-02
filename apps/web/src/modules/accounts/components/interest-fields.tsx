@@ -338,10 +338,6 @@ const TermsEditor = ({
   );
 };
 
-/**
- * How the account earns: a Masdan preset, the preset with this account's own
- * rate, or a custom rate. Presets are never changed from here.
- */
 // oxlint-disable-next-line complexity
 export const InterestFields = ({
   catalog,

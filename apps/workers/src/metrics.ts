@@ -6,10 +6,6 @@ import type { Hono } from "hono";
 import { bearerAuth } from "hono/bearer-auth";
 import { Gauge, Registry } from "prom-client";
 
-/**
- * Metrics are off unless both the path and the token are set, so an
- * unconfigured deployment exposes nothing.
- */
 export const mountMetrics = (app: Hono) => {
   const path = env.PROMETHEUS_METRICS_PATH;
   const token = env.PROMETHEUS_METRICS_TOKEN;

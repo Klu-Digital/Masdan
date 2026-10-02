@@ -60,11 +60,7 @@ type Occurrence = z.output<typeof occurrenceInput>;
 const CANDIDATE_WINDOW_DAYS = 31;
 const MAX_CANDIDATES = 20;
 
-/**
- * The occurrence must be one this household actually owes: a day the
- * schedule posted for or lands on, or a card's recorded or projected due date.
- * Anything else is either a typo or someone probing another household's ids.
- */
+// Anything else is a typo or someone probing another household's ids.
 const assertOccurrence = async (
   db: Database,
   organizationId: string,
@@ -153,11 +149,6 @@ const unlinked = notExists(
   sql`(SELECT 1 FROM ${billPayment} WHERE ${billPayment.transactionId} = ${financialTransaction.id})`
 );
 
-/**
- * Transactions that could be this bill's payment: live, marked paid and not
- * already linked. A recurring bill takes an expense on the same account or in
- * the same category; a card bill takes a transfer into the card.
- */
 const candidateConditions = async (
   db: Database,
   organizationId: string,
@@ -275,10 +266,6 @@ export const billsRouter = {
         .limit(MAX_CANDIDATES);
     }),
 
-  /**
-   * Marks one occurrence paid, by a payment or by the member's word. Linking
-   * the schedule's own posting is allowed: choosing it is the confirmation.
-   */
   confirm: orgMutationProcedure
     .use(requirePermission({ bill: ["confirm"], transaction: ["read"] }))
     .input(occurrenceInput.extend({ transactionId: z.uuid().nullable() }))

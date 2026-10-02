@@ -189,10 +189,6 @@ const TagComposer = ({
   );
 };
 
-/**
- * Tags cut across categories — a trip, a project, a person. Kept as a plain
- * list: a colour, a name, and a way into the transactions that carry it.
- */
 export const TagManager = ({
   activeOrganizationId,
   canArchive,

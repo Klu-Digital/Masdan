@@ -12,8 +12,6 @@ export default defineConfig({
   dialect: "postgresql",
   out: "./src/migrations",
   schema: "./src/schema/index.ts",
-  // Stated rather than left to drizzle-kit's default: `db:push` drops whatever
-  // is not in the schema, and pg-boss owns a schema of its own that it must not
-  // touch.
+  // `db:push` would otherwise drop pg-boss's schema.
   schemaFilter: ["public"],
 });

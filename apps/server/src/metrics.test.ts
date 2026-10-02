@@ -4,10 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { mountMetrics } from "./metrics";
 
-/**
- * t3-env freezes `env` at import, so `vi.stubEnv` cannot reach it — mock the
- * module instead.
- */
+// t3-env freezes `env` at import, so `vi.stubEnv` can't reach it.
 const mockEnv = vi.hoisted(() => ({
   PROMETHEUS_METRICS_PATH: undefined as string | undefined,
   PROMETHEUS_METRICS_TOKEN: undefined as string | undefined,

@@ -20,10 +20,6 @@ import { loadCardCountries } from "@/modules/accounts/card-catalog";
 
 const routeApi = getRouteApi("/_auth");
 
-/**
- * `impersonatedBy` is set for the whole impersonation session, which is
- * otherwise invisible on screen.
- */
 const ImpersonationBanner = () => {
   const queryClient = useQueryClient();
   const router = useRouter();

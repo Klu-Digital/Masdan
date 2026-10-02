@@ -25,10 +25,6 @@ import type { Rule } from "../types";
 
 const TYPE_LABELS = { expense: "Money out", income: "Money in" } as const;
 
-/**
- * "What would happen to this transaction?" — runs the same matcher the server
- * uses, over the rules that can run, and shows each condition it checked.
- */
 export const RuleTester = ({
   accounts,
   rules,

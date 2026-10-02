@@ -115,11 +115,6 @@ export const remindersRouter = {
       )
     ),
 
-  /**
-   * Active, still-actionable reminders, soonest first. Judged live against
-   * the ledger, so paying a card or recording its statement hides a reminder
-   * immediately; the worker persists the same judgement on its next run.
-   */
   list: orgProcedure
     .use(requirePermission({ financialAccount: ["read"], reminder: ["read"] }))
     .handler(async ({ context }) => {

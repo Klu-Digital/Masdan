@@ -7,11 +7,7 @@ import { client } from "@/utils/client";
 
 const organizationQueryKey = ["organization"] as const;
 
-/**
- * The active organization lives on the session row, never in the URL. It is in
- * the query key so switching in one tab cannot serve the previous
- * organization's cache to this one.
- */
+// In the key so switching in one tab can't serve another household's cache.
 export const activeOrganizationQueryOptions = (
   activeOrganizationId: string | null
 ) =>

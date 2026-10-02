@@ -8,12 +8,7 @@ import type {
 } from "./interest";
 import { DEFAULT_WITHHOLDING_TAX_RATE } from "./interest";
 
-/**
- * Masdan's shipped interest catalog. Keys are permanent: accounts point at the
- * rows they identify. To change a rate, add a schedule with a later
- * `effectiveFrom` and ship a new post-migration script that reseeds; never
- * edit a schedule that has shipped, because projections already read it.
- */
+// Keys are permanent. Never edit a shipped schedule: add a later one.
 
 export interface InstitutionPreset {
   key: string;

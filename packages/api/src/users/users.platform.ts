@@ -13,10 +13,6 @@ import { z } from "zod";
 
 import { adminProcedure } from "../procedures";
 
-/**
- * better-auth's `admin()` plugin owns every user mutation, so this router adds
- * the combined read and the one thing that plugin cannot do: a reset link.
- */
 export const usersPlatformRouter = {
   detail: adminProcedure
     .input(z.object({ userId: z.uuid() }))
@@ -66,10 +62,7 @@ export const usersPlatformRouter = {
       };
     }),
 
-  /**
-   * Written through better-auth's adapter, not this request's transaction. The
-   * URL is a live account-takeover credential: return it, never log it.
-   */
+  // The URL is a live account-takeover credential: return it, never log it.
   issuePasswordReset: adminProcedure
     .input(z.object({ userId: z.uuid() }))
     .handler(async ({ context, input }) => {

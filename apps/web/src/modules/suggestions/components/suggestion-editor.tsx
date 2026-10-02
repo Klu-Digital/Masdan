@@ -16,10 +16,6 @@ export interface SuggestionChoice {
   tagIds: string[];
 }
 
-/**
- * The suggested category and tags as editable defaults. Nothing is saved
- * until Accept, and Accept sends exactly what is on screen.
- */
 export const SuggestionEditor = ({
   acceptLabel = "Accept",
   categories,

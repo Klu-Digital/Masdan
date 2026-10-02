@@ -16,11 +16,7 @@ const clampPreservingExtension = (name: string): string => {
   return name.slice(0, MAX_FILE_NAME_LENGTH - extension.length) + extension;
 };
 
-/**
- * Only the last path segment survives, so `../../etc/passwd` collapses to
- * `passwd` — the key prefix is server-owned and must not be escapable by a
- * caller.
- */
+// Server-owned prefix: only the last path segment survives.
 export const sanitizeFileName = (name: string): string => {
   const segments = name.normalize("NFC").split(/[/\\]/u);
   const base = segments.at(-1) ?? "";
@@ -49,12 +45,7 @@ export interface BuildObjectKeyOptions {
   name: string;
 }
 
-/**
- * `org/<organizationId>/<objectId>/<name>`. The `org/` prefix keeps a
- * per-tenant IAM policy expressible later; the random `objectId` keeps the key
- * unguessable. Deliberately not the file row's id: a uuidv7 in a URL would leak
- * a creation timestamp.
- */
+// Random `objectId`, not the row's uuidv7, which would leak a timestamp.
 export const buildObjectKey = ({
   organizationId,
   objectId,
