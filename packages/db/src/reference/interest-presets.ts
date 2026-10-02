@@ -444,6 +444,29 @@ export const PRODUCT_PRESETS: ProductPreset[] = [
     sourceUrl: MAYA_TD,
   }),
   product({
+    aliases: ["TD Plus 5.5%", "Time Deposit 5.5%"],
+    institutionKey: "ph-maya",
+    key: "ph-maya-time-deposit-plus-5-5",
+    name: "Time Deposit Plus (5.5% p.a.)",
+    notes:
+      "For accounts opened from 1 Oct 2026. Use the original Time Deposit Plus preset for existing deposits at the older rates.",
+    productType: "time_deposit",
+    schedules: tenors(
+      "month",
+      { 12: flat("5.50"), 3: flat("5.50"), 6: flat("5.50") },
+      {
+        conditionSummary:
+          "Includes the target-based boost above the 3.5% p.a. base rate; reach your target amount and date to qualify.",
+        creditFrequency: "monthly",
+        effectiveFrom: "2026-10-01",
+        interestCapBalance: "1000000",
+        sourceCheckedAt: "2026-10-02",
+        sourceUrl: MAYA_TD,
+      }
+    ),
+    sourceUrl: MAYA_TD,
+  }),
+  product({
     institutionKey: "ph-gotyme",
     key: "ph-gotyme-goalsave",
     name: "GoalSave",
