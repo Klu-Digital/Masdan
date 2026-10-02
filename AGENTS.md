@@ -55,7 +55,7 @@ Reference tables are held back from the per-test `TRUNCATE` — `REFERENCE_TABLE
 
 ## Invariants worth knowing before editing
 
-These are the ones that cost real time to rediscover. The README carries the fuller writeups under each feature's "things that bite".
+These are the ones that cost real time to rediscover. The README beside each area's code carries the fuller writeup under "things that bite".
 
 **Cache invalidation inside a mutation must go through `context.afterCommit()`.** `mutationProcedure` wraps handlers in `db.transaction(...)`, so a `cache.del()` called inline purges a key the transaction may still roll back. The `.use(afterCommit).use(transaction)` order in `packages/api/src/procedures.ts` is load-bearing — reversing it silently reintroduces the bug.
 
@@ -69,7 +69,7 @@ These are the ones that cost real time to rediscover. The README carries the ful
 
 **Feature flags are declared in code and valued in the database.** `packages/env/src/flags.ts` is the registry — adding a flag is still a deploy, which is what keeps `FeatureFlagName` a typed union — but its on/off value lives in `feature_flag` and is toggled at `/admin/flags`. Reads go through `getFeatureFlags(db)` / `isFeatureEnabled(db, name)` in `packages/api/src/feature-flags/feature-flags.cache.ts`, cached per process for 30s. Two things follow: the admin `set`/`reset` handlers must invalidate via `context.afterCommit()` and must never read flags inside their own transaction, and hiding UI with `useFeatureFlag` is cosmetic — use `requireFlag()` on the procedure to make something actually unreachable (it answers `NOT_FOUND`, not `FORBIDDEN`).
 
-**Reset links never go through `log`.** Structured logs drain to PostHog, so a logged reset URL is an account takeover handed to a third party. Masdan sends no email: reset links go out through `deliver()` (raw stdout) or back to the admin who asked for one, and point straight at the web page rather than better-auth's `/api/auth/reset-password/<token>` redirect, whose path the request logger records. Invitations are bearer links: never match one by email. See [Accounts, recovery and invitations](README.md#accounts-recovery-and-invitations).
+**Reset links never go through `log`.** Structured logs drain to PostHog, so a logged reset URL is an account takeover handed to a third party. Masdan sends no email: reset links go out through `deliver()` (raw stdout) or back to the admin who asked for one, and point straight at the web page rather than better-auth's `/api/auth/reset-password/<token>` redirect, whose path the request logger records. Invitations are bearer links: never match one by email. See [Accounts, recovery and invitations](docs/self-hosting.md#accounts-recovery-and-invitations) and [packages/auth/README.md](packages/auth/README.md#recovery-and-sign-up-internals).
 
 **Two role columns.** `member.role` is per-organization and is what `requirePermission` reads; `user.role` is global, from better-auth's `admin()` plugin, for back-office powers. Product permissions belong on the first.
 
@@ -203,11 +203,13 @@ Oxlint catches most of the above automatically. Spend your own attention on:
 
 ## Fuller writeups
 
-Each of these has a README section carrying the reasoning the summary above compresses:
+Each of these carries the reasoning the summary above compresses:
 
-- [Accounts, recovery and invitations](README.md#accounts-recovery-and-invitations), [Feature flags](README.md#feature-flags), [Authorization (RBAC)](README.md#authorization-rbac)
-- [Redis](README.md#redis) and [Cache](README.md#cache), [Object storage](README.md#object-storage)
-- [Security headers](README.md#security-headers), [The web image is environment-agnostic](README.md#the-web-image-is-environment-agnostic)
-- [Page titles and breadcrumbs](README.md#page-titles-and-breadcrumbs), [UI Customization](README.md#ui-customization)
-- [Post-migration scripts](README.md#post-migration-scripts) and its [authoring guide](packages/db/src/dev-scripts/post-migrate/README.md)
+- [docs/self-hosting.md](docs/self-hosting.md) — operator view: deployment, env vars, accounts, recovery and invitations
+- [packages/auth/README.md](packages/auth/README.md) — RBAC, session cookie attributes, recovery internals
+- [Feature flags](packages/api/src/feature-flags/README.md), [chat entry](packages/api/src/chat/README.md), [data export](packages/api/src/exports/README.md)
+- [Redis and the cache](packages/redis/README.md), [object storage](packages/storage/README.md)
+- [apps/server/README.md](apps/server/README.md) — boot migrations, client IP and `TRUSTED_PROXY_HOPS`, API security headers
+- [apps/web/README.md](apps/web/README.md) — UI components, page titles and breadcrumbs, nginx and the environment-agnostic image, web security headers
+- [Post-migration scripts](packages/db/src/dev-scripts/post-migrate/README.md)
 - [CONTRIBUTING.md](CONTRIBUTING.md) — first-run setup, env files, the services to bring up

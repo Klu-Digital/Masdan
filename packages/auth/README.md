@@ -244,6 +244,27 @@ better-auth's built-in rate limiter counts through `countHit` from `@masdan/redi
 
 ---
 
+## Session cookie attributes
+
+`defaultCookieAttributes` in [`src/index.ts`](./src/index.ts) answers two independent questions, and keeping them independent is the point.
+
+`Secure` follows **deployment**: on in `production` and `staging`, off everywhere else. `SameSite` follows **topology**: it compares the sites of `BETTER_AUTH_URL` and `CORS_ORIGIN` and answers `Lax` when they match, `None` only when they genuinely differ and the environment is deployed. Under the default same-origin setup that means `SameSite=Lax; Secure` in production, the tighter pair, with CSRF protection the cross-site version gives up. Split the API back onto its own host and it returns `None` on its own, no code change. `/rpc` does not lean on `SameSite` alone: oRPC's `SimpleCsrfProtectionHandlerPlugin` refuses any call without an `x-csrf-token` header, which a cross-site page can only send after a CORS preflight that `CORS_ORIGIN` refuses. Every `RPCLink`, tests included, needs `SimpleCsrfProtectionLinkPlugin`.
+
+Deriving both from one flag, as this did before, is the trap: the day the topology becomes same-site in production is the day the cookie also stops being `Secure`. `None` without `Secure` is illegal anyway, so the two must move separately.
+
+Sending `None; Secure` everywhere appears to work locally because Chrome and Firefox special-case `http://localhost` and accept `Secure` cookies over it. Safari does not, and neither extends that exception to a dev server reached over a LAN IP, the usual way to open the web app on a real phone. The failure is silent: the cookie is dropped and every request looks signed out. A port is not part of a _site_, so `localhost:2600` and `localhost:1900` are same-site regardless.
+
+---
+
+## Recovery and sign-up internals
+
+How recovery works for an operator is in [docs/self-hosting.md](../../docs/self-hosting.md#accounts-recovery-and-invitations). Two things that bite when changing it:
+
+- **A reset link must never reach `log`.** Structured logs drain to PostHog when `POSTHOG_PROJECT_API_KEY` is set, so a logged link is an account takeover handed to a third party. Delivery goes through `deliver()` in [`src/deliver.ts`](./src/deliver.ts), the one place optional SMTP would slot in. Links point straight at the web page, because better-auth's own `/api/auth/reset-password/<token>` redirect puts the token in a path the request logger records.
+- **The sign-up gate only guards HTTP.** Server-side `auth.api.signUpEmail` calls (the seeder, `signUpTestUser`) carry no request and bypass it, and so never mint a bootstrap admin.
+
+---
+
 ## Files
 
 | File | What it holds |

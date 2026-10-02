@@ -2,6 +2,8 @@
 
 Each dataset is an `orgProcedure` under `exports.*` (`packages/api/src/exports/exports.router.ts`) that returns `{ csv, fileName, rowCount }` for the **active household only**. The web app downloads them from **Settings → Household → Export data**. Files are generated synchronously from the canonical Postgres tables: there are no export tables, no queue and no storage.
 
+Every join repeats the `organization_id` filter. Keep it that way when adding columns.
+
 ## File format
 
 - RFC 4180. Rows end in CRLF, including the last one. The header row comes first, and the column order below is stable. A field containing a comma, a double quote, CR or LF is wrapped in double quotes, and embedded quotes are doubled.
