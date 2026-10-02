@@ -37,6 +37,7 @@ import {
   NetWorthHistoryChart,
   NetWorthSummary,
   SpendingSection,
+  TagSpendingSection,
 } from "./report-sections";
 
 const useReports = (activeOrganizationId: string, range: ReportRange) => {
@@ -60,10 +61,20 @@ const useReports = (activeOrganizationId: string, range: ReportRange) => {
   const spending = useQuery(
     reports.spendingByCategory.queryOptions({ ...shared, input: range })
   );
+  const tagSpending = useQuery(
+    reports.spendingByTag.queryOptions({ ...shared, input: range })
+  );
   const budgetPerformance = useQuery(
     reports.budgetPerformance.queryOptions({ ...shared, input: range })
   );
-  const queries = [netWorth, history, cashFlow, spending, budgetPerformance];
+  const queries = [
+    netWorth,
+    history,
+    cashFlow,
+    spending,
+    tagSpending,
+    budgetPerformance,
+  ];
   return {
     budgetPerformance: budgetPerformance.data,
     cashFlow: cashFlow.data,
@@ -76,6 +87,7 @@ const useReports = (activeOrganizationId: string, range: ReportRange) => {
     history: history.data,
     netWorth: netWorth.data,
     spending: spending.data,
+    tagSpending: tagSpending.data,
   };
 };
 
@@ -90,6 +102,7 @@ const currencyOptions = (
       ...(reports.netWorth?.positions ?? []),
       ...(reports.cashFlow?.totals ?? []),
       ...(reports.spending?.totals ?? []),
+      ...(reports.tagSpending?.tags ?? []),
       ...(reports.budgetPerformance?.totals ?? []),
     ].map((item) => item.currencyCode),
   ]),
@@ -116,6 +129,7 @@ export const ReportsPage = ({
     history,
     netWorth,
     spending,
+    tagSpending,
   } = reports;
 
   const householdCurrency =
@@ -196,7 +210,10 @@ export const ReportsPage = ({
           <NetWorthSummary currency={currency} report={netWorth} />
           <NetWorthHistoryChart currency={currency} history={history} />
           <div className="grid items-start gap-8 lg:grid-cols-2">
-            <CashFlowSection currency={currency} report={cashFlow} />
+            <div className="flex flex-col gap-8">
+              <CashFlowSection currency={currency} report={cashFlow} />
+              <TagSpendingSection currency={currency} report={tagSpending} />
+            </div>
             <SpendingSection currency={currency} report={spending} />
           </div>
           <BudgetPerformanceSection

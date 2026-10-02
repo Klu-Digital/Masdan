@@ -13,6 +13,7 @@ const netWorthHistory = vi.hoisted(() => vi.fn());
 const cashFlow = vi.hoisted(() => vi.fn());
 const budgetPerformance = vi.hoisted(() => vi.fn());
 const spendingByCategory = vi.hoisted(() => vi.fn());
+const spendingByTag = vi.hoisted(() => vi.fn());
 
 vi.mock("@/utils/client", async () => {
   const { mockClient } = await import("@/test/client");
@@ -24,6 +25,7 @@ vi.mock("@/utils/client", async () => {
         netWorth,
         netWorthHistory,
         spendingByCategory,
+        spendingByTag,
       },
     }),
   };
@@ -86,6 +88,12 @@ const emptyLedger = () => {
     period,
     totals: [],
   });
+  spendingByTag.mockResolvedValue({
+    defaultCurrency: "PHP",
+    period,
+    tags: [],
+    totals: [],
+  });
 };
 
 const renderPage = () =>
@@ -100,6 +108,7 @@ beforeEach(() => {
     cashFlow,
     budgetPerformance,
     spendingByCategory,
+    spendingByTag,
   ]) {
     mock.mockReset();
   }
@@ -200,6 +209,22 @@ describe("ReportsPage", () => {
       period,
       totals: [{ currencyCode: "PHP", total: "1200.000000" }],
     });
+    spendingByTag.mockResolvedValue({
+      defaultCurrency: "PHP",
+      period,
+      tags: [
+        {
+          archived: false,
+          color: "blue",
+          count: 1,
+          currencyCode: "PHP",
+          name: "Vacation",
+          tagId: "vacation",
+          total: "300.000000",
+        },
+      ],
+      totals: [{ currencyCode: "PHP", total: "1200.000000" }],
+    });
     renderPage();
 
     expect(await screen.findByText("Net cash flow")).toBeInTheDocument();
@@ -215,6 +240,11 @@ describe("ReportsPage", () => {
     expect(
       screen.getByRole("meter", { name: "Groceries share of spending" })
     ).toBeInTheDocument();
+    const byTag = screen.getByRole("region", { name: "Spending by tag" });
+    expect(
+      within(byTag).getByRole("meter", { name: "Vacation share of spending" })
+    ).toBeInTheDocument();
+    expect(within(byTag).getByText("25%")).toBeVisible();
     expect(screen.queryByRole("combobox", { name: "Currency" })).toBeNull();
   });
 

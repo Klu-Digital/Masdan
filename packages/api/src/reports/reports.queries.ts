@@ -4,6 +4,8 @@ import {
   financialAccount,
   financialTransaction,
   financialTransactionSplit,
+  financialTransactionTag,
+  tag,
 } from "@masdan/db/schema/index";
 import { ORPCError } from "@orpc/server";
 import {
@@ -554,6 +556,23 @@ export interface SpendingReport {
   totals: { currencyCode: string; total: string }[];
 }
 
+const getSpendingTotals = (
+  db: Database,
+  organizationId: string,
+  range: LedgerRange
+): Promise<{ currencyCode: string; total: string }[]> =>
+  db
+    .select({
+      currencyCode: financialTransaction.currencyCode,
+      total: sql<string>`${lineTotal}::text`,
+    })
+    .from(financialTransaction)
+    .leftJoin(financialTransactionSplit, splitLines)
+    .innerJoin(category, lineCategory(organizationId))
+    .where(lineConditions(organizationId, range, "expense"))
+    .groupBy(financialTransaction.currencyCode)
+    .orderBy(asc(financialTransaction.currencyCode));
+
 export const getSpendingByCategory = async (
   db: Database,
   organizationId: string,
@@ -561,17 +580,66 @@ export const getSpendingByCategory = async (
 ): Promise<SpendingReport> => {
   const [categories, totals] = await Promise.all([
     getCategoryTotals(db, organizationId, range, "expense"),
+    getSpendingTotals(db, organizationId, range),
+  ]);
+  return { categories, totals };
+};
+
+interface TagTotal {
+  archived: boolean;
+  color: string;
+  count: number;
+  currencyCode: string;
+  name: string;
+  tagId: string;
+  total: string;
+}
+
+export interface TagSpendingReport {
+  tags: TagTotal[];
+  /** All spending, tagged or not, so a tag's share reads against the whole. */
+  totals: { currencyCode: string; total: string }[];
+}
+
+/** Split-aware like categories; a transaction with two tags counts under both. */
+export const getSpendingByTag = async (
+  db: Database,
+  organizationId: string,
+  range: LedgerRange
+): Promise<TagSpendingReport> => {
+  const [tags, totals] = await Promise.all([
     db
       .select({
+        archived: sql<boolean>`${tag.archivedAt} is not null`,
+        color: tag.color,
+        count: countDistinct(financialTransaction.id),
         currencyCode: financialTransaction.currencyCode,
+        name: tag.name,
+        tagId: tag.id,
         total: sql<string>`${lineTotal}::text`,
       })
       .from(financialTransaction)
       .leftJoin(financialTransactionSplit, splitLines)
       .innerJoin(category, lineCategory(organizationId))
+      .innerJoin(
+        financialTransactionTag,
+        eq(financialTransactionTag.transactionId, financialTransaction.id)
+      )
+      .innerJoin(
+        tag,
+        and(
+          eq(tag.id, financialTransactionTag.tagId),
+          eq(tag.organizationId, organizationId)
+        )
+      )
       .where(lineConditions(organizationId, range, "expense"))
-      .groupBy(financialTransaction.currencyCode)
-      .orderBy(asc(financialTransaction.currencyCode)),
+      .groupBy(tag.id, financialTransaction.currencyCode)
+      .orderBy(
+        desc(lineTotal),
+        asc(tag.name),
+        asc(financialTransaction.currencyCode)
+      ),
+    getSpendingTotals(db, organizationId, range),
   ]);
-  return { categories, totals };
+  return { tags, totals };
 };

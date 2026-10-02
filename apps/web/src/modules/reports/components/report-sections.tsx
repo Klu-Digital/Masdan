@@ -1,6 +1,6 @@
 import { EChartsComposedChart } from "@masdan/ui/components/evilcharts/charts/echarts-composed-chart";
 import type { ChartConfig } from "@masdan/ui/components/evilcharts/charts/echarts-composed-chart";
-import { IconTile } from "@masdan/ui/components/icon-tile";
+import { ColorDot, IconTile } from "@masdan/ui/components/icon-tile";
 import {
   List,
   ListItem,
@@ -55,6 +55,7 @@ import type {
   NetWorthHistory,
   NetWorthReport,
   SpendingReport,
+  TagSpendingReport,
 } from "../types";
 
 const Card = ({ children }: { children: ReactNode }) => (
@@ -668,6 +669,93 @@ export const SpendingSection = ({
                 <ListItemContent>
                   <span className="flex items-baseline justify-between gap-3">
                     <ListItemTitle>{row.name}</ListItemTitle>
+                    <span className="shrink-0 text-sm font-medium">
+                      <Amount currency={currency} value={row.total} />
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-3">
+                    <Meter
+                      aria-label={`${row.name} share of spending`}
+                      className="flex-1"
+                      max={largest}
+                      value={value}
+                    >
+                      <MeterTrack>
+                        <MeterIndicator tone="brand" />
+                      </MeterTrack>
+                    </Meter>
+                    <span className="text-muted-foreground w-9 shrink-0 text-right text-xs tabular-nums">
+                      {Math.round(share * 100)}%
+                    </span>
+                  </span>
+                </ListItemContent>
+              </ListItem>
+            );
+          })}
+        </List>
+      ) : null}
+    </Section>
+  );
+};
+
+export const TagSpendingSection = ({
+  currency,
+  report,
+}: {
+  currency: string;
+  report: TagSpendingReport | undefined;
+}) => {
+  const rows = (report?.tags ?? []).filter(
+    (row) => row.currencyCode === currency
+  );
+  const total = toNumber(
+    report?.totals.find((item) => item.currencyCode === currency)?.total ?? 0
+  );
+  const largest = toNumber(rows[0]?.total ?? 0);
+
+  return (
+    <Section aria-label="Spending by tag">
+      <SectionHeader>
+        <SectionTitle>Spending by tag</SectionTitle>
+        <SectionDescription>
+          A transaction counts toward each of its tags
+        </SectionDescription>
+      </SectionHeader>
+      {report === undefined ? (
+        <Skeleton className="h-40 w-full" radius="3xl" />
+      ) : null}
+      {report && rows.length === 0 ? (
+        <EmptyNote>No tagged spending in this period.</EmptyNote>
+      ) : null}
+      {report && rows.length > 0 ? (
+        <List>
+          {rows.map((row) => {
+            const value = toNumber(row.total);
+            const share = total > 0 ? value / total : 0;
+            return (
+              <ListItem
+                key={row.tagId}
+                render={
+                  <Link
+                    search={{
+                      ...DEFAULT_TRANSACTION_SEARCH,
+                      dateFrom: report.period.dateFrom,
+                      dateTo: report.period.dateTo,
+                      tagIds: [row.tagId],
+                    }}
+                    to="/transactions"
+                  />
+                }
+              >
+                <ListItemLeading>
+                  <ColorDot className="size-3" tint={row.color} />
+                </ListItemLeading>
+                <ListItemContent>
+                  <span className="flex items-baseline justify-between gap-3">
+                    <ListItemTitle>
+                      {row.name}
+                      {row.archived ? " (archived)" : ""}
+                    </ListItemTitle>
                     <span className="shrink-0 text-sm font-medium">
                       <Amount currency={currency} value={row.total} />
                     </span>

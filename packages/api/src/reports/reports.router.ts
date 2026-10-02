@@ -10,6 +10,7 @@ import {
   getNetWorth,
   getNetWorthHistory,
   getSpendingByCategory,
+  getSpendingByTag,
   resolveReportPeriod,
 } from "./reports.queries";
 
@@ -176,6 +177,31 @@ export const reportsRouter = {
         input
       );
       const report = await getSpendingByCategory(
+        context.db,
+        context.organizationId,
+        {
+          accountIds: input.accountIds,
+          dateFrom: period.dateFrom,
+          dateTo: period.dateTo,
+        }
+      );
+      return {
+        ...report,
+        defaultCurrency: period.defaultCurrency,
+        period: publicPeriod(period),
+      };
+    }),
+
+  spendingByTag: orgProcedure
+    .use(requirePermission({ transaction: ["read"] }))
+    .input(ledgerRangeValues)
+    .handler(async ({ context, input }) => {
+      const period = await resolveReportPeriod(
+        context.db,
+        context.organizationId,
+        input
+      );
+      const report = await getSpendingByTag(
         context.db,
         context.organizationId,
         {

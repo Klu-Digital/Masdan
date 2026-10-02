@@ -10,6 +10,8 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { accountsRouter } from "../accounts/accounts.router";
 import type { Context } from "../context";
+import { TAG_COLORS } from "../tags/constants";
+import { tagsRouter } from "../tags/tags.router";
 import { transactionsRouter } from "../transactions/transactions.router";
 import { transfersRouter } from "../transfers/transfers.router";
 import { getCashFlow, resolveReportPeriod } from "./reports.queries";
@@ -79,6 +81,7 @@ const household = async () => {
     extra: {
       paidStatus?: "paid" | "unpaid";
       splits?: { amount: string; categoryId: string }[];
+      tagIds?: string[];
     } = {}
   ) =>
     call(
@@ -89,7 +92,7 @@ const household = async () => {
         categoryId,
         paidStatus: extra.paidStatus ?? "paid",
         splits: extra.splits,
-        tagIds: [],
+        tagIds: extra.tagIds ?? [],
         transactionDate,
       },
       context
@@ -792,6 +795,77 @@ describe("reports.spendingByCategory", () => {
         other.context
       )
     ).resolves.toMatchObject({ categories: [], totals: [] });
+  });
+});
+
+describe("reports.spendingByTag", () => {
+  it("counts expense lines once per tag and keeps all spending as the total", async () => {
+    const home = await household();
+    const { account, categories, context, record } = home;
+    const tag = (name: string) =>
+      call(tagsRouter.create, { color: TAG_COLORS[0], name }, context);
+    const trip = await tag("Trip");
+    const kids = await tag("Kids");
+    await tag("Unused");
+    const wallet = await account({
+      accountClass: "asset",
+      accountType: "bank",
+      liquidity: "liquid",
+      name: "Wallet",
+      openingBalance: "0",
+      openingBalanceDate: OPENED,
+    });
+    await record(wallet.id, categories.food, "300", "2026-01-10", {
+      tagIds: [trip.id, kids.id],
+    });
+    await record(wallet.id, categories.groceries, "500", "2026-01-11", {
+      splits: [
+        { amount: "100", categoryId: categories.food },
+        { amount: "400", categoryId: categories.groceries },
+      ],
+      tagIds: [trip.id],
+    });
+    await record(wallet.id, categories.salary, "1000", "2026-01-12", {
+      tagIds: [trip.id],
+    });
+    await record(wallet.id, categories.transport, "50", "2026-01-13");
+    await record(wallet.id, categories.transport, "70", "2026-03-01", {
+      tagIds: [kids.id],
+    });
+
+    const report = await call(
+      reportsRouter.spendingByTag,
+      custom("2026-01-01", "2026-01-31"),
+      context
+    );
+
+    expect(
+      report.tags.map(({ archived, count, name, tagId, total }) => ({
+        archived,
+        count,
+        name,
+        tagId,
+        total,
+      }))
+    ).toEqual([
+      {
+        archived: false,
+        count: 2,
+        name: "Trip",
+        tagId: trip.id,
+        total: "800.000000",
+      },
+      {
+        archived: false,
+        count: 1,
+        name: "Kids",
+        tagId: kids.id,
+        total: "300.000000",
+      },
+    ]);
+    expect(report.totals).toEqual([
+      { currencyCode: "PHP", total: "850.000000" },
+    ]);
   });
 });
 

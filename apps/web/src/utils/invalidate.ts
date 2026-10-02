@@ -38,7 +38,7 @@ const STALE_AFTER = {
   recurringSchedules: LEDGER,
   reminders: ["reminders"],
   rules: ["rules"],
-  tags: ["tags", "transactions", "rules"],
+  tags: ["tags", "transactions", "rules", "reports"],
 } as const satisfies Record<string, readonly Router[]>;
 
 export type Write = keyof typeof STALE_AFTER;
