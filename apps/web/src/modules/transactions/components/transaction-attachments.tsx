@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from "@masdan/ui/components/alert-dialog";
 import { Button } from "@masdan/ui/components/button";
+import { ImageZoom } from "@masdan/ui/components/image-zoom";
 import {
   List,
   ListItem,
@@ -46,6 +47,44 @@ import type { TransactionAttachment } from "../attachments";
 
 /** A hint for the picker only; `files.createUpload` is what enforces it. */
 const ACCEPT = allowedContentTypes.join(",");
+
+/** Below the presigned URL's 15-minute expiry, so a cached thumbnail never 403s. */
+const PREVIEW_STALE_MS = 10 * 60 * 1000;
+
+const isPreviewable = (attachment: TransactionAttachment): boolean =>
+  attachment.status === "ready" && attachment.contentType.startsWith("image/");
+
+const AttachmentThumbnail = ({
+  attachment,
+}: {
+  attachment: TransactionAttachment;
+}) => {
+  const { activeOrganizationId } = useHousehold();
+  const preview = useQuery(
+    householdOrpc(activeOrganizationId).attachments.downloadUrl.queryOptions({
+      input: { fileId: attachment.id, transactionId: attachment.transactionId },
+      meta: { suppressErrorToast: true },
+      staleTime: PREVIEW_STALE_MS,
+    })
+  );
+  if (preview.isPending) {
+    return <Skeleton className="size-10" radius="lg" />;
+  }
+  if (preview.isError) {
+    return <HugeiconsIcon icon={Attachment01Icon} strokeWidth={1.8} />;
+  }
+  return (
+    <ImageZoom zoomMargin={24}>
+      <img
+        alt={attachment.name}
+        className="bg-secondary size-10 rounded-lg object-cover"
+        decoding="async"
+        loading="lazy"
+        src={preview.data.downloadUrl}
+      />
+    </ImageZoom>
+  );
+};
 
 interface PendingUpload {
   error: string | null;
@@ -298,7 +337,11 @@ export const TransactionAttachments = ({
           {items.map((attachment) => (
             <ListItem className="min-h-12" key={attachment.id}>
               <ListItemLeading>
-                <HugeiconsIcon icon={Attachment01Icon} strokeWidth={1.8} />
+                {isPreviewable(attachment) ? (
+                  <AttachmentThumbnail attachment={attachment} />
+                ) : (
+                  <HugeiconsIcon icon={Attachment01Icon} strokeWidth={1.8} />
+                )}
               </ListItemLeading>
               <ListItemContent>
                 <ListItemTitle>{attachment.name}</ListItemTitle>

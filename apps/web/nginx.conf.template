@@ -39,7 +39,8 @@ server {
     # API is reached through the proxy locations below, it is same-origin and
     # `'self'` already covers it — so what is left is the object storage
     # endpoint, because uploads go straight from the browser to a presigned URL
-    # and never pass through this server. That endpoint is deployment specific,
+    # and never pass through this server. It is in img-src too, because receipt
+    # thumbnails load from presigned URLs. That endpoint is deployment specific,
     # which is the whole reason this file is a template. Leaving it empty is
     # valid CSP: API calls keep working and only uploads break, which is a
     # quieter failure than it used to be and worth knowing about.
@@ -49,7 +50,7 @@ server {
     # left literal and nginx then reads `$CSP_CONNECT_SRC` as one of its own
     # variables and refuses to start: `unknown "csp_connect_src" variable`. The
     # Dockerfile's `ENV CSP_CONNECT_SRC=""` is what keeps that from happening.
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ${CSP_CONNECT_SRC}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${CSP_CONNECT_SRC}; font-src 'self' data:; connect-src 'self' ${CSP_CONNECT_SRC}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" always;
 
     # The API, reached on the SPA's own origin. Separate prefixes rather than
     # one because the server mounts them as siblings at its root — /api/auth/*
@@ -140,7 +141,7 @@ server {
         add_header Referrer-Policy "strict-origin-when-cross-origin" always;
         add_header Cross-Origin-Opener-Policy "same-origin" always;
         add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()" always;
-        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ${CSP_CONNECT_SRC}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${CSP_CONNECT_SRC}; font-src 'self' data:; connect-src 'self' ${CSP_CONNECT_SRC}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" always;
     }
 
     # SPA fallback
