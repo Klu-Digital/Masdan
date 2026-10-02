@@ -31,8 +31,8 @@ export const systemPlatformRouter = {
     },
     serviceName: env.SERVICE_NAME,
     storageMaxUploadBytes: env.STORAGE_MAX_UPLOAD_BYTES,
-    // Behind a proxy, `false` keys every rate limit to the proxy's IP.
-    trustProxyHeaders: env.TRUST_PROXY_HEADERS,
+    // Behind a proxy, 0 keys every rate limit to the proxy's IP.
+    trustedProxyHops: env.TRUSTED_PROXY_HOPS,
   })),
 
   health: adminProcedure.handler(async ({ context }) => {

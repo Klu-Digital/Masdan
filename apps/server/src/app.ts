@@ -1,4 +1,5 @@
 import { auth } from "@masdan/auth";
+import { withClientIp } from "@masdan/auth/client-ip";
 import { env } from "@masdan/env/server";
 import { honoLogger } from "@masdan/observability/hono";
 import type { EvlogVariables } from "@masdan/observability/hono";
@@ -9,6 +10,7 @@ import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 
 import { mountChatWebhooks } from "./chat";
+import { clientIpOf } from "./client-ip";
 import { mountFeeds } from "./feeds";
 import { mountHealth } from "./health";
 import { mountMetrics } from "./metrics";
@@ -71,7 +73,9 @@ export const createApp = () => {
 
   mountHealth(app);
 
-  app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+  app.on(["POST", "GET"], "/api/auth/*", (c) =>
+    auth.handler(withClientIp(c.req.raw, clientIpOf(c)))
+  );
 
   mountOrpc(app, { apiReference: env.NODE_ENV !== "production" });
 

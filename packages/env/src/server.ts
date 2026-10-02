@@ -20,8 +20,8 @@ export const env = createEnv({
     BETTER_AUTH_URL: z.url(),
     CORS_ORIGIN: z.url(),
     PORT: z.coerce.number().int().positive().default(1900),
-    /** Trust forwarded client IP headers only behind a controlled proxy. */
-    TRUST_PROXY_HEADERS: z.stringbool().default(false),
+    /** Proxies we run in front of the server; 0 trusts no forwarded header. */
+    TRUSTED_PROXY_HOPS: z.coerce.number().int().nonnegative().default(0),
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 });

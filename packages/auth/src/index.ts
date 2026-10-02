@@ -9,6 +9,7 @@ import { admin, organization } from "better-auth/plugins";
 import { and, asc, eq, isNull } from "drizzle-orm";
 
 import { isAvatarImage } from "./avatar";
+import { CLIENT_IP_HEADER } from "./client-ip";
 import { deliver } from "./deliver";
 import { ac, roles } from "./permissions";
 import { resolveRateLimitStorage } from "./rate-limit-storage";
@@ -87,6 +88,8 @@ export const createAuth = () => {
         apiUrl: env.BETTER_AUTH_URL,
         webOrigin: env.CORS_ORIGIN,
       }),
+      // Its own x-forwarded-for parsing disagrees with ours and is spoofable.
+      ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
     },
     baseURL: env.BETTER_AUTH_URL,
     database: drizzleAdapter(db, {

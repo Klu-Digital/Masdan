@@ -110,8 +110,8 @@ const ConfigCard = ({ config }: { config: UseQueryResult<ConfigResult> }) => (
           <Row label="CORS origin" value={config.data?.corsOrigin} />
           <Row label="better-auth URL" value={config.data?.betterAuthUrl} />
           <Row
-            label="Trust proxy headers"
-            value={config.data?.trustProxyHeaders ? "on" : "off"}
+            label="Trusted proxy hops"
+            value={config.data?.trustedProxyHops}
           />
           <Row
             label="Auth rate limit"
@@ -141,9 +141,9 @@ const RouteComponent = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">System</h1>
 
-      {config.data && !config.data.trustProxyHeaders ? (
+      {config.data?.trustedProxyHops === 0 ? (
         <Alert variant="warning">
-          <AlertTitle>Trust proxy headers is off</AlertTitle>
+          <AlertTitle>No trusted proxy hops</AlertTitle>
           <AlertDescription>
             Rate limits will key to the proxy&apos;s IP, not the caller&apos;s.
           </AlertDescription>

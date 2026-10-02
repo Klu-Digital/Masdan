@@ -1,4 +1,3 @@
-import { getConnInfo } from "@hono/node-server/conninfo";
 import { createContext } from "@masdan/api/context";
 import type { Context } from "@masdan/api/context";
 import { appRouter } from "@masdan/api/routers/index";
@@ -9,12 +8,10 @@ import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
-import type {
-  Context as HonoRequestContext,
-  Hono,
-  MiddlewareHandler,
-} from "hono";
+import type { Hono, MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
+
+import { clientIpOf } from "./client-ip";
 
 /** Every RPC input is small: file contents go straight to the bucket. */
 const RPC_MAX_BODY_BYTES = 1024 * 1024;
@@ -22,18 +19,6 @@ const RPC_MAX_BODY_BYTES = 1024 * 1024;
 const logOrpcError = (error: unknown) => {
   const { message, code, status } = parseError(error);
   log.error({ action: "orpc.error", code, message, status });
-};
-
-// `getConnInfo` throws without a Node socket, as in tests.
-const remoteAddressOf = (
-  c: HonoRequestContext<EvlogVariables>
-): string | undefined => {
-  try {
-    return getConnInfo(c).remote.address;
-  } catch {
-    // No socket to read (tests); the caller treats the address as unknown.
-    return undefined;
-  }
 };
 
 const rpcHandler = new RPCHandler(appRouter, {
@@ -54,12 +39,7 @@ const mount = (
 ) => {
   const middleware: MiddlewareHandler<EvlogVariables> = async (c, next) => {
     const { matched, response } = await handler.handle(c.req.raw, {
-      // The socket address is only reachable from `@hono/node-server`, which
-      // `@masdan/api` deliberately does not depend on — so resolve it here, once.
-      context: await createContext({
-        context: c,
-        remoteAddress: remoteAddressOf(c),
-      }),
+      context: await createContext({ context: c, ip: clientIpOf(c) }),
       prefix,
     });
 

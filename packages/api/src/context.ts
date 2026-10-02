@@ -3,24 +3,20 @@ import { db } from "@masdan/db";
 import type { EvlogVariables } from "@masdan/observability/hono";
 import type { Context as HonoContext } from "hono";
 
-import { resolveClientIp } from "./client-ip";
-
 export interface CreateContextOptions {
   context: HonoContext<EvlogVariables>;
-  remoteAddress?: string | undefined;
+  /** From `resolveClientIp` in `@masdan/auth/client-ip`. */
+  ip?: string | undefined;
 }
 
-export const createContext = async ({
-  context,
-  remoteAddress,
-}: CreateContextOptions) => {
+export const createContext = async ({ context, ip }: CreateContextOptions) => {
   const session = await auth.api.getSession({
     headers: context.req.raw.headers,
   });
   return {
     auth: null,
     db,
-    ip: resolveClientIp(context.req.raw.headers, remoteAddress),
+    ip,
     log: context.get("log"),
     session,
   };

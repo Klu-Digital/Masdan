@@ -23,7 +23,7 @@ const mockEnv = vi.hoisted(() => ({
   S3_SECRET_ACCESS_KEY: "s3-secret-value",
   SERVICE_NAME: "masdan-server",
   STORAGE_MAX_UPLOAD_BYTES: 26_214_400,
-  TRUST_PROXY_HEADERS: false,
+  TRUSTED_PROXY_HOPS: 0,
   WORKERS_CONCURRENCY: 1,
   WORKERS_POLLING_INTERVAL_SECONDS: 2,
 }));

@@ -516,9 +516,10 @@ export const configManifest = [
     targets: ["local-server", "dokploy-server"],
   },
   {
-    description: "Trust proxy headers for client IP resolution",
+    description:
+      "Proxies in front of the server, counted for client IP resolution",
     kind: "config",
-    name: "TRUST_PROXY_HEADERS",
+    name: "TRUSTED_PROXY_HOPS",
     required: false,
     targets: ["local-server", "dokploy-server"],
   },
