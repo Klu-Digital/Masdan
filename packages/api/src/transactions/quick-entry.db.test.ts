@@ -328,7 +328,12 @@ describe("parseQuickEntryText", () => {
     );
 
     expect(
-      await parseQuickEntryText(getTestDb(), home.organizationId, EXAMPLE)
+      await parseQuickEntryText(
+        getTestDb(),
+        home.organizationId,
+        home.user.user.id,
+        EXAMPLE
+      )
     ).toEqual(
       await call(
         transactionsRouter.parseQuickEntry,
@@ -348,6 +353,7 @@ describe("parseQuickEntryText", () => {
     const parsed = await parseQuickEntryText(
       getTestDb(),
       home.organizationId,
+      home.user.user.id,
       EXAMPLE
     );
 
@@ -362,6 +368,7 @@ describe("parseQuickEntryText", () => {
     const parsed = await parseQuickEntryText(
       getTestDb(),
       home.organizationId,
+      home.user.user.id,
       EXAMPLE
     );
 
@@ -379,6 +386,7 @@ describe("parseQuickEntryText", () => {
     const parsed = await parseQuickEntryText(
       getTestDb(),
       home.organizationId,
+      home.user.user.id,
       EXAMPLE
     );
 
@@ -396,7 +404,12 @@ describe("parseQuickEntryText", () => {
 
     for (const text of ["   ", "x".repeat(301)]) {
       await expect(
-        parseQuickEntryText(getTestDb(), home.organizationId, text)
+        parseQuickEntryText(
+          getTestDb(),
+          home.organizationId,
+          home.user.user.id,
+          text
+        )
       ).rejects.toThrow();
     }
     expect(completeJson).not.toHaveBeenCalled();

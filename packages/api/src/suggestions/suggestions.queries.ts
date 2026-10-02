@@ -12,7 +12,7 @@ import { log, parseError } from "@masdan/observability";
 import { and, asc, count, eq, isNull, or, sql } from "drizzle-orm";
 
 import { completeJson, isAiConfigured } from "../ai/gateway";
-import type { AiHousehold } from "../ai/usage";
+import type { AiSpender } from "../ai/usage";
 import type { findImport } from "../imports/imports.queries";
 import { findMatchingRule } from "../rules/engine";
 import { loadRules, runnableRules } from "../rules/rules.data";
@@ -70,17 +70,17 @@ export const suggestionHousehold = async (
 
 /** `null` on any AI failure: the caller reports unavailable, never guesses. */
 export const askModel = async (
-  budget: AiHousehold,
+  spender: AiSpender,
   subjects: SuggestionSubject[],
   household: SuggestionHousehold
 ): Promise<Map<string, CategorizationProposal> | null> => {
   try {
     const extraction = await completeJson({
       feature: "categorize",
-      household: budget,
       messages: suggestionMessages(subjects, household),
       name: "categorize_transactions",
       schema: suggestionExtraction,
+      spender,
       timeoutMs: SUGGESTION_AI_TIMEOUT_MS,
     });
     return resolveSuggestions(subjects, household, extraction);
@@ -173,6 +173,7 @@ export type TransactionSuggestionResult =
 export const suggestForTransaction = async (
   db: Database,
   organizationId: string,
+  userId: string,
   transactionId: string
 ): Promise<TransactionSuggestionResult> => {
   const target = await suggestionTarget(db, organizationId, transactionId);
@@ -207,7 +208,7 @@ export const suggestForTransaction = async (
 
   const subject = { key: target.transaction.id, text, type: target.type };
   const proposals = await askModel(
-    { db, organizationId },
+    { db, organizationId, userId },
     [subject],
     await suggestionHousehold(db, organizationId)
   );

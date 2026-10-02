@@ -90,7 +90,12 @@ export const suggestionsRouter = {
     .use(rateLimit({ limit: 10, window: 60 }))
     .input(importIdInput)
     .handler(({ context, input }) =>
-      suggestForImport(context.db, context.organizationId, input.importId)
+      suggestForImport(
+        context.db,
+        context.organizationId,
+        context.session.user.id,
+        input.importId
+      )
     ),
 
   forTransaction: suggestionsProcedure
@@ -101,6 +106,7 @@ export const suggestionsRouter = {
       suggestForTransaction(
         context.db,
         context.organizationId,
+        context.session.user.id,
         input.transactionId
       )
     ),

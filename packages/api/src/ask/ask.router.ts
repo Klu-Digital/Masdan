@@ -76,7 +76,7 @@ export const createAskRouter = (tools: AskTools) => ({
         return {
           message:
             reason === "over_budget"
-              ? "Your household has used today’s AI allowance. Ask again tomorrow; nothing was changed."
+              ? "Today’s AI allowance is used up. Ask again tomorrow; nothing was changed."
               : "Ask Masdan couldn’t finish that request. Try again; nothing was changed.",
           requestId: null,
           status: "unavailable",

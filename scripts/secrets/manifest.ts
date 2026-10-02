@@ -46,7 +46,8 @@ export const configManifest = [
     ],
   },
   {
-    description: "AI tokens each household may spend per UTC day",
+    description:
+      "AI tokens each household, and each person, may spend per UTC day",
     kind: "config",
     name: "AI_DAILY_TOKEN_BUDGET",
     required: false,

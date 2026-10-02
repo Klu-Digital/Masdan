@@ -206,7 +206,12 @@ const addEntry = async (
   }
 
   // The same pipeline as the web's quick entry; this path parses nothing itself.
-  const parsed = await parseQuickEntryText(db, link.organizationId, text.data);
+  const parsed = await parseQuickEntryText(
+    db,
+    link.organizationId,
+    link.userId,
+    text.data
+  );
   const deepLink = quickEntryLink(appUrl, text.data);
   if (parsed.ai !== "ok") {
     // Deterministic matching alone never creates here: there is no form to review it in.
@@ -390,6 +395,7 @@ const addReceipt = async (
   const parsed = await parseReceiptEntry(
     db,
     link.organizationId,
+    link.userId,
     { bytes, contentType },
     caption
   );

@@ -9,7 +9,7 @@ export {
   user,
   verification,
 } from "./auth";
-export { aiTokenCap, aiUsage } from "./ai";
+export { aiTokenCap, aiUsage, aiUserUsage } from "./ai";
 export { askTurn } from "./ask";
 export { categoryBudget } from "./budgets";
 export { category } from "./categories";

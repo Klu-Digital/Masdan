@@ -10,7 +10,7 @@ import {
 } from "vite-plus/test";
 import { z } from "zod";
 
-import type { AiHousehold } from "./usage";
+import type { AiSpender } from "./usage";
 
 const mockEnv = vi.hoisted(() => ({
   AI_DAILY_TOKEN_BUDGET: 500_000,
@@ -39,7 +39,11 @@ const { DEFAULT_AI_TOKEN_CAPS } = await import("./features");
 const GATEWAY = "https://gateway.ai.cloudflare.com/v1/acct/masdan/compat";
 const schema = z.strictObject({ amount: z.string().nullable() });
 
-const HOUSEHOLD = { db: {}, organizationId: "org-1" } as unknown as AiHousehold;
+const SPENDER = {
+  db: {},
+  organizationId: "org-1",
+  userId: "user-1",
+} as unknown as AiSpender;
 
 const completion = (
   content: string | null,
@@ -76,10 +80,10 @@ const fetchMock = vi.fn<typeof fetch>();
 const call = () =>
   completeJson({
     feature: "quickTransaction",
-    household: HOUSEHOLD,
     messages: [{ content: "dinner 400", role: "user" }],
     name: "quick_transaction",
     schema,
+    spender: SPENDER,
     timeoutMs: 50,
   });
 
@@ -152,11 +156,11 @@ describe("completeJson", () => {
     });
   });
 
-  it("refuses without calling out once the household's budget is spent", async () => {
+  it("refuses without calling out once the budget is spent", async () => {
     usage.hasAiBudget.mockResolvedValue(false);
 
     await expect(call()).rejects.toMatchObject({ reason: "over_budget" });
-    expect(usage.hasAiBudget).toHaveBeenCalledWith(HOUSEHOLD);
+    expect(usage.hasAiBudget).toHaveBeenCalledWith(SPENDER);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -171,17 +175,17 @@ describe("completeJson", () => {
 
     const [, init] = fetchMock.mock.calls[0] ?? [];
     expect(JSON.parse(String(init?.body))).toMatchObject({ max_tokens: 1234 });
-    expect(getAiTokenCaps).toHaveBeenCalledWith(HOUSEHOLD.db);
+    expect(getAiTokenCaps).toHaveBeenCalledWith(SPENDER.db);
   });
 
-  it("charges the household the tokens the provider reports", async () => {
+  it("charges the spender the tokens the provider reports", async () => {
     fetchMock.mockResolvedValue(
       completion('{"amount":"400"}', { totalTokens: 321 })
     );
 
     await call();
 
-    expect(usage.recordAiUsage).toHaveBeenCalledWith(HOUSEHOLD, 321);
+    expect(usage.recordAiUsage).toHaveBeenCalledWith(SPENDER, 321);
   });
 
   it("charges the answer's cap when the provider reports no usage", async () => {
@@ -189,14 +193,14 @@ describe("completeJson", () => {
 
     await call();
 
-    expect(usage.recordAiUsage).toHaveBeenCalledWith(HOUSEHOLD, 500);
+    expect(usage.recordAiUsage).toHaveBeenCalledWith(SPENDER, 500);
   });
 
   it("charges a malformed answer too", async () => {
     fetchMock.mockResolvedValue(completion("nope", { totalTokens: 99 }));
 
     await expect(call()).rejects.toMatchObject({ reason: "malformed" });
-    expect(usage.recordAiUsage).toHaveBeenCalledWith(HOUSEHOLD, 99);
+    expect(usage.recordAiUsage).toHaveBeenCalledWith(SPENDER, 99);
   });
 
   it("still answers when charging fails", async () => {

@@ -43,6 +43,7 @@ export const sniffReceiptContentType = (
 export const parseReceiptEntry = async (
   db: Database,
   organizationId: string,
+  userId: string,
   image: { bytes: Uint8Array; contentType: string },
   caption: string | null
 ): Promise<{
@@ -56,7 +57,6 @@ export const parseReceiptEntry = async (
   try {
     const extraction = await completeJson({
       feature: "receipt",
-      household: { db, organizationId },
       messages: receiptMessages(
         {
           base64: Buffer.from(image.bytes).toString("base64"),
@@ -67,6 +67,7 @@ export const parseReceiptEntry = async (
       ),
       name: "receipt_entry",
       schema: receiptExtraction,
+      spender: { db, organizationId, userId },
       timeoutMs: RECEIPT_AI_TIMEOUT_MS,
     });
     return {

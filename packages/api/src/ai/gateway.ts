@@ -8,7 +8,7 @@ import { AI_FEATURES } from "./features";
 import type { AiFeature } from "./features";
 import { getAiTokenCaps } from "./token-caps.cache";
 import { hasAiBudget, recordAiUsage } from "./usage";
-import type { AiHousehold } from "./usage";
+import type { AiSpender } from "./usage";
 
 type AiErrorReason = "malformed" | "over_budget" | "unavailable";
 
@@ -50,30 +50,30 @@ const gatewayClient = (baseURL: string): OpenAI =>
 /** Throws `AiError`; only returns once `schema` has parsed the answer. */
 export const completeJson = async <Schema extends z.ZodType>({
   feature,
-  household,
   messages,
   name,
   schema,
+  spender,
   timeoutMs,
 }: {
   feature: AiFeature;
-  household: AiHousehold;
   messages: ChatCompletionMessageParam[];
   name: string;
   schema: Schema;
+  spender: AiSpender;
   timeoutMs: number;
 }): Promise<z.output<Schema>> => {
   const model = AI_FEATURES[feature].model();
   if (!(env.CLOUDFLARE_AI_GATEWAY_URL && model)) {
     throw new AiError("unavailable", `AI is not configured for ${feature}`);
   }
-  if (!(await hasAiBudget(household))) {
+  if (!(await hasAiBudget(spender))) {
     throw new AiError(
       "over_budget",
-      "The household has used today's AI token budget"
+      "Today's AI token budget is spent for this household or person"
     );
   }
-  const caps = await getAiTokenCaps(household.db);
+  const caps = await getAiTokenCaps(spender.db);
   const maxTokens = caps[feature];
 
   const completion = await gatewayClient(
@@ -99,7 +99,7 @@ export const completeJson = async <Schema extends z.ZodType>({
 
   try {
     // A provider that reports no usage is charged the answer's cap.
-    await recordAiUsage(household, completion.usage?.total_tokens ?? maxTokens);
+    await recordAiUsage(spender, completion.usage?.total_tokens ?? maxTokens);
   } catch (error) {
     // The tokens are spent either way; losing the answer too helps no one.
     log.error({

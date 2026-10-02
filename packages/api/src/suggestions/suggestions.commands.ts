@@ -347,6 +347,7 @@ export const acceptAllForImport = async (
 export const suggestForImport = async (
   db: Database,
   organizationId: string,
+  userId: string,
   importId: string
 ) => {
   const current = await findImport(db, organizationId, importId);
@@ -397,7 +398,7 @@ export const suggestForImport = async (
       };
     }
     const answered = await askModel(
-      { db, organizationId },
+      { db, organizationId, userId },
       batch.map(({ subject }) => subject),
       await suggestionHousehold(db, organizationId)
     );

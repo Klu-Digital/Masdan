@@ -468,10 +468,14 @@ export const runAskAssistant = async (
     }
     const step = await completeJson({
       feature: "askMasdan",
-      household: { db: context.db, organizationId: context.organizationId },
       messages,
       name: "ask_masdan_assistant",
       schema: askStep,
+      spender: {
+        db: context.db,
+        organizationId: context.organizationId,
+        userId: context.session.user.id,
+      },
       timeoutMs: 30_000,
     });
     messages.push({ content: JSON.stringify(step), role: "assistant" });

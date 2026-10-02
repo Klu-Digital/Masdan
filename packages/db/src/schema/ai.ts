@@ -25,6 +25,20 @@ export const aiUsage = pgTable(
   (table) => [primaryKey({ columns: [table.organizationId, table.day] })]
 );
 
+// Per person across households: anyone can create another household and its fresh budget.
+export const aiUserUsage = pgTable(
+  "ai_user_usage",
+  {
+    day: date("day", { mode: "string" }).notNull(),
+    requests: integer("requests").default(0).notNull(),
+    tokens: bigint("tokens", { mode: "number" }).default(0).notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.day] })]
+);
+
 export const aiTokenCap = pgTable("ai_token_cap", {
   feature: text("feature").primaryKey(),
   maxTokens: integer("max_tokens").notNull(),

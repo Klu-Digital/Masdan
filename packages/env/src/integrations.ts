@@ -5,7 +5,7 @@ import { sharedServerVariables } from "./shared-server";
 
 // Read by workers too, so not in `./server`. Unset turns a feature off.
 export const integrationVariables = {
-  /** Tokens each household may spend on AI per UTC day, all features together. 0 turns AI off. */
+  /** Tokens each household, and each person across households, may spend on AI per UTC day. 0 turns AI off. */
   AI_DAILY_TOKEN_BUDGET: z.coerce.number().int().nonnegative().default(500_000),
   /** Upstream provider key; omit when the gateway supplies its own (BYOK). */
   AI_PROVIDER_API_KEY: z.string().min(1).optional(),

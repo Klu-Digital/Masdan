@@ -89,6 +89,7 @@ export const quickEntryHousehold = async (
 export const parseQuickEntryText = async (
   db: Database,
   organizationId: string,
+  userId: string,
   text: string
 ): Promise<QuickEntryParse> => {
   const note = quickEntryText.parse(text);
@@ -102,10 +103,10 @@ export const parseQuickEntryText = async (
     try {
       extraction = await completeJson({
         feature: "quickTransaction",
-        household: { db, organizationId },
         messages: quickEntryMessages(note, household),
         name: "quick_transaction",
         schema: quickEntryExtraction,
+        spender: { db, organizationId, userId },
         timeoutMs: QUICK_ENTRY_AI_TIMEOUT_MS,
       });
       ai = "ok";

@@ -81,7 +81,12 @@ export const transactionsRouter = {
     .use(rateLimit({ limit: 30, window: 60 }))
     .input(z.object({ text: quickEntryText }))
     .handler(({ context, input }) =>
-      parseQuickEntryText(context.db, context.organizationId, input.text)
+      parseQuickEntryText(
+        context.db,
+        context.organizationId,
+        context.session.user.id,
+        input.text
+      )
     ),
 
   restore: orgMutationProcedure
