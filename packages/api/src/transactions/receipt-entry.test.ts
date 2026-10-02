@@ -58,6 +58,14 @@ describe("receipt entry", () => {
       transactionDate: "2026-09-28",
     });
   });
+  it("prefers the caption's note over the receipt's merchant", () => {
+    expect(
+      resolve({ details: "Chickenjoy" }, "metrobank mc team lunch").input?.notes
+    ).toBe("team lunch");
+  });
+  it("keeps the receipt's merchant when the caption only names the account", () => {
+    expect(resolve({}, "metrobank mc 400").input?.notes).toBe("Jollibee");
+  });
   it("takes the caption's account when the receipt has no card digits", () => {
     expect(
       resolve({ cardLastFour: null }, "metrobank mc").input?.accountId

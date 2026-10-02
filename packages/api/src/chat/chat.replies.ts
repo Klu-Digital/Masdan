@@ -43,7 +43,7 @@ export const chatReplies = {
     ]
       .filter(Boolean)
       .join("\n"),
-  help: `Send a transaction like ${EXAMPLE}, or send a receipt photo with an optional account caption.\n\nNot linked yet? ${WHERE_TO_LINK}`,
+  help: `Send a transaction like ${EXAMPLE}, or send a receipt photo with an optional caption naming the account or a note.\n\nNot linked yet? ${WHERE_TO_LINK}`,
   linkFailed:
     "That code didn’t work. Codes work once and expire after 10 minutes — make a new one in Masdan under Settings → Household → Chat apps.",
   linkRateLimited:

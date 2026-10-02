@@ -233,12 +233,15 @@ export const resolveReceiptEntry = (
   if (!categoryId) {
     flag("categoryId", "missing", "Choose a category");
   }
+  // What the user wrote beats what the model read off the receipt.
   const notes =
-    [extraction.merchant, extraction.details]
+    stated?.prefill.notes ??
+    ([extraction.merchant, extraction.details]
       .filter(Boolean)
       .join(" - ")
       .trim()
-      .slice(0, 2000) || null;
+      .slice(0, 2000) ||
+      null);
   const summary = {
     amount,
     currencyCode,
