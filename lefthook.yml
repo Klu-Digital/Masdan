@@ -4,7 +4,14 @@
 pre-commit:
   jobs:
     - name: ultracite
+      # Skip when no staged file is lintable; `ultracite fix` exits 1 with
+      # "No files found to lint" if it only receives md/json/etc.
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"
+      exclude: "packages/db/src/post-migration-scripts/*"
       run: pnpm exec ultracite fix {staged_files}
       stage_fixed: true
+
+pre-push:
+  jobs:
     - name: knip
       run: pnpm knip
