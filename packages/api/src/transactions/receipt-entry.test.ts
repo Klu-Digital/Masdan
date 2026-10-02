@@ -30,6 +30,7 @@ const household: QuickEntryHousehold = {
   today: "2026-09-28",
 };
 const clear = receiptExtraction.parse({
+  accountHint: null,
   cardLastFour: "4821",
   category: "Food & Dining",
   currency: "PHP",
@@ -91,6 +92,98 @@ describe("receipt entry", () => {
   });
   it("matches the printed card's last four", () => {
     expect(resolve().input?.accountId).toBe(id(1));
+  });
+  it("falls back to the printed account label when there are no card digits", () => {
+    expect(
+      resolve({ accountHint: "Metrobank MC", cardLastFour: null }).input
+        ?.accountId
+    ).toBe(id(1));
+  });
+  it("holds a printed account label that matches several accounts", () => {
+    const home = {
+      ...household,
+      accounts: [account(1, "Metrobank MC"), account(2, "Metrobank Gold")],
+    };
+    expect(
+      resolve({ accountHint: "Metrobank", cardLastFour: null }, null, home)
+        .issues
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: "accountId", reason: "ambiguous" }),
+      ])
+    );
+  });
+  it("prefers matching card digits over the printed account label", () => {
+    expect(resolve({ accountHint: "Cash" }).input?.accountId).toBe(id(1));
+  });
+  it("requires a payment account when the printed account label matches nothing", () => {
+    expect(
+      resolve({ accountHint: "BPI Savings", cardLastFour: null }).issues
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: "accountId", reason: "missing" }),
+      ])
+    );
+  });
+  it("never lets the printed account label pick a card with other digits", () => {
+    const home = {
+      ...household,
+      accounts: [
+        account(1, "Metrobank MC", "4821"),
+        { ...account(2, "Wallet"), institution: null },
+      ],
+    };
+    const result = resolve(
+      { accountHint: "Metrobank MC", cardLastFour: "9999" },
+      null,
+      home
+    );
+    expect(result.input).toBeNull();
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: "accountId", reason: "missing" }),
+      ])
+    );
+  });
+  it("never assumes the only account when its card digits differ", () => {
+    const home = {
+      ...household,
+      accounts: [account(1, "Metrobank MC", "4821")],
+    };
+    expect(resolve({ cardLastFour: "9999" }, null, home).input).toBeNull();
+  });
+  it("uses the printed account label to choose between cards sharing digits", () => {
+    const home = {
+      ...household,
+      accounts: [
+        account(1, "Metrobank MC", "4821"),
+        account(2, "Metrobank Gold", "4821"),
+      ],
+    };
+    expect(
+      resolve({ accountHint: "Metrobank Gold" }, null, home).input?.accountId
+    ).toBe(id(2));
+    expect(resolve({ accountHint: null }, null, home).issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "accountId",
+          message: "More than one account has those card digits",
+        }),
+      ])
+    );
+  });
+  it("leaves a caption's account issue alone instead of using the printed label", () => {
+    const home = {
+      ...household,
+      accounts: [account(1, "Metrobank MC"), account(2, "Metrobank Gold")],
+    };
+    expect(
+      resolve(
+        { accountHint: "Metrobank MC", cardLastFour: null },
+        "metrobank",
+        home
+      ).input
+    ).toBeNull();
   });
   it("rejects a conflicting caption account", () => {
     expect(resolve({}, "cash").issues).toEqual(

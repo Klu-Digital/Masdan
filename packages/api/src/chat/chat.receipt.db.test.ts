@@ -42,6 +42,7 @@ vi.mock("@masdan/storage", async (importOriginal) => ({
 const bytes = new Uint8Array([0xff, 0xd8, 0xff, 1, 2]);
 const download = vi.fn(() => Promise.resolve(bytes));
 const extraction = {
+  accountHint: null,
   cardLastFour: "4821",
   category: "Food & Dining",
   currency: "PHP",
