@@ -183,8 +183,13 @@ describe("done step", () => {
 
 describe("suggestedTimezone", () => {
   it("uses the browser's zone when the runtime knows it", () => {
-    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    expect(suggestedTimezone("Asia/Manila")).toBe(detected);
+    const spy = vi
+      .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
+      .mockReturnValue({
+        timeZone: "Europe/Paris",
+      } as Intl.ResolvedDateTimeFormatOptions);
+    expect(suggestedTimezone("Asia/Manila")).toBe("Europe/Paris");
+    spy.mockRestore();
   });
 
   it("falls back when the browser reports an unknown zone", () => {
