@@ -54,6 +54,10 @@ const lookOf = (card: HTMLElement) =>
     card.style.getPropertyValue("--card-face-field"),
   ].join("|");
 
+const identity = (overrides: Partial<typeof account>) =>
+  face(render(<AccountCard account={{ ...account, ...overrides }} />).container)
+    ?.dataset.identity;
+
 describe("AccountCard", () => {
   it("prints the bank, product, masked digits and network mark", () => {
     const { container } = render(<AccountCard account={account} />);
@@ -108,10 +112,6 @@ describe("AccountCard", () => {
   });
 
   it("says whose look it wears: the product's, the bank's or neither", () => {
-    const identity = (overrides: Partial<typeof account>) =>
-      face(
-        render(<AccountCard account={{ ...account, ...overrides }} />).container
-      )?.dataset.identity;
     expect(identity({})).toBe("product");
     expect(identity({ cardProductKey: null })).toBe("issuer");
     expect(identity({ cardProductKey: "retired-card" })).toBe("issuer");

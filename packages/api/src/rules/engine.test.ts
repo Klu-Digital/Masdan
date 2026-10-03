@@ -40,17 +40,14 @@ const subject = (overrides: Partial<RuleSubject> = {}): RuleSubject => ({
   ...overrides,
 });
 
+const text = (operator: "contains" | "equals" | "startsWith", value: string) =>
+  checkRuleConditions(
+    { ...NO_CONDITIONS, text: { operator, value } },
+    subject()
+  );
+
 describe("checkRuleConditions", () => {
   it("matches description text case- and whitespace-insensitively", () => {
-    const text = (
-      operator: "contains" | "equals" | "startsWith",
-      value: string
-    ) =>
-      checkRuleConditions(
-        { ...NO_CONDITIONS, text: { operator, value } },
-        subject()
-      );
-
     expect(text("contains", "ride makati")).toEqual([
       { field: "description", matched: true },
     ]);

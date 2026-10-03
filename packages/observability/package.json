@@ -19,6 +19,7 @@
   "devDependencies": {
     "@masdan/config": "workspace:*",
     "@orpc/server": "catalog:",
+    "@typescript/native": "catalog:",
     "hono": "catalog:",
     "typescript": "catalog:"
   }

@@ -22,6 +22,8 @@ export const createRedis = () => {
         // throws "Stream isn't writeable".
         commandTimeout: 1000,
         maxRetriesPerRequest: 1,
+        // ioredis 6 defaults to RESP3, which needs Redis 6+; self-hosters may run older.
+        protocol: 2,
         retryStrategy: (times) => Math.min(times * 200, 5000),
       });
 

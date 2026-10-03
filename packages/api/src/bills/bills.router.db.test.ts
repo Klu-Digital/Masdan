@@ -52,6 +52,15 @@ const manilaNoon = (date: string) => new Date(`${date}T04:00:00Z`);
 const tokenOf = (path: string): string =>
   path.slice("/feeds/bills/".length, -".ics".length);
 
+/** Posts `date` as the schedule would have, so history has a posting. */
+const postOccurrence = async (scheduleId: string, date: string) => {
+  await getTestDb()
+    .update(recurringSchedule)
+    .set({ nextOccurrenceDate: date })
+    .where(eq(recurringSchedule.id, scheduleId));
+  await generateDueOccurrences(getTestDb(), scheduleId, manilaNoon(date));
+};
+
 const household = async () => {
   const { headers, user } = await signUpTestUser();
   const current = await getSessionFor(headers);
@@ -113,15 +122,6 @@ const household = async () => {
       },
       context
     );
-
-  /** Posts `date` as the schedule would have, so history has a posting. */
-  const postOccurrence = async (scheduleId: string, date: string) => {
-    await getTestDb()
-      .update(recurringSchedule)
-      .set({ nextOccurrenceDate: date })
-      .where(eq(recurringSchedule.id, scheduleId));
-    await generateDueOccurrences(getTestDb(), scheduleId, manilaNoon(date));
-  };
 
   const card = () =>
     call(
@@ -594,10 +594,10 @@ describe("bill calendar timezones", () => {
   });
 });
 
-describe("bill calendar feed", () => {
-  const feedFor = (path: string) =>
-    renderBillFeed(getTestDb(), tokenOf(path), new Date());
+const feedFor = (path: string) =>
+  renderBillFeed(getTestDb(), tokenOf(path), new Date());
 
+describe("bill calendar feed", () => {
   it("serves names and due dates, never amounts", async () => {
     const home = await household();
     await home.schedule("Rent", addDays(today(), 3));

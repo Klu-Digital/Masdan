@@ -276,6 +276,33 @@ beforeEach(() => {
   serveLedger();
 });
 
+const card = (id: string, name: string) => ({
+  ...account(id, name, "credit_card"),
+  accountClass: "liability",
+  cardLastFour: null,
+  cardNetwork: null,
+  cardProductKey: null,
+  institution: null,
+});
+
+const Switcher = () => {
+  const [current, setCurrent] = useState(HOUSEHOLD_A);
+  return (
+    <>
+      <button
+        onClick={() => {
+          server.active = "household-b";
+          setCurrent(HOUSEHOLD_B);
+        }}
+        type="button"
+      >
+        Switch household
+      </button>
+      <OverviewPage household={current} />
+    </>
+  );
+};
+
 describe("OverviewPage", () => {
   it("summarises the household from the report endpoints", async () => {
     renderWithProviders(<OverviewPage household={HOUSEHOLD_A} />);
@@ -344,14 +371,6 @@ describe("OverviewPage", () => {
   });
 
   it("reads every card's payment due from one statements call", async () => {
-    const card = (id: string, name: string) => ({
-      ...account(id, name, "credit_card"),
-      accountClass: "liability",
-      cardLastFour: null,
-      cardNetwork: null,
-      cardProductKey: null,
-      institution: null,
-    });
     accountsList.mockResolvedValue([
       card("card-1", "BPI Visa"),
       card("card-2", "Metrobank Amex"),
@@ -460,23 +479,6 @@ describe("OverviewPage", () => {
 
   it("follows the active household and never shows the previous one's figures", async () => {
     const user = userEvent.setup();
-    const Switcher = () => {
-      const [current, setCurrent] = useState(HOUSEHOLD_A);
-      return (
-        <>
-          <button
-            onClick={() => {
-              server.active = "household-b";
-              setCurrent(HOUSEHOLD_B);
-            }}
-            type="button"
-          >
-            Switch household
-          </button>
-          <OverviewPage household={current} />
-        </>
-      );
-    };
     renderWithProviders(<Switcher />);
     await screen.findByRole("region", { name: "Net worth" });
     expect(await within(worthOf()).findByText("₱12,500.00")).toBeVisible();

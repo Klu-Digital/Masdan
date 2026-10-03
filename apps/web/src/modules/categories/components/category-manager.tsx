@@ -344,6 +344,8 @@ const CategoryComposer = ({
   );
 };
 
+const localToday = (now = new Date()): string => toIsoDate(now);
+
 export const CategoryManager = ({
   activeOrganizationId,
   canArchive,
@@ -351,7 +353,7 @@ export const CategoryManager = ({
   canRestore,
   canUpdate,
   currency,
-  today = toIsoDate(new Date()),
+  today = localToday(),
 }: {
   activeOrganizationId: string;
   canArchive: boolean;

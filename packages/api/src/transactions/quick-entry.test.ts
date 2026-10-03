@@ -45,6 +45,9 @@ describe("quick entry golden set", () => {
 
 describe("resolveQuickEntry", () => {
   const household = GOLDEN_HOUSEHOLD;
+  const dateOn = (text: string, today: string) =>
+    resolveQuickEntry(text, { ...household, today }, null).prefill
+      .transactionDate;
   const knownIds = new Set([
     ...household.accounts.map((account) => account.id),
     ...household.categories.map((category) => category.id),
@@ -159,10 +162,6 @@ describe("resolveQuickEntry", () => {
   });
 
   it("puts a yearless date in the year nearest today", () => {
-    const dateOn = (text: string, today: string) =>
-      resolveQuickEntry(text, { ...household, today }, null).prefill
-        .transactionDate;
-
     expect(dateOn("dinner 400 gcash dec 30", "2027-01-02")).toBe("2026-12-30");
     expect(dateOn("dinner 400 gcash jan 2", "2026-12-30")).toBe("2027-01-02");
     expect(dateOn("dinner 400 gcash sep 20", "2026-09-26")).toBe("2026-09-20");

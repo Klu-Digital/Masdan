@@ -85,6 +85,8 @@ describe("orNullIfMissing", () => {
   });
 });
 
+const fail = () => Promise.reject(conflict);
+
 describe("createQueryClient", () => {
   it("fires an error toast with a retry action when a query fails", async () => {
     const queryClient = createQueryClient();
@@ -132,7 +134,6 @@ describe("createQueryClient", () => {
 
   it("toasts a failed mutation unless it shows the failure itself", async () => {
     const queryClient = createQueryClient();
-    const fail = () => Promise.reject(conflict);
 
     await queryClient
       .getMutationCache()

@@ -16,13 +16,14 @@ export const mountChatWebhooks = (app: Hono<EvlogVariables>) => {
   app.all(
     "/chat/:channel/webhook",
     bodyLimit({ maxSize: MAX_WEBHOOK_BYTES }),
-    (c) => {
+    async (c) => {
       const channel = c.req.param("channel");
       if (!isChatChannel(channel)) {
         return c.json({}, 404);
       }
-      return chatChannelAdapters[channel].handleWebhook(c.req.raw, (message) =>
-        receiveChatMessage(db, channel, message)
+      return await chatChannelAdapters[channel].handleWebhook(
+        c.req.raw,
+        (message) => receiveChatMessage(db, channel, message)
       );
     }
   );

@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@masdan/config": "workspace:*",
+    "@typescript/native": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   }

@@ -2,7 +2,7 @@
 
 ## Setup
 
-Requires Node 24+, pnpm 10+, and Docker.
+Requires Node 26 (pinned in `.nvmrc`; run `nvm use`), pnpm 10+, and Docker. pnpm refuses to install or run scripts on any other major.
 
 ```bash
 pnpm install

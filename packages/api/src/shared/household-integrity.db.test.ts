@@ -507,6 +507,14 @@ const crossHouseholdWrites: [string, () => PromiseLike<unknown>][] = [
   ],
 ];
 
+const postingsOf = async (organizationId: string) =>
+  one(
+    await getTestDb()
+      .select({ total: count() })
+      .from(financialTransaction)
+      .where(eq(financialTransaction.organizationId, organizationId))
+  ).total;
+
 describe("household integrity", () => {
   it.each(crossHouseholdWrites)(
     "%s rejects a reference into another household",
@@ -612,13 +620,6 @@ describe("household integrity", () => {
       .delete(organization)
       .where(eq(organization.id, home.organizationId));
 
-    const postingsOf = async (organizationId: string) =>
-      one(
-        await getTestDb()
-          .select({ total: count() })
-          .from(financialTransaction)
-          .where(eq(financialTransaction.organizationId, organizationId))
-      ).total;
     expect(await postingsOf(home.organizationId)).toBe(0);
     expect(await postingsOf(away.organizationId)).toBe(1);
   });

@@ -146,15 +146,16 @@ const toImportConfig = (values: ImportFormValues): ImportConfig => ({
   openingBalanceMode: values.openingBalanceMode,
 });
 
+const columnValue = (value: number | null): string =>
+  value === null ? NONE : String(value);
+
 export const toFormValues = (config: ImportConfig): ImportFormValues => {
   const { amount } = config.mapping;
-  const column = (value: number | null) =>
-    value === null ? NONE : String(value);
   return {
     accountId: config.accountId ?? "",
     amountColumn: amount.kind === "signed" ? String(amount.column) : "0",
     amountKind: amount.kind,
-    categoryColumn: column(config.mapping.categoryColumn),
+    categoryColumn: columnValue(config.mapping.categoryColumn),
     creditColumn:
       amount.kind === "debitCredit" ? String(amount.creditColumn) : "0",
     dateColumn: String(config.mapping.dateColumn),
@@ -168,7 +169,7 @@ export const toFormValues = (config: ImportConfig): ImportFormValues => {
     descriptionColumn: String(config.mapping.descriptionColumn),
     hasHeaderRow: config.mapping.hasHeaderRow,
     negativeMeans: amount.kind === "signed" ? amount.negativeMeans : "expense",
-    notesColumn: column(config.mapping.notesColumn),
+    notesColumn: columnValue(config.mapping.notesColumn),
     openingBalanceMode: config.openingBalanceMode,
   };
 };

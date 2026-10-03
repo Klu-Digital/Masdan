@@ -76,6 +76,12 @@ beforeEach(() => {
   isFeatureEnabled.mockReset().mockResolvedValue(true);
 });
 
+const fromSender = (id: number) => {
+  const update = messageUpdate("/link bbbb-cccc");
+  update.message.from.id = id;
+  return update;
+};
+
 describe("/chat/:channel/webhook", () => {
   it("records the message and enqueues it, answering at once", async () => {
     const update = messageUpdate("dinner at jollibee 400 metrobank mc");
@@ -199,11 +205,6 @@ describe("/chat/:channel/webhook", () => {
   });
 
   it("stops a code's fourth attempt, whoever sends it", async () => {
-    const fromSender = (id: number) => {
-      const update = messageUpdate("/link bbbb-cccc");
-      update.message.from.id = id;
-      return update;
-    };
     for (const senderId of [101, 102, 103]) {
       const accepted = await post(fromSender(senderId));
       expect(await accepted.json()).toEqual({});

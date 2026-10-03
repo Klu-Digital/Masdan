@@ -448,6 +448,15 @@ describe("suggestions for a saved transaction", () => {
   });
 });
 
+/** Model answer for the four distinct descriptions, in row order. */
+const modelAnswer = () =>
+  answer(
+    { category: "Salary", ref: "1" },
+    { category: "Food & Dining", ref: "2", tags: ["Work"] },
+    { category: "Transport", ref: "3" },
+    { category: null, ref: "4" }
+  );
+
 describe("suggestions in import review", () => {
   const mapping: ImportMapping = {
     amount: { column: 2, kind: "signed", negativeMeans: "expense" },
@@ -508,15 +517,6 @@ describe("suggestions in import review", () => {
     await processImport(getTestDb(), created.id);
     return created.id;
   };
-
-  /** Model answer for the four distinct descriptions, in row order. */
-  const modelAnswer = () =>
-    answer(
-      { category: "Salary", ref: "1" },
-      { category: "Food & Dining", ref: "2", tags: ["Work"] },
-      { category: "Transport", ref: "3" },
-      { category: null, ref: "4" }
-    );
 
   it("suggests once per description, only for rows nothing else decided", async () => {
     const h = await household();

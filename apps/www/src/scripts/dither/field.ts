@@ -51,6 +51,19 @@ const SHADOW_INK = 0.62;
 
 const easeOut = (x: number): number => 1 - (1 - x) ** 3;
 
+const shadowAt = (px: number, py: number, shadows: Shadow[]): number => {
+  let shade = 0;
+  for (const shadow of shadows) {
+    if (px > shadow.left && py > shadow.top) {
+      const inset = Math.min(shadow.right - px, shadow.bottom - py);
+      if (inset > 0) {
+        shade = Math.max(shade, Math.min(1, inset / SHADOW_SOFT));
+      }
+    }
+  }
+  return shade;
+};
+
 export const fieldActor = (
   canvas: HTMLCanvasElement,
   options: FieldOptions
@@ -103,20 +116,6 @@ export const fieldActor = (
         top: rect.top - frame.top + dy,
       };
     });
-  };
-
-  // Fading the top/left edges would leave a seam between neighbouring shadows.
-  const shadowAt = (px: number, py: number, shadows: Shadow[]): number => {
-    let shade = 0;
-    for (const shadow of shadows) {
-      if (px > shadow.left && py > shadow.top) {
-        const inset = Math.min(shadow.right - px, shadow.bottom - py);
-        if (inset > 0) {
-          shade = Math.max(shade, Math.min(1, inset / SHADOW_SOFT));
-        }
-      }
-    }
-    return shade;
   };
 
   const draw = (t: number, density: number): void => {

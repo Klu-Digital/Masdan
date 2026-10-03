@@ -19,7 +19,7 @@ Everything an operator needs: running the stack, configuring the optional servic
 
 |  | Needs |
 | --- | --- |
-| **Required** | Docker and Postgres 18 (both compose files below bring one). Node 24+ and pnpm 10+ only to build from source |
+| **Required** | Docker and Postgres 18 (both compose files below bring one). Node 26 and pnpm 10+ only to build from source |
 | **Optional** | Redis, an S3-compatible bucket, a Cloudflare AI Gateway, a Telegram bot |
 
 Postgres is the system of record: the ledger, sessions and the job queue. Nothing else is needed to run a household.

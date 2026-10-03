@@ -75,7 +75,7 @@ Bank apps, card statements, a spreadsheet, a drawer of receipts. Masdan puts eve
 
 ## Getting started
 
-You need Docker, Node 24+ and pnpm 10+. Four commands from a clone to a running household:
+You need Docker, Node 26 (`nvm use` reads `.nvmrc`) and pnpm 10+. Four commands from a clone to a running household:
 
 ```bash
 git clone https://github.com/Klu-Digital/Masdan.git && cd Masdan

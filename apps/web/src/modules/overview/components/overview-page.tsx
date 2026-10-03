@@ -77,7 +77,7 @@ export interface OverviewHousehold extends Pick<
 
 const TOP_CATEGORIES = 5;
 
-const greeting = (now: Date): string => {
+const greeting = (now = new Date()): string => {
   const hour = now.getHours();
   if (hour < 12) {
     return "Good morning";
@@ -587,7 +587,7 @@ const Overview = ({ household }: { household: OverviewHousehold }) => {
         <PageHeading>
           <PageEyebrow>{formatWeekdayLong(today)}</PageEyebrow>
           <PageTitle>
-            {greeting(new Date())}, {firstName}
+            {greeting()}, {firstName}
           </PageTitle>
         </PageHeading>
       </PageHeader>

@@ -97,91 +97,78 @@ const environmentExists = (environment: string): boolean => {
   }
 };
 
-export const createGitHubClient = () => {
-  const ensureAccess = (): void => {
-    runGh(["auth", "status"]);
-    runGh(["repo", "view", "--json", "nameWithOwner"]);
-  };
+const ensureAccess = (): void => {
+  runGh(["auth", "status"]);
+  runGh(["repo", "view", "--json", "nameWithOwner"]);
+};
 
-  const ensureEnvironment = (environment: string): void => {
-    runGh([
-      "api",
-      "--method",
-      "PUT",
-      `repos/{owner}/{repo}/environments/${environment}`,
-    ]);
-  };
+const ensureEnvironment = (environment: string): void => {
+  runGh([
+    "api",
+    "--method",
+    "PUT",
+    `repos/{owner}/{repo}/environments/${environment}`,
+  ]);
+};
 
-  const listSecrets = (environment?: string): Set<string> => {
-    const rows = parseList(
-      runGh(["secret", "list", "--json", "name", ...scopeArgs(environment)])
-    );
-    return new Set(
-      rows
-        .map((row) => row.name)
-        .filter((name): name is string => typeof name === "string")
-    );
-  };
+const listSecrets = (environment?: string): Set<string> => {
+  const rows = parseList(
+    runGh(["secret", "list", "--json", "name", ...scopeArgs(environment)])
+  );
+  return new Set(
+    rows
+      .map((row) => row.name)
+      .filter((name): name is string => typeof name === "string")
+  );
+};
 
-  const listVariables = (environment?: string): Map<string, string> => {
-    const rows = parseList(
-      runGh([
-        "variable",
-        "list",
-        "--json",
-        "name,value",
-        ...scopeArgs(environment),
-      ])
-    );
-    return new Map(
-      rows
-        .filter(
-          (row): row is { name: string; value: string } =>
-            typeof row.name === "string" && typeof row.value === "string"
-        )
-        .map(({ name, value }) => [name, value])
-    );
-  };
-
-  const snapshot = (environment: string): GitHubSnapshot => ({
-    environmentSecrets: listSecrets(environment),
-    environmentVariables: listVariables(environment),
-    repositorySecrets: listSecrets(),
-    repositoryVariables: listVariables(),
-  });
-
-  const setSecret = (
-    name: string,
-    value: string,
-    environment?: string
-  ): void => {
-    runGh(["secret", "set", name, ...scopeArgs(environment)], `${value}\n`);
-  };
-
-  const setVariable = (
-    name: string,
-    value: string,
-    environment?: string
-  ): void => {
+const listVariables = (environment?: string): Map<string, string> => {
+  const rows = parseList(
     runGh([
       "variable",
-      "set",
-      name,
-      "--body",
-      value,
+      "list",
+      "--json",
+      "name,value",
       ...scopeArgs(environment),
-    ]);
-  };
-
-  return {
-    ensureAccess,
-    ensureEnvironment,
-    environmentExists,
-    setSecret,
-    setVariable,
-    snapshot,
-  };
+    ])
+  );
+  return new Map(
+    rows
+      .filter(
+        (row): row is { name: string; value: string } =>
+          typeof row.name === "string" && typeof row.value === "string"
+      )
+      .map(({ name, value }) => [name, value])
+  );
 };
+
+const snapshot = (environment: string): GitHubSnapshot => ({
+  environmentSecrets: listSecrets(environment),
+  environmentVariables: listVariables(environment),
+  repositorySecrets: listSecrets(),
+  repositoryVariables: listVariables(),
+});
+
+const setSecret = (name: string, value: string, environment?: string): void => {
+  runGh(["secret", "set", name, ...scopeArgs(environment)], `${value}\n`);
+};
+
+const setVariable = (
+  name: string,
+  value: string,
+  environment?: string
+): void => {
+  runGh(["variable", "set", name, "--body", value, ...scopeArgs(environment)]);
+};
+
+export const createGitHubClient = () => ({
+  ensureAccess,
+  ensureEnvironment,
+  environmentExists,
+  setSecret,
+  setVariable,
+  snapshot,
+});
 
 export type GitHubClient = ReturnType<typeof createGitHubClient>;
 

@@ -516,36 +516,36 @@ describe("rules household isolation", () => {
   });
 });
 
-describe("applying rules to a transaction", () => {
-  const setUp = async () => {
-    const household = await signUpHousehold();
-    const account = await createAccount(household);
-    const trip = await call(
-      tagsRouter.create,
-      { color: "amber", name: "Trip" },
-      household.context
-    );
-    const commute = await call(
-      tagsRouter.create,
-      { color: "sky", name: "Commute" },
-      household.context
-    );
-    const transaction = await call(
-      transactionsRouter.create,
-      {
-        accountId: account.id,
-        amount: "245.5",
-        categoryId: await categoryId(household, "Groceries"),
-        notes: "GRAB*RIDE Makati",
-        paidStatus: "unpaid",
-        tagIds: [trip.id],
-        transactionDate: "2026-02-03",
-      },
-      household.context
-    );
-    return { account, commute, household, transaction, trip };
-  };
+const setUp = async () => {
+  const household = await signUpHousehold();
+  const account = await createAccount(household);
+  const trip = await call(
+    tagsRouter.create,
+    { color: "amber", name: "Trip" },
+    household.context
+  );
+  const commute = await call(
+    tagsRouter.create,
+    { color: "sky", name: "Commute" },
+    household.context
+  );
+  const transaction = await call(
+    transactionsRouter.create,
+    {
+      accountId: account.id,
+      amount: "245.5",
+      categoryId: await categoryId(household, "Groceries"),
+      notes: "GRAB*RIDE Makati",
+      paidStatus: "unpaid",
+      tagIds: [trip.id],
+      transactionDate: "2026-02-03",
+    },
+    household.context
+  );
+  return { account, commute, household, transaction, trip };
+};
 
+describe("applying rules to a transaction", () => {
   it("previews why the first rule matched and applies only what it configures", async () => {
     const { account, commute, household, transaction, trip } = await setUp();
     await call(

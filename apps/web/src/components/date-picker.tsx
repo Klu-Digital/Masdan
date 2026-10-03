@@ -22,6 +22,9 @@ const isValidIso = (value: string): boolean => {
 // for dates that can land in a later year (a maturity, a target) opt in.
 const YEARS_AHEAD = 50;
 
+const lastSelectableMonth = (now = new Date()): Date =>
+  new Date(now.getFullYear() + YEARS_AHEAD, 11);
+
 export const DatePicker = ({
   allowFutureYears = false,
   "aria-invalid": ariaInvalid,
@@ -66,11 +69,7 @@ export const DatePicker = ({
       <PopoverPopup align="start" className="w-auto">
         <Calendar
           captionLayout="dropdown"
-          endMonth={
-            allowFutureYears
-              ? new Date(new Date().getFullYear() + YEARS_AHEAD, 11)
-              : undefined
-          }
+          endMonth={allowFutureYears ? lastSelectableMonth() : undefined}
           mode="single"
           onSelect={(selected) => {
             if (selected instanceof Date) {
