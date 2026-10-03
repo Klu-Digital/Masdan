@@ -5,6 +5,7 @@ export default defineConfig({
     ignorePatterns: [
       "node_modules/**",
       "**/node_modules/**",
+      "apps/demo/dist/**",
       "apps/web/dist/**",
       "apps/web/.tanstack/**",
       "apps/web/src/routeTree.gen.ts",
@@ -24,6 +25,7 @@ export default defineConfig({
     ignorePatterns: [
       "node_modules/**",
       "**/node_modules/**",
+      "apps/demo/dist/**",
       "apps/web/dist/**",
       "apps/web/.tanstack/**",
       "apps/web/src/routeTree.gen.ts",
@@ -52,7 +54,7 @@ export default defineConfig({
           // Enumerated rather than "apps/*": the web app's tests need jsdom and
           // belong to the "web" project below, not this node one.
           include: [
-            "apps/{server,workers,www}/src/**/*.test.ts",
+            "apps/{demo,server,workers,www}/src/**/*.test.ts",
             "packages/*/src/**/*.test.ts",
             "scripts/**/*.test.ts",
           ],

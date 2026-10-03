@@ -7,6 +7,10 @@
       "entry": ["scripts/**/*.ts"],
       "ignoreDependencies": ["rolldown"]
     },
+    "apps/demo": {
+      "entry": ["src/overrides/*.{ts,tsx}", "src/backend/client.ts"],
+      "ignoreDependencies": ["tailwindcss"]
+    },
     "apps/web": {
       "entry": ["src/**/*.test.{ts,tsx}"],
       "ignoreDependencies": ["tailwindcss", "emojibase-data"],

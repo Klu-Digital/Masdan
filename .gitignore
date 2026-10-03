@@ -9,6 +9,7 @@ build
 *.tsbuildinfo
 
 # Generated files
+.wrangler
 apps/web/src/routeTree.gen.ts
 local.db
 local.db-*

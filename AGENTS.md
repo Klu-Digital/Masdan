@@ -8,6 +8,7 @@ Vocabulary is in [CONTEXT.md](CONTEXT.md): a **household** is better-auth's `org
 
 ```
 apps/web       React SPA (TanStack Router, Tailwind, coss ui via packages/ui)
+apps/demo      apps/web built serverless for Cloudflare: in-browser fake backend + module stand-ins. A web screen calling a new procedure, or a moved stand-in target: its README
 apps/server    Hono HTTP server — mounts auth, oRPC, metrics. Queue PRODUCER only
 apps/workers   pg-boss consumer — runs jobs, cron, queue maintenance
 packages/api   oRPC procedure ladder, middleware, routers. The business logic

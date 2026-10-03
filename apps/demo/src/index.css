@@ -1,0 +1,4 @@
+@import "../../web/src/index.css";
+
+/* Tailwind only auto-detects classes under this app's root. */
+@source "../../web/src";
