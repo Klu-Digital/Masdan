@@ -70,6 +70,7 @@ export default defineConfig({
     proxy: {
       "/api/auth": { target: apiTarget },
       "/feeds": { target: apiTarget },
+      "/health/ready": { target: apiTarget },
       "/rpc": { target: apiTarget },
     },
   },

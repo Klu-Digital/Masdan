@@ -63,7 +63,7 @@ Things that bite:
 
 ## nginx and the environment-agnostic image
 
-`VITE_SERVER_URL` defaults to `/`, meaning "the origin that served this page". nginx forwards the prefixes the API mounts (`/api/auth`, `/rpc`, `/feeds/` and the chat webhook path `/chat/<channel>/webhook`) to `SERVER_UPSTREAM`, so the browser only ever talks to one origin. Nothing environment-specific is inlined at build time, which is what lets a single built image be promoted from staging to production rather than rebuilt per environment. `vite.config.ts` proxies the same prefixes so `pnpm dev` runs the same topology.
+`VITE_SERVER_URL` defaults to `/`, meaning "the origin that served this page". nginx forwards the prefixes the API mounts (`/api/auth`, `/rpc`, `/feeds/` and the chat webhook path `/chat/<channel>/webhook`), plus `/health/ready` for an outside uptime monitor, to `SERVER_UPSTREAM`, so the browser only ever talks to one origin. Nothing environment-specific is inlined at build time, which is what lets a single built image be promoted from staging to production rather than rebuilt per environment. `vite.config.ts` proxies the same prefixes so `pnpm dev` runs the same topology.
 
 - **The API needs no public hostname.** It is reachable only through the web origin. `/api-reference` and the Prometheus metrics path are deliberately _not_ proxied, so they stay private. `/api-reference` is not mounted at all when `NODE_ENV=production`.
 - **`SERVER_UPSTREAM` goes through a resolver on purpose.** A hostname written literally into `proxy_pass` is resolved once at nginx startup and cached for the process's life, so recreating the API container would leave nginx posting at an address nothing answers on. The variable-plus-`resolver` form re-resolves per request.
