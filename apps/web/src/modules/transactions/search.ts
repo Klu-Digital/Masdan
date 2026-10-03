@@ -5,7 +5,7 @@ import { addDays, addMonths, endOfMonth, startOfMonth } from "@/lib/dates";
 export type TransactionSortBy = "amount" | "date";
 export type TransactionSortDirection = "asc" | "desc";
 
-export const DATE_PRESETS = [
+const DATE_PRESETS = [
   "this-month",
   "last-month",
   "last-30",
@@ -13,7 +13,7 @@ export const DATE_PRESETS = [
 ] as const;
 export type DatePreset = (typeof DATE_PRESETS)[number];
 
-export const presetRange = (preset: DatePreset, today: string) => {
+const presetRange = (preset: DatePreset, today: string) => {
   if (preset === "this-month") {
     return { dateFrom: startOfMonth(today), dateTo: today };
   }
