@@ -1,0 +1,615 @@
+---
+import {
+  Add01Icon,
+  ArrowUp02Icon,
+  DashboardSpeed01Icon,
+  Plug01Icon,
+  Tick02Icon,
+  UserCheck01Icon,
+} from "@hugeicons/core-free-icons";
+import Boundary from "./boundary.astro";
+import Icon from "./icon.astro";
+
+const promises = [
+  {
+    body: "Ask Masdan proposes changes and saves nothing until you confirm them.",
+    icon: UserCheck01Icon,
+    title: "You confirm every change",
+  },
+  {
+    body: "Token spend is limited each day, per household and per person.",
+    icon: DashboardSpeed01Icon,
+    title: "Capped daily",
+  },
+  {
+    body: "Requests go through your own Cloudflare AI Gateway, to the model you pick.",
+    icon: Plug01Icon,
+    title: "Your provider",
+  },
+];
+
+const categories = ["Freelance", "Business", "Gigs"];
+
+const dining = {
+  figures: [
+    { label: "Spent", value: "₱6,247.50" },
+    { label: "Budget", value: "₱9,000.00" },
+    { label: "Left", tone: "positive", value: "₱2,752.50" },
+  ],
+  rows: [
+    { amount: "₱2,180.00", date: "Sep 12", name: "Mesa" },
+    { amount: "₱1,435.00", date: "Sep 6", name: "Manam" },
+    { amount: "₱412.00", date: "Sep 17", name: "Jollibee" },
+  ],
+  sources: ["Dining", "Sep 1 to 19", "September budget"],
+};
+
+const tabs = [
+  { id: "categories", label: "Add categories", think: "Planning changes" },
+  { id: "dining", label: "Check a budget", think: "Reading the ledger" },
+  { id: "dinner", label: "Log a dinner", think: "Reading the sentence" },
+];
+---
+
+<section id="ai" class="mt-20 border-t border-rule md:mt-28" aria-labelledby="ai-title" data-assist>
+  <Boundary mark="§4" />
+  <div class="sheet">
+    <div class="col-span-4 px-4 pt-14 pb-10 md:col-span-8 md:px-6 md:pt-20 md:pb-14">
+      <h2 id="ai-title" class="text-4xl leading-none font-bold tracking-[-0.03em] text-balance md:text-6xl">
+        AI, only if you want it.
+      </h2>
+      <p class="mt-5 max-w-[52ch] text-base leading-relaxed text-muted md:text-lg">
+        Every feature works without an AI provider. Connect one and you can type, snap or ask
+        instead of filling in forms.
+      </p>
+    </div>
+  </div>
+
+  <div class="relative border-y border-rule" data-lamp>
+    <canvas class="dither absolute inset-0" data-dither="signal" aria-hidden="true"></canvas>
+    <div class="rules" aria-hidden="true"></div>
+    <div class="sheet py-12 md:py-20">
+    <figure data-depth="0.1" class="cell-solid relative col-span-4 m-0 md:col-span-12 lg:col-span-8 lg:col-start-5 lg:row-start-1">
+      <div>
+        <div class="flex items-center justify-between gap-4 border-b border-rule bg-surface py-2 pr-2 pl-4 md:pl-6">
+          <p class="label">ask masdan</p>
+          <button type="button" role="switch" aria-checked="true" class="switch flex cursor-pointer items-center gap-3 px-2 py-2" data-switch>
+            <span class="label">AI features</span>
+            <span class="track" aria-hidden="true"><span class="knob"></span></span>
+          </button>
+        </div>
+
+        <div role="tablist" aria-label="Sample conversations" class="flex gap-1 overflow-x-auto border-b border-rule bg-surface px-2 py-2 md:px-4">
+          {
+            tabs.map((tab, index) => (
+              <button
+                type="button"
+                role="tab"
+                id={`tab-${tab.id}`}
+                aria-controls={`convo-${tab.id}`}
+                aria-selected={index === 0 ? "true" : "false"}
+                tabindex={index === 0 ? 0 : -1}
+                class="tab shrink-0 cursor-pointer px-3 py-2 text-sm font-medium whitespace-nowrap"
+                data-tab
+              >
+                {tab.label}
+              </button>
+            ))
+          }
+        </div>
+
+        <div class="stage bg-paper" data-stage>
+          <div class="convos">
+            {/* Add categories: a write, so it waits for a confirmation. */}
+            <div role="tabpanel" id="convo-categories" aria-labelledby="tab-categories" class="convo" data-convo data-active>
+              <p class="ask" data-ask>
+                create the following income categories for me:<br />
+                1. Freelance<br />
+                2. Business<br />
+                3. Gigs
+              </p>
+              <div class="answer">
+                <div class="think" aria-hidden="true">
+                  <span class="label">{tabs[0]?.think}</span>
+                  <span class="bone w-3/4"></span>
+                  <span class="bone w-1/2"></span>
+                </div>
+                <div class="reply">
+                  <img src="/favicon-light.png" class="mark mark-light" width="24" height="24" alt="" />
+                  <img src="/favicon-dark.png" class="mark mark-dark" width="24" height="24" alt="" />
+                  <div class="min-w-0 flex-1">
+                    <p class="reveal leading-relaxed">
+                      I’ll add three income categories. Nothing is saved until you confirm.
+                    </p>
+                    <div class="reveal mt-4 border border-rule bg-paper" style="--i: 1">
+                      <p class="label border-b border-hairline px-4 py-3">Proposed changes</p>
+                      <ul>
+                        {
+                          categories.map((name, index) => (
+                            <li class="change flex items-center gap-3 border-b border-hairline px-4 py-3 last:border-b-0" style={`--i: ${index}`}>
+                              <span class="swap size-5 text-brand-text">
+                                <Icon icon={Add01Icon} class="size-5 pending" />
+                                <Icon icon={Tick02Icon} class="size-5 done text-positive-text" />
+                              </span>
+                              <span class="font-semibold">{name}</span>
+                              <span class="label ml-auto">Income category</span>
+                            </li>
+                          ))
+                        }
+                      </ul>
+                    </div>
+                    <div class="outcome reveal mt-4" style="--i: 2">
+                      <div class="actions flex flex-wrap gap-2">
+                        <span class="btn btn-primary h-10 text-sm" data-confirm>Confirm changes</span>
+                        <span class="btn btn-ghost h-10 text-sm">Cancel proposal</span>
+                      </div>
+                      <p class="saved flex items-center gap-2 font-semibold text-positive-text">
+                        <Icon icon={Tick02Icon} />
+                        Saved. Three income categories added.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Check a budget: a read, answered with figures and the rows behind them. */}
+            <div role="tabpanel" id="convo-dining" aria-labelledby="tab-dining" class="convo" data-convo>
+              <p class="ask" data-ask>
+                how much have i spent on dining this month and are we still within budget?
+              </p>
+              <div class="answer">
+                <div class="think" aria-hidden="true">
+                  <span class="label">{tabs[1]?.think}</span>
+                  <span class="bone w-3/4"></span>
+                  <span class="bone w-1/2"></span>
+                </div>
+                <div class="reply">
+                  <img src="/favicon-light.png" class="mark mark-light" width="24" height="24" alt="" />
+                  <img src="/favicon-dark.png" class="mark mark-dark" width="24" height="24" alt="" />
+                  <div class="min-w-0 flex-1">
+                    <p class="reveal leading-relaxed">
+                      Yes, with room to spare. Dining is at ₱6,247.50 of its ₱9,000.00 September
+                      budget, with 11 days left.
+                    </p>
+                    <dl class="reveal mt-4 grid grid-cols-3 border border-rule bg-paper" style="--i: 1">
+                      {
+                        dining.figures.map((figure) => (
+                          <div class="border-r border-hairline px-3 py-3 last:border-r-0 md:px-4">
+                            <dt class="label">{figure.label}</dt>
+                            <dd class:list={["figures mt-2 text-sm font-semibold md:text-lg", figure.tone === "positive" && "text-positive-text"]}>
+                              {figure.value}
+                            </dd>
+                          </div>
+                        ))
+                      }
+                    </dl>
+                    <ul class="reveal mt-3 border border-rule bg-paper" aria-label="Largest dining expenses" style="--i: 2">
+                      {
+                        dining.rows.map((row) => (
+                          <li class="flex items-baseline gap-3 border-b border-hairline px-4 py-2.5 text-[0.9375rem] last:border-b-0">
+                            <span class="font-medium">{row.name}</span>
+                            <span class="label">{row.date}</span>
+                            <span class="figures ml-auto">{row.amount}</span>
+                          </li>
+                        ))
+                      }
+                    </ul>
+                    <ul class="reveal mt-3 flex flex-wrap gap-1.5" aria-label="Based on" style="--i: 3">
+                      {dining.sources.map((source) => <li class="label border border-rule px-2 py-1.5">{source}</li>)}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Log a dinner: quick entry, the same sentence Telegram accepts. */}
+            <div role="tabpanel" id="convo-dinner" aria-labelledby="tab-dinner" class="convo" data-convo>
+              <p class="ask" data-ask>dinner at jollibee 400 metrobank mc</p>
+              <div class="answer">
+                <div class="think" aria-hidden="true">
+                  <span class="label">{tabs[2]?.think}</span>
+                  <span class="bone w-3/4"></span>
+                  <span class="bone w-1/2"></span>
+                </div>
+                <div class="reply">
+                  <img src="/favicon-light.png" class="mark mark-light" width="24" height="24" alt="" />
+                  <img src="/favicon-dark.png" class="mark mark-dark" width="24" height="24" alt="" />
+                  <div class="min-w-0 flex-1">
+                    <p class="reveal leading-relaxed">Recorded.</p>
+                    <div class="reveal mt-4 flex items-center gap-4 border border-rule bg-paper px-4 py-4" style="--i: 1">
+                      <div class="min-w-0">
+                        <p class="font-semibold">Jollibee</p>
+                        <p class="label mt-2 leading-snug">Dining, Metrobank Mastercard, today</p>
+                      </div>
+                      <p class="figures ml-auto text-lg font-semibold">−₱400.00</p>
+                    </div>
+                    <p class="reveal mt-4 max-w-[48ch] text-[0.9375rem] leading-relaxed text-muted" style="--i: 2">
+                      The same sentence works from Telegram, and so does a photo of the receipt.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="off" data-off>
+            <p class="label">No AI provider configured</p>
+            <p class="mt-4 text-2xl font-bold tracking-tight md:text-3xl">AI is off. Nothing changes.</p>
+            <p class="mt-3 max-w-[44ch] leading-relaxed text-muted">
+              Categories, budgets and entries all have their own screens, and nothing leaves your
+              server.
+            </p>
+          </div>
+        </div>
+
+        <div class="composer flex items-center gap-3 border-t border-rule bg-surface py-2 pr-2 pl-4 md:pl-6" aria-hidden="true">
+          <p class="min-w-0 flex-1 overflow-hidden text-[0.9375rem] whitespace-nowrap">
+            <span class="placeholder text-muted">Ask about your money</span><span data-typed></span><span class="caret"></span>
+          </p>
+          <span class="send flex size-10 items-center justify-center bg-brand-solid text-white" data-send>
+            <Icon icon={ArrowUp02Icon} />
+          </span>
+        </div>
+      </div>
+      <figcaption class="label flex gap-3 border-t border-rule px-4 py-3 leading-snug md:px-6">
+        <span class="shrink-0">fig. 5</span>
+        <span>Sample conversations with a sample household.</span>
+      </figcaption>
+    </figure>
+
+    <div data-depth="0.06" class="cell-solid relative col-span-4 mt-10 self-start px-4 pt-6 pb-8 md:col-span-7 md:px-6 lg:col-span-3 lg:col-start-1 lg:row-start-1 lg:mt-32">
+      <canvas class="glyph" data-glyph="assistance" aria-hidden="true"></canvas>
+      <dl class="mt-8">
+        {
+          promises.map((promise) => (
+            <div class="mt-5 flex gap-3 first:mt-0">
+              <Icon icon={promise.icon} class="mt-0.5 size-5 text-brand" />
+              <div>
+                <dt class="font-semibold">{promise.title}</dt>
+                <dd class="mt-1 leading-relaxed text-muted">{promise.body}</dd>
+              </div>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import "../scripts/conversation";
+</script>
+
+<style>
+  .stage {
+    display: grid;
+    min-height: 27rem;
+  }
+
+  .convos,
+  .off {
+    grid-area: 1 / 1;
+  }
+
+  .convos {
+    display: grid;
+    gap: 2.5rem;
+    padding: 1.5rem 1rem;
+    transition:
+      opacity 280ms var(--ease),
+      filter 280ms var(--ease);
+  }
+
+  @media (min-width: 768px) {
+    .convos {
+      padding: 2rem 1.5rem;
+    }
+  }
+
+  .convo {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  /* With JS the conversations share one cell, so switching tabs never moves the page. */
+  :global(.js) .convo {
+    grid-area: 1 / 1;
+    transition:
+      opacity 280ms var(--ease),
+      visibility 0s;
+  }
+
+  :global(.js) .convo:not([data-active]) {
+    opacity: 0;
+    visibility: hidden;
+    transition-delay: 0s, 280ms;
+  }
+
+  .ask {
+    align-self: flex-end;
+    max-width: min(85%, 30rem);
+    padding: 0.75rem 1rem;
+    background: var(--brand-solid);
+    color: #ffffff;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  .answer {
+    display: grid;
+  }
+
+  .think,
+  .reply {
+    grid-area: 1 / 1;
+  }
+
+  .reply {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .think {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding-left: 2.25rem;
+    opacity: 0;
+  }
+
+  .bone {
+    display: block;
+    height: 0.75rem;
+    background: linear-gradient(90deg, var(--surface) 30%, var(--brand-soft) 50%, var(--surface) 70%) 0 0 / 300% 100%;
+  }
+
+  .convo[data-phase="2"] .think {
+    opacity: 1;
+  }
+
+  .convo[data-phase="0"] .ask,
+  .convo[data-phase="0"] .reply,
+  .convo[data-phase="1"] .reply,
+  .convo[data-phase="2"] .reply {
+    opacity: 0;
+    translate: 0 0.75rem;
+  }
+
+  .convo[data-phase="0"] .reveal,
+  .convo[data-phase="1"] .reveal,
+  .convo[data-phase="2"] .reveal {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+
+  .outcome {
+    display: grid;
+  }
+
+  .actions,
+  .saved {
+    grid-area: 1 / 1;
+    align-self: center;
+  }
+
+  .convo:not([data-applied]) .saved,
+  .convo[data-applied] .actions {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .swap {
+    display: grid;
+  }
+
+  .swap > :global(*) {
+    grid-area: 1 / 1;
+  }
+
+  .convo:not([data-applied]) .swap :global(.done),
+  .convo[data-applied] .swap :global(.pending) {
+    opacity: 0;
+    scale: 0.4;
+  }
+
+  [data-confirm][data-pressing],
+  [data-send][data-pressing] {
+    scale: 0.96;
+    background: var(--brand-solid-hover);
+  }
+
+  .tab {
+    color: var(--muted-foreground);
+    box-shadow: inset 0 0 0 1px transparent;
+  }
+
+  .tab:hover {
+    color: var(--foreground);
+  }
+
+  .tab[aria-selected="true"] {
+    background: var(--background);
+    color: var(--foreground);
+    box-shadow: inset 0 0 0 1px var(--rule);
+  }
+
+  .track {
+    position: relative;
+    display: inline-block;
+    flex: none;
+    width: 2.25rem;
+    height: 1.25rem;
+    background: var(--brand-solid);
+    box-shadow: inset 0 0 0 1px var(--brand-solid);
+  }
+
+  .knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: calc(1.25rem - 6px);
+    height: calc(1.25rem - 6px);
+    background: #ffffff;
+    translate: 1rem 0;
+  }
+
+  .off {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+    opacity: 0;
+    visibility: hidden;
+    translate: 0 0.75rem;
+  }
+
+  @media (min-width: 768px) {
+    .off {
+      padding-inline: 2.5rem;
+    }
+  }
+
+  .placeholder {
+    display: none;
+  }
+
+  [data-typed]:empty + .caret {
+    display: none;
+  }
+
+  [data-typed]:empty {
+    display: none;
+  }
+
+  .composer:has([data-typed]:empty) .placeholder {
+    display: inline;
+  }
+
+  .caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    margin-left: 1px;
+    vertical-align: text-bottom;
+    background: var(--brand);
+  }
+
+  /* AI off: the conversation goes and the fallback shows. */
+  [data-assist][data-ai="off"] .convos {
+    opacity: 0;
+    filter: grayscale(1);
+    visibility: hidden;
+  }
+
+  [data-assist][data-ai="off"] .off {
+    opacity: 1;
+    visibility: visible;
+    translate: 0 0;
+  }
+
+  [data-assist][data-ai="off"] .track {
+    background: var(--background);
+    box-shadow: inset 0 0 0 1px var(--faint);
+  }
+
+  [data-assist][data-ai="off"] .knob {
+    background: var(--faint);
+    translate: 0 0;
+  }
+
+  [data-assist][data-ai="off"] .tab,
+  [data-assist][data-ai="off"] .composer {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  [data-assist] {
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ask,
+    .reply,
+    .think {
+      transition:
+        opacity 280ms var(--ease),
+        translate 280ms var(--ease);
+    }
+
+    .reveal {
+      transition:
+        opacity 350ms var(--ease) calc(var(--i, 0) * 75ms + 55ms),
+        translate 350ms var(--ease) calc(var(--i, 0) * 75ms + 55ms);
+    }
+
+    .swap > :global(*) {
+      transition:
+        opacity 175ms var(--ease) calc(var(--i, 0) * 80ms),
+        scale 240ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--i, 0) * 80ms);
+    }
+
+    .actions,
+    .saved {
+      transition:
+        opacity 175ms var(--ease) 160ms,
+        visibility 0s 160ms;
+    }
+
+    .convo[data-phase="2"] .bone {
+      animation: shimmer 0.8s linear infinite;
+    }
+
+    .caret {
+      animation: blink 1s steps(1) infinite;
+    }
+
+    [data-confirm],
+    [data-send],
+    .tab {
+      transition:
+        scale 160ms var(--ease),
+        background-color 160ms,
+        color 160ms,
+        box-shadow 160ms;
+    }
+
+    .track {
+      transition:
+        background-color 240ms var(--ease),
+        box-shadow 240ms var(--ease);
+    }
+
+    .knob {
+      transition:
+        translate 320ms var(--ease),
+        background-color 240ms var(--ease);
+    }
+
+    .off {
+      transition:
+        opacity 360ms var(--ease),
+        translate 360ms var(--ease),
+        visibility 0s 360ms;
+    }
+
+    [data-assist][data-ai="off"] .off {
+      transition-delay: 120ms, 120ms, 0s;
+    }
+  }
+
+  @keyframes shimmer {
+    to {
+      background-position: -300% 0;
+    }
+  }
+
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
+</style>

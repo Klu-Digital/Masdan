@@ -3,7 +3,7 @@ import type { Scene } from "./art";
 import { fieldActor } from "./field";
 import type { Field } from "./field";
 import { paintGlyph } from "./glyphs";
-import { register } from "./loop";
+import { motion, register, wake } from "./loop";
 import { ORDER4, ORDER8 } from "./matrix";
 import { netWorthActor } from "./networth";
 import { noise } from "./noise";
@@ -78,6 +78,26 @@ const ridges: Field = (x, y, t, _w, h, s) => {
   return 0;
 };
 
+/** How loud the signal field is; eases toward the AI switch's state. */
+const voice = { level: 1, t: 0, target: 1 };
+
+/** Rings of ink spreading from behind the conversation, quieting to grain when AI is off. */
+const signal: Field = (x, y, t, w, h, s) => {
+  if (t !== voice.t) {
+    const step = Math.min(1, Math.max(0, t - voice.t) * 2.5);
+    voice.level += (voice.target - voice.level) * (voice.t ? step : 1);
+    voice.t = t;
+  }
+  const grain = noise(x * 0.004 + t * 0.04, (y + s * 0.4) * 0.004 - t * 0.025);
+  const floor = 0.05 + 0.2 * (y / h) ** 2 + (grain - 0.5) * 0.3;
+  const dx = x - w * 0.36;
+  const dy = (y - h * 0.55 - s * 0.25) * 1.3;
+  const r = Math.hypot(dx, dy);
+  const ring = Math.sin(r * 0.03 - t * 1.4 + grain * 2.6);
+  const reach = Math.exp(-r / (w * 0.5));
+  return floor + voice.level * reach * (0.3 + 0.3 * ring);
+};
+
 /** Panels marked `data-depth` that float over this canvas's field. */
 const castersOver = (canvas: HTMLCanvasElement): Element[] => [
   ...(canvas.parentElement?.querySelectorAll("[data-depth]") ?? []),
@@ -116,6 +136,26 @@ const fields: Record<string, (canvas: HTMLCanvasElement) => void> = {
         resolve: [16, 11, 7, 5],
       })
     ),
+  signal: (canvas) => {
+    const actor = fieldActor(canvas, {
+      casters: castersOver(canvas),
+      cell: 3,
+      field: signal,
+      lamp: canvas.closest<HTMLElement>("[data-lamp]") ?? undefined,
+      matrix: ORDER8,
+      resolve: [16, 11, 7, 5],
+      sample: 2,
+    });
+    register(actor);
+    canvas.closest("[data-assist]")?.addEventListener("aichange", (event) => {
+      voice.target = (event as CustomEvent<boolean>).detail ? 1 : 0;
+      if (motion.still) {
+        voice.level = voice.target;
+      }
+      actor.dirty = true;
+      wake();
+    });
+  },
   sweep: (canvas) =>
     register(
       fieldActor(canvas, {
