@@ -200,15 +200,18 @@ const cardDistance = (
   return { distance, q: ly / height + 0.5, s: lx / width + 0.5 };
 };
 
-export const cards: Scene = (u, v, t, aspect, _aim, lift) => {
+export const cards: Scene = (u, v, t, aspect, aim, lift) => {
   const x = u * aspect;
   const width = Math.min(0.6, aspect * 0.235);
   let shade = 0;
   for (let i = CARD_TONES.length - 1; i >= 0; i -= 1) {
     const height = CARD_HEIGHT[i] ?? 0;
-    const cx = aspect * (0.14 + 0.24 * i);
+    const cx = aspect * (0.14 + 0.24 * i) + aim.x * height * 0.525;
     const rest = 0.5 + (i % 2 === 0 ? -0.1 : 0.1);
-    const cy = rest + 0.03 * Math.sin(t * 0.7 + i * 1.7) + lift * height * 0.6;
+    const cy =
+      rest +
+      0.03 * Math.sin(t * 0.7 + i * 1.7) +
+      (lift * 1.35 + aim.y * 0.45) * height;
     const theta =
       (((CARD_TILT[i] ?? 0) + 1.5 * Math.sin(t * 0.45 + i * 1.3)) * Math.PI) /
       180;
