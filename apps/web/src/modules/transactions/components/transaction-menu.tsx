@@ -106,18 +106,26 @@ export const TransactionMenu = ({
         </MenuPopup>
       </Menu>
       {transfer ? (
-        <DeleteTransferDialog
-          destination={transfer.destinationAccount.name}
-          loading={actions.deleteTransfer.isPending}
-          onConfirm={() =>
-            actions.deleteTransfer.mutate(transfer.id, {
-              onSuccess: () => setConfirming(false),
-            })
-          }
-          onOpenChange={setConfirming}
-          open={confirming}
-          source={transfer.sourceAccount.name}
-        />
+        // Portal events bubble through React to the row, which would open the inspector.
+        <span
+          className="contents"
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+          role="presentation"
+        >
+          <DeleteTransferDialog
+            destination={transfer.destinationAccount.name}
+            loading={actions.deleteTransfer.isPending}
+            onConfirm={() =>
+              actions.deleteTransfer.mutate(transfer.id, {
+                onSuccess: () => setConfirming(false),
+              })
+            }
+            onOpenChange={setConfirming}
+            open={confirming}
+            source={transfer.sourceAccount.name}
+          />
+        </span>
       ) : null}
     </>
   );
