@@ -1,0 +1,89 @@
+name: Publish version
+run-name: Publish version • ${{ github.event.release.tag_name || inputs.tag }}
+
+# Adds version tags to images release.yml already built for the tagged commit.
+# Nothing is rebuilt: the version points at the same digest as `sha-<7>`.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, e.g. v0.1.0
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: publish-version-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  IMAGE_PREFIX: docker.io/k22i/masdan
+
+jobs:
+  publish:
+    name: Tag images
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Retag images
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          PRERELEASE: ${{ github.event.release.prerelease || 'false' }}
+          EVENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          if ! [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$TAG' is not a vX.Y.Z[-pre] tag."
+            exit 1
+          fi
+          version="${TAG#v}"
+          major="${BASH_REMATCH[1]}"
+          minor="${BASH_REMATCH[2]}"
+
+          if [ "${{ github.event_name }}" = "release" ]; then
+            sha="$EVENT_SHA"
+          else
+            sha="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq .sha)"
+          fi
+          src_tag="sha-${sha:0:7}"
+
+          # Pre-releases get their exact version only, never a moving tag.
+          tags=("$version")
+          if [ "$PRERELEASE" != "true" ] && [[ "$version" != *-* ]]; then
+            tags+=("${major}.${minor}" "latest")
+            if [ "$major" != "0" ]; then tags+=("$major"); fi
+          fi
+
+          for app in web server workers; do
+            image="${IMAGE_PREFIX}-${app}"
+            if ! docker buildx imagetools inspect "${image}:${src_tag}" > /dev/null 2>&1; then
+              echo "::error::${image}:${src_tag} does not exist. Was ${sha} built by release.yml, and is that run finished?"
+              exit 1
+            fi
+          done
+
+          for app in web server workers; do
+            image="${IMAGE_PREFIX}-${app}"
+            args=()
+            for t in "${tags[@]}"; do args+=(-t "${image}:${t}"); done
+            docker buildx imagetools create "${args[@]}" "${image}:${src_tag}"
+          done
+
+          {
+            echo "## Published \`${TAG}\`"
+            echo
+            echo "Commit \`${sha}\` → tags: \`${tags[*]}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

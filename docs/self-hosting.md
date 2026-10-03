@@ -31,7 +31,7 @@ The quickest way to run Masdan is the images on Docker Hub. You don't need to cl
 ```yaml
 services:
   web:
-    image: docker.io/k22i/masdan-web:main
+    image: docker.io/k22i/masdan-web:${MASDAN_VERSION:-latest}
     ports:
       - "2600:2600"
     depends_on:
@@ -40,7 +40,7 @@ services:
     restart: unless-stopped
 
   server:
-    image: docker.io/k22i/masdan-server:main
+    image: docker.io/k22i/masdan-server:${MASDAN_VERSION:-latest}
     environment:
       DATABASE_URL: postgresql://masdan:${POSTGRES_PASSWORD}@postgres:5432/masdan
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
@@ -55,7 +55,7 @@ services:
     restart: unless-stopped
 
   workers:
-    image: docker.io/k22i/masdan-workers:main
+    image: docker.io/k22i/masdan-workers:${MASDAN_VERSION:-latest}
     environment:
       DATABASE_URL: postgresql://masdan:${POSTGRES_PASSWORD}@postgres:5432/masdan
     depends_on:
@@ -91,7 +91,7 @@ docker compose up -d --wait
 
 Open [http://localhost:2600](http://localhost:2600) and [create the first account](#the-first-account). The server applies database migrations every time it boots, so nothing else needs running.
 
-- **Pin a version for anything you rely on.** `main` follows the latest commit. Every build is also tagged `sha-<7 chars>` (for example `k22i/masdan-server:sha-7351022`), which never moves. Use the same tag for all three images.
+- **Pin a version for anything you rely on.** `latest` follows the newest stable release. Set `MASDAN_VERSION` (in `.env` or your shell) to a release such as `0.1.0` and all three images move together; releases are listed on [GitHub](https://github.com/Klu-Digital/Masdan/releases). `X.Y` follows the newest patch of a minor version. To run unreleased code, `main` follows the latest commit and `sha-<7 chars>` (for example `sha-7351022`) is a single build that never moves.
 - **Updating** is `docker compose pull && docker compose up -d`. The server migrates the database before it starts serving.
 - **The images are built for `linux/amd64` only.** On an ARM host such as Apple Silicon or a Raspberry Pi, add `platform: linux/amd64` to the three Masdan services. They then run under emulation, so they are slower.
 - **Use HTTPS anywhere but localhost.** The images run in production mode, so the session cookie is `Secure`. Over plain HTTP, browsers only keep it on `localhost`, and Safari not even there. Sign-in then fails silently: every request looks signed out. On a real domain, put a TLS-terminating proxy in front of `web`, set `BETTER_AUTH_URL` and `CORS_ORIGIN` to the `https://` address, and raise `TRUSTED_PROXY_HOPS` to `2`. See [Putting it behind a proxy](#putting-it-behind-a-proxy).
