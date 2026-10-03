@@ -2,11 +2,18 @@ import { serve } from "@hono/node-server";
 import { env } from "@masdan/env/workers";
 // Initializes the logger at module scope, so it must come before anything
 // pulling in @masdan/db or @masdan/queue. Keep this import first.
-import { log, observability, parseError } from "@masdan/observability";
+import {
+  exitOnCrash,
+  log,
+  observability,
+  parseError,
+} from "@masdan/observability";
 import { queue } from "@masdan/queue";
 
 import { createApp } from "./app";
 import { registerWorkers } from "./register";
+
+exitOnCrash();
 
 const server = serve(
   { fetch: createApp().fetch, port: env.WORKERS_PORT },
