@@ -1,6 +1,6 @@
 ---
 import { ArrowRight01Icon, Github01Icon, Moon02Icon, Sun03Icon } from "@hugeicons/core-free-icons";
-import { GETTING_STARTED, REPO } from "../lib/links";
+import { DEMO, GETTING_STARTED, REPO } from "../lib/links";
 import Icon from "./icon.astro";
 ---
 
@@ -17,6 +17,7 @@ import Icon from "./icon.astro";
       <a href="/#features" class="hidden px-3 py-2 text-sm font-medium hover:text-brand-text md:inline-block">Features</a>
       <a href="/#ai" class="hidden px-3 py-2 text-sm font-medium hover:text-brand-text md:inline-block">AI</a>
       <a href="/#self-host" class="hidden px-3 py-2 text-sm font-medium hover:text-brand-text md:inline-block">Self-host</a>
+      <a href={DEMO} class="hidden px-3 py-2 text-sm font-medium hover:text-brand-text md:inline-block">Demo</a>
       <a href={REPO} class="hidden items-center gap-2 px-3 py-2 text-sm font-medium hover:text-brand-text sm:inline-flex">
         <Icon icon={Github01Icon} />
         GitHub
