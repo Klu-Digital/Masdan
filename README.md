@@ -174,6 +174,10 @@ Absolutely. Open an [issue](https://github.com/Klu-Digital/Masdan/issues) descri
 
 Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has setup, the test layout, and the conventions worth following. Adding credit cards or banks for your country is data-only work with [its own guide](packages/card-catalog/CONTRIBUTING.md).
 
+## Acknowledgements
+
+Masdan takes its inspiration from [Maybe](https://github.com/maybe-finance/maybe) and its community fork [Sure](https://github.com/we-promise/sure), the open-source, self-hosted personal finance apps. Thank you to the people behind both.
+
 ## License
 
 [MIT](LICENSE). Read it, run it, change it.
