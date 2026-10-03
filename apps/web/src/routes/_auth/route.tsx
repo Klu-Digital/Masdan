@@ -7,6 +7,7 @@ import {
   createFileRoute,
   getRouteApi,
   redirect,
+  useMatch,
   useRouter,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
@@ -53,11 +54,20 @@ const AuthLayout = () => {
   const { activeOrganizationId, session } = routeApi.useRouteContext();
   const impersonating = Boolean(session.session.impersonatedBy);
   const { currency } = useHousehold();
+  const onboarding = useMatch({ from: "/_auth/welcome", shouldThrow: false });
   // The home country's cards load with the shell, not when the first card
   // mounts, so a household's own cards never flash generic.
   useEffect(() => {
     void loadCardCountries(cardCountriesFor([currency]));
   }, [currency]);
+
+  if (onboarding) {
+    return (
+      <AppActionsProvider>
+        <Outlet />
+      </AppActionsProvider>
+    );
+  }
 
   return (
     <AppActionsProvider>

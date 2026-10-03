@@ -28,7 +28,7 @@ import type { Currency } from "@/modules/currency/types";
 import { invalidate } from "@/utils/invalidate";
 import { householdOrpc } from "@/utils/orpc";
 
-interface PickerItem {
+export interface PickerItem {
   label: string;
   value: string;
 }
@@ -39,11 +39,11 @@ export interface HouseholdFinanceProfile {
 }
 
 // The runtime's list, not a table: it is what ICU formats with.
-const TIMEZONE_ITEMS: PickerItem[] = Intl.supportedValuesOf("timeZone").map(
-  (zone) => ({ label: zone.replaceAll("_", " "), value: zone })
-);
+export const TIMEZONE_ITEMS: PickerItem[] = Intl.supportedValuesOf(
+  "timeZone"
+).map((zone) => ({ label: zone.replaceAll("_", " "), value: zone }));
 
-const currencyLabel = (currency: Currency) =>
+export const currencyLabel = (currency: Currency) =>
   `${currency.code} — ${currency.name}`;
 
 const financeProfileSchema = z.object({
@@ -54,7 +54,7 @@ const financeProfileSchema = z.object({
 const findItem = (items: PickerItem[], value: string) =>
   items.find((item) => item.value === value) ?? null;
 
-const Picker = ({
+export const Picker = ({
   ariaLabel,
   id,
   items,

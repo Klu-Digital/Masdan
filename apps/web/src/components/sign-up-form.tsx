@@ -8,6 +8,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { authClient } from "@/lib/auth-client";
+import { DEFAULT_AUTHENTICATED_PATH } from "@/lib/redirect";
 import { invalidateSession } from "@/lib/session";
 
 const SignUpForm = ({
@@ -46,7 +47,10 @@ const SignUpForm = ({
           // See sign-in-form: the guard at the destination reads the session
           // from this cache, so it has to be refreshed before we navigate.
           await invalidateSession(queryClient);
-          await navigate({ href: redirectTo });
+          // A deep link or invitation wins; otherwise set up the new household.
+          await (redirectTo === DEFAULT_AUTHENTICATED_PATH && !invitationId
+            ? navigate({ to: "/welcome" })
+            : navigate({ href: redirectTo }));
         },
       });
     },
