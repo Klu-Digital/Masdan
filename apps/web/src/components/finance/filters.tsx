@@ -1,11 +1,8 @@
 "use client";
 
-import {
-  ArrowDown01Icon,
-  Cancel01Icon,
-  Tick02Icon,
-} from "@hugeicons/core-free-icons";
+import { ArrowDown01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { Checkbox } from "@masdan/ui/components/checkbox";
 import { cn } from "@masdan/ui/lib/utils";
 import type * as React from "react";
 
@@ -98,7 +95,7 @@ export const FilterChip = ({
   </span>
 );
 
-/** An on/off filter as a pill: tinted with a tick while on, no menu behind it. */
+/** An on/off filter as a labeled checkbox. */
 export const FilterToggle = ({
   className,
   label,
@@ -110,22 +107,19 @@ export const FilterToggle = ({
   onPressedChange: (pressed: boolean) => void;
   pressed: boolean;
 }): React.ReactElement => (
-  <button
-    aria-pressed={pressed}
+  <label
     className={cn(
-      "focus-visible:ring-ring/50 inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-3 sm:h-7 [&_svg]:size-3.5",
-      pressed
-        ? "bg-brand-soft text-brand-text"
-        : "bg-secondary text-foreground hover:bg-accent",
+      "inline-flex h-8 shrink-0 cursor-pointer items-center gap-2 text-xs font-medium whitespace-nowrap sm:h-7",
       className
     )}
     data-slot="filter-toggle"
-    onClick={() => onPressedChange(!pressed)}
-    type="button"
   >
-    {pressed ? <HugeiconsIcon icon={Tick02Icon} strokeWidth={2.5} /> : null}
+    <Checkbox
+      checked={pressed}
+      onCheckedChange={(checked) => onPressedChange(checked)}
+    />
     {label}
-  </button>
+  </label>
 );
 
 export const FilterField = ({
