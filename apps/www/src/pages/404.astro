@@ -1,0 +1,33 @@
+---
+import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
+import Footer from "../components/footer.astro";
+import Icon from "../components/icon.astro";
+import Nav from "../components/nav.astro";
+import Base from "../layouts/base.astro";
+---
+
+<Base title="Page not found · Masdan" description="This page does not exist.">
+  <Nav />
+  <main>
+    <section class="relative" aria-labelledby="not-found-title">
+      <div class="sheet py-24 md:py-40">
+        <div class="cell-solid relative col-span-4 px-5 py-8 md:col-span-8 md:col-start-3 md:p-12">
+          <span class="label absolute top-3 right-3" aria-hidden="true">404</span>
+          <h1 id="not-found-title" class="text-4xl leading-none font-bold tracking-[-0.03em] text-balance md:text-6xl">
+            Nothing to observe here.
+          </h1>
+          <p class="mt-5 max-w-[48ch] text-base leading-relaxed text-muted md:text-lg">
+            This page does not exist, or it moved.
+          </p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a href="/" class="btn btn-primary">
+              <Icon icon={ArrowLeft01Icon} />
+              Back to the home page
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Base>

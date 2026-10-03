@@ -23,6 +23,30 @@ const COPY: Record<FailureKind, { body: string; title: string }> = {
   },
 };
 
+const RouteMessage = ({
+  children,
+  kind,
+}: {
+  children: React.ReactNode;
+  kind: FailureKind;
+}) => {
+  const { body, title } = COPY[kind];
+
+  return (
+    <div className="animate-enter flex min-h-svh flex-col items-center justify-center gap-5 p-6 text-center">
+      <div className="flex max-w-sm flex-col gap-1.5">
+        <h1 className="text-xl font-semibold">{title}</h1>
+        <p className="text-muted-foreground text-sm">{body}</p>
+      </div>
+      {children}
+    </div>
+  );
+};
+
+const BackToDashboard = () => (
+  <Button render={<Link to="/dashboard" />}>Back to dashboard</Button>
+);
+
 export const RouteError = ({
   error,
   reset,
@@ -31,20 +55,21 @@ export const RouteError = ({
   reset: () => void;
 }) => {
   const kind = failureKind(error);
-  const { body, title } = COPY[kind];
   const retryable = kind === "unreachable" || kind === "unexpected";
 
   return (
-    <div className="animate-enter flex min-h-svh flex-col items-center justify-center gap-5 p-6 text-center">
-      <div className="flex max-w-sm flex-col gap-1.5">
-        <h1 className="text-xl font-semibold">{title}</h1>
-        <p className="text-muted-foreground text-sm">{body}</p>
-      </div>
+    <RouteMessage kind={kind}>
       {retryable ? (
         <Button onClick={reset}>Try again</Button>
       ) : (
-        <Button render={<Link to="/dashboard" />}>Back to dashboard</Button>
+        <BackToDashboard />
       )}
-    </div>
+    </RouteMessage>
   );
 };
+
+export const RouteNotFound = () => (
+  <RouteMessage kind="not_found">
+    <BackToDashboard />
+  </RouteMessage>
+);

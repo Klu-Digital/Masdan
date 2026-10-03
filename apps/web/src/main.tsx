@@ -5,7 +5,7 @@ import ReactDOM from "react-dom/client";
 import { applyStoredPrivacyMode } from "@/components/finance/privacy-mode";
 
 import Loader from "./components/loader";
-import { RouteError } from "./components/route-error";
+import { RouteError, RouteNotFound } from "./components/route-error";
 import { routeTree } from "./routeTree.gen";
 import { orpc, queryClient } from "./utils/orpc";
 
@@ -15,6 +15,7 @@ const router = createRouter({
   ),
   context: { orpc, queryClient },
   defaultErrorComponent: RouteError,
+  defaultNotFoundComponent: RouteNotFound,
   defaultPendingComponent: () => <Loader />,
   defaultPreload: "intent",
   routeTree,
