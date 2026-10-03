@@ -20,7 +20,8 @@ const { title, description } = Astro.props;
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta name="theme-color" content="#ffffff" />
-    <link rel="icon" href="/favicon-light.png" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <script is:inline>
       const systemTheme = matchMedia("(prefers-color-scheme: dark)");
       let preference;
@@ -31,7 +32,6 @@ const { title, description } = Astro.props;
       }
       const applyTheme = (theme) => {
         document.documentElement.dataset.theme = theme;
-        document.querySelector('link[rel="icon"]').href = `/favicon-${theme}.png`;
         document.querySelector('meta[name="theme-color"]').content =
           theme === "dark" ? "#151517" : "#ffffff";
         const toggle = document.querySelector("#theme");

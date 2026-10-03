@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/images/logo.png" alt="Masdan" width="96" height="96" />
+
 # Masdan
 
 **Look closely at your money: where it is, and where it went.**

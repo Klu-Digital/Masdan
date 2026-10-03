@@ -197,15 +197,12 @@
     height: 24px;
   }
 
-  .mark-dark,
   .theme-dark-icon,
-  [data-theme="dark"] .mark-light,
   [data-theme="dark"] .theme-light-icon,
   .theme-toggle {
     display: none;
   }
 
-  [data-theme="dark"] .mark-dark,
   [data-theme="dark"] .theme-dark-icon,
   .js .theme-toggle {
     display: inline-block;
