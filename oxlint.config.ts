@@ -62,7 +62,11 @@ export default defineConfig({
     },
     {
       // Packing RGBA words and indexing Bayer matrices are bitwise by nature.
-      files: ["apps/www/src/scripts/dither/**"],
+      files: [
+        "apps/www/src/scripts/dither/**",
+        "apps/web/src/lib/dither.ts",
+        "apps/web/src/components/dither-field.tsx",
+      ],
       rules: { "no-bitwise": "off" },
     },
   ],

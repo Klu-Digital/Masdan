@@ -1,31 +1,16 @@
 import { cn } from "@masdan/ui/lib/utils";
 
 export const BrandMark = ({ className }: { className?: string }) => (
-  <svg
-    aria-hidden="true"
-    className={cn("size-10", className)}
-    fill="none"
-    viewBox="0 0 40 40"
-  >
-    <rect className="fill-primary" height="40" rx="11" width="40" />
-    <rect
-      className="fill-primary-foreground"
-      height="12"
-      opacity="0.55"
-      rx="2.5"
-      width="5"
-      x="11"
-      y="17"
+  <>
+    <img
+      alt=""
+      className={cn("size-10 dark:hidden", className)}
+      src="/favicon-light.png"
     />
-    <rect
-      className="fill-primary-foreground"
-      height="18"
-      opacity="0.8"
-      rx="2.5"
-      width="5"
-      x="17.5"
-      y="11"
+    <img
+      alt=""
+      className={cn("hidden size-10 dark:block", className)}
+      src="/favicon-dark.png"
     />
-    <rect className="fill-brand" height="8" rx="2.5" width="5" x="24" y="21" />
-  </svg>
+  </>
 );
