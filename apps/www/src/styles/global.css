@@ -266,6 +266,10 @@
     --tone-fg: var(--dither-ink);
   }
 
+  .dither-soft {
+    --tone-line: var(--muted-foreground);
+  }
+
   /* Multi-tone art pieces paint with the app's chart palette. */
   .art {
     display: block;

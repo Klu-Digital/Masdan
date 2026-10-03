@@ -40,7 +40,7 @@ const horizon: Field = (x, y, t, _w, h, s) => {
     x * 0.0032 + t * 0.03,
     (y + s * 0.45) * 0.0055 - t * 0.018
   );
-  return 0.04 + 0.78 * rise + (grain - 0.5) * 0.55;
+  return (0.04 + 0.78 * rise + (grain - 0.5) * 0.55) * 0.5;
 };
 
 interface Ridge {
@@ -95,7 +95,7 @@ const signal: Field = (x, y, t, w, h, s) => {
   const r = Math.hypot(dx, dy);
   const ring = Math.sin(r * 0.03 - t * 1.4 + grain * 2.6);
   const reach = Math.exp(-r / (w * 0.5));
-  return floor + voice.level * reach * (0.3 + 0.3 * ring);
+  return (floor + voice.level * reach * (0.3 + 0.3 * ring)) * 0.05;
 };
 
 /** Panels marked `data-depth` that float over this canvas's field. */
