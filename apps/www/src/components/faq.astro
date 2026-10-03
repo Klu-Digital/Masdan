@@ -1,14 +1,18 @@
 ---
 import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
-import { GETTING_STARTED, REPO } from "../lib/links";
+import { REPO, SELF_HOSTING } from "../lib/links";
 import Boundary from "./boundary.astro";
 import Icon from "./icon.astro";
 
 const questions = [
   {
     answer: "Yes. Masdan runs on your own infrastructure. The repository includes instructions for getting started with Docker. You manage updates and backups for your instance.",
-    link: { href: GETTING_STARTED, label: "Getting started" },
+    link: { href: SELF_HOSTING, label: "Self-hosting guide" },
     question: "Do I need to host it myself?",
+  },
+  {
+    answer: "Yes. Signing up gives you a household of one, and every feature works without anyone else. Invite others later, or never.",
+    question: "Can I use it on my own?",
   },
   {
     answer: "I have no plans to monetize Masdan. It’s an open-source project, not a subscription business. Running your own instance may still involve hosting costs.",

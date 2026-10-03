@@ -30,6 +30,14 @@ const SHAPES: Record<string, Shape> = {
     const star = 1 - (Math.sqrt(du) + Math.sqrt(dv));
     return star > 0 ? 0.35 + star * 1.6 : 0;
   },
+  household: (u, v) => {
+    const dot = (cu: number, cv: number, r: number): boolean =>
+      (u - cu) ** 2 + (v - cv) ** 2 <= r * r;
+    if (dot(0.32, 0.5, 0.24)) {
+      return 1;
+    }
+    return dot(0.72, 0.32, 0.14) || dot(0.74, 0.7, 0.14) ? 0.3 : 0;
+  },
   ledger: (u, v) => {
     const line = Math.floor(v * 7);
     const lengths = [0.92, 0.7, 0.84, 0.55, 0.78, 0.62, 0.88];

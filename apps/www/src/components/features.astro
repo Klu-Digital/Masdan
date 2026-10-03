@@ -24,14 +24,14 @@ const features = [
     title: "Planning",
   },
   {
-    body: "Cash flow, category spending, savings rate and budget performance, all read from the ledger.",
+    body: "Cash flow, spending by category or tag, savings rate and budget performance, all read from the ledger.",
     coordinate: "B5",
     glyph: "reports",
     span: "md:col-span-3",
     title: "Reports",
   },
   {
-    body: "Optional. Quick entry from free text, receipt photos or Telegram, AI categorization and Ask Masdan. Every AI call is capped per household.",
+    body: "Optional. Quick entry from free text, receipt photos or Telegram, AI categorization and Ask Masdan. AI spend is capped daily, per household and per person.",
     coordinate: "B8",
     glyph: "assistance",
     span: "md:col-span-5",
@@ -48,8 +48,8 @@ const features = [
         Built around one shared ledger.
       </h2>
       <p class="mt-5 max-w-[56ch] text-base leading-relaxed text-muted md:text-lg">
-        Every member of the household records into the same books. Balances, budgets and
-        reports are derived from it, never typed in twice.
+        Whoever is in the household, one person or five, records into the same books. Balances,
+        budgets and reports are derived from it, never typed in twice.
       </p>
     </div>
     {
@@ -62,8 +62,29 @@ const features = [
         </article>
       ))
     }
+    <article class="cell relative col-span-4 grid gap-6 border-t border-rule px-4 pt-6 pb-8 md:col-span-12 md:grid-cols-12 md:px-0 md:pt-8 md:pb-10">
+      <span class="label absolute top-3 right-3" aria-hidden="true">C1</span>
+      <div class="md:col-span-4 md:px-6">
+        <canvas class="glyph" data-glyph="household" aria-hidden="true"></canvas>
+        <h3 class="mt-8 text-xl font-semibold tracking-tight md:text-2xl">Just you, or the whole household</h3>
+      </div>
+      <div class="md:col-span-4 md:px-6 md:pt-16">
+        <p class="font-semibold">On your own</p>
+        <p class="mt-2 max-w-[44ch] leading-relaxed text-muted">
+          Sign up and you have a household of one. Every feature works for a single person, and
+          nobody else ever has to join.
+        </p>
+      </div>
+      <div class="md:col-span-4 md:px-6 md:pt-16">
+        <p class="font-semibold">Together</p>
+        <p class="mt-2 max-w-[44ch] leading-relaxed text-muted">
+          Invite a partner or family with a link and give each one a role: owner, admin, member or
+          viewer.
+        </p>
+      </div>
+    </article>
     <article class="cell-brand relative col-span-4 grid gap-6 px-4 py-8 md:col-span-12 md:grid-cols-12 md:px-0 md:py-10">
-      <span class="label absolute top-3 right-3 text-white" aria-hidden="true">C1</span>
+      <span class="label absolute top-3 right-3 text-white" aria-hidden="true">D1</span>
       <div class="md:col-span-3 md:px-6">
         <canvas class="glyph" data-glyph="selfhost" aria-hidden="true"></canvas>
       </div>

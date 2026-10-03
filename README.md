@@ -2,7 +2,7 @@
 
 # Masdan
 
-**See your household's whole financial life.**
+**Look closely at your money: where it is, and where it went.**
 
 Every account, card, bill and budget in one shared ledger, on a server you own.
 
