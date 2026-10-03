@@ -38,15 +38,10 @@ import {
   FilterField,
   FilterToggle,
 } from "@/components/finance/filters";
-import {
-  addDays,
-  addMonths,
-  endOfMonth,
-  formatShortDate,
-  startOfMonth,
-} from "@/lib/dates";
+import { formatShortDate } from "@/lib/dates";
 
-import type { TransactionSearch } from "../search";
+import { resolveDateRange } from "../search";
+import type { DatePreset, TransactionSearch } from "../search";
 
 export interface FilterOption {
   label: string;
@@ -253,22 +248,6 @@ const MultiSelectFilter = ({
   );
 };
 
-type DatePreset = "this-month" | "last-month" | "last-30" | "this-year";
-
-const presetRange = (preset: DatePreset, today: string) => {
-  if (preset === "this-month") {
-    return { dateFrom: startOfMonth(today), dateTo: today };
-  }
-  if (preset === "last-month") {
-    const start = addMonths(startOfMonth(today), -1);
-    return { dateFrom: start, dateTo: endOfMonth(start) };
-  }
-  if (preset === "last-30") {
-    return { dateFrom: addDays(today, -29), dateTo: today };
-  }
-  return { dateFrom: `${today.slice(0, 4)}-01-01`, dateTo: today };
-};
-
 const PRESETS: { label: string; value: DatePreset }[] = [
   { label: "This month", value: "this-month" },
   { label: "Last month", value: "last-month" },
@@ -276,22 +255,20 @@ const PRESETS: { label: string; value: DatePreset }[] = [
   { label: "This year", value: "this-year" },
 ];
 
+type DateChange = Pick<TransactionSearch, "dateFrom" | "datePreset" | "dateTo">;
+
 const DateRangeFilter = ({
-  dateFrom,
-  dateTo,
   onChange,
+  search,
   today,
 }: {
-  dateFrom?: string;
-  dateTo?: string;
-  onChange: (range: { dateFrom?: string; dateTo?: string }) => void;
+  onChange: (change: DateChange) => void;
+  search: TransactionSearch;
   today: string;
 }) => {
+  const { dateFrom, dateTo } = resolveDateRange(search, today);
   const active = Boolean(dateFrom || dateTo);
-  const preset = PRESETS.find((option) => {
-    const range = presetRange(option.value, today);
-    return range.dateFrom === dateFrom && range.dateTo === dateTo;
-  });
+  const preset = PRESETS.find((option) => option.value === search.datePreset);
   let summary = preset?.label;
   if (!summary && active) {
     summary = `${dateFrom ? formatShortDate(dateFrom, today) : "Any"} – ${dateTo ? formatShortDate(dateTo, today) : "Any"}`;
@@ -304,7 +281,13 @@ const DateRangeFilter = ({
           <FilterChip
             active={active}
             label="Date"
-            onClear={() => onChange({ dateFrom: undefined, dateTo: undefined })}
+            onClear={() =>
+              onChange({
+                dateFrom: undefined,
+                datePreset: undefined,
+                dateTo: undefined,
+              })
+            }
           />
         }
       >
@@ -319,7 +302,13 @@ const DateRangeFilter = ({
                 aria-pressed={selected}
                 className="hover:bg-accent focus-visible:bg-accent flex min-h-9 items-center justify-between rounded-md px-2 text-left text-sm outline-none"
                 key={option.value}
-                onClick={() => onChange(presetRange(option.value, today))}
+                onClick={() =>
+                  onChange({
+                    dateFrom: undefined,
+                    datePreset: option.value,
+                    dateTo: undefined,
+                  })
+                }
                 type="button"
               >
                 {option.label}
@@ -337,14 +326,18 @@ const DateRangeFilter = ({
         <div className="border-hairline flex flex-col gap-3 border-t p-3">
           <FilterField label="From">
             <DatePicker
-              onValueChange={(value) => onChange({ dateFrom: value, dateTo })}
+              onValueChange={(value) =>
+                onChange({ dateFrom: value, datePreset: undefined, dateTo })
+              }
               placeholder="Any date"
               value={dateFrom ?? ""}
             />
           </FilterField>
           <FilterField label="To">
             <DatePicker
-              onValueChange={(value) => onChange({ dateFrom, dateTo: value })}
+              onValueChange={(value) =>
+                onChange({ dateFrom, datePreset: undefined, dateTo: value })
+              }
               placeholder="Any date"
               value={dateTo ?? ""}
             />
@@ -389,9 +382,8 @@ export const LedgerFilters = ({
   return (
     <FilterBar hasFilters={hasFilters} onClear={onClear}>
       <DateRangeFilter
-        dateFrom={search.dateFrom}
-        dateTo={search.dateTo}
-        onChange={(range) => onSearchChange(range)}
+        onChange={onSearchChange}
+        search={search}
         today={today}
       />
       <Menu>

@@ -6,6 +6,7 @@ export type SavedFilters = Pick<
   | "accountIds"
   | "categoryIds"
   | "dateFrom"
+  | "datePreset"
   | "dateTo"
   | "includeArchived"
   | "includeInterest"
@@ -23,6 +24,7 @@ const pick = (search: TransactionSearch): SavedFilters => ({
   accountIds: search.accountIds,
   categoryIds: search.categoryIds,
   dateFrom: search.dateFrom,
+  datePreset: search.datePreset,
   dateTo: search.dateTo,
   includeArchived: search.includeArchived,
   includeInterest: search.includeInterest,

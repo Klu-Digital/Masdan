@@ -1,7 +1,31 @@
 import { z } from "zod";
 
+import { addDays, addMonths, endOfMonth, startOfMonth } from "@/lib/dates";
+
 export type TransactionSortBy = "amount" | "date";
 export type TransactionSortDirection = "asc" | "desc";
+
+export const DATE_PRESETS = [
+  "this-month",
+  "last-month",
+  "last-30",
+  "this-year",
+] as const;
+export type DatePreset = (typeof DATE_PRESETS)[number];
+
+export const presetRange = (preset: DatePreset, today: string) => {
+  if (preset === "this-month") {
+    return { dateFrom: startOfMonth(today), dateTo: today };
+  }
+  if (preset === "last-month") {
+    const start = addMonths(startOfMonth(today), -1);
+    return { dateFrom: start, dateTo: endOfMonth(start) };
+  }
+  if (preset === "last-30") {
+    return { dateFrom: addDays(today, -29), dateTo: today };
+  }
+  return { dateFrom: `${today.slice(0, 4)}-01-01`, dateTo: today };
+};
 
 const optionalString = z
   .preprocess(
@@ -28,6 +52,13 @@ export const transactionSearch = z.object({
   accountIds: stringArray,
   categoryIds: stringArray,
   dateFrom: optionalString,
+  // A preset is resolved against today on every load, so it never goes stale.
+  datePreset: z
+    .preprocess(
+      (value) => DATE_PRESETS.find((preset) => preset === value),
+      z.enum(DATE_PRESETS).optional()
+    )
+    .optional(),
   dateTo: optionalString,
   includeArchived: z
     .preprocess((value) => value === true || value === "true", z.boolean())
@@ -81,3 +112,12 @@ export const DEFAULT_TRANSACTION_SEARCH: TransactionSearch = {
   tagIds: [],
   types: [],
 };
+
+/** The dates the ledger filters by: the preset's, else the custom range. */
+export const resolveDateRange = (
+  search: Pick<TransactionSearch, "dateFrom" | "datePreset" | "dateTo">,
+  today: string
+): { dateFrom?: string; dateTo?: string } =>
+  search.datePreset
+    ? presetRange(search.datePreset, today)
+    : { dateFrom: search.dateFrom, dateTo: search.dateTo };

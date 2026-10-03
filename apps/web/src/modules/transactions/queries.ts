@@ -1,10 +1,12 @@
+import { resolveDateRange } from "@/modules/transactions/search";
 import type { TransactionSearch } from "@/modules/transactions/search";
 import { householdOrpc } from "@/utils/orpc";
 
 /** The ledger's reads, shared by its route loader and its components. */
 export const ledgerQueries = (
   activeOrganizationId: string,
-  search: TransactionSearch
+  search: TransactionSearch,
+  today: string
 ) => {
   const orpc = householdOrpc(activeOrganizationId);
   return {
@@ -19,8 +21,7 @@ export const ledgerQueries = (
       input: {
         accountIds: search.accountIds,
         categoryIds: search.categoryIds,
-        dateFrom: search.dateFrom,
-        dateTo: search.dateTo,
+        ...resolveDateRange(search, today),
         includeArchived: search.includeArchived,
         includeInterest: search.includeInterest,
         paidStatuses: search.paidStatuses,
@@ -35,11 +36,17 @@ export const ledgerQueries = (
 /** Each scroll fetch loads 25 ledger entries; the URL owns filters, not pages. */
 export const ledgerInfiniteQuery = (
   activeOrganizationId: string,
-  search: TransactionSearch
+  search: TransactionSearch,
+  today: string
 ) =>
   householdOrpc(activeOrganizationId).transactions.list.infiniteOptions({
     getNextPageParam: (last) =>
       last.page < last.totalPages ? last.page + 1 : undefined,
     initialPageParam: 1,
-    input: (page: number) => ({ ...search, page, pageSize: 25 }),
+    input: (page: number) => ({
+      ...search,
+      ...resolveDateRange(search, today),
+      page,
+      pageSize: 25,
+    }),
   });

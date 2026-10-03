@@ -44,6 +44,14 @@ describe("saved filters", () => {
     expect(saved).not.toHaveProperty("search");
   });
 
+  it("saves a date preset by name, so it resolves against the day of return", () => {
+    saveFilters("home", search({ datePreset: "this-month" }));
+
+    const saved = loadSavedFilters("home");
+    expect(saved?.datePreset).toBe("this-month");
+    expect(saved?.dateFrom).toBeUndefined();
+  });
+
   it("keeps households apart", () => {
     saveFilters("home", search({ tagIds: ["t1"] }));
     expect(loadSavedFilters("other")).toBeNull();

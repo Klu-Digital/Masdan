@@ -9,6 +9,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 
 import { HouseholdGate } from "@/components/household-gate";
+import { toIsoDate } from "@/lib/dates";
 import { TransactionsPage } from "@/modules/transactions/components/transactions-page";
 import {
   ledgerInfiniteQuery,
@@ -119,12 +120,14 @@ export const Route = createFileRoute("/_auth/transactions")({
   loaderDeps: ({ search }) => ({ search }),
   loader: ({ context, deps }) => {
     if (context.activeOrganizationId) {
+      // The household's timezone is not loaded yet; a near-midnight miss only skips the warm cache.
+      const today = toIsoDate(new Date());
       prefetch(
         context.queryClient,
-        ledgerQueries(context.activeOrganizationId, deps.search)
+        ledgerQueries(context.activeOrganizationId, deps.search, today)
       );
       void context.queryClient.prefetchInfiniteQuery(
-        ledgerInfiniteQuery(context.activeOrganizationId, deps.search)
+        ledgerInfiniteQuery(context.activeOrganizationId, deps.search, today)
       );
     }
   },

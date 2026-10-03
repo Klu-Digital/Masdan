@@ -79,13 +79,15 @@ const TotalsStrip = ({
   activeOrganizationId,
   currency,
   search,
+  today,
 }: {
   activeOrganizationId: string;
   currency: string;
   search: TransactionSearch;
+  today: string;
 }) => {
   const totals = useQuery({
-    ...ledgerQueries(activeOrganizationId, search).totals,
+    ...ledgerQueries(activeOrganizationId, search, today).totals,
     placeholderData: keepPreviousData,
   });
 
@@ -218,12 +220,13 @@ export const TransactionsPage = ({
   const navigate = useNavigate();
   const { compose, quickReview } = useAppActions();
   const ledgerActions = useLedgerActions(activeOrganizationId);
-  const queries = ledgerQueries(activeOrganizationId, search);
+  const today = householdToday(timezone);
+  const queries = ledgerQueries(activeOrganizationId, search, today);
   const accounts = useQuery(queries.accounts);
   const categories = useQuery(queries.categories);
   const tags = useQuery(queries.tags);
   const transactions = useInfiniteQuery(
-    ledgerInfiniteQuery(activeOrganizationId, search)
+    ledgerInfiniteQuery(activeOrganizationId, search, today)
   );
   const {
     fetchNextPage,
@@ -249,7 +252,6 @@ export const TransactionsPage = ({
     },
     [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage]
   );
-  const today = householdToday(timezone);
   const { clearSelection, selectedIds, toggleAll, toggleSelection } =
     useLedgerSelection(search);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -304,6 +306,7 @@ export const TransactionsPage = ({
     search.accountIds.length > 0 ||
     search.categoryIds.length > 0 ||
     search.dateFrom !== undefined ||
+    search.datePreset !== undefined ||
     search.dateTo !== undefined ||
     search.includeArchived ||
     search.includeInterest ||
@@ -553,6 +556,7 @@ export const TransactionsPage = ({
         activeOrganizationId={activeOrganizationId}
         currency={household.currency ?? "PHP"}
         search={search}
+        today={today}
       />
 
       <section
