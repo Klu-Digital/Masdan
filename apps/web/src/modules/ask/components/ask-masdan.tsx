@@ -11,6 +11,7 @@ import {
   ListItemTitle,
   ListItemTrailing,
 } from "@masdan/ui/components/list";
+import { Markdown } from "@masdan/ui/components/markdown";
 import { Textarea } from "@masdan/ui/components/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -219,8 +220,8 @@ const Reply = ({
   if (result.status === "response") {
     return (
       <div className="flex flex-col gap-3">
-        <output className="text-sm whitespace-pre-wrap">
-          {result.message}
+        <output className="block">
+          <Markdown>{result.message}</Markdown>
         </output>
         {result.sources.length > 0 ? (
           <Sources sources={result.sources} />
@@ -231,7 +232,9 @@ const Reply = ({
   return (
     <Alert variant={result.status === "unavailable" ? "warning" : "info"}>
       <AlertDescription>
-        <output className="block whitespace-pre-wrap">{result.message}</output>
+        <output className="block">
+          <Markdown>{result.message}</Markdown>
+        </output>
         {result.status === "clarify" && result.options.length > 0 ? (
           <ul aria-label="Options" className="mt-2 flex flex-wrap gap-1.5">
             {result.options.map((option) => (
@@ -274,7 +277,9 @@ const ChangePreview = ({
   if (turn.applied) {
     return (
       <div className="flex flex-col gap-3">
-        <output>{turn.applied.message}</output>
+        <output className="block">
+          <Markdown>{turn.applied.message}</Markdown>
+        </output>
         <Sources
           sources={turn.applied.outcomes.map((outcome, index) => ({
             ...outcome,
@@ -294,8 +299,8 @@ const ChangePreview = ({
   }
   return (
     <section aria-label="Proposed changes" className="flex flex-col gap-4">
-      <output className="text-sm whitespace-pre-wrap">
-        {turn.result.message}
+      <output className="block">
+        <Markdown>{turn.result.message}</Markdown>
       </output>
       <p className="text-muted-foreground text-sm">
         Nothing is saved until you confirm. This preview expires in 15 minutes.

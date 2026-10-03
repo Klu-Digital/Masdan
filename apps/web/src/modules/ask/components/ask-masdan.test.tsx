@@ -265,6 +265,26 @@ describe("AskMasdan", () => {
     expect(screen.getByText("Metrobank Titanium")).toBeInTheDocument();
   });
 
+  it("renders markdown in replies without raw HTML", async () => {
+    question.mockResolvedValue({
+      message:
+        "## Dining\n\nYou spent **₱4,200** on:\n\n- Grab Food\n- Jollibee\n\n<script>alert(1)</script>",
+      requestId: "turn-1",
+      sources: [],
+      status: "response",
+    });
+
+    await submit("dining");
+
+    expect(
+      await screen.findByRole("heading", { name: "Dining" })
+    ).toBeVisible();
+    expect(screen.getByText("₱4,200").tagName).toBe("STRONG");
+    expect(screen.getByText("Grab Food").tagName).toBe("LI");
+    expect(document.querySelector("script")).toBeNull();
+    expect(screen.queryByText(/\*\*/u)).toBeNull();
+  });
+
   it("says so when it cannot answer, and shows no numbers", async () => {
     question.mockResolvedValue({
       message: "I can answer questions about spending.",
